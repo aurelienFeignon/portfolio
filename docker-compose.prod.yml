@@ -1,0 +1,63 @@
+# Exécution locale de l'image de production — la même que celle qui tournera sur
+# le VPS (ADR-0008). Sert à deux choses :
+#   1. vérifier que l'artefact démarre réellement, sans attendre le déploiement ;
+#   2. faire tourner les E2E contre le build de production, comme l'exige
+#      `testing-strategy.md` §8.
+#
+# La topologie du VPS (pile « edge » Caddy autonome, réseau Docker externe
+# partagé) est décrite dans `deploy/` et n'est pas reproduite ici : ce fichier
+# n'a pas vocation à simuler la production, seulement à exercer l'image.
+
+name: portfolio-prod
+
+services:
+  web:
+    build:
+      context: .
+      target: runner
+    image: portfolio:local
+    init: true
+    ports:
+      - '3001:3000'
+    environment:
+      - SITE_URL=${SITE_URL:-http://localhost:3001}
+    # Aucun `user:` : l'image impose déjà `USER node`. Le préciser ici laisserait
+    # croire que c'est le fichier Compose qui garantit le non-root, alors que
+    # c'est l'image — donc aussi sur le VPS, où ce fichier n'est pas utilisé.
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://127.0.0.1:3000/').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 5s
+
+  # Mêmes tests, même image Playwright, mais dirigés vers le build de production.
+  e2e:
+    image: mcr.microsoft.com/playwright:v1.62.1-noble
+    user: '${HOST_UID:-1000}:${HOST_GID:-1000}'
+    working_dir: /app
+    init: true
+    depends_on:
+      web:
+        condition: service_healthy
+    environment:
+      - PLAYWRIGHT_BASE_URL=http://web:3000
+      - HOME=/tmp
+      - CI=${CI:-}
+    volumes:
+      - .:/app
+      - node_modules:/app/node_modules
+    command: ['node_modules/.bin/playwright', 'test']
+
+volumes:
+  node_modules:
+    # Volume du projet de développement : les dépendances de test y sont déjà
+    # installées. Le reconstruire ici ne servirait qu'à réinstaller à l'identique.
+    name: portfolio_node_modules
+    external: true

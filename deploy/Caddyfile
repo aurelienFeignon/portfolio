@@ -1,0 +1,41 @@
+# Pile « edge » du VPS (ADR-0008 §2).
+#
+# Ce fichier appartient au reverse proxy, PAS au portfolio : le VPS est destiné à
+# héberger d'autres projets, et le cycle de vie du portfolio (déploiement, arrêt,
+# rollback) ne doit jamais toucher au TLS des autres sites. Le portfolio rejoint
+# le proxy par un réseau Docker externe partagé et n'expose aucun port.
+#
+# Le domaine vient de l'environnement — jamais écrit en dur ici (P1-17).
+#   SITE_DOMAIN=aurelienfeignon.com
+
+{$SITE_DOMAIN} {
+	encode zstd gzip
+
+	header {
+		# HSTS : un an, sous-domaines inclus. Posé ici et non dans l'application,
+		# pour que l'en-tête existe même si le conteneur applicatif est arrêté.
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		X-Frame-Options "DENY"
+		# Ne pas annoncer le logiciel du serveur.
+		-Server
+	}
+
+	# La politique de sécurité de contenu (CSP) est délibérément absente : elle
+	# dépend des ressources réellement chargées en fin de projet et fait l'objet
+	# de l'ADR-0015 (Phase 14). Une CSP posée trop tôt est soit permissive au
+	# point d'être décorative, soit cassante à chaque ajout.
+
+	# Assets versionnés par empreinte dans leur nom : immuables, cache d'un an.
+	@immutable path /_next/static/* /models/* /textures/*
+	header @immutable Cache-Control "public, max-age=31536000, immutable"
+
+	# Le conteneur n'est joignable que par le réseau Docker interne.
+	reverse_proxy portfolio:3000
+}
+
+# Une seule origine canonique : `www` redirige, il ne sert pas.
+www.{$SITE_DOMAIN} {
+	redir https://{$SITE_DOMAIN}{uri} permanent
+}
