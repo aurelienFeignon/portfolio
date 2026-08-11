@@ -1,0 +1,36 @@
+# Dépendances et caches — vivent dans des volumes Docker nommés (ADR-0007),
+# jamais sur l'hôte. Leur présence ici signalerait une fuite du conteneur.
+node_modules/
+.pnpm-store/
+
+# Next.js
+.next/
+out/
+# `next-env.d.ts` est généré mais VERSIONNÉ : sans lui, `tsc --noEmit` sur un
+# clone neuf, avant tout `next build`, ne voit pas les types de Next.
+
+# Tests
+coverage/
+test-results/
+playwright-report/
+blob-report/
+.playwright/
+playwright/.cache/
+
+# Environnement et secrets — aucun fichier .env n'entre dans l'historique.
+.env
+.env.*
+!.env.example
+
+# Système et éditeurs
+.DS_Store
+Thumbs.db
+*.log
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+
+# Artefacts de build divers
+*.tsbuildinfo
+.turbo/

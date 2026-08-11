@@ -1,0 +1,22 @@
+# Normalisation des fins de ligne. Le développement se fait sous WSL2 mais le dépôt
+# peut être ouvert depuis Windows : sans cette règle, un checkout CRLF casse les
+# scripts shell et le Dockerfile à l'intérieur du conteneur.
+* text=auto eol=lf
+
+# Fichiers qui ne doivent jamais être convertis
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.webp binary
+*.avif binary
+*.ico binary
+*.pdf binary
+*.woff binary
+*.woff2 binary
+*.glb binary
+*.gltf binary
+*.ktx2 binary
+*.basis binary
+
+# Le lockfile est généré : le diff n'a pas d'intérêt en revue.
+pnpm-lock.yaml -diff linguist-generated=true
