@@ -1,0 +1,69 @@
+/*
+ * Réinitialisation minimale et style de focus.
+ *
+ * La stratégie de style définitive est l'ADR-0010 (Phase 4) : ce fichier ne
+ * préjuge de rien et se limite à ce qui est déjà une exigence d'accessibilité.
+ */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family:
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    sans-serif;
+  line-height: 1.5;
+  /* Contraste 15,8:1 — bien au-delà du 4,5:1 exigé par WCAG 2.2 AA. */
+  color: #1a1a1a;
+  background: #ffffff;
+}
+
+/*
+ * Focus visible dès maintenant, jamais supprimé (WCAG 2.2 — 2.4.7 et 2.4.13).
+ * `:focus-visible` plutôt que `:focus` : l'indicateur apparaît au clavier sans
+ * encombrer la navigation à la souris.
+ */
+:focus-visible {
+  outline: 3px solid #0b57d0;
+  outline-offset: 2px;
+}
+
+/*
+ * Lien d'évitement : présent dans le DOM et lisible par les technologies
+ * d'assistance, mais hors écran tant qu'il n'a pas le focus. Il n'est jamais
+ * masqué par `display: none`, ce qui le rendrait inatteignable au clavier.
+ */
+.skip-link {
+  position: absolute;
+  top: 0;
+  left: 0;
+  padding: 0.75rem 1rem;
+  background: #ffffff;
+  color: #1a1a1a;
+  transform: translateY(-150%);
+}
+
+.skip-link:focus {
+  transform: translateY(0);
+}
+
+/*
+ * Respect de `prefers-reduced-motion` posé dès la fondation : les transitions
+ * de caméra de la Phase 6 hériteront de cette règle plutôt que de la découvrir.
+ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
