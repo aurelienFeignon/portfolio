@@ -321,10 +321,14 @@ Status: **BLOCKED** (2026-08-11) — workflow `.github/workflows/ci.yml` écrit 
 (`versions` → `gates` → `e2e`), version de Node **extraite du Dockerfile** et de pnpm de
 `package.json` (aucune recopie), cache pnpm et navigateurs Playwright, E2E contre l'image de
 production, couverture et rapport Playwright publiés en artefacts.
-**Cause du blocage** : le dépôt distant existe depuis le 2026-08-11
-(`git@github.com:aurelienFeignon/portfolio.git`) mais rien n'y est encore poussé, donc le workflow
-n'a jamais tourné. Trois critères restent à satisfaire : première exécution verte, protection de
-branche avec gates non contournables, et **PR volontairement fautive vue échouer**. · Depends on: P1-11, P1-13
+**Reste à vérifier** (2026-08-11, historique poussé sur `main`) :
+1. première exécution du workflow verte ;
+2. protection de branche activée, **sans dérogation pour l'administrateur** ;
+3. **PR volontairement fautive vue échouer** — la branche `chore/verify-ci-gates` est poussée et
+   prête : la couche Content y importe React, ce que le lint refuse (vérifié en local).
+
+Ces trois points exigent l'interface GitHub ou un jeton d'API : le dépôt est privé et ni `gh` ni
+identifiants ne sont disponibles depuis l'environnement de développement. · Depends on: P1-11, P1-13
 Acceptance:
 - Workflow GitHub Actions : `install → lint → typecheck → test → coverage → build → e2e`, plus un
   job de construction de l'étage `runner`.
