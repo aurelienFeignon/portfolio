@@ -1,0 +1,19 @@
+.next/
+node_modules/
+coverage/
+test-results/
+playwright-report/
+pnpm-lock.yaml
+next-env.d.ts
+
+# Markdown exclu volontairement (P1-05).
+#
+# Prettier réaligne les tableaux Markdown sur la largeur de la cellule la plus
+# longue : 150 lignes modifiées sur le seul `vision.md`, des lignes de plus de
+# 180 caractères, et chaque correction d'une cellule réaligne tout le tableau.
+# La documentation est de la prose écrite à la main, relue en diff : un
+# formateur qui produit ce bruit coûte plus qu'il ne rapporte.
+#
+# Le code (`.ts`, `.tsx`, `.mjs`, `.json`, `.yml`) reste, lui, formaté sans
+# discussion possible — c'est là que l'uniformité a de la valeur.
+*.md
