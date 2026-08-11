@@ -237,11 +237,42 @@ Il n'y a **pas de rollback automatique du site** au sens d'un retour à un état
 lancer n'atteint pas l'état `healthy`. Le tag précédent n'est enregistré qu'après un succès — sinon
 un déploiement raté écraserait la seule cible de retour connue.
 
+### 4.1 Rollback — exécuté le 2026-08-11
+
+Pas une simulation : la production a réellement été ramenée d'un commit au précédent, puis remise à
+niveau.
+
+```
+19:30:41  rollback vers 306651a2…  (courant : a16b4b7f…)
+19:30:50  OK — 306651a2… est sain et sert le site        → 9 secondes
+```
+
+**Disponibilité mesurée pendant l'opération** : 26 sondes HTTPS à 0,5 s d'intervalle, **26 réponses
+200, aucun échec**. Formulé prudemment : aucune indisponibilité n'a été observée — un intervalle
+d'une demi-seconde peut manquer une coupure plus brève.
+
+Deux choses vérifiées à cette occasion, qui ne se devinent pas :
+
+- **Le rollback est symétrique.** Après retour à `306651a2…`, `.tag.previous` contient `a16b4b7f…` :
+  le même verbe `rollback` repart donc en avant. Utile quand on est revenu en arrière par précaution
+  et qu'on veut annuler ce retour.
+- **L'image de destination était déjà locale**, d'où les 9 secondes. C'est exactement ce que protège
+  le `docker system prune -f` sans `-a` (§1.1) : avec `-a`, il aurait fallu retélécharger l'image
+  depuis GHCR au pire moment.
+
+Remise à niveau ensuite, par le même chemin, en nommant explicitement le tag :
+
+```bash
+ssh aurel@<ip> 'SSH_ORIGINAL_COMMAND="deploy <sha40>" /srv/portfolio/deploy.sh'
+```
+
 ---
 
-## 5. Ce qui reste à faire (P1-15)
+## 5. Ce qui reste à faire
 
-- [ ] **Rollback exécuté au moins une fois** vers le tag précédent, et consigné ici.
+P1-15 est **terminé** : les huit critères d'acceptation sont satisfaits, chacun vérifié par une
+exécution réelle. Ce qui suit déborde de la tâche et relève des phases ultérieures.
+
 - [ ] **Bascule du proxy Cloudflare** en orange avec SSL en *Full (strict)*, une fois le certificat
       d'origine en place — c'est l'étape qui active réellement le CDN de H-01b.
 - [ ] **Pare-feu cloud Hetzner** en amont de `ufw` (console Hetzner, hors de portée du dépôt).
