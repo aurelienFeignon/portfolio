@@ -17,9 +17,16 @@
 #   2. Sur le même système de fichiers, pnpm installe par **liens durs** au lieu
 #      de copier — ce qui est la raison même de l'avoir choisi.
 #
-# Le chemin est absolu et propre au conteneur. C'est cohérent avec l'ADR-0007 :
-# aucune commande de ce projet ne s'exécute ailleurs.
-storeDir: /app/node_modules/.pnpm-store
+# Le chemin est **relatif**, et ce n'est pas un détail. Il a d'abord été écrit en
+# absolu (`/app/…`), au motif qu'aucune commande de ce projet ne s'exécute hors
+# du conteneur. C'était faux : l'ADR-0007 §Règles 6 fait tourner les gates de la
+# CI nativement, où `/app` n'existe pas et n'est pas créable — `EACCES` au
+# premier `pnpm install`. Trouvé par la CI, invisible en local (P1-14).
+#
+# En relatif, la résolution est correcte partout : `/app/node_modules/.pnpm-store`
+# dans le conteneur, `<workspace>/node_modules/.pnpm-store` sur un runner. Dans
+# les deux cas sur le même système de fichiers que `node_modules`, donc liens durs.
+storeDir: node_modules/.pnpm-store
 
 # --- Scripts d'installation -------------------------------------------------
 #
