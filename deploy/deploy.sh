@@ -43,7 +43,11 @@ case "${VERB:-}" in
     log "rollback vers $TAG"
     ;;
   status)
-    docker compose -f "$COMPOSE" ps
+    # Volontairement sans `docker compose` : la composition exige `IMAGE_TAG`,
+    # or `status` doit rester lisible précisément quand rien n'est déployé —
+    # c'est le moment où l'on en a le plus besoin.
+    docker ps -a --filter 'label=com.docker.compose.project=portfolio' \
+      --format 'table {{.Names}}\t{{.Image}}\t{{.Status}}'
     echo "tag courant   : $(grep -oP '^IMAGE_TAG=\K.*' "$ENV_FILE" 2>/dev/null || echo '-')"
     echo "tag précédent : $(cat "$PREVIOUS" 2>/dev/null || echo '-')"
     exit 0
