@@ -317,18 +317,20 @@ Acceptance:
 - `deploy/Caddyfile` écrit et validé localement (TLS interne ou domaine de test).
 
 **P1-14 — Intégration continue**
-Status: **BLOCKED** (2026-08-11) — workflow `.github/workflows/ci.yml` écrit et valide : trois jobs
+Status: **DONE** (2026-08-11) — workflow `.github/workflows/ci.yml` écrit et valide : trois jobs
 (`versions` → `gates` → `e2e`), version de Node **extraite du Dockerfile** et de pnpm de
 `package.json` (aucune recopie), cache pnpm et navigateurs Playwright, E2E contre l'image de
 production, couverture et rapport Playwright publiés en artefacts.
-**Reste à vérifier** (2026-08-11, historique poussé sur `main`) :
-1. première exécution du workflow verte ;
-2. protection de branche activée, **sans dérogation pour l'administrateur** ;
-3. **PR volontairement fautive vue échouer** — la branche `chore/verify-ci-gates` est poussée et
-   prête : la couche Content y importe React, ce que le lint refuse (vérifié en local).
+**Vérifié le 2026-08-11**, dans cet ordre :
+1. **CI verte sur `main`** — `versions` 4 s, gates 41 s, image de production + E2E 4 min 51.
+2. **Protection de branche active, `bypass_actors` vide.** Un push direct sur `main` est refusé
+   (`GH013 — Changes must be made through a pull request`), y compris pour le propriétaire.
+3. **PR fautive vue échouer**, et pour la bonne raison : `'react' import is restricted … (CT-09)`.
+   La fusion a été **tentée avec `--admin`** et refusée : *« Required status check … is failing »*.
+   `main` n'a pas bougé. PR fermée, branche supprimée.
 
-Ces trois points exigent l'interface GitHub ou un jeton d'API : le dépôt est privé et ni `gh` ni
-identifiants ne sont disponibles depuis l'environnement de développement. · Depends on: P1-11, P1-13
+Un défaut réel a été trouvé par la CI, invisible en local : `storeDir` portait un chemin absolu de
+conteneur (`/app/…`) alors que les gates s'exécutent nativement sur le runner. Corrigé en relatif. · Depends on: P1-11, P1-13
 Acceptance:
 - Workflow GitHub Actions : `install → lint → typecheck → test → coverage → build → e2e`, plus un
   job de construction de l'étage `runner`.
@@ -405,18 +407,17 @@ image de production démarrant et répondant au healthcheck.
 - [x] Aucun fichier `root` produit dans le dépôt.
 - [x] TypeScript strict, zéro erreur, aucune suppression d'erreur.
 - [x] Règle de cloisonnement active et **vérifiée par un échec observé**.
-- [ ] **CI verte, gates non contournables, échec observé sur une PR fautive** — ⛔ seul critère non
-      satisfait : aucun dépôt GitHub distant n'existe (P1-14 `BLOCKED`).
+- [x] **CI verte, gates non contournables, échec observé sur une PR fautive** — *fusion refusée même
+      avec `--admin` ; le dépôt est passé en public pour débloquer Actions (voir Q5).*
 - [x] Image de production construite, non-root, démarrant avec healthcheck.
 - [x] Budget de bundle mesuré et automatiquement surveillé — gate vu échouer.
 - [ ] P1-17 : domaine acheté ✅, SPF et DKIM publiés ✅ ; DMARC, validation Mailjet et `A` restants.
 - [x] P1-15 explicitement `BLOCKED` avec cause tracée.
 - [x] Aucune dépendance Three.js présente dans le projet.
 
-> **La Phase 2 n'est pas ouverte.** Deux critères restent ouverts, et tous deux dépendent d'une
-> action externe, pas du code : la création du dépôt GitHub (P1-14) et la fin de la zone DNS
-> (P1-17). Le premier est bloquant au sens strict — une fondation dont les gates ne sont pas
-> vérifiés en intégration continue n'est pas une fondation.
+> **Un seul critère reste ouvert : P1-17**, et il ne dépend pas du code — DMARC, validation Mailjet
+> et enregistrement `A`. Il ne bloque rien avant la Phase 3 (URL canoniques, `hreflang`). Tous les
+> critères techniques sont satisfaits et vérifiés par exécution.
 
 ---
 

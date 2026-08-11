@@ -1,0 +1,41 @@
+# Pile applicative sur le VPS — ADR-0008.
+#
+# Copiée en `/srv/portfolio/docker-compose.yml`. Distincte de la pile « edge » :
+# arrêter, redéployer ou faire échouer le portfolio ne doit jamais toucher au TLS
+# des autres sites hébergés sur ce VPS.
+#
+# Le VPS ne construit rien : cette pile ne connaît qu'une image déjà publiée.
+
+name: portfolio
+
+services:
+  web:
+    # Le tag est un SHA de commit complet, écrit dans `.env` par `deploy.sh`.
+    # Jamais `latest` : un rollback doit désigner un état exact du dépôt, et
+    # `latest` change sous les pieds de celui qui le lit.
+    image: ghcr.io/aurelienfeignon/portfolio:${IMAGE_TAG:?IMAGE_TAG manquant dans /srv/portfolio/.env}
+    restart: unless-stopped
+    init: true
+
+    # SITE_URL notamment : l'application refuse de démarrer sans (P1-10).
+    env_file:
+      - .env
+
+    # Aucun port publié — et c'est structurel, pas une économie. Un port publié
+    # par Docker contourne `ufw` (règles iptables écrites en amont). Le conteneur
+    # n'est joignable que par le réseau `edge`, donc uniquement par Caddy.
+    networks:
+      edge:
+        aliases:
+          # Le nom qu'attend `reverse_proxy portfolio:3000` dans le Caddyfile.
+          # Sans cet alias, le service ne serait résolvable que comme `web`, et
+          # Caddy répondrait 502.
+          - portfolio
+
+    # Le HEALTHCHECK vient de l'image (Dockerfile, étage `runner`) : une seule
+    # définition de « le site répond », partagée par Compose, Docker et le
+    # déploiement.
+
+networks:
+  edge:
+    external: true
