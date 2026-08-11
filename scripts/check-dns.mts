@@ -116,22 +116,33 @@ for (const check of checks) {
       values: await resolve(r, check.name, check.type),
     })),
   )
-  const values = perResolver[0]!.values
-  const { ok, detail } = check.verdict(values)
-  // Un TXT de plus de 255 caractères — la clé DKIM — est découpé en segments, et
-  // chaque résolveur les restitue à sa façon. Comparer les chaînes brutes
-  // signalerait une désynchronisation qui n'existe pas : on normalise d'abord.
+  // Le verdict est calculé pour CHAQUE résolveur, pas seulement le premier.
+  // Juger sur un seul produit un faux négatif au moment précis où l'on vérifie :
+  // un enregistrement fraîchement créé est déjà visible chez l'opérateur
+  // autoritaire alors qu'un autre garde encore une réponse négative en cache.
+  // Constaté en publiant DMARC (P1-17).
+  const verdicts = perResolver.map((r) => ({ ...r, ...check.verdict(r.values) }))
+  const ok = verdicts.every((v) => v.ok)
+
+  // L'accord se juge sur les ENSEMBLES de valeurs, pas sur le texte affiché :
+  // les résolveurs renvoient les mêmes MX dans un ordre différent, et un TXT de
+  // plus de 255 caractères — la clé DKIM — est découpé en segments que chacun
+  // restitue à sa façon. Comparer les chaînes brutes signalerait une
+  // désynchronisation qui n'existe pas.
   const normalize = (values: string[]) =>
     [...values]
       .map((value) => value.replace(/["\s]/g, ''))
       .sort()
       .join('|')
-  const consistent = perResolver.every((r) => normalize(r.values) === normalize(values))
+  const agree = verdicts.every((v) => normalize(v.values) === normalize(verdicts[0]!.values))
 
-  console.log(`${ok ? '✓' : '✗'} ${check.label}`)
-  console.log(`    ${detail}`)
-  if (!consistent)
-    console.log(`    ⚠ réponses différentes selon le résolveur — propagation en cours`)
+  console.log(`${ok ? '✓' : verdicts.some((v) => v.ok) ? '⏳' : '✗'} ${check.label}`)
+  if (agree) {
+    console.log(`    ${verdicts[0]!.detail}`)
+  } else {
+    for (const v of verdicts) console.log(`    ${v.ok ? '✓' : '✗'} ${v.resolver} : ${v.detail}`)
+    console.log(`    ⏳ propagation en cours — pas encore effectif pour tous les destinataires`)
+  }
   if (!ok) failures += 1
 }
 
