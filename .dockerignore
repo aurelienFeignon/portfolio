@@ -1,0 +1,19 @@
+# Réduit le contexte de build et évite d'invalider les couches pour rien.
+.git/
+.github/
+node_modules/
+.next/
+out/
+coverage/
+test-results/
+playwright-report/
+blob-report/
+docs/
+deploy/
+*.log
+.env
+.env.*
+!.env.example
+.DS_Store
+.idea/
+.vscode/

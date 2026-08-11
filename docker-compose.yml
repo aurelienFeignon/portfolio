@@ -1,0 +1,84 @@
+# Environnement de développement (ADR-0007).
+# Le service `e2e` (Playwright) sera ajouté en P1-08 ; la production a son propre
+# fichier `docker-compose.prod.yml` (P1-13).
+#
+# HOST_UID / HOST_GID sont exportés par le Makefile. En invocation directe
+# (`docker compose up`) la valeur par défaut 1000:1000 s'applique.
+#
+# L'utilisateur `node` de l'image officielle est 1000:1000, ce qui correspond à
+# l'hôte de développement. Sur une machine dont l'UID diffère, `/home/node` ne
+# serait pas inscriptible : il faudrait alors reconstruire l'image en ajustant
+# l'utilisateur. Cas non rencontré ici, signalé pour ne pas être découvert plus tard.
+
+name: portfolio
+
+services:
+  web:
+    build:
+      context: .
+      target: dev
+    image: portfolio-dev
+    user: '${HOST_UID:-1000}:${HOST_GID:-1000}'
+    working_dir: /app
+    init: true
+    ports:
+      - '3000:3000'
+    environment:
+      # Repli documenté si inotify est inopérant (projet hors du FS natif WSL2).
+      # Coûteux en CPU : à activer ponctuellement via .env, jamais par défaut.
+      - WATCHPACK_POLLING
+    # Le service `e2e` attend que la page réponde réellement, pas que le
+    # conteneur soit lancé. Même sonde que le `HEALTHCHECK` de l'image de
+    # production (P1-13), pour ne pas en maintenir deux.
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://127.0.0.1:3000/').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 5s
+    volumes:
+      # Code source : bind mount, pour que l'édition sur l'hôte soit vue par le
+      # conteneur (hot reload).
+      - .:/app
+      # Dépendances et caches : volumes NOMMÉS. Ils masquent les chemins
+      # correspondants du bind mount, donc aucun binaire natif ni fichier
+      # appartenant au conteneur n'apparaît jamais sur l'hôte.
+      # Le store pnpm vit dans `node_modules/.pnpm-store` (voir Dockerfile) : il
+      # est donc couvert par ce volume, sur le même système de fichiers que les
+      # paquets installés — condition du lien dur plutôt que de la copie.
+      - node_modules:/app/node_modules
+      - next_cache:/app/.next
+
+  # Service séparé (ADR-0007) : les navigateurs et leurs dépendances système
+  # pèsent plusieurs centaines de mégaoctets pour un usage ponctuel. Ils n'ont
+  # rien à faire dans l'image utilisée en permanence.
+  #
+  # La version de l'image et celle de `@playwright/test` doivent rester
+  # identiques : les navigateurs viennent de l'image, le client du lockfile.
+  e2e:
+    image: mcr.microsoft.com/playwright:v1.62.1-noble
+    user: '${HOST_UID:-1000}:${HOST_GID:-1000}'
+    working_dir: /app
+    init: true
+    depends_on:
+      web:
+        condition: service_healthy
+    environment:
+      - PLAYWRIGHT_BASE_URL=http://web:3000
+      # L'image ne définit pas HOME pour un UID arbitraire ; sans cela Playwright
+      # tente d'écrire dans `/` et échoue.
+      - HOME=/tmp
+    volumes:
+      - .:/app
+      - node_modules:/app/node_modules
+    command: ['node_modules/.bin/playwright', 'test']
+
+volumes:
+  node_modules:
+  next_cache:
