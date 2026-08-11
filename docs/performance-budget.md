@@ -1,0 +1,227 @@
+# Budget de performance
+
+> Statut : **Phase 0 — en revue**
+> Dernière mise à jour : 2026-08-11
+> Les valeurs ci-dessous sont des **budgets initiaux**, à confronter aux mesures réelles en
+> Phase 11. Un budget que l'on ajuste après mesure est sain ; un budget que l'on ajuste pour ne
+> pas avoir à corriger le code ne l'est pas — tout relèvement doit être justifié par écrit.
+
+---
+
+## 1. Principe
+
+La performance est un **critère fonctionnel** : une expérience 3D lente est une expérience ratée,
+et un LCP dégradé est une perte de visiteurs et de classement.
+
+Deux règles structurantes :
+
+1. **Le contenu n'attend jamais la 3D.** Le bundle Three.js est chargé après l'interactivité du
+   contenu, jamais en concurrence avec le LCP.
+2. **On mesure avant d'optimiser.** L'outillage de mesure est mis en place tôt (Phase 5) ;
+   l'optimisation est concentrée en Phase 11, sauf franchissement de budget.
+
+---
+
+## 2. Core Web Vitals
+
+Profil de référence : **mobile milieu de gamme, réseau 4G throttlé (Lighthouse mobile)**, sur la
+page d'accueil et sur une page de détail de projet.
+
+| Métrique | Cible | Seuil bloquant | Notes |
+|---|---|---|---|
+| LCP | ≤ 1,8 s | **2,5 s** | Élément LCP = titre ou visuel documentaire, jamais le canvas |
+| CLS | ≤ 0,02 | **0,05** | Le montage du canvas ne doit provoquer aucun décalage |
+| INP | ≤ 150 ms | **200 ms** | Y compris pendant le chargement de la scène |
+| TTFB | ≤ 400 ms | **600 ms** | Pages SSG servies depuis le VPS ; hors zone géographique, dépend du CDN (R-16, H-01b) |
+| FCP | ≤ 1,2 s | 1,8 s | |
+| TBT (lab) | ≤ 200 ms | 300 ms | Métrique la plus sensible au bundle 3D |
+
+Rappel lié à l'auto-hébergement : le TTFB est mesuré **depuis au moins deux régions** en Phase 11.
+Une bonne mesure depuis la région du VPS ne prouve rien pour un recruteur situé ailleurs.
+
+## 3. Scores Lighthouse
+
+| Catégorie | Desktop | Mobile |
+|---|---|---|
+| Performance | ≥ 95 | ≥ 85 |
+| Accessibilité | **100** | **100** |
+| Bonnes pratiques | ≥ 95 | ≥ 95 |
+| SEO | **100** | **100** |
+
+Accessibilité et SEO sont à 100 sans négociation possible : ce sont des exigences produit (§5
+Vision), et ce sont les deux domaines où la 3D fait peser un risque.
+
+---
+
+## 4. Budget JavaScript
+
+Mesures en **transfert gzip/brotli**, telles que rapportées par l'analyse de bundle.
+
+| Élément | Cible | Seuil bloquant | Quand |
+|---|---|---|---|
+| ~~First Load JS partagé (toutes routes)~~ | ~~≤ 95 Ko~~ | ~~120 Ko~~ | **révisé, voir §4.1** |
+| First Load JS partagé (toutes routes) | ≤ 136 Ko | **146 Ko** | Phase 1 |
+| JS d'une page de contenu (hors partagé) | ≤ 25 Ko | **40 Ko** | Phase 4 |
+| **JS total avant interactivité du contenu** | ≤ 120 Ko | **160 Ko** | Phase 4 |
+| Chunk 3D (three + R3F + drei, différé) | ≤ 220 Ko | **320 Ko** | Phase 5 |
+| Chunk 3D après direction artistique | ≤ 260 Ko | **350 Ko** | Phase 8 |
+
+Le chunk 3D **n'entre pas** dans le budget « avant interactivité » : c'est précisément ce que
+garantit l'ADR-0003. Un test de non-régression vérifie qu'aucun module `three` n'apparaît dans le
+graphe de dépendances des chunks initiaux — c'est plus fiable qu'un simple contrôle de taille.
+
+Leviers prévus : import dynamique `ssr:false`, montage après idle, imports nommés depuis `drei`
+(jamais l'espace de noms entier), pas de `three/examples` non nécessaires.
+
+### 4.1 Révision du budget « First Load JS partagé » — 2026-08-11 (P1-12)
+
+> ⚠️ **Un budget relevé après mesure, pas pour éviter de corriger du code.** La distinction est
+> celle posée en tête de ce document, et elle est vérifiable ici : à la mesure, l'application ne
+> contenait **aucun composant client**. Il n'y avait pas de code à corriger.
+
+**Mesure** — Sur une application vide de tout JavaScript client (Next 16.3.0, React 19.2.8), le
+socle chargé par toutes les routes pèse **126,0 Ko en gzip** : React, le runtime client de l'App
+Router et le chargeur Turbopack. Les polyfills (`noModule`, 38,6 Ko) sont exclus : ils ne sont
+servis qu'aux navigateurs hors périmètre (§5.6 de `vision.md`).
+
+**Constat** — Le budget initial (95 Ko cible, 120 Ko bloquant) était **inférieur au plancher du
+framework**. Il ne pouvait être tenu par aucune version du code, et une CI qui l'applique est rouge
+le jour de sa création. Un tel seuil ne mesure rien : il se contourne ou se supprime.
+
+**Décision** — Rebaser le budget sur ce qui est réellement sous le contrôle du projet : la **part
+applicative ajoutée au-dessus du socle**.
+
+| | Valeur | Signification |
+|---|---|---|
+| Socle mesuré | 126,0 Ko | Plancher du framework, remesuré à chaque montée de version |
+| Marge applicative — cible | +10 Ko | soit **136 Ko** au total |
+| Marge applicative — bloquante | +20 Ko | soit **146 Ko** au total |
+
+La marge retenue est **plus stricte que l'intention initiale** (qui laissait implicitement 25 à
+45 Ko d'application au-dessus d'un socle supposé plus léger). Justification : le portfolio est rendu
+côté serveur, et sa richesse client vit dans la couche 3D, qui a son propre budget différé (320 Ko,
+hors chemin critique). Le socle partagé n'a donc presque rien à porter.
+
+Relevé au 2026-08-11 : **129,5 Ko**, soit **+3,5 Ko** applicatifs — le bootstrap du layout, sans
+aucun composant client.
+
+**À revoir en Phase 11** : le socle lui-même n'a pas été attaqué (il ne l'a pas été faute de temps
+et faute d'enjeu à ce stade, l'application ne dépendant d'aucun JavaScript client). Si les Core Web
+Vitals l'exigent, les pistes sont le fractionnement par route et la vérification de ce que Next 16
+permet de retirer du runtime client.
+
+**Vérification du gate** — Un composant client de 134 Ko de source ajouté au layout racine fait
+échouer la mesure (82 Ko de JS de route contre 40 Ko bloquants, code de sortie 1). Le mécanisme a
+été vu échouer avant d'être déclaré actif.
+
+---
+
+## 5. Budget des assets 3D
+
+| Élément | Cible | Seuil bloquant |
+|---|---|---|
+| Total GLB (compressé Draco ou Meshopt) | ≤ 1,5 Mo | **3 Mo** |
+| Plus gros GLB isolé | ≤ 600 Ko | 1 Mo |
+| Total textures (KTX2/Basis, ou WebP) | ≤ 1,5 Mo | **2,5 Mo** |
+| Plus grande texture | 1024² | 2048² |
+| Triangles affichés — desktop | ≤ 150 k | **250 k** |
+| Triangles affichés — mobile (`lite`) | ≤ 50 k | **80 k** |
+| Draw calls — desktop | ≤ 60 | **90** |
+| Draw calls — mobile | ≤ 30 | **45** |
+| Mémoire GPU (textures + géométries) | ≤ 120 Mo | **200 Mo** |
+| Temps jusqu'à première image de la scène (desktop, cache froid) | ≤ 2,0 s | 3,0 s |
+
+Ces budgets ne sont pas décoratifs : la Phase 8 impose une mesure **après chaque ajout d'objet**,
+avec consignation `Avant / Après / Gain` dans le journal de phase.
+
+---
+
+## 6. Budget d'exécution (runtime)
+
+| Métrique | Desktop (`full`) | Mobile (`lite`) |
+|---|---|---|
+| FPS en régime stable | ≥ 58 | ≥ 30 |
+| FPS pendant une transition de caméra | ≥ 50 | ≥ 28 |
+| Durée d'une image sur le thread principal | ≤ 8 ms | ≤ 16 ms |
+| Allocations par image | ~0 (pas de création d'objet dans la boucle) | idem |
+
+Règles d'implémentation associées : réutilisation des `Vector3`/`Quaternion` dans les boucles,
+`frameloop="demand"` quand la scène est immobile, mise en pause du rendu quand l'onglet est masqué
+ou le canvas hors écran.
+
+---
+
+## 7. Budget serveur (VPS)
+
+Conséquence directe de l'auto-hébergement : les ressources sont finies et à ma charge.
+
+| Métrique | Cible | Seuil d'alerte |
+|---|---|---|
+| RSS du conteneur en régime stable | ≤ 250 Mo | 400 Mo |
+| *(relevé 2026-08-11 : **51 Mo** au repos, image de production)* | | |
+| CPU en régime stable | ≤ 5 % | 25 % |
+| Temps de réponse d'une page SSG (origine) | ≤ 50 ms | 150 ms |
+| Taille de l'image Docker de production | ≤ 250 Mo | 400 Mo |
+| *(relevé 2026-08-11 : **381 Mo**, dont 340 Mo d'image de base — voir §7.1)* | | |
+| Durée de démarrage à froid du conteneur | ≤ 5 s | 15 s |
+| Taux de succès du cache CDN sur `/_next/static` | ≥ 95 % | — |
+
+### 7.1 Taille de l'image de production — dépassement de la cible constaté (P1-13)
+
+**Mesure (2026-08-11)** : 381 Mo au total, dont **41 Mo d'application** (`standalone` 40,1 Mo +
+statiques 0,6 Mo) et **340 Mo d'image de base** `node:24-bookworm-slim`.
+
+La cible de 250 Mo n'est atteignable par **aucune** image Node officielle : `node:24-alpine` pèse
+234 Mo à elle seule, `node:24-trixie-slim` 335 Mo. Le dépassement ne vient donc d'aucun choix du
+projet.
+
+**Décision : ne rien changer, et ne pas relever le seuil non plus.** L'image reste sous le seuil
+bloquant (400 Mo), et passer à Alpine — seule piste qui gagnerait ~100 Mo — coûterait la parité
+glibc entre l'étage de build et l'étage d'exécution, avec un risque direct sur `sharp` en Phase 4.
+Ce n'est pas un arbitrage à rendre sous pression d'un chiffre, et il modifierait l'ADR-0007.
+
+**Ce qui compte réellement pour l'exploitation** : à chaque déploiement, seule la couche applicative
+est transférée, soit **41 Mo**, l'image de base étant déjà présente sur le VPS. Le rollback consiste
+à redémarrer une image déjà locale. La cible de 250 Mo mesurait la mauvaise grandeur.
+
+**À trancher en Phase 11** (avec la mesure de consommation réelle du VPS) : remplacer cette ligne de
+budget par « couche applicative par déploiement ≤ 60 Mo », qui est la quantité pilotable.
+
+Ces chiffres sont dimensionnants pour H-01a (2 vCPU / 2 Go). L'optimisation d'images `next/image`
+consomme le CPU du VPS : les visuels sont donc pré-dimensionnés au build et le cache d'images est
+placé sur un volume persistant, pour ne pas recalculer après chaque déploiement.
+
+---
+
+## 8. Méthode de mesure
+
+| Quand | Quoi | Comment |
+|---|---|---|
+| À chaque PR | Taille des bundles | Analyse de bundle + assertion sur les seuils, en gate CI (à partir de P1-10) |
+| À chaque PR | Absence de `three` dans les chunks initiaux | Test de graphe de dépendances (à partir de P5) |
+| Phase 5, 8, 11, 13 | Triangles, draw calls, mémoire GPU | `renderer.info` relevé dans un panneau de diagnostic activable |
+| Phase 5, 8, 11, 13 | FPS | Relevé sur matériel réel, pas en émulation |
+| Phase 11, 15 | Core Web Vitals lab | Lighthouse, profils desktop et mobile |
+| Phase 11, 15 | TTFB multi-région | Mesure depuis au moins deux localisations |
+| Continu (post-release) | Vitals terrain | Mesure côté client sans cookie, agrégée — si et seulement si H-08 tient |
+
+Le panneau de diagnostic est développé dès la Phase 5 : mesurer tôt coûte peu, découvrir tard coûte
+une refonte.
+
+---
+
+## 9. Procédure en cas de dépassement
+
+1. **Mesurer** et consigner `Avant`.
+2. **Identifier** la cause précise (bundle, asset, boucle de rendu, requête).
+3. **Corriger**, puis re-mesurer et consigner `Après / Gain`.
+4. Si le budget reste dépassé : **arbitrage explicite** — réduire l'ambition de la scène (palier
+   `lite` élargi, objet retiré) plutôt que relever le seuil.
+5. Un seuil n'est relevé qu'avec une justification écrite dans la roadmap et, s'il est structurant,
+   un ADR mis à jour.
+
+> Ordre de priorité en cas de conflit :
+> **accessibilité > indexabilité > performance du contenu > richesse de la scène 3D.**
+> Cet ordre est la règle d'arbitrage du projet ; il est rappelé ici parce que c'est en Phase 8
+> qu'il sera tentant de l'oublier.
+</content>
