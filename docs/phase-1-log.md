@@ -39,8 +39,8 @@ moment où il bloque.
 |---|---|---|---|
 | Accès au groupe `docker` + GNU Make | ✅ fait *(2026-08-11)* | **P1-02 → P1-16**, c'est-à-dire tout | levé |
 | Nom de domaine (P1-17) | 🟡 **`aurelienfeignon.com` acheté et sécurisé chez Namecheap** *(2026-08-11 ; expire le 2027-08-11, renouvellement auto, verrou de transfert et WHOIS privé vérifiés au whois)* — SPF et DKIM publiés ; restent la validation Mailjet, DMARC, et le pointage vers le VPS | P1-15, P3-06, P10-11 | Phase 3 pour les URL canoniques ; avant la mise en ligne T1 |
-| VPS (Q1) | 🟡 **commande en cours** *(2026-08-11)* | P1-15 uniquement | Avant P4-13 (mise en production, jalon T1) |
-| Dépôt GitHub distant | ✅ **`git@github.com:aurelienFeignon/portfolio.git`** *(2026-08-11)* | P1-14 (CI), P1-15 (publication GHCR) | levé — P1-14 reprend |
+| VPS (Q1) | ✅ **provisionné et durci** — Hetzner CX23, Debian 13 *(2026-08-11, `deploy/README.md` §1)* | P1-15 | levé |
+| Dépôt GitHub distant | ✅ **public** — `aurelienFeignon/portfolio` *(2026-08-11)* | P1-14 (CI), P1-15 (GHCR) | levé |
 
 **Lecture** : les deux prérequis d'hôte sont levés et le dépôt distant existe. Il reste le VPS,
 qui ne bloque que P1-15. Le report de P1-15 est explicitement autorisé par la roadmap, à condition
@@ -282,7 +282,7 @@ sans coût architectural.**
 |---|---|---|
 | Q3 | CDN en frontal : décision reportée à la mesure multi-région | 11 |
 | Q4 | Déploiement automatique après gates verts sur la branche principale | 1 (P1-15) |
-| Q5 | Dépôt **privé**, publié à la release | 1 (P1-14) |
+| ~~Q5~~ | ~~Dépôt privé, publié à la release~~ → **modifié le 2026-08-11 : dépôt PUBLIC**, voir §5 ter | 1 (P1-14) |
 | Q6 | Alertes de supervision vers `aurelien.feignon@gmail.com` | 4 (P4-14) |
 | Q8 | Plafond de 20 envois/jour, à confirmer contre le quota réel du plan | 10 |
 | Q9 | Expéditeur `contact@<domaine>`, réponse vers l'adresse personnelle | 1 (P1-17) |
@@ -300,6 +300,46 @@ sans coût architectural.**
 jour (`aurelienfeignon.com`, Namecheap). P1-15 reste `BLOCKED` faute de serveur, comme prévu par la
 roadmap ; le déploiement réel devient la première tâche de la Phase 2. Cela n'empêche pas la sortie
 de Phase 1 dès lors que P1-13 et P1-14 sont `DONE`.
+
+## 5 ter. Q5 rouverte : le dépôt passe en public
+
+**Cause** — La première exécution de la CI n'a jamais démarré : *« The job was not started because
+recent account payments have failed or your spending limit needs to be increased »*. GitHub Actions
+est facturé sur les dépôts privés au-delà du quota offert ; il est **gratuit et illimité** sur un
+dépôt public.
+
+**Options pesées** — régler la facturation et rester privé ; héberger un runner sur le VPS ; passer
+le dépôt en public.
+
+Le runner auto-hébergé a été écarté : l'ADR-0008 rejette explicitement l'alternative « build sur le
+VPS » (consommation de RAM et de CPU du serveur de production, H-01a), et un runner y ferait tourner
+`next build` et les navigateurs Playwright sur la machine qui sert le site — en couplant au passage
+la chaîne de build à la production. Sur une autre machine, ce serait défendable, mais cela
+modifierait l'ADR-0008.
+
+**Décision de l'utilisateur : dépôt public.** Vérifié avant bascule : aucun `.env` dans
+l'historique, aucune clé, aucun secret, aucune adresse e-mail hors métadonnées d'auteur de commit.
+
+**Conséquence assumée** : l'historique est définitivement visible, y compris les tâtonnements à
+venir — ce que la réponse initiale à Q5 voulait précisément éviter. En contrepartie, un dépôt qui
+expose ses ADR, son journal de phase et une CI qui bloque sur l'accessibilité est en soi une pièce
+du portfolio.
+
+## 5 quater. P1-14 — ce que la CI a trouvé et que l'exécution locale ne pouvait pas voir
+
+`storeDir` portait `/app/node_modules/.pnpm-store`, chemin absolu du conteneur. Le commentaire qui
+l'accompagnait justifiait ce choix par « aucune commande de ce projet ne s'exécute ailleurs ».
+**C'était faux** : l'ADR-0007 §Règles 6 fait tourner les gates de la CI *nativement*, précisément
+pour la vitesse. Sur le runner, `/app` n'existe pas et n'est pas créable — `EACCES` au premier
+`pnpm install`.
+
+Corrigé en chemin relatif, correct des deux côtés. Le défaut était **structurellement invisible en
+local** : tout ce qui tourne ici tourne dans le conteneur. C'est exactement ce pour quoi le risque
+**R-14** (divergence dev ↔ CI) était consigné, et la première exécution réelle l'a trouvé.
+
+**Preuve des gates non contournables** : la fusion de la PR fautive a été tentée avec `--admin`, et
+refusée — *« Required status check "lint · typecheck · tests · budget de bundle" is failing »*.
+Un push direct sur `main` est lui aussi refusé (`GH013`). `bypass_actors` est vide.
 
 ## 6. Mesures
 
@@ -320,8 +360,8 @@ sont pas surveillés.
 
 ### 7.1 Fait
 
-**14 tâches sur 17 terminées** (P1-01 à P1-13, P1-16). Le squelette est dockerisé, typé, testé,
-mesuré, et l'artefact de production tourne réellement.
+**15 tâches sur 17 terminées** (P1-01 à P1-14, P1-16). Le squelette est dockerisé, typé, testé,
+mesuré, vérifié en intégration continue, et l'artefact de production tourne réellement.
 
 | Critère de sortie de la Phase 1 | État |
 |---|---|
@@ -331,17 +371,23 @@ mesuré, et l'artefact de production tourne réellement.
 | Aucun fichier `root` produit dans le dépôt | ✅ après correction d'un défaut réel (§3 bis) |
 | TypeScript strict, zéro erreur, aucune suppression | ✅ 5 options **vues échouer** avant d'être déclarées actives |
 | Règle de cloisonnement active et vérifiée par un échec observé | ✅ 7 violations, dont 2 que la première version laissait passer |
-| CI verte, gates non contournables, échec observé sur une PR fautive | ❌ **bloqué** : pas de dépôt distant |
+| CI verte, gates non contournables, échec observé sur une PR fautive | ✅ fusion refusée **même avec `--admin`** ; push direct sur `main` refusé |
 | Image de production construite, non-root, healthcheck | ✅ `uid=1000(node)`, saine en 6 s, 51 Mo de RSS |
 | Budget de bundle mesuré et surveillé automatiquement | ✅ gate **vu échouer** ; budget révisé et justifié |
 | P1-17 : domaine, DNS, authentification Mailjet | 🟡 domaine acheté, SPF et DKIM publiés ; DMARC, validation Mailjet et `A` restants |
 | P1-15 `DONE` ou explicitement `BLOCKED` avec cause tracée | ✅ `BLOCKED`, cause tracée |
 | Aucune dépendance Three.js | ✅ |
 
-**Ce que je retiens** : neuf défauts réels ont été trouvés, et **aucun par relecture** — tous en
-exécutant. Trois auraient survécu à une revue de code attentive : le store pnpm déversé sur l'hôte,
-la règle de cloisonnement aveugle aux alias, et le gate de bundle qui mesurait un champ de manifeste
-sans rapport avec ce qu'un navigateur télécharge. Les trois « fonctionnaient » à la lecture.
+**Ce que je retiens** : dix défauts réels ont été trouvés, et **aucun par relecture** — tous en
+exécutant. Quatre auraient survécu à une revue de code attentive : le store pnpm déversé sur l'hôte,
+la règle de cloisonnement aveugle aux alias, le gate de bundle qui mesurait un champ de manifeste
+sans rapport avec ce qu'un navigateur télécharge, et le chemin de store absolu qui ne pouvait
+casser que sur un runner. Les quatre « fonctionnaient » à la lecture.
+
+Le dernier mérite d'être souligné : il n'était pas seulement invisible en local, il était
+**structurellement inaccessible** à toute vérification locale, puisque tout y tourne dans le
+conteneur. Seule la première exécution réelle de la CI pouvait le révéler — c'est ce que le risque
+R-14 anticipait.
 
 ### 7.2 Dérives assumées
 
@@ -361,8 +407,7 @@ la décision d'origine était consignée.
 
 | Tâche | Cause | Reprise |
 |---|---|---|
-| **P1-14** (CI) | Aucun dépôt GitHub distant. Le workflow est écrit et valide, mais « PR fautive vue échouer » et la protection de branche ne peuvent pas être vérifiées sans lui | Dès la création du dépôt |
-| **P1-15** (déploiement) | VPS non commandé | Première tâche de la Phase 2, report explicitement autorisé par la roadmap |
+| **P1-15** (déploiement) | VPS provisionné et durci, mais DNS, pile edge, GHCR et rollback restent à faire | Première tâche de la Phase 2, report explicitement autorisé par la roadmap |
 | **P1-17** (domaine) | Action utilisateur en cours | DMARC, validation Mailjet, enregistrement `A` |
 | Réduction du socle JS du framework | Sans enjeu tant qu'aucun composant client n'existe | Phase 11 |
 | Confirmation de la contrainte `seo → i18n, routing` | Les métadonnées n'existent pas encore | P3-06 |
