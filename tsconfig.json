@@ -1,0 +1,51 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["dom", "dom.iterable", "esnext"],
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "paths": {
+      "@/*": ["./src/*"]
+    },
+    "allowJs": false,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "skipLibCheck": true,
+    "incremental": true,
+    // Dans le volume `.next`, jamais sur l'hôte : c'est un artefact du conteneur
+    // (CT-13). Par défaut il s'écrirait à la racine du dépôt.
+    "tsBuildInfoFile": ".next/cache/tsconfig.tsbuildinfo",
+
+    // Imposé par Next : runtime JSX automatique. Valeur écrite par Next lui-même
+    // au premier démarrage, reprise ici explicitement plutôt que subie.
+    "jsx": "react-jsx",
+    "plugins": [{ "name": "next" }],
+
+    // Rigueur du typage (P1-04). Chaque option ferme une classe d'erreurs que
+    // `strict` seul laisse passer.
+    "strict": true,
+    // `tab[0]` est typé `T | undefined` : le hors-borne devient visible au lieu
+    // d'être un `undefined` non typé qui explose à l'exécution.
+    "noUncheckedIndexedAccess": true,
+    // Une redéfinition de membre doit être déclarée `override`.
+    "noImplicitOverride": true,
+    // `{ a?: string }` cesse d'accepter `{ a: undefined }` : « absent » et
+    // « présent mais indéfini » redeviennent deux états distincts.
+    "exactOptionalPropertyTypes": true,
+    // Un `case` sans `break` est une erreur, pas une intention supposée.
+    "noFallthroughCasesInSwitch": true,
+    // Un import de type doit le dire : la frontière valeur/type reste lisible et
+    // l'effacement à la compilation devient prévisible.
+    "verbatimModuleSyntax": true
+  },
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts",
+    ".next/dev/types/**/*.ts"
+  ],
+  "exclude": ["node_modules"]
+}
