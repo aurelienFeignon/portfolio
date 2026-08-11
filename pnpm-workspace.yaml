@@ -1,0 +1,44 @@
+# Ce fichier n'est PAS ici pour déclarer un monorepo — il n'y en a pas.
+#
+# Depuis pnpm 10, c'est le seul emplacement où les réglages propres à pnpm sont
+# lus (`.npmrc` ne couvre plus que les réglages compatibles npm, et la variable
+# `npm_config_store_dir` est ignorée : les deux ont été essayés et vérifiés
+# inopérants en P1-03).
+
+# --- Emplacement du store ---------------------------------------------------
+#
+# `storeDir` place le store à l'intérieur du volume nommé `node_modules`. Deux
+# raisons, toutes deux vérifiées par l'échec inverse :
+#
+#   1. Par défaut, pnpm constate que son store et `node_modules` ne sont pas sur
+#      le même système de fichiers et relocalise le store en `/app/.pnpm-store`,
+#      c'est-à-dire dans le bind mount : 355 Mo déversés sur l'hôte, en violation
+#      de CT-13 (« aucun binaire natif ne fuit du conteneur vers l'hôte »).
+#   2. Sur le même système de fichiers, pnpm installe par **liens durs** au lieu
+#      de copier — ce qui est la raison même de l'avoir choisi.
+#
+# Le chemin est absolu et propre au conteneur. C'est cohérent avec l'ADR-0007 :
+# aucune commande de ce projet ne s'exécute ailleurs.
+storeDir: /app/node_modules/.pnpm-store
+
+# --- Scripts d'installation -------------------------------------------------
+#
+# pnpm 11 n'exécute aucun script `postinstall` sans autorisation explicite : une
+# dépendance compromise ne peut pas exécuter de code pendant l'installation.
+# Cette protection est conservée, et chaque exception doit être justifiée ici.
+#
+# `unrs-resolver` (résolveur natif de `eslint-import-resolver-typescript`) livre
+# ses binaires par dépendances optionnelles ; son `postinstall` n'est qu'un
+# rattrapage. Refusé, donc — et **vérifié** : la résolution des alias fonctionne
+# et la règle de cloisonnement se déclenche bien (P1-05).
+allowBuilds:
+  unrs-resolver: false
+
+# --- Âge minimum des versions -----------------------------------------------
+#
+# pnpm 11 refuse par défaut les versions publiées depuis trop peu de temps : la
+# plupart des compromissions de registre sont détectées et dépubliées en quelques
+# jours. La protection est conservée **sans aucune exception** : quand une version
+# est trop récente, on prend la précédente plutôt que d'inscrire une dérogation.
+# C'est ce qui a été fait pour `typescript-eslint` (8.67.0 publiée la veille →
+# 8.65.0 retenue, même domaine de compatibilité).
