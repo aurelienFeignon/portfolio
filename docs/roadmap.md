@@ -276,9 +276,9 @@ Acceptance:
 
 **P1-11 — Interface de commandes et gate local**
 Status: **DONE** (2026-08-11) — `make lint`, `typecheck`, `test`, `coverage`, `bundle`, `build`,
-`e2e`, `e2e-prod`, et `make ci` qui enchaîne le tout. **`make ci` vert (code 0) après destruction
-complète des volumes, des images et de `node_modules`** — soit l'équivalent d'un clone neuf, à ceci
-près qu'aucun commit n'existe encore. Durée : ~56 s. Les E2E de `make ci` tournent contre l'**image
+`e2e`, `e2e-prod`, et `make ci` qui enchaîne le tout. **`make ci` vert (code 0) depuis un `git clone` réel**,
+volumes et images Docker préalablement détruits, aucun outil Node sur l'hôte, aucun fichier `root`
+produit. Durée : ~56 s. Les E2E de `make ci` tournent contre l'**image
 de production**, pas le serveur de développement (`testing-strategy.md` §8).
 · Depends on: P1-05, P1-07, P1-08
 Acceptance:
@@ -321,9 +321,10 @@ Status: **BLOCKED** (2026-08-11) — workflow `.github/workflows/ci.yml` écrit 
 (`versions` → `gates` → `e2e`), version de Node **extraite du Dockerfile** et de pnpm de
 `package.json` (aucune recopie), cache pnpm et navigateurs Playwright, E2E contre l'image de
 production, couverture et rapport Playwright publiés en artefacts.
-**Cause du blocage : aucun dépôt GitHub distant n'existe.** Trois critères ne peuvent pas être
-satisfaits sans lui — protection de branche, gates non contournables, et surtout **PR fautive vue
-échouer**. À reprendre dès la création du dépôt. · Depends on: P1-11, P1-13
+**Cause du blocage** : le dépôt distant existe depuis le 2026-08-11
+(`git@github.com:aurelienFeignon/portfolio.git`) mais rien n'y est encore poussé, donc le workflow
+n'a jamais tourné. Trois critères restent à satisfaire : première exécution verte, protection de
+branche avec gates non contournables, et **PR volontairement fautive vue échouer**. · Depends on: P1-11, P1-13
 Acceptance:
 - Workflow GitHub Actions : `install → lint → typecheck → test → coverage → build → e2e`, plus un
   job de construction de l'étage `runner`.
@@ -393,8 +394,8 @@ image de production démarrant et répondant au healthcheck.
 
 État au 2026-08-11 — détail et mesures dans [`phase-1-log.md`](./phase-1-log.md) §7.
 
-- [x] `make ci` vert depuis un **clone neuf**, sans aucun outil Node sur l'hôte — *code 0 après
-      destruction des volumes, images et `node_modules` ; le `git clone` lui-même attend un commit.*
+- [x] `make ci` vert depuis un **clone neuf**, sans aucun outil Node sur l'hôte — *vérifié sur un
+      `git clone` réel, volumes et images détruits au préalable : code 0, aucun fichier `root`.*
 - [x] Hot reload fonctionnel en moins de ~2 s — **34 à 120 ms**.
 - [x] `make e2e` vert, tous projets déclarés exécutables — 17 tests, 5 profils.
 - [x] Aucun fichier `root` produit dans le dépôt.

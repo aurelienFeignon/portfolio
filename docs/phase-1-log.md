@@ -26,8 +26,9 @@ Relevé sur la machine de développement (Ubuntu 24.04 sous WSL2, 2026-08-11) :
 | Node sur l'hôte | ❌ absent | Conforme et voulu (ADR-0007) |
 | Identité Git configurée | ❌ `user.name` / `user.email` vides | Aucun commit possible tant que ce n'est pas réglé |
 
-Aucune exécution de conteneur n'a donc pu avoir lieu pendant cette première session : les tâches
-P1-02 et suivantes sont écrites mais **non vérifiées**, et leur statut le reflète.
+Les deux points bloquants ont été levés en cours de session (`usermod -aG docker`,
+`apt install make`), et l'identité Git posée au moment des premiers commits. Tout ce qui suit a donc
+été **exécuté et vérifié**, jamais seulement écrit.
 
 ## 2 bis. Prérequis externes — état au 2026-08-11
 
@@ -36,13 +37,13 @@ moment où il bloque.
 
 | Prérequis | État | Ce qu'il bloque | Quand il devient bloquant |
 |---|---|---|---|
-| Accès au groupe `docker` + GNU Make | ❌ à faire | **P1-02 → P1-16**, c'est-à-dire tout | **Maintenant** |
+| Accès au groupe `docker` + GNU Make | ✅ fait *(2026-08-11)* | **P1-02 → P1-16**, c'est-à-dire tout | levé |
 | Nom de domaine (P1-17) | 🟡 **`aurelienfeignon.com` acheté et sécurisé chez Namecheap** *(2026-08-11 ; expire le 2027-08-11, renouvellement auto, verrou de transfert et WHOIS privé vérifiés au whois)* — SPF et DKIM publiés ; restent la validation Mailjet, DMARC, et le pointage vers le VPS | P1-15, P3-06, P10-11 | Phase 3 pour les URL canoniques ; avant la mise en ligne T1 |
-| VPS (Q1) | ❌ non commandé *(réponse du 2026-08-11)* | P1-15 uniquement | Avant P4-13 (mise en production, jalon T1) |
-| Dépôt GitHub distant | ❌ inexistant ; `gh` n'est pas installé sur l'hôte | P1-14 (CI), P1-15 (publication GHCR) | À la tâche P1-14 |
+| VPS (Q1) | 🟡 **commande en cours** *(2026-08-11)* | P1-15 uniquement | Avant P4-13 (mise en production, jalon T1) |
+| Dépôt GitHub distant | ✅ **`git@github.com:aurelienFeignon/portfolio.git`** *(2026-08-11)* | P1-14 (CI), P1-15 (publication GHCR) | levé — P1-14 reprend |
 
-**Lecture** : seul le premier empêche d'avancer aujourd'hui. Les trois autres laissent P1-01 à P1-13
-entièrement réalisables. Le report de P1-15 est explicitement autorisé par la roadmap, à condition
+**Lecture** : les deux prérequis d'hôte sont levés et le dépôt distant existe. Il reste le VPS,
+qui ne bloque que P1-15. Le report de P1-15 est explicitement autorisé par la roadmap, à condition
 que P1-13 et P1-14 soient `DONE` — ce qui reste atteignable, la construction et le démarrage de
 l'image de production se vérifiant en local et en CI, sans serveur ni domaine.
 
@@ -324,7 +325,7 @@ mesuré, et l'artefact de production tourne réellement.
 
 | Critère de sortie de la Phase 1 | État |
 |---|---|
-| `make ci` vert depuis un clone neuf, sans outil Node sur l'hôte | ✅ code 0, ~56 s, après destruction complète des volumes, images et `node_modules` — un commit reste à faire pour un vrai `git clone` |
+| `make ci` vert depuis un clone neuf, sans outil Node sur l'hôte | ✅ code 0, ~56 s, **sur un `git clone` réel**, volumes et images Docker détruits au préalable |
 | Hot reload en moins de ~2 s | ✅ **34 / 107 / 120 ms** sur trois mesures |
 | `make e2e` vert, tous profils déclarés exécutables | ✅ 17 tests sur 5 profils |
 | Aucun fichier `root` produit dans le dépôt | ✅ après correction d'un défaut réel (§3 bis) |
@@ -368,13 +369,11 @@ la décision d'origine était consignée.
 
 ### 7.4 Dette technique connue, tracée
 
-1. **Aucun commit dans l'historique** — `make ci` a été validé sur l'arbre de travail après remise à
-   zéro complète, ce qui en couvre la substance, mais pas le `git clone` lui-même.
-2. **`src/app/layout.tsx` code `lang="fr"` en dur** — assumé et commenté ; premier point à corriger
+1. **`src/app/layout.tsx` code `lang="fr"` en dur** — assumé et commenté ; premier point à corriger
    en P3-02.
-3. **`src/seo/site-url.ts` n'est encore consommé par personne** — écrit en P1-10 pour satisfaire le
+2. **`src/seo/site-url.ts` n'est encore consommé par personne** — écrit en P1-10 pour satisfaire le
    critère « valeur unique » de P1-17 et servir de vraie fonction testée. Il sera branché en P3-06.
-4. **Le socle du framework (126 Ko) n'a pas été attaqué** — voir Phase 11.
+3. **Le socle du framework (126 Ko) n'a pas été attaqué** — voir Phase 11.
 
 Rien de tout cela n'est un raccourci pris pour verdir un gate : aucun test n'a été supprimé ni
 affaibli, aucun seuil relevé sans mesure et justification écrite.
