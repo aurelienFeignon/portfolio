@@ -16,7 +16,8 @@
     "lint": "eslint . && prettier --check .",
     "lint:fix": "eslint . --fix && prettier --write .",
     "build": "next build",
-    "start": "next start -H 0.0.0.0 -p 3000"
+    "start": "next start -H 0.0.0.0 -p 3000",
+    "check-dns": "node scripts/check-dns.mts"
   },
   "dependencies": {
     "next": "16.3.0",
