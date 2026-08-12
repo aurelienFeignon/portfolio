@@ -66,10 +66,12 @@ describe('gate de contenu', () => {
     expect(output).toContain('typescript.md')
   })
 
-  it('signale bruyamment un contenu introuvable plutôt que de passer au vert', async () => {
+  it('échoue sur un contenu introuvable plutôt que de passer au vert', async () => {
+    // Une racine mal résolue produit exactement la même sortie qu'un contenu
+    // parfait : c'est le mode de panne silencieuse que ce cas interdit.
     const { code, output } = await checkContent(join(FIXTURES, 'valid', 'en', 'skills'))
 
-    expect(code).toBe(0)
+    expect(code).toBe(1)
     expect(output).toContain('Aucun fichier de contenu trouvé')
   })
 })

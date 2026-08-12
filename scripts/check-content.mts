@@ -89,11 +89,16 @@ if (failures.length > 0) {
 }
 
 if (validated === 0) {
-  // Un gate qui ne trouve rien passe au vert : c'est exactement le mode de
-  // panne silencieuse à ne pas laisser s'installer. Toléré tant que `content/`
-  // est vide (avant P2-10), signalé bruyamment, et à rendre bloquant dès que le
-  // contenu d'amorçage existe.
-  console.warn(`⚠ Aucun fichier de contenu trouvé sous « ${root} ».`)
+  // Un gate qui ne trouve rien et passe au vert est un mode de panne
+  // silencieuse : une racine mal résolue produit exactement la même sortie
+  // qu'un contenu parfait. Bloquant depuis que le contenu d'amorçage existe
+  // (P2-10) ; c'était un simple avertissement tant que `content/` était vide.
+  console.error(
+    `\n✗ Aucun fichier de contenu trouvé sous « ${root} ».\n\n` +
+      "  Le site ne peut pas être vide : c'est le signe d'une racine mal résolue,\n" +
+      "  pas d'un contenu correct.\n",
+  )
+  process.exit(1)
 }
 
 console.log(`✓ Contenu valide — ${validated} fichier(s) vérifié(s).`)

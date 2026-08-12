@@ -44,10 +44,10 @@ Toute décision structurante prise ici est écrite dans un ADR **avant** le code
 
 ## 4. Critères de sortie (rappel, `roadmap.md`)
 
-- [ ] Couverture ≥ 95 % sur `src/content/**` (statements, branches, functions, lines).
-- [ ] Un frontmatter invalide fait échouer `make build`, **prouvé par un test**.
-- [ ] Aucun import React ou Three.js dans la couche, **vérifié par le lint**.
-- [ ] Les fixtures de test sont **indépendantes du contenu réel**.
+- [x] Couverture ≥ 95 % sur `src/content/**` (statements, branches, functions, lines) — **100 %**.
+- [x] Un frontmatter invalide fait échouer `make build`, **prouvé par un test** — §10.
+- [x] Aucun import React ou Three.js dans la couche, **vérifié par le lint** — §7.
+- [x] Les fixtures de test sont **indépendantes du contenu réel** — §14.
 
 ## 5. Ordre de travail
 
@@ -471,3 +471,125 @@ corps. La marge sous le seuil bloquant (400 Mo) est à surveiller à ce moment-l
 Même raisonnement pour « aucun MDX n'envoyé au client » : le module n'est pas `'use client'` et le
 budget de bundle mesure 0,0 Ko par route — mais c'est aujourd'hui vrai d'un module que rien
 n'importe. La vérification qui compte est celle de la Phase 4, sur une page réelle.
+
+---
+
+## 14. P2-09 — l'indépendance des fixtures a été prouvée en cachant le contenu réel
+
+Deux jeux de fabriques, qui ne se remplacent pas :
+
+| Fabrique | Produit | Sert à |
+|---|---|---|
+| `builders/frontmatter.ts` | du YAML lu sur disque, donc de l'**inconnu** — type de retour `Record<string, unknown>` | tester la validation, y compris avec des valeurs invalides |
+| `builders/entities.ts` | ce que **rend le dépôt** : frontmatter validé, corps, dérivations | tester les consommateurs (composants, métadonnées, sitemap) sans passer par le disque |
+
+Typer les premières avec les types dérivés des schémas interdirait d'écrire les cas invalides, qui
+sont la moitié de l'intérêt de ces tests.
+
+**La preuve** : la suite complète a été exécutée avec le dossier `content/` **entièrement déplacé
+hors du dépôt**. 201 tests verts, couverture 100 %. Aucun test ne lit le contenu réel — ce n'est plus
+une intention de conception, c'est un fait constaté.
+
+S'y ajoute un garde-fou permanent (`tests/integration/fixtures-independence.test.ts`), parce qu'un
+test futur peut très bien appeler le dépôt de l'application par commodité et casser le jour où un
+projet est réécrit. Il refuse dans `tests/**` toute mention de `contentRepository` (l'instance liée à
+`content/`) et tout `createContentSource(defaultContentRoot())`. Il vérifie aussi **qu'il trouve bien
+des fichiers à inspecter** : un parcours qui ne trouve rien rendrait les deux assertions vertes pour
+la pire des raisons.
+
+---
+
+## 15. P2-10 — le contenu d'amorçage, et ce qu'il a immédiatement trouvé
+
+Deux expériences, deux projets et cinq compétences **par locale**, soit 18 fichiers. Chacun porte en
+clair la mention « contenu d'amorçage, à remplacer en P2-11 » : il sert à développer les Phases 3 et
+4, pas à être publié tel quel.
+
+Il couvre volontairement les cas que le code doit savoir traiter : un poste **en cours** (sans
+`endedAt`, qui alimente `isOngoing`), un projet terminé, du `featured` et du non-`featured`, les cinq
+catégories de compétences, un corps avec un composant `Callout`, un projet avec un lien de dépôt.
+
+**La première rédaction réelle a fait échouer le gate, sur une faute que personne n'anticipe :**
+
+```text
+content/fr/projects/portfolio.mdx — frontmatter YAML illisible —
+Nested mappings are not allowed in compact mappings at line 3, column 10
+```
+
+`summary: Ce site : un portfolio…` — un `:` suivi d'une espace **dans une valeur non entre
+guillemets** fait lire à YAML une table imbriquée. La faute est invisible à la relecture, elle
+touchait les deux locales, et elle serait passée inaperçue si le gate n'existait pas : la page aurait
+simplement été absente. Les deux valeurs sont désormais entre guillemets, et la règle est écrite
+dans `content/README.md` — là où on la lira au moment d'écrire.
+
+**Le cas « aucun contenu trouvé » devient bloquant**, comme annoncé en §10.5 : le gate sort
+maintenant en 1 s'il ne valide aucun fichier. Une racine mal résolue produit exactement la même
+sortie qu'un contenu parfait ; c'était la dernière panne silencieuse de la chaîne.
+
+---
+
+## 16. Bilan de la Phase 2
+
+### 16.1 Fait
+
+**Dix tâches sur dix** (P2-01 à P2-10). P2-11, la rédaction du contenu réel, est hors code et à la
+charge de l'utilisateur ; elle ne bloque pas la Phase 3.
+
+| Critère de sortie | État |
+|---|---|
+| Couverture ≥ 95 % sur `src/content/**` | ✅ **100 %** sur les quatre métriques — et autant sur `src/ui/mdx/**` et `src/i18n/**` |
+| Un frontmatter invalide fait échouer `make build`, prouvé par un test | ✅ vu échouer à la main sur un fichier écrit exprès, puis automatisé sur six familles de fautes |
+| Aucun import React / Three.js dans la couche, vérifié par le lint | ✅ règle revérifiée par **échec observé** après modification du graphe |
+| Fixtures indépendantes du contenu réel | ✅ **suite complète verte avec `content/` déplacé hors du dépôt** |
+
+**201 tests** (contre 20 en fin de Phase 1), `make ci` vert en 47 s, et **39 mutations appliquées au
+code de production, toutes tuées**.
+
+**Ce que je retiens** : la moitié des décisions de cette phase ont été renversées par une exécution,
+pas par une relecture.
+
+- `gray-matter` transformait `2024-01-15` en objet `Date` — le paquet nommé par l'architecture était
+  le mauvais choix, et cela ne se voyait qu'en l'exécutant.
+- Le gate de contenu écrit « pour la forme » a trouvé, sur les **18 premiers fichiers réels**, une
+  faute YAML invisible à la relecture, présente dans les deux locales.
+- La cohérence référentielle, activée, a immédiatement révélé une incohérence dans nos propres
+  fixtures.
+- Deux passages de `architecture.md` se contredisaient, encore, comme en Phase 1.
+
+### 16.2 Dérives assumées
+
+| # | Dérive | Traitement |
+|---|---|---|
+| 1 | **`content → i18n` ajouté au graphe de dépendances** | `architecture.md` §1.2 (`content → rien`) contredisait §3.3 (API typée par locale). L'alternative était une seconde liste de locales vouée à diverger. Justifié en §7, `architecture.md` corrigé, règle ESLint revérifiée par échec observé |
+| 2 | **`gray-matter` remplacé par `yaml`** | Le premier convertit les dates en objets `Date`, que nos schémas rejettent. Constaté par exécution, pas déduit (§9.1) |
+| 3 | **Cache React par requête → mémoïsation par processus** | La couche Content ne peut pas importer React (CT-09) ; le contenu ne change qu'au déploiement, donc c'est strictement plus fort (§9.2) |
+| 4 | **`"type": "module"` et extensions `.ts` explicites** dans `src/content/**` | Exigés pour que la couche tourne sous `node` seul — ce qui est la contrepartie concrète de « TypeScript pur ». Vérifié sur `tsc`, ESLint, Vitest et Turbopack ; socle de bundle inchangé (§10.3) |
+| 5 | **`isOngoing` ajouté au modèle de `architecture.md` §3.4** | Dérivation exigée par P2-06. Deux niveaux de types (`*Entry` / entité) plutôt qu'un champ qui existerait avant d'être calculé (§11.1) |
+
+Aucune n'a été appliquée en silence : chacune est justifiée à l'endroit où la décision d'origine
+était consignée.
+
+### 16.3 Reporté
+
+| Sujet | Cause | Reprise |
+|---|---|---|
+| **P2-11** — rédaction du contenu réel (fr + en) | Hors code, à la charge de l'utilisateur | Chemin critique de T1 ; peut démarrer immédiatement, le format étant figé et vérifié par `make check-content` |
+| Mesure du runtime MDX dans l'image de production | Aucune route ne compile encore de corps : l'image est à 381 Mo, inchangée | Phase 4, avec la première page qui rend un corps (§13.3) |
+| Preuve « aucun MDX envoyé au client » sur une page réelle | Même cause | Phase 4, par le budget de bundle |
+| Vérification qu'aucune route ne se rend à la demande | Aucune route n'existe | Phase 3, puis avant P4-13 (§9.4) |
+| Ajouts à la liste blanche de composants MDX | La stratégie de style est l'ADR-0010 | Phase 4 |
+
+### 16.4 Dette technique connue, tracée
+
+1. **La liste blanche MDX n'est pas une barrière de sécurité** — MDX exécute du JavaScript sans
+   passer par un composant (§6.1). À reprendre tel quel à l'audit de la Phase 14, faute de quoi elle
+   sera lue comme une protection.
+2. **`content/` n'est pas dans l'image de production** — cohérent avec le tout-statique, mais cela
+   interdit toute route rendue à la demande (§9.4).
+3. **`messageOf` existe en double**, dans `src/content` et dans `src/ui/mdx` — deux lignes, prix
+   assumé du cloisonnement, `ui` ne pouvant pas importer `content`.
+4. **Le contenu d'amorçage est du remplissage** et le dit dans chaque fichier. Il ne doit pas se
+   retrouver publié : P4-13 vérifiera que P2-11 l'a remplacé.
+
+Rien de tout cela n'est un raccourci pris pour verdir un gate : aucun test n'a été supprimé ni
+affaibli, aucun seuil abaissé.

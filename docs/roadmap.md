@@ -1,7 +1,9 @@
 # Roadmap
 
-> Statut global : **Phases 0 et 1 terminées et validées. Phase 2 ouverte le 2026-08-12.**
-> Journal de la phase en cours : [`phase-2-log.md`](./phase-2-log.md) — phase précédente :
+> Statut global : **Phases 0, 1 et 2 terminées et validées.** Phase 2 ouverte et close le
+> 2026-08-12 ; P2-11 (rédaction du contenu réel) reste à la charge de l'utilisateur et ne bloque pas
+> la Phase 3.
+> Journal de la Phase 2 : [`phase-2-log.md`](./phase-2-log.md) — phase précédente :
 > [`phase-1-log.md`](./phase-1-log.md)
 > Dernière mise à jour : 2026-08-12
 
@@ -23,7 +25,7 @@ silencieusement.
 |---|---|---|---|
 | 0 | Discovery et cadrage | **DONE** | `docs/` complet, ADR 0001–0008 |
 | 1 | Fondation technique | **DONE** *(2026-08-12)* | Squelette dockerisé, gates verts, CI, déploiement du squelette |
-| 2 | Content layer | TODO | Markdown → objets typés validés, build cassé si invalide |
+| 2 | Content layer | **DONE** *(2026-08-12)* | Markdown → objets typés validés, build cassé si invalide |
 | 3 | Internationalisation | TODO | `/fr` et `/en` résolus indépendamment, hreflang exact |
 | 4 | Portfolio HTML | TODO | **Produit utilisable sans Three.js** (phase obligatoire) |
 | 5 | Fondation Three.js | TODO | Scène primitive : bureau + 3 écrans, budget tenu |
@@ -461,8 +463,8 @@ dépendance à React ni à Three.js. Un contenu invalide casse le build.
 | P2-06 | Normalisations et dérivations (tri, dates, poste en cours, `featured`) | **DONE** *(2026-08-12)* | P2-05 |
 | P2-07 | Vérification de cohérence référentielle `technologies` ↔ `Skill.slug` | **DONE** *(2026-08-12)* | P2-05 |
 | P2-08 | Compilation MDX en RSC avec liste blanche de composants | **DONE** *(2026-08-12)* | P2-01 |
-| P2-09 | Fixtures valides **et invalides** + fabriques d'objets de test | TODO | P2-02 |
-| P2-10 | Contenu réel d'amorçage : 2 expériences, 2 projets, 5 compétences (fr + en) | TODO | P2-06 |
+| P2-09 | Fixtures valides **et invalides** + fabriques d'objets de test | **DONE** *(2026-08-12)* | P2-02 |
+| P2-10 | Contenu réel d'amorçage : 2 expériences, 2 projets, 5 compétences (fr + en) | **DONE** *(2026-08-12)* | P2-06 |
 | P2-11 | **Rédaction du contenu réel complet (fr + en)** — chemin critique de T1, à votre charge, **peut démarrer immédiatement** : le format du frontmatter est arrêté et ne dépend d'aucun code | — | — |
 
 **P2-01 — ADR-0009, choix de la bibliothèque MDX**
@@ -542,9 +544,47 @@ sans passer par un composant (§6.1). À reprendre tel quel en Phase 14.
 route ne compilant encore de corps. Les ~7 Mo mesurés en P2-01 reviendront en Phase 4
 ([`phase-2-log.md`](./phase-2-log.md) §13). · Depends on: P2-01
 
-**Critères de sortie** — Couverture ≥ 95 % sur `src/content/**` ; un frontmatter invalide fait
-échouer `make build` (prouvé par un test) ; aucun import React/Three.js dans la couche (vérifié par
-le lint) ; les fixtures de test sont indépendantes du contenu réel.
+**P2-09 — Fixtures et fabriques**
+Status: **DONE** (2026-08-12) — deux jeux de fabriques qui ne se remplacent pas : `frontmatter.ts`
+(du YAML lu sur disque, donc `Record<string, unknown>` — les typer interdirait d'écrire les cas
+invalides) et `entities.ts` (ce que rend le dépôt). Sept racines de fixtures invalides, une par
+famille de faute.
+**Indépendance prouvée** : la suite complète a été exécutée avec `content/` **entièrement déplacé
+hors du dépôt** — 201 tests verts, couverture 100 %. Un garde-fou permanent refuse désormais toute
+mention du dépôt de l'application dans `tests/**`
+([`phase-2-log.md`](./phase-2-log.md) §14). · Depends on: P2-02
+
+**P2-10 — Contenu d'amorçage**
+Status: **DONE** (2026-08-12) — 18 fichiers (2 expériences, 2 projets, 5 compétences par locale),
+chacun portant en clair la mention « à remplacer en P2-11 ». Il couvre volontairement les cas que le
+code doit traiter : poste en cours, projet terminé, `featured` et non-`featured`, les cinq
+catégories, un corps avec composant, un lien de dépôt.
+**Le gate a immédiatement trouvé une faute réelle** : `summary: Ce site : un portfolio…` — un `:`
+suivi d'une espace dans une valeur non entre guillemets, que YAML lit comme une table imbriquée. Elle
+touchait les deux locales et serait passée inaperçue (page absente, sans erreur). Règle écrite dans
+`content/README.md`.
+Le cas « aucun contenu trouvé » est **désormais bloquant**, comme annoncé
+([`phase-2-log.md`](./phase-2-log.md) §15). · Depends on: P2-06
+
+**Critères de sortie** — État au 2026-08-12, détail et mesures dans
+[`phase-2-log.md`](./phase-2-log.md).
+
+- [x] Couverture ≥ 95 % sur `src/content/**` — **100 %** sur les quatre métriques, et sur
+      `src/ui/mdx/**` et `src/i18n/**` également.
+- [x] Un frontmatter invalide fait échouer `make build`, **prouvé par un test** — vu échouer à la
+      main sur un fichier écrit exprès (§10.2), puis automatisé : le gate est exécuté en
+      sous-processus contre six familles de fautes, et son code de sortie est celui du build.
+- [x] Aucun import React ou Three.js dans la couche, **vérifié par le lint** — règle revérifiée par
+      échec observé après la modification du graphe (§7).
+- [x] Fixtures indépendantes du contenu réel — **suite complète verte avec `content/` déplacé hors
+      du dépôt**, plus un garde-fou permanent (§14).
+
+> **Tous les critères de sortie sont satisfaits, chacun vérifié par une exécution.** La Phase 2 est
+> close. Trois réserves consignées plutôt que passées sous silence : la liste blanche MDX **n'est pas
+> une mesure de sécurité** (§6.1, à reprendre en Phase 14) ; le runtime MDX n'entrera dans l'image de
+> production qu'avec la première page qui rend un corps, ce qui rapprochera du seuil de 400 Mo (§13.3) ;
+> et `content/` n'étant pas dans l'image, **aucune route ne devra pouvoir se rendre à la demande**
+> (§9.4, à vérifier avant P4-13).
 
 ---
 

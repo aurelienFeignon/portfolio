@@ -8,6 +8,7 @@ import { describe, expect, it } from 'vitest'
 
 import { byMostRecent, bySkillOrder, sorted, withOngoing } from '@/content/normalise'
 import type { SkillCategory } from '@/content/types'
+import { makeExperience, makeProject, makeSkill } from '../../fixtures/builders/entities'
 
 const period = (slug: string, startedAt: string, endedAt?: string) =>
   endedAt === undefined ? { slug, startedAt } : { slug, startedAt, endedAt }
@@ -118,5 +119,24 @@ describe('tri des compétences', () => {
       'Élasticsearch',
       'Zsh',
     ])
+  })
+})
+
+describe('fabriques d’entités', () => {
+  it('produisent des entités que les tris acceptent telles quelles', () => {
+    const entries = [
+      makeProject({ slug: 'augure', startedAt: '2024-01-15', endedAt: '2025-06-30' }),
+      makeProject({ slug: 'portfolio', startedAt: '2026-08-11', endedAt: undefined }),
+    ]
+
+    expect(sorted(entries, byMostRecent).map((entry) => entry.slug)).toEqual([
+      'portfolio',
+      'augure',
+    ])
+  })
+
+  it('acceptent une dérogation champ par champ', () => {
+    expect(makeSkill({ level: 2, featured: false })).toMatchObject({ level: 2, featured: false })
+    expect(makeExperience({ company: 'Ailleurs' }).company).toBe('Ailleurs')
   })
 })
