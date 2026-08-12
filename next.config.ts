@@ -12,6 +12,29 @@ const nextConfig: NextConfig = {
   // n'existent qu'en développement, et masqueraient de vraies erreurs.
   // N'a aucun effet en production.
   allowedDevOrigins: ['web'],
+
+  /**
+   * Le CV n'est pas une page de résultat de recherche.
+   *
+   * Servi à une URL stable, un PDF est indexé et peut ressortir seul, détaché du
+   * site qui lui donne son contexte — un document personnel qui circule pour son
+   * propre compte. Il reste accessible par lien et par e-mail (CF-07) ; il ne
+   * devient simplement pas un résultat.
+   *
+   * L'en-tête est posé **par l'application** et non par Caddy : il suit l'image
+   * de production, donc il est déployé par la CI et vérifiable en local, là où un
+   * réglage de reverse proxy dépendrait d'une copie manuelle sur le serveur.
+   *
+   * Décision de l'utilisateur, 2026-08-12 (`phase-0-questions.md` Q10 bis).
+   */
+  async headers() {
+    return [
+      {
+        source: '/resume/:file*',
+        headers: [{ key: 'X-Robots-Tag', value: 'noindex' }],
+      },
+    ]
+  },
 }
 
 export default nextConfig

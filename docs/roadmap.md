@@ -749,7 +749,7 @@ information n'existe uniquement dans la scène.
 | P10-05 | Plafond global journalier persisté sur volume | P10-04 |
 | P10-06 | Server Action + formulaire fonctionnant **sans JavaScript** | P10-03 |
 | P10-07 | `MailjetResumeSender` (API Send v3.1, `fetch` natif, délai d'expiration) + validation des variables d'environnement | P10-02 |
-| P10-08 | Téléchargement direct du PDF en complément | P10-06 |
+| P10-08 | Téléchargement direct du PDF en complément — **les deux PDF existent depuis le 2026-08-12** (`public/resume/cv-{fr,en}.pdf`, `noindex` posé et vérifié en E2E) ; reste le lien et son libellé | P10-06 |
 | P10-09 | Garde-fou : la suite échoue si des identifiants Mailjet de production sont présents | P10-07 |
 | P10-10 | E2E : succès, adresse invalide, panne serveur, rate limit, sans JS | P10-06 |
 | P10-11 | **Vérification des prérequis d'expédition** : authentification du domaine effective (SPF, DKIM, DMARC en place depuis P1-17), expéditeur validé, quota du plan connu (H-02c) | P1-17 |

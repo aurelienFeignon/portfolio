@@ -24,10 +24,12 @@ ici. Elles sont dans les ADR.
 | **Q2** | **VPS dédié**, mais destiné à accueillir d'autres projets. → Le reverse proxy devient une **pile « edge » autonome** dès le départ, avec réseau Docker externe partagé. Caddy conservé ; déclencheur Traefik écrit (> ~5 services). | ADR-0008, `architecture.md` §7.2 |
 | **Q7** | *« je ne sais pas ce qui est le mieux »* → **tranché : compte partagé + plafond bas** (20/jour global, 5/24 h par IP, 2/24 h par adresse). Sous-compte à prendre **seulement s'il est déjà inclus** dans le plan. R-20 retombe de 6 à 3. | ADR-0006, H-02b, R-20 |
 | **Q20** | Pas d'échéance ferme, **objectif de mise en ligne début septembre 2026**. → Plan découpé en trois tranches, **mise en production avancée à la fin de la Phase 4** (T1). | `roadmap.md` § Jalons, P4-13 à P4-16 |
+| **Q10** | *Répondu le 2026-08-12* : **(b) deux PDF**, `public/resume/cv-fr.pdf` et `cv-en.pdf`, fournis et **versionnés dans le dépôt public** — contrepartie assumée : les données personnelles du CV entrent dans un historique définitif. H-03 confirmée. | `vision.md` H-03, `public/README.md` |
+| **Q10 bis** | *Question née de Q10, tranchée le 2026-08-12* : le CV est **non indexable** (`X-Robots-Tag: noindex`, posé par l'application et non par Caddy, donc déployé par la CI et vérifié en E2E contre l'image de production). Motif : un PDF indexé ressort seul, détaché du site qui lui donne son contexte. | `next.config.ts`, `tests/e2e/profiles/desktop-chromium/resume.spec.ts` |
 | **Q1** | *Répondu le 2026-08-11* : VPS **commandé et provisionné** — Hetzner CX23 à Nuremberg, 2 vCPU / 3,7 Gio, Debian 13. H-01a confirmée, pas seulement supposée. | `deploy/README.md` §1 |
 | **Q5** | **Réponse modifiée le 2026-08-11 : dépôt PUBLIC dès maintenant**, et non « privé jusqu'à la release ». Cause : GitHub Actions était bloqué par la facturation sur un dépôt privé. Actions est gratuit et illimité sur un dépôt public, et un dépôt lisible — ADR, journal de phase, gates d'accessibilité — est un argument pour un portfolio de développeur. Historique vérifié sans secret avant bascule : aucun `.env`, aucune clé. Contrepartie assumée : l'historique est définitivement visible. | `phase-1-log.md` §5 |
 
-**Encore ouvertes** : Q1 (disponibilité du VPS), Q3 à Q6, Q8 à Q19. Toutes peuvent prendre la
+**Encore ouvertes** : Q3 à Q6, Q8, Q9, Q11 à Q19. Toutes peuvent prendre la
 valeur recommandée sans engager l'architecture.
 
 ---

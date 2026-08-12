@@ -593,3 +593,27 @@ Aucune n'a été appliquée en silence : chacune est justifiée à l'endroit où
 
 Rien de tout cela n'est un raccourci pris pour verdir un gate : aucun test n'a été supprimé ni
 affaibli, aucun seuil abaissé.
+
+---
+
+## 17. Hors phase — le CV est arrivé, et il n'est pas indexable
+
+Les deux PDF ont été fournis le 2026-08-12, pendant la Phase 2. Ils relèvent de la Phase 10 ; ce qui
+est consigné ici est ce qui a été **décidé et appliqué** à leur arrivée, pour ne pas le redécouvrir.
+
+- Placés en `public/resume/cv-fr.pdf` et `cv-en.pdf` — l'emplacement prévu par `architecture.md` §8
+  et le nommage acté en Q10. Les noms d'origine portaient espaces et accents, à encoder dans chaque
+  URL, chaque lien et chaque nom de pièce jointe.
+- **Versionnés dans le dépôt public**, décision de l'utilisateur après signalement : l'historique
+  est définitif, et un CV porte des coordonnées personnelles. H-03 cesse d'être une hypothèse.
+- **`X-Robots-Tag: noindex`** sur `/resume/*`, posé par l'application (`next.config.ts`) et non par
+  Caddy. Motif de l'emplacement : l'en-tête suit alors l'image de production, donc il est déployé
+  par la CI et vérifiable en local — un réglage de reverse proxy dépendrait d'une copie manuelle sur
+  le serveur, qui est exactement ce qui dérive.
+- **Vérifié contre l'image de production** : les deux PDF sont servis en `application/pdf`, portent
+  l'en-tête, et la page d'accueil ne le porte pas. **Vu échouer** : l'en-tête remplacé par un autre
+  fait rougir les deux assertions, et elles seules.
+
+Conséquence à ne pas manquer : dès le prochain déploiement, `https://aurelienfeignon.com/resume/cv-fr.pdf`
+est en ligne — avant même que la Phase 10 n'existe. C'est voulu, et c'est pourquoi l'en-tête a été
+posé maintenant plutôt qu'en P3-08.
