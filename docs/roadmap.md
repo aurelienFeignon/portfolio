@@ -1,8 +1,9 @@
 # Roadmap
 
-> Statut global : **Phase 0 terminée et validée. Phase 1 ouverte le 2026-08-11.**
-> Journal de la phase en cours : [`phase-1-log.md`](./phase-1-log.md)
-> Dernière mise à jour : 2026-08-11
+> Statut global : **Phases 0 et 1 terminées et validées. Phase 2 ouverte le 2026-08-12.**
+> Journal de la phase en cours : [`phase-2-log.md`](./phase-2-log.md) — phase précédente :
+> [`phase-1-log.md`](./phase-1-log.md)
+> Dernière mise à jour : 2026-08-12
 
 Ce document est la **source de vérité unique des tâches**. Les identifiants sont stables et ne
 sont jamais réutilisés, même si une tâche est abandonnée.
@@ -450,19 +451,29 @@ image de production démarrant et répondant au healthcheck.
 **Objectif** — Transformer les fichiers Markdown/MDX en objets typés et validés, sans aucune
 dépendance à React ni à Three.js. Un contenu invalide casse le build.
 
-| ID | Tâche | Dépend de |
-|---|---|---|
-| P2-01 | ADR-0009 : choix de la bibliothèque MDX (compatibilité vérifiée) | P1-16 |
-| P2-02 | Schémas Zod `Project`, `Experience`, `Skill` + types dérivés | P2-01 |
-| P2-03 | Lecture du système de fichiers, parsing du frontmatter, cache par requête | P2-02 |
-| P2-04 | Validation stricte : erreur nommant le fichier fautif, échec du build | P2-03 |
-| P2-05 | Repositories typés (`getAll*`, `get*BySlug`, `getContentLocales`) | P2-03 |
-| P2-06 | Normalisations et dérivations (tri, dates, poste en cours, `featured`) | P2-05 |
-| P2-07 | Vérification de cohérence référentielle `technologies` ↔ `Skill.slug` | P2-05 |
-| P2-08 | Compilation MDX en RSC avec liste blanche de composants | P2-01 |
-| P2-09 | Fixtures valides **et invalides** + fabriques d'objets de test | P2-02 |
-| P2-10 | Contenu réel d'amorçage : 2 expériences, 2 projets, 5 compétences (fr + en) | P2-06 |
-| P2-11 | **Rédaction du contenu réel complet (fr + en)** — chemin critique de T1, à votre charge, **peut démarrer immédiatement** : le format du frontmatter est arrêté et ne dépend d'aucun code | — |
+| ID | Tâche | Statut | Dépend de |
+|---|---|---|---|
+| P2-01 | ADR-0009 : choix de la bibliothèque MDX (compatibilité vérifiée) | **DONE** *(2026-08-12)* | P1-16 |
+| P2-02 | Schémas Zod `Project`, `Experience`, `Skill` + types dérivés | TODO | P2-01 |
+| P2-03 | Lecture du système de fichiers, parsing du frontmatter, cache par requête | TODO | P2-02 |
+| P2-04 | Validation stricte : erreur nommant le fichier fautif, échec du build | TODO | P2-03 |
+| P2-05 | Repositories typés (`getAll*`, `get*BySlug`, `getContentLocales`) | TODO | P2-03 |
+| P2-06 | Normalisations et dérivations (tri, dates, poste en cours, `featured`) | TODO | P2-05 |
+| P2-07 | Vérification de cohérence référentielle `technologies` ↔ `Skill.slug` | TODO | P2-05 |
+| P2-08 | Compilation MDX en RSC avec liste blanche de composants | TODO | P2-01 |
+| P2-09 | Fixtures valides **et invalides** + fabriques d'objets de test | TODO | P2-02 |
+| P2-10 | Contenu réel d'amorçage : 2 expériences, 2 projets, 5 compétences (fr + en) | TODO | P2-06 |
+| P2-11 | **Rédaction du contenu réel complet (fr + en)** — chemin critique de T1, à votre charge, **peut démarrer immédiatement** : le format du frontmatter est arrêté et ne dépend d'aucun code | — | — |
+
+**P2-01 — ADR-0009, choix de la bibliothèque MDX**
+Status: **DONE** (2026-08-12) — `@mdx-js/mdx` appelé directement, `next-mdx-remote` désigné comme
+repli. Les deux candidats applicables ont été **construits et servis**, pas comparés sur leur
+documentation : build Turbopack de production, route prérendue statiquement, **0,0 Ko** de
+JavaScript client, rendu vérifié depuis l'**image de production**, et compilateur tracé dans
+`.next/standalone`. Les erreurs ont été comparées sur trois cas fautifs. Deux constats consignés
+dans [`phase-2-log.md`](./phase-2-log.md) §6 : la compilation a lieu **au build** (toutes les pages
+sont SSG), et **MDX exécute du JavaScript** — `content/` est donc du code.
+· Depends on: P1-16
 
 **Critères de sortie** — Couverture ≥ 95 % sur `src/content/**` ; un frontmatter invalide fait
 échouer `make build` (prouvé par un test) ; aucun import React/Three.js dans la couche (vérifié par
