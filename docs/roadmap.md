@@ -341,9 +341,20 @@ Acceptance:
 - Une PR volontairement fautive est **vue échouer** avant de considérer la tâche terminée.
 
 **P1-15 — Déploiement du squelette sur le VPS** *(walking skeleton)*
-Status: **BLOCKED** (2026-08-11) — cause : **VPS non commandé et domaine non acheté** (réponse
-utilisateur du 2026-08-11, Q1). Report explicitement autorisé ci-dessous ; le déploiement réel
-devient la première tâche de la Phase 2.
+Status: **DONE** (2026-08-11) — le site est en ligne sur <https://aurelienfeignon.com>, servi par
+l'image `ghcr.io/aurelienfeignon/portfolio:<sha>` derrière Caddy. VPS Hetzner CX23 à Nuremberg
+(Debian 13, 2 vCPU / 3,7 Gio), provisionné et durci : `root` refusé en SSH, mot de passe refusé,
+`ufw` fermé par défaut, `unattended-upgrades` actif, Docker installé depuis le dépôt officiel — le
+tout **vérifié après un redémarrage réel**, confirmé par le changement de `boot_id` et non par
+`uptime`, qui lit encore une machine en cours d'extinction comme debout.
+La chaîne complète a tourné trois fois : gates → E2E contre l'image → publication GHCR taguée par
+SHA → SSH vers le VPS. La clé de déploiement est enregistrée avec
+`command="/srv/portfolio/deploy.sh"` et ne donne pas de shell (`cat /etc/shadow` → `commande
+refusée`). **Rollback exécuté pour de vrai** : retour d'un commit au précédent en 9 s, 26 sondes
+HTTPS à 0,5 s pendant l'opération, aucun échec observé — puis remise à niveau par le même chemin.
+Procédure d'exploitation dans [`deploy/README.md`](../deploy/README.md), écrite après exécution.
+⚠ Deux points hors périmètre restent ouverts : le proxy Cloudflare est encore en *DNS only* (le CDN
+de H-01b n'est donc pas actif), et DMARC n'est pas publié.
 · Depends on: P1-13, P1-14, **P1-17**
 Acceptance:
 - VPS provisionné : pare-feu fermé par défaut, SSH par clé sans mot de passe ni accès root,

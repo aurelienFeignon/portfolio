@@ -275,6 +275,52 @@ exécution réelle. Ce qui suit déborde de la tâche et relève des phases ult�
 
 - [ ] **Bascule du proxy Cloudflare** en orange avec SSL en *Full (strict)*, une fois le certificat
       d'origine en place — c'est l'étape qui active réellement le CDN de H-01b.
-- [ ] **Pare-feu cloud Hetzner** en amont de `ufw` (console Hetzner, hors de portée du dépôt).
 - [ ] **DMARC** : l'enregistrement n'existe pas encore (SPF et DKIM Mailjet, eux, ont survécu à la
       bascule de zone — vérifié).
+- [x] **Pare-feu cloud Hetzner** en amont de `ufw` — appliqué le 2026-08-12. Vérifié depuis
+      l'extérieur : 22, 80 et 443 répondent, 25 / 2019 / 3000 / 8080 sont filtrés.
+
+---
+
+## 6. Le compte hébergeur fait partie de la surface d'attaque
+
+Tout ce qui précède — SSH par clé, `ufw`, conteneur non-root, secrets en `600` — est **contourné par
+la console Hetzner**, qui permet de démarrer la machine en système de secours, de monter le disque
+et d'en lire le contenu. Le mot de passe du compte est donc, en pratique, la clé du serveur.
+
+Appliqué le 2026-08-12, et à réauditer en Phase 14 (risque R-22) :
+
+- **2FA (TOTP)** sur le compte, codes de récupération conservés hors du gestionnaire de mots de passe.
+- **Protections *delete* et *rebuild*** sur le serveur **et sur l'IP primaire** — perdre l'IPv4
+  obligerait à repointer la zone Cloudflare, au pire moment.
+- **Aucun jeton d'API** en lecture-écriture dans le projet : un tel jeton permet de supprimer les
+  serveurs, et rien dans cette chaîne n'en a besoin.
+
+### 6.1 Le port 22 ne peut pas être restreint à une IP
+
+Le déploiement part des runners GitHub, dont les adresses changent à chaque exécution. Fermer le 22
+à tout sauf une IP fixe casserait tous les déploiements. C'est une **conséquence directe** du choix
+« déploiement par SSH depuis la CI » (ADR-0008 §5) : le refermer supposerait de changer de
+mécanisme — agent tiré depuis le VPS, ou réseau privé — pas d'ajouter une règle.
+
+La mitigation retenue n'est donc pas la fermeture du port, mais le fait que ce port n'ouvre sur
+rien : authentification par clé uniquement, `root` refusé, `AllowUsers aurel`, et une clé de CI qui
+ne donne pas de shell.
+
+### 6.2 La reprise ne peut pas supposer un serveur neuf
+
+Hetzner restreint par intermittence la **création et le redimensionnement** d'instances, par manque
+de capacité et sur sélection aléatoire des clients (avertissement reçu le 2026-08-12). Les serveurs
+existants ne sont pas affectés, mais la conséquence est nette pour l'exploitation :
+
+- **Ne pas détruire ni reconstruire ce serveur à la légère** : rien ne garantit de pouvoir le
+  recréer. Cela vaut aussi pour toute idée du type « je repars d'une image propre pour tester ma
+  procédure de provisionnement ».
+- **Les Backups Hetzner sont préférables aux snapshots** ici : ils se restaurent sur le serveur
+  existant, sans passer par une création. La valeur de secours d'un snapshot, qui sert surtout à
+  fabriquer une nouvelle machine, est entamée par cette restriction.
+- Les restrictions étant **par localisation**, une reconstruction reste probable à Falkenstein ou
+  Helsinki, au prix d'un changement d'IP — donc d'une modification de la zone Cloudflare.
+
+La procédure de restauration de la Phase 15 (risque R-23) doit être écrite sous cette contrainte, et
+non sous l'hypothèse implicite qu'un serveur est disponible à la demande.
