@@ -460,7 +460,7 @@ dépendance à React ni à Three.js. Un contenu invalide casse le build.
 | P2-05 | Repositories typés (`getAll*`, `get*BySlug`, `getContentLocales`) | **DONE** *(2026-08-12)* | P2-03 |
 | P2-06 | Normalisations et dérivations (tri, dates, poste en cours, `featured`) | **DONE** *(2026-08-12)* | P2-05 |
 | P2-07 | Vérification de cohérence référentielle `technologies` ↔ `Skill.slug` | **DONE** *(2026-08-12)* | P2-05 |
-| P2-08 | Compilation MDX en RSC avec liste blanche de composants | TODO | P2-01 |
+| P2-08 | Compilation MDX en RSC avec liste blanche de composants | **DONE** *(2026-08-12)* | P2-01 |
 | P2-09 | Fixtures valides **et invalides** + fabriques d'objets de test | TODO | P2-02 |
 | P2-10 | Contenu réel d'amorçage : 2 expériences, 2 projets, 5 compétences (fr + en) | TODO | P2-06 |
 | P2-11 | **Rédaction du contenu réel complet (fr + en)** — chemin critique de T1, à votre charge, **peut démarrer immédiatement** : le format du frontmatter est arrêté et ne dépend d'aucun code | — | — |
@@ -528,6 +528,19 @@ passe. La cohérence est jugée **à l'intérieur d'une locale** — un projet a
 a besoin de `en/skills/typescript.md`. Ce choix a trouvé un défaut dans nos propres fixtures dès son
 activation. 7 tests, trois mutations appliquées et tuées
 ([`phase-2-log.md`](./phase-2-log.md) §12). · Depends on: P2-05
+
+**P2-08 — Compilation MDX et liste blanche**
+Status: **DONE** (2026-08-12) — rendu dans `src/ui/mdx/`, jamais dans `src/content` (CT-09). La
+liste blanche **refuse avant de rendre** : un greffon remark relève les composants appelés pendant
+la compilation, ce qui produit une erreur nommant le fichier **et** le composant, au lieu du message
+de React au milieu du rendu de la page. 13 tests, couverture 100 %, six mutations appliquées et
+tuées. La liste ne contient qu'un composant (`Callout`, sémantique et sans style) : les ajouts
+appartiennent à la Phase 4, avec l'ADR-0010.
+⚠ Rappel consigné : cette liste **n'est pas une mesure de sécurité** — MDX exécute du JavaScript
+sans passer par un composant (§6.1). À reprendre tel quel en Phase 14.
+📏 Image de production **381 Mo**, inchangée depuis la Phase 1 : le runtime MDX n'y est pas, aucune
+route ne compilant encore de corps. Les ~7 Mo mesurés en P2-01 reviendront en Phase 4
+([`phase-2-log.md`](./phase-2-log.md) §13). · Depends on: P2-01
 
 **Critères de sortie** — Couverture ≥ 95 % sur `src/content/**` ; un frontmatter invalide fait
 échouer `make build` (prouvé par un test) ; aucun import React/Three.js dans la couche (vérifié par

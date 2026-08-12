@@ -419,3 +419,55 @@ de cette locale : « typscript », « postgresql »
 Toutes les références mortes de tous les fichiers sortent en une passe. **Trois mutations
 appliquées, les trois tuées** : références mortes ignorées, contrôle non branché sur le gate,
 compétences d'une autre locale acceptées.
+
+---
+
+## 13. P2-08 — la liste blanche refuse *avant* de rendre
+
+Le rendu MDX vit dans `src/ui/mdx/`, jamais dans `src/content` : la couche Content rend `body` sous
+forme de chaîne et s'arrête là (CT-09). Le compilateur ne reçoit qu'une chaîne et ne sait rien du
+système de fichiers.
+
+### 13.1 Le contrôle est fait avant la compilation, et c'est le seul point non évident
+
+Laissée à React, une balise `<Danger>` absente de la liste blanche produit
+`Expected component \`Danger\` to be defined` **au milieu du rendu de la page**, avec un message qui
+nomme le composant mais pas le fichier. Un greffon remark relève donc les noms de composants
+appelés **pendant la compilation**, et le rendu est refusé avant d'avoir commencé :
+
+```text
+content/fr/projects/augure.mdx — utilise « Danger », hors de la liste blanche
+des composants MDX (Callout)
+```
+
+Le relevé distingue ce qui commence par une majuscule (un composant) de ce qui n'en a pas (une
+balise HTML, que MDX rend nativement). Il descend dans les enfants, donc un composant interdit
+imbriqué dans un composant autorisé est vu — mutation vérifiée.
+
+### 13.2 Ce que cette liste garantit, et ce qu'elle ne garantit pas
+
+**Elle n'est pas une mesure de sécurité**, et le §6.1 l'a établi par exécution : MDX évalue du
+JavaScript sans passer par le moindre composant. Ce qu'elle garantit est **éditorial** — un contenu
+ne peut pas appeler un composant qui n'existe pas, donc il ne peut pas exister de page qui « marche
+presque ». À rappeler tel quel à l'audit de la Phase 14.
+
+La liste est volontairement minuscule : un seul composant, `Callout`, rendu en `<aside>` et sans
+style. La stratégie de style est l'ADR-0010, en Phase 4 ; y ajouter des composants ici reviendrait à
+décider de leur mise en forme avant d'avoir tranché comment on met en forme.
+
+**Six mutations appliquées, les six tuées** : liste blanche non appliquée, composants au fil du texte
+ignorés, descente dans les enfants supprimée, balises HTML traitées comme des composants, erreur de
+compilation avalée, ton par défaut retiré.
+
+### 13.3 Mesure promise en ADR-0009 : l'image de production n'a pas bougé
+
+**381 Mo**, exactement le relevé de fin de Phase 1. Le runtime MDX **n'est pas dans l'image** :
+`ls node_modules/@mdx-js` y renvoie « absent ». Next ne trace que ce qu'une route atteint, et aucune
+route ne compile encore de MDX.
+
+Les ~7 Mo mesurés en P2-01 réapparaîtront donc en **Phase 4**, avec la première page qui rend un
+corps. La marge sous le seuil bloquant (400 Mo) est à surveiller à ce moment-là, pas maintenant.
+
+Même raisonnement pour « aucun MDX n'envoyé au client » : le module n'est pas `'use client'` et le
+budget de bundle mesure 0,0 Ko par route — mais c'est aujourd'hui vrai d'un module que rien
+n'importe. La vérification qui compte est celle de la Phase 4, sur une page réelle.
