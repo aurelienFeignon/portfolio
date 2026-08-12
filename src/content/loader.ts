@@ -13,7 +13,7 @@ import type { Locale } from '@/i18n/locales'
 import { FRONTMATTER_SCHEMAS, type ContentType } from './content-type.ts'
 import { ContentError } from './errors.ts'
 import type { ContentFile, ContentSource } from './source.ts'
-import type { ContentEntityByType } from './types.ts'
+import type { ContentEntryByType } from './types.ts'
 
 /**
  * Valide un fichier lu et en fait une entité typée.
@@ -25,7 +25,7 @@ import type { ContentEntityByType } from './types.ts'
  */
 export function validateFile<T extends ContentType>(
   file: ContentFile & { readonly type: T },
-): ContentEntityByType[T] {
+): ContentEntryByType[T] {
   const result = FRONTMATTER_SCHEMAS[file.type].safeParse(file.frontmatter)
 
   if (!result.success) {
@@ -45,7 +45,7 @@ export function validateFile<T extends ContentType>(
     )
   }
 
-  return { ...result.data, body: file.body } as ContentEntityByType[T]
+  return { ...result.data, body: file.body } as ContentEntryByType[T]
 }
 
 function indent(message: string): string {
@@ -56,7 +56,7 @@ function indent(message: string): string {
 }
 
 export interface ContentLoader {
-  load<T extends ContentType>(locale: Locale, type: T): Promise<readonly ContentEntityByType[T][]>
+  load<T extends ContentType>(locale: Locale, type: T): Promise<readonly ContentEntryByType[T][]>
 }
 
 export function createContentLoader(source: ContentSource): ContentLoader {

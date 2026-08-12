@@ -338,3 +338,57 @@ frontmatter invalide accepté, gate sans code de sortie, gate qui ne valide rien
 C'est un mode de panne silencieuse en puissance : une racine mal résolue produirait exactement la
 même sortie. Un avertissement bruyant est émis, et **P2-10 doit rendre ce cas bloquant** une fois le
 contenu d'amorçage en place.
+
+---
+
+## 11. P2-05 et P2-06 — l'API de lecture, et là où les décisions d'ordre sont prises
+
+### 11.1 Deux niveaux de type, et pourquoi
+
+| Type | Produit par | Contenu |
+|---|---|---|
+| `ProjectEntry`, `ExperienceEntry`, `SkillEntry` | le chargeur | le frontmatter validé, plus le corps — exactement le fichier |
+| `Project`, `Experience`, `Skill` | le dépôt | la même chose, dérivations appliquées (`isOngoing`) |
+
+Sans cette séparation, `isOngoing` devrait exister dès la validation, c'est-à-dire avant d'avoir été
+calculé. La distinction coûte trois lignes de types et supprime une incohérence de fond.
+
+### 11.2 Les tris sont dans la couche, pas dans les vues
+
+Une vue qui trierait elle-même finirait par trier autrement qu'une autre, et le sitemap autrement
+que les deux. Trois règles, appliquées une fois :
+
+| Contenu | Ordre | Motif |
+|---|---|---|
+| Projets, expériences | Date de fin décroissante, **un élément en cours en tête**, puis date de début décroissante, puis slug | C'est l'ordre attendu d'un CV |
+| Compétences | Catégorie (`language` → `framework` → `tooling` → `infrastructure` → `practice`), puis niveau décroissant, puis nom | Du plus concret au plus transversal ; l'ordre vient de l'énumération du schéma, qui est donc porteuse de sens |
+
+Trois détails qui ne se voient qu'en les écrivant :
+
+- **Aucune horloge.** Un tri qui dépendrait de « maintenant » donnerait deux résultats à deux
+  builds : intestable, et visible en production sous forme de page qui change sans que le contenu
+  ait bougé. Une date de fin absente est remplacée par une borne haute (`9999-12-31`), pas comparée
+  à la date du jour.
+- **Aucune conversion en `Date`.** Le format ISO se compare comme une chaîne ; passer par `Date`
+  ferait entrer les fuseaux horaires dans un tri.
+- **Le slug tranche les égalités parfaites.** Sans lui, deux entités commencées et terminées le même
+  jour pourraient changer d'ordre d'un build à l'autre — donc dans le sitemap.
+
+Le nom des compétences est comparé avec un `Intl.Collator` **de la locale** : « Élasticsearch » se
+range à sa place alphabétique au lieu d'être rejeté après « Z ». `Intl` vient de la plateforme,
+aucune dépendance (ADR-0005).
+
+### 11.3 Ce que le dépôt rend quand il ne trouve rien
+
+`get*BySlug` rend **`null`**, jamais une exception : un slug inconnu est une **route** inconnue, que
+l'appelant traduit en 404 localisée (`architecture.md` §10). Un contenu présent mais invalide, lui,
+lève toujours — les deux situations n'ont rien à voir et ne doivent pas se ressembler dans le code.
+
+`getContentLocales(type, slug)` ne rend que les locales où l'entité **existe réellement**, dans
+l'ordre de `LOCALES`. C'est la brique du risque R-07 : un `hreflang` vers une traduction absente est
+une promesse fausse faite à un moteur de recherche.
+
+**Neuf mutations appliquées, les neuf tuées** : élément en cours relégué en dernier, égalité non
+départagée, collateur remplacé par une comparaison brute, niveau croissant, tri en place, recherche
+par slug ignorée, toutes les locales déclarées existantes, dérivation « en cours » inversée, filtre
+`featured` retiré.

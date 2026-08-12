@@ -457,8 +457,8 @@ dépendance à React ni à Three.js. Un contenu invalide casse le build.
 | P2-02 | Schémas Zod `Project`, `Experience`, `Skill` + types dérivés | **DONE** *(2026-08-12)* | P2-01 |
 | P2-03 | Lecture du système de fichiers, parsing du frontmatter, cache par requête | **DONE** *(2026-08-12)* | P2-02 |
 | P2-04 | Validation stricte : erreur nommant le fichier fautif, échec du build | **DONE** *(2026-08-12)* | P2-03 |
-| P2-05 | Repositories typés (`getAll*`, `get*BySlug`, `getContentLocales`) | TODO | P2-03 |
-| P2-06 | Normalisations et dérivations (tri, dates, poste en cours, `featured`) | TODO | P2-05 |
+| P2-05 | Repositories typés (`getAll*`, `get*BySlug`, `getContentLocales`) | **DONE** *(2026-08-12)* | P2-03 |
+| P2-06 | Normalisations et dérivations (tri, dates, poste en cours, `featured`) | **DONE** *(2026-08-12)* | P2-05 |
 | P2-07 | Vérification de cohérence référentielle `technologies` ↔ `Skill.slug` | TODO | P2-05 |
 | P2-08 | Compilation MDX en RSC avec liste blanche de composants | TODO | P2-01 |
 | P2-09 | Fixtures valides **et invalides** + fabriques d'objets de test | TODO | P2-02 |
@@ -509,6 +509,17 @@ Quatre mutations appliquées, les quatre tuées. Couverture `src/content/**` : *
 ajouté à `package.json`. Le socle de bundle est inchangé (129,5 Ko).
 ⚠ Réserve : un gate qui ne trouve **aucun** fichier sort en 0 aujourd'hui — à rendre bloquant en
 P2-10, une fois le contenu d'amorçage écrit. · Depends on: P2-03
+
+**P2-05 et P2-06 — API de lecture, tris et dérivations**
+Status: **DONE** (2026-08-12) — dépôt en fabrique, `get*BySlug` rendant `null` (une route inconnue
+n'est pas une erreur, `architecture.md` §10), `getContentLocales` ne citant que les locales
+réellement présentes (base du traitement de R-07). Tris et dérivations appliqués **dans la couche**,
+une fois pour tous les consommateurs : sans horloge, sans conversion en `Date`, avec le slug comme
+départage pour un ordre stable d'un build à l'autre. 34 tests, couverture 100 %, **neuf mutations
+appliquées et tuées** ([`phase-2-log.md`](./phase-2-log.md) §11).
+Deux niveaux de types introduits — `*Entry` (ce que le chargeur produit) et `Project` /
+`Experience` / `Skill` (dérivations appliquées) — sans quoi `isOngoing` devrait exister avant
+d'être calculé. · Depends on: P2-03, P2-05
 
 **Critères de sortie** — Couverture ≥ 95 % sur `src/content/**` ; un frontmatter invalide fait
 échouer `make build` (prouvé par un test) ; aucun import React/Three.js dans la couche (vérifié par
