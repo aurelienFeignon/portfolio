@@ -7,6 +7,7 @@ Ce dossier porte la configuration d'exécution sur le VPS (ADR-0008).
 | [`Caddyfile`](./Caddyfile) | Pile « edge » : TLS automatique, en-têtes de sécurité, cache des assets immuables | P1-13 |
 | [`portfolio.compose.yml`](./portfolio.compose.yml) | Pile applicative, copiée en `/srv/portfolio/docker-compose.yml` | P1-15 |
 | [`deploy.sh`](./deploy.sh) | Point d'entrée unique de la clé de déploiement de la CI | P1-15 |
+| [`sync-cloudflare-origin-firewall.sh`](./sync-cloudflare-origin-firewall.sh) | Restreint 80/443 de l'origine aux plages Cloudflare | P1-15 |
 
 Cette procédure n'est **jamais rédigée à l'avance** : chaque section n'apparaît ici qu'une fois
 exécutée sur le serveur réel. Une procédure d'exploitation non exécutée est une fiction.
@@ -273,10 +274,11 @@ ssh aurel@<ip> 'SSH_ORIGINAL_COMMAND="deploy <sha40>" /srv/portfolio/deploy.sh'
 P1-15 est **terminé** : les huit critères d'acceptation sont satisfaits, chacun vérifié par une
 exécution réelle. Ce qui suit déborde de la tâche et relève des phases ultérieures.
 
-- [ ] **Bascule du proxy Cloudflare** en orange avec SSL en *Full (strict)*, une fois le certificat
-      d'origine en place — c'est l'étape qui active réellement le CDN de H-01b.
 - [ ] **DMARC** : l'enregistrement n'existe pas encore (SPF et DKIM Mailjet, eux, ont survécu à la
       bascule de zone — vérifié).
+- [x] **Proxy Cloudflare activé** en *Full (strict)* — 2026-08-12. Vérifié : `cf-ray` présent,
+      point de présence **CDG (Paris)**, les quatre en-têtes de sécurité survivent au proxy, et
+      `/_next/static` revient en `cf-cache-status: HIT`. Le CDN de H-01b est actif, R-16 compensé.
 - [x] **Pare-feu cloud Hetzner** en amont de `ufw` — appliqué le 2026-08-12. Vérifié depuis
       l'extérieur : 22, 80 et 443 répondent, 25 / 2019 / 3000 / 8080 sont filtrés.
 
@@ -324,3 +326,54 @@ existants ne sont pas affectés, mais la conséquence est nette pour l'exploitat
 
 La procédure de restauration de la Phase 15 (risque R-23) doit être écrite sous cette contrainte, et
 non sous l'hypothèse implicite qu'un serveur est disponible à la demande.
+
+### 6.3 L'origine n'accepte que Cloudflare — exécuté le 2026-08-12
+
+Le proxy ne protège que le trafic qui passe par lui. Tant que l'origine répondait à tout le monde,
+connaître son IP suffisait à contourner l'absorption DDoS, le cache et toute règle de filtrage
+ajoutée chez Cloudflare. Et cette IP **est publique de fait** : la zone a pointé en clair dessus
+pendant plusieurs heures (historique DNS), et les scanners indexent les certificats TLS de tout
+l'espace IPv4. La cacher est impossible ; refuser ce qui ne vient pas de Cloudflare ne l'est pas.
+
+> ⚠️ **`ufw` ne sert à rien pour cela, et l'erreur a été commise ici avant d'être comprise.**
+> Les ports 80 et 443 sont publiés par un conteneur : les paquets atteignent Caddy par
+> `FORWARD → DOCKER` et **ne traversent jamais les règles `INPUT` d'`ufw`**. Une règle
+> `ufw allow from <cloudflare> to any port 443` est donc inopérante — et pire qu'inutile, puisqu'elle
+> affiche un filtrage qui n'existe pas. C'est l'avertissement du §1.1, vérifié à ses dépens.
+>
+> La seule chaîne évaluée avant les règles de Docker est **`DOCKER-USER`**.
+
+[`sync-cloudflare-origin-firewall.sh`](./sync-cloudflare-origin-firewall.sh) y construit une chaîne
+`CF-ORIGIN` : `RETURN` pour chaque plage publiée par Cloudflare, `DROP` en dernier.
+
+| Mode | Rôle |
+|---|---|
+| `--apply` | récupère les plages, applique, mémorise dans `/srv/edge/.cloudflare-ranges-v{4,6}` |
+| `--restore` | réapplique la liste mémorisée, **sans réseau** — c'est ce qui tourne au démarrage |
+| `--check` | signale une dérive et sort en 1, sans rien modifier |
+
+Deux unités systemd portent l'automatisme :
+
+- `cloudflare-origin-firewall.service` — `--restore` au démarrage, et `PartOf=docker.service` pour
+  couvrir l'autre cas de perte des règles : un redémarrage du démon Docker, qui reconstruit ses
+  chaînes.
+- `cloudflare-origin-firewall-refresh.timer` — `--apply` chaque lundi 04:30. C'est le **seul** moment
+  où l'on va chercher la liste sur le réseau.
+
+> **Pourquoi `--restore` et non `--apply` au démarrage** : si Cloudflare était injoignable à cet
+> instant, `--apply` échouerait et l'origine resterait grande ouverte. Une liste d'hier appliquée
+> vaut mieux qu'une liste du jour jamais appliquée. Les garde-fous du script vont dans le même
+> sens — réponse tronquée, entrée non conforme, moins de 10 plages : il refuse et ne modifie rien.
+
+**Vérifié après un redémarrage réel** (`boot_id` renouvelé) : le contournement direct
+(`curl --resolve aurelienfeignon.com:443:<ip>`) **expire sans réponse** sur 80 comme sur 443, le site
+répond toujours par Cloudflare, et le challenge ACME atteint encore Caddy — le renouvellement du
+certificat n'est donc pas cassé par ce filtrage.
+
+Le port 22 n'est pas concerné : voir §6.1.
+
+**Ce que ce filtrage ne fait pas.** Il rejette au niveau de l'hôte, donc les paquets ont déjà
+consommé la bande passante du VPS. Contre une attaque volumétrique, seule une règle **en amont** —
+le pare-feu cloud Hetzner — évite la saturation du lien. Restreindre 80/443 aux plages Cloudflare
+dans la console Hetzner ajouterait cette couche, au prix d'une resynchronisation manuelle à chaque
+évolution des plages, que ce script ne peut pas faire à ta place faute de jeton d'API (R-22).
