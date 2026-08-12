@@ -37,21 +37,108 @@ async function resolve(resolver: (typeof RESOLVERS)[number], name: string, type:
   return (body.Answer ?? []).map((answer) => answer.data.replace(/^"|"$/g, ''))
 }
 
+/**
+ * Plages publiées par Cloudflare — même source que
+ * `deploy/sync-cloudflare-origin-firewall.sh`, qui s'en sert pour n'autoriser
+ * que Cloudflare sur l'origine. Les deux vérifient donc la même chose depuis
+ * les deux bouts : que le trafic passe bien par le proxy et par lui seul.
+ */
+async function cloudflareRanges(): Promise<string[]> {
+  const lists = await Promise.all(
+    ['https://www.cloudflare.com/ips-v4', 'https://www.cloudflare.com/ips-v6'].map(async (url) => {
+      const response = await fetch(url)
+      if (!response.ok) throw new Error(`plages Cloudflare indisponibles (${url})`)
+      return (await response.text()).split('\n').filter((line) => line.trim() !== '')
+    }),
+  )
+  return lists.flat().map((cidr) => cidr.trim())
+}
+
+/** Adresse IPv4 ou IPv6 en entier de 128 bits, pour comparer des préfixes. */
+function toBigInt(address: string): bigint | null {
+  if (address.includes('.')) {
+    const octets = address.split('.')
+    if (octets.length !== 4) return null
+    return octets.reduce((accumulator, octet) => {
+      const value = Number(octet)
+      return (accumulator << 8n) | BigInt(value)
+    }, 0n)
+  }
+  // Expansion du `::` : une seule occurrence, qui complète à huit groupes.
+  const [head = '', tail = ''] = address.split('::')
+  const left = head === '' ? [] : head.split(':')
+  const right = tail === '' ? [] : tail.split(':')
+  const missing = 8 - left.length - right.length
+  if (missing < 0) return null
+  const groups = [
+    ...left,
+    ...Array<string>(address.includes('::') ? missing : 0).fill('0'),
+    ...right,
+  ]
+  if (groups.length !== 8) return null
+  return groups.reduce(
+    (accumulator, group) => (accumulator << 16n) | BigInt(`0x${group || '0'}`),
+    0n,
+  )
+}
+
+function inAnyRange(address: string, cidrs: string[]): boolean {
+  const value = toBigInt(address)
+  if (value === null) return false
+  const isV4 = address.includes('.')
+  return cidrs.some((cidr) => {
+    const [network = '', prefixText = ''] = cidr.split('/')
+    if (network.includes('.') !== isV4) return false
+    const base = toBigInt(network)
+    const prefix = Number(prefixText)
+    if (base === null || Number.isNaN(prefix)) return false
+    const width = isV4 ? 32n : 128n
+    const shift = width - BigInt(prefix)
+    return value >> shift === base >> shift
+  })
+}
+
+const CLOUDFLARE = await cloudflareRanges()
+
+/**
+ * Depuis l'activation du proxy (2026-08-12), l'apex NE DOIT PLUS renvoyer l'IP
+ * du VPS : c'est tout l'intérêt du montage. L'origine n'accepte d'ailleurs plus
+ * que les plages Cloudflare. Une adresse hors de ces plages signifie soit que le
+ * proxy a été désactivé, soit que l'origine est de nouveau exposée — et dans les
+ * deux cas le site devient injoignable ou contournable.
+ */
+const servedByCloudflare = (values: string[]) => {
+  if (values.length === 0) return { ok: false, detail: 'absent' }
+  const outside = values.filter((address) => !inAnyRange(address, CLOUDFLARE))
+  return {
+    ok: outside.length === 0,
+    detail:
+      outside.length === 0
+        ? `${values.join(', ')} — plages Cloudflare`
+        : `${outside.join(', ')} HORS plages Cloudflare — proxy désactivé ou origine exposée`,
+  }
+}
+
 const checks: Check[] = [
   {
-    label: 'A — apex vers le VPS',
+    label: 'A — apex servi par Cloudflare, jamais l’IP d’origine',
     name: DOMAIN,
     type: 'A',
-    verdict: (v) => ({ ok: v.length === 1, detail: v.join(', ') || 'absent' }),
+    verdict: servedByCloudflare,
   },
   {
-    label: 'AAAA — absent si le VPS n’a pas d’IPv6',
+    label: 'A — www servi par Cloudflare',
+    name: `www.${DOMAIN}`,
+    type: 'A',
+    verdict: servedByCloudflare,
+  },
+  {
+    // Cloudflare synthétise toujours l'IPv6 sur un nom proxifié, que l'origine
+    // en serve ou non. Son absence signalerait donc que le proxy est inactif.
+    label: 'AAAA — synthétisée par Cloudflare sur un nom proxifié',
     name: DOMAIN,
     type: 'AAAA',
-    verdict: (v) => ({
-      ok: true,
-      detail: v.length === 0 ? 'aucun (correct si pas d’IPv6 servie)' : v.join(', '),
-    }),
+    verdict: servedByCloudflare,
   },
   {
     label: 'SPF — exactement UNE ligne v=spf1',
@@ -147,8 +234,10 @@ for (const check of checks) {
 }
 
 console.log(`\nNon vérifiable ici, à contrôler dans les tableaux de bord :`)
-console.log(`  - renouvellement automatique du domaine (registraire)`)
-console.log(`  - expéditeur validé et domaine authentifié (Mailjet)`)
+console.log(
+  `  - renouvellement automatique du domaine (registraire) — vérifié au whois le 2026-08-11`,
+)
+console.log(`  - expéditeur validé et domaine authentifié (Mailjet) — Active le 2026-08-12`)
 
 if (failures > 0) {
   console.error(`\n✗ ${failures} point(s) en échec — P1-17 n'est pas terminée.`)
