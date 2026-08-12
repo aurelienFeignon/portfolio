@@ -15,7 +15,7 @@ import {
   nonEmptyTextSchema,
   slugSchema,
   technologiesSchema,
-} from './common'
+} from './common.ts'
 
 export const projectFrontmatterSchema = z
   .strictObject({

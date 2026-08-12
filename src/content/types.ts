@@ -7,9 +7,9 @@
  */
 import type { z } from 'zod'
 
-import type { experienceFrontmatterSchema } from './schemas/experience'
-import type { projectFrontmatterSchema } from './schemas/project'
-import type { skillFrontmatterSchema } from './schemas/skill'
+import type { experienceFrontmatterSchema } from './schemas/experience.ts'
+import type { projectFrontmatterSchema } from './schemas/project.ts'
+import type { skillFrontmatterSchema } from './schemas/skill.ts'
 
 /**
  * Le corps MDX ne fait pas partie du frontmatter : il est ce qui reste du fichier

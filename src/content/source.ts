@@ -14,9 +14,9 @@ import { join } from 'node:path'
 
 import type { Locale } from '@/i18n/locales'
 
-import type { ContentType } from './content-type'
-import { ContentError } from './errors'
-import { parseFrontmatter, splitFrontmatter } from './frontmatter'
+import type { ContentType } from './content-type.ts'
+import { ContentError } from './errors.ts'
+import { parseFrontmatter, splitFrontmatter } from './frontmatter.ts'
 
 /** `.md` pour un contenu simple, `.mdx` dès qu'un composant est utilisé. */
 const EXTENSIONS = ['.md', '.mdx'] as const

@@ -12,6 +12,12 @@
     "esModuleInterop": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
+    // La couche Content doit rester exécutable par `node` seul (P2-04) : le gate
+    // de contenu de `pnpm build` l'importe sans bundler, et Node ESM exige des
+    // spécificateurs complets. Les imports relatifs de `src/content/**` portent
+    // donc leur extension `.ts`, ce que cette option autorise — elle n'est
+    // permise qu'avec `noEmit`, déjà actif.
+    "allowImportingTsExtensions": true,
     "skipLibCheck": true,
     "incremental": true,
     // Dans le volume `.next`, jamais sur l'hôte : c'est un artefact du conteneur

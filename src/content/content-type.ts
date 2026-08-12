@@ -5,9 +5,9 @@
  * segment d'URL (`/fr/projects`). Le pluriel est donc porté par la valeur
  * elle-même, plutôt que reconstruit ailleurs par concaténation.
  */
-import { experienceFrontmatterSchema } from './schemas/experience'
-import { projectFrontmatterSchema } from './schemas/project'
-import { skillFrontmatterSchema } from './schemas/skill'
+import { experienceFrontmatterSchema } from './schemas/experience.ts'
+import { projectFrontmatterSchema } from './schemas/project.ts'
+import { skillFrontmatterSchema } from './schemas/skill.ts'
 
 export const CONTENT_TYPES = ['experiences', 'projects', 'skills'] as const
 

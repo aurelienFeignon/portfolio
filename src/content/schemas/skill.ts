@@ -7,7 +7,7 @@
  */
 import { z } from 'zod'
 
-import { nonEmptyTextSchema, slugSchema } from './common'
+import { nonEmptyTextSchema, slugSchema } from './common.ts'
 
 export const skillFrontmatterSchema = z.strictObject({
   slug: slugSchema,

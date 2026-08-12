@@ -249,3 +249,92 @@ Deux détails qui ne se devinent pas, et que les tests fixent :
 étant statiques. C'est cohérent, et c'est aussi une contrainte à honorer — **aucune route ne doit
 pouvoir se rendre à la demande**, sans quoi le serveur chercherait un dossier absent. À vérifier au
 moment où les routes existent, en Phase 3 puis avant P4-13.
+
+---
+
+## 10. P2-04 — le build a été vu casser, pour la bonne raison
+
+### 10.1 Le problème que personne ne voit venir
+
+L'exigence CF-10 dit « un frontmatter invalide fait échouer le build ». La lecture naturelle est
+« une page rendra ce contenu et échouera ». **En Phase 2, aucune page ne lit le contenu** : un
+dossier entièrement fautif passerait donc le build sans un mot. Et même en Phase 4, ne seraient
+validés que les fichiers qu'une route rend réellement.
+
+Le contenu est donc validé par un **gate dédié**, `scripts/check-content.mts`, branché avant
+`next build` :
+
+```json
+"build": "pnpm check-content && next build"
+```
+
+Il valide **tout** `content/`, indépendamment des routes, et il tourne aussi bien dans la CI (job
+`gates`, `pnpm build && pnpm bundle`) que dans la construction de l'image de production.
+
+### 10.2 Preuve : un contenu fautif écrit exprès, et `make build` vu échouer
+
+Écrit **avant** de regarder si le mécanisme marchait, comme demandé — un fichier `content/fr/projects/augure.mdx`
+portant quatre fautes à la fois. `make build` s'est arrêté, code de sortie non nul, sur :
+
+```text
+✗ Contenu invalide — 1 problème(s) :
+
+  content/fr/projects/augure.mdx — frontmatter invalide
+  ✖ Unrecognized key: "feature"
+  ✖ est trop court pour servir de description
+    → at summary
+  ✖ contient un doublon : chaque technologie ne doit apparaître qu'une fois
+    → at technologies
+  ✖ doit être une date ISO complète et réelle, au format AAAA-MM-JJ (ex. « 2022-03-01 »)
+    → at startedAt
+
+Le build est interrompu volontairement : un contenu invalide ne doit pas
+atteindre la production sous forme de page à moitié vide (CF-10).
+```
+
+Le message est **exploitable** : il nomme le fichier, chaque champ fautif, et la règle violée en
+français. Les quatre défauts sortent **en une seule passe** — corriger, rebuilder, découvrir le
+suivant, quatre fois de suite, serait une autre façon d'échouer.
+
+Second cas vérifié : un frontmatter annonçant `slug: augur` dans `augure.mdx` →
+*« le frontmatter annonce le slug « augur », mais le nom du fichier impose « augure » »*.
+
+Le contenu fautif a ensuite été supprimé : `content/` est de nouveau vide jusqu'à P2-10.
+
+### 10.3 Ce que le gate exige de la couche, et ce que cela change
+
+Le gate tourne sous **`node` seul**, sans bundler ni exécuteur de tests. C'est la contrepartie
+concrète de « la couche Content est du TypeScript pur » (ADR-0001) : si elle avait besoin de Next
+pour s'exécuter, l'affirmation serait décorative.
+
+Trois conséquences, toutes assumées et vérifiées :
+
+| Contrainte de `node` | Effet | Vérifié |
+|---|---|---|
+| ESM exige des spécificateurs complets | Les imports relatifs de `src/content/**` portent leur extension `.ts` (`./errors.ts`), autorisé par `allowImportingTsExtensions` | `tsc`, ESLint, Vitest et **Turbopack** acceptent tous cette forme — build de production refait |
+| L'effacement de types ne sait pas produire de code | Plus de propriété de paramètre dans `ContentError` : le champ est déclaré puis affecté | `node scripts/check-content.mts` s'exécute |
+| Un paquet sans `type` déclaré est reparsé | `"type": "module"` ajouté à `package.json` | build, tests, lint et budget de bundle rejoués : **socle inchangé à 129,5 Ko** |
+
+> `"type": "module"` est un changement à l'échelle du dépôt, pas un réglage local. Il est sans effet
+> ici parce qu'aucun fichier `.js` n'existe : la configuration est en `.ts`, `.mts` ou `.mjs`. Le
+> signaler pour que le jour où un `.js` CommonJS est ajouté, on sache pourquoi il ne se charge pas.
+
+### 10.4 Ce que les tests prouvent, et ce qu'ils ne prouvent pas
+
+`tests/integration/content-gate.test.ts` **exécute réellement** le gate dans un processus séparé,
+contre des fixtures fautives, et constate son code de sortie — 1 sur cinq familles de fautes, 0 sur
+le contenu valide. Le gate étant branché sur `pnpm build`, **son code de sortie est celui du build**.
+
+Ce que ces tests ne prouvent pas, et qui a donc été fait à la main une fois (§10.2) : que `make build`
+— donc la construction de l'image Docker — s'arrête bien. Reconstruire une image à chaque exécution
+de la suite coûterait plusieurs minutes pour revérifier un maillon déjà vérifié.
+
+**Quatre mutations appliquées, les quatre tuées** : slug non confronté au nom du fichier,
+frontmatter invalide accepté, gate sans code de sortie, gate qui ne valide rien.
+
+### 10.5 Une réserve consignée : un gate qui ne trouve rien passe au vert
+
+`content/` étant vide jusqu'à P2-10, le gate affiche aujourd'hui « 0 fichier vérifié » et sort en 0.
+C'est un mode de panne silencieuse en puissance : une racine mal résolue produirait exactement la
+même sortie. Un avertissement bruyant est émis, et **P2-10 doit rendre ce cas bloquant** une fois le
+contenu d'amorçage en place.

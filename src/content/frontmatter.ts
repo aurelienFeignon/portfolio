@@ -16,7 +16,7 @@
  */
 import { parse as parseYaml } from 'yaml'
 
-import { ContentError, messageOf } from './errors'
+import { ContentError, messageOf } from './errors.ts'
 
 const DELIMITER = '---'
 

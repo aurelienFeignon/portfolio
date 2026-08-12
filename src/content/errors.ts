@@ -18,12 +18,15 @@ export function messageOf(cause: unknown): string {
 export class ContentError extends Error {
   override readonly name = 'ContentError'
 
-  constructor(
-    /** Chemin **relatif à la racine du dépôt** : c'est ce qu'on ouvre dans l'éditeur. */
-    readonly file: string,
-    reason: string,
-    options?: { cause?: unknown },
-  ) {
+  /** Chemin **relatif à la racine du dépôt** : c'est ce qu'on ouvre dans l'éditeur. */
+  readonly file: string
+
+  // Le champ est déclaré puis affecté, plutôt que d'utiliser une propriété de
+  // paramètre : `node` ne sait effacer que des annotations de type, et refuse
+  // cette forme, qui produit du code. La couche doit rester exécutable par
+  // `node` seul (P2-04).
+  constructor(file: string, reason: string, options?: { cause?: unknown }) {
     super(`${file} — ${reason}`, options)
+    this.file = file
   }
 }

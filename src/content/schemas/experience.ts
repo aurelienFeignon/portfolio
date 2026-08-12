@@ -10,7 +10,7 @@ import {
   nonEmptyTextSchema,
   slugSchema,
   technologiesSchema,
-} from './common'
+} from './common.ts'
 
 export const experienceFrontmatterSchema = z
   .strictObject({

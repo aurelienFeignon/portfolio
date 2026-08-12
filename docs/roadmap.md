@@ -456,7 +456,7 @@ dépendance à React ni à Three.js. Un contenu invalide casse le build.
 | P2-01 | ADR-0009 : choix de la bibliothèque MDX (compatibilité vérifiée) | **DONE** *(2026-08-12)* | P1-16 |
 | P2-02 | Schémas Zod `Project`, `Experience`, `Skill` + types dérivés | **DONE** *(2026-08-12)* | P2-01 |
 | P2-03 | Lecture du système de fichiers, parsing du frontmatter, cache par requête | **DONE** *(2026-08-12)* | P2-02 |
-| P2-04 | Validation stricte : erreur nommant le fichier fautif, échec du build | TODO | P2-03 |
+| P2-04 | Validation stricte : erreur nommant le fichier fautif, échec du build | **DONE** *(2026-08-12)* | P2-03 |
 | P2-05 | Repositories typés (`getAll*`, `get*BySlug`, `getContentLocales`) | TODO | P2-03 |
 | P2-06 | Normalisations et dérivations (tri, dates, poste en cours, `featured`) | TODO | P2-05 |
 | P2-07 | Vérification de cohérence référentielle `technologies` ↔ `Skill.slug` | TODO | P2-05 |
@@ -493,6 +493,22 @@ sur des fixtures sans variable d'environnement ni mutation globale. 31 tests, **
 exécution : `gray-matter` → `yaml` (le premier transforme `2024-01-15` en objet `Date`, ce que nos
 schémas rejettent), et cache React → mémoïsation à la durée du processus (la couche Content ne peut
 pas importer React, CT-09). · Depends on: P2-02
+
+**P2-04 — Validation stricte, et le build vu casser**
+Status: **DONE** (2026-08-12) — gate `scripts/check-content.mts` branché **avant** `next build`.
+Motif : en Phase 2 aucune page ne lit le contenu, et même en Phase 4 seules les entités rendues
+seraient validées — CF-10 serait resté une intention. Le gate valide **tout** `content/`, dans la CI
+comme dans la construction de l'image.
+**Prouvé par exécution** : un `content/fr/projects/augure.mdx` fautif écrit exprès a fait échouer
+`make build`, avec un message nommant le fichier et **les quatre défauts en une seule passe**
+([`phase-2-log.md`](./phase-2-log.md) §10). Automatisé ensuite : `tests/integration/content-gate.test.ts`
+exécute le gate en sous-processus et constate son code de sortie sur cinq familles de fautes.
+Quatre mutations appliquées, les quatre tuées. Couverture `src/content/**` : **100 %**.
+⚠ Trois conséquences assumées, toutes vérifiées : extensions `.ts` explicites dans les imports de
+`src/content/**` (Node ESM), plus de propriété de paramètre dans `ContentError`, et `"type": "module"`
+ajouté à `package.json`. Le socle de bundle est inchangé (129,5 Ko).
+⚠ Réserve : un gate qui ne trouve **aucun** fichier sort en 0 aujourd'hui — à rendre bloquant en
+P2-10, une fois le contenu d'amorçage écrit. · Depends on: P2-03
 
 **Critères de sortie** — Couverture ≥ 95 % sur `src/content/**` ; un frontmatter invalide fait
 échouer `make build` (prouvé par un test) ; aucun import React/Three.js dans la couche (vérifié par

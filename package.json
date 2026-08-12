@@ -2,6 +2,7 @@
   "name": "portfolio",
   "version": "0.0.0",
   "private": true,
+  "type": "module",
   "packageManager": "pnpm@11.21.0",
   "engines": {
     "node": ">=24.19.0 <25"
@@ -15,7 +16,8 @@
     "bundle": "node scripts/check-bundle-budget.mts",
     "lint": "eslint . && prettier --check .",
     "lint:fix": "eslint . --fix && prettier --write .",
-    "build": "next build",
+    "check-content": "node scripts/check-content.mts",
+    "build": "pnpm check-content && next build",
     "start": "next start -H 0.0.0.0 -p 3000",
     "check-dns": "node scripts/check-dns.mts"
   },
