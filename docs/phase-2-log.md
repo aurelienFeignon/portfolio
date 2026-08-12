@@ -111,3 +111,78 @@ tracé dans `.next/standalone`.
 Rien n'est décidé sur cette base — un seul candidat est retenu, et la mesure sera refaite en P2-08
 avec le code réel. C'est consigné ici pour que le jour où le seuil est franchi, on sache depuis
 quand la marge s'érode et pourquoi.
+
+---
+
+## 7. Écart assumé : `content → i18n` est ajouté au graphe de dépendances
+
+**Constat** — `architecture.md` §1.2 pose `content → (rien)`. Le même document, en §3.3, exige une
+API de contenu **typée par locale** (`getAllProjects(locale: Locale)`), et §3.1 range les fichiers
+sous `content/{locale}/…`. La couche Content ne peut donc pas ignorer la notion de locale, et §1.2
+lui interdit d'aller la chercher. Les deux passages se contredisent, comme se contredisaient §1.2 et
+§5.1 en Phase 1.
+
+**Options**
+
+| Option | Coût | Effet |
+|---|---|---|
+| (a) Redéfinir les locales dans `src/content` | Aucun sur le moment | **Deux listes de locales**. Le jour où une troisième langue arrive (CF-03), en oublier une produit un contenu introuvable, sans erreur |
+| (b) Prendre `locale: string` sans le typer | Aucun | Supprime la garantie à l'endroit exact où elle compte : `hreflang` et `sitemap` seraient dérivés d'une chaîne libre |
+| **(c) Autoriser `content → i18n`** | Une ligne de règle ESLint, une mention ici et dans `architecture.md` | Une seule source de vérité des locales |
+
+**Décision : (c).** `i18n` ne dépend de rien : l'autorisation ne peut créer aucun cycle. Ce que
+CT-09 protège est que la couche Content reste du **TypeScript pur, sans React, sans Next et sans
+Three.js** — pas qu'elle n'importe rien du tout. Ces trois interdictions restent en place et
+inchangées.
+
+**Vérifié par échec observé**, la règle ayant été modifiée :
+
+| Import depuis `src/content` | Attendu | Constaté |
+|---|---|---|
+| `@/i18n/locales` | accepté | ✅ aucun message |
+| `@/seo/site-url` | refusé | ✅ `ne peut pas importer src/seo (architecture.md §1.2)` |
+| `react` | refusé | ✅ `La couche Content ne dépend pas de React ni de Next (CT-09)` |
+
+**Conséquence** — `src/i18n/locales.ts` est écrit dès maintenant, et ne contient **que** le
+vocabulaire : `LOCALES`, `Locale`, `DEFAULT_LOCALE`, `isLocale`. La négociation `Accept-Language`,
+les dictionnaires et la règle de repli restent en Phase 3. **P3-01 complète ce fichier au lieu de le
+créer** ; la roadmap le signale.
+
+---
+
+## 8. P2-02 — les schémas ont été vus refuser du contenu
+
+Trois schémas (`project`, `experience`, `skill`), leurs types dérivés par `z.infer` et une table
+type de contenu → schéma exhaustive par construction. **63 tests**, dont l'essentiel décrit un rejet.
+
+**Zod 4.4.3** est retenu — CT-03 impose Zod, restait la version. Zod 4 n'a **aucune dépendance**
+(l'arbre du projet ne bouge pas d'un paquet), `z.iso.date()` valide une date **calendaire** (il
+refuse `2024-02-30`, ce qu'une expression rationnelle laisse passer), et `z.prettifyError` produit
+un message lisible à plusieurs erreurs — ce sera la matière première du message de P2-04.
+
+Trois choix de rigueur, qui sont des décisions et non des réglages par défaut :
+
+| Choix | Motif |
+|---|---|
+| `strictObject` partout | Une clé inconnue est une **erreur**. C'est ce qui attrape `feature:` écrit pour `featured:` — la faute la plus coûteuse du lot, puisqu'elle ne casse rien et publie simplement un site faux |
+| `featured` avec défaut `false` | Un champ absent ne peut pas faire remonter un contenu par accident. Le défaut est sûr dans le seul sens qui compte |
+| Dates au jour près (`AAAA-MM-JJ`) | Une seule forme à écrire, à trier et à comparer. La précision d'affichage (« mars 2022 ») est une décision de rendu, prise en Phase 4 |
+
+**Neuf mutations appliquées au code de production, une à une : les neuf sont tuées.**
+
+| Mutation | Verdict |
+|---|---|
+| `strictObject` → `object` | tuée |
+| Contrôle d'ordre des dates retiré | tuée |
+| `.trim()` retiré des textes obligatoires | tuée |
+| Motif de slug remplacé par « tout accepter » | tuée |
+| `z.iso.date()` → `z.string()` | tuée *(4 tests)* |
+| Minimum d'une technologie retiré | tuée |
+| Détection de doublons neutralisée | tuée |
+| Niveau borné 1–5 → `z.number()` | tuée |
+| Minimum d'une réalisation retiré | tuée |
+
+> Le harnais de mutation a d'abord annoncé la cinquième comme **survivante**. Vérification faite à
+> la main, son écriture du fichier n'avait pas pris effet avant l'exécution des tests : le code
+> n'était pas muté. Un faux négatif d'outil, corrigé en rejouant la mutation seule — et la seule
+> direction d'erreur possible ici, puisqu'un « tuée » exige que la suite ait réellement rougi.

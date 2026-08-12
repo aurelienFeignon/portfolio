@@ -8,7 +8,7 @@ import tseslint from 'typescript-eslint'
 /**
  * Graphe de dépendances autorisé entre modules — `architecture.md` §1.2.
  *
- *   content/          →  (rien)
+ *   content/          →  i18n
  *   i18n/             →  (rien)
  *   routing/          →  i18n
  *   scene/            →  routing, i18n              jamais content
@@ -24,13 +24,19 @@ import tseslint from 'typescript-eslint'
  *   - `seo` ne figurait dans aucune liste. Contrainte posée par défaut, à
  *     confirmer en P3-06.
  *
+ * Un troisième, ouvert en Phase 2 (`phase-2-log.md` §7) : `content → i18n`. Le
+ * contenu est indexé par locale, donc typé par elle ; l'alternative était une
+ * seconde liste de locales dans `src/content`. `i18n` ne dépendant de rien, cette
+ * autorisation ne peut pas créer de cycle, et la couche Content reste du
+ * TypeScript pur — c'est cela que CT-09 protège, pas l'absence de tout import.
+ *
  * Une règle d'architecture non vérifiée est une intention, pas une contrainte :
  * celle-ci est prouvée par un échec observé (P1-05).
  */
 const LAYERS = ['content', 'i18n', 'routing', 'scene', 'ui', 'features', 'seo', 'app']
 
 const ALLOWED = {
-  content: [],
+  content: ['i18n'],
   i18n: [],
   routing: ['i18n'],
   scene: ['routing', 'i18n'],

@@ -454,7 +454,7 @@ dépendance à React ni à Three.js. Un contenu invalide casse le build.
 | ID | Tâche | Statut | Dépend de |
 |---|---|---|---|
 | P2-01 | ADR-0009 : choix de la bibliothèque MDX (compatibilité vérifiée) | **DONE** *(2026-08-12)* | P1-16 |
-| P2-02 | Schémas Zod `Project`, `Experience`, `Skill` + types dérivés | TODO | P2-01 |
+| P2-02 | Schémas Zod `Project`, `Experience`, `Skill` + types dérivés | **DONE** *(2026-08-12)* | P2-01 |
 | P2-03 | Lecture du système de fichiers, parsing du frontmatter, cache par requête | TODO | P2-02 |
 | P2-04 | Validation stricte : erreur nommant le fichier fautif, échec du build | TODO | P2-03 |
 | P2-05 | Repositories typés (`getAll*`, `get*BySlug`, `getContentLocales`) | TODO | P2-03 |
@@ -475,6 +475,16 @@ dans [`phase-2-log.md`](./phase-2-log.md) §6 : la compilation a lieu **au build
 sont SSG), et **MDX exécute du JavaScript** — `content/` est donc du code.
 · Depends on: P1-16
 
+**P2-02 — Schémas Zod et types dérivés**
+Status: **DONE** (2026-08-12) — trois schémas `strictObject` (une clé inconnue est une erreur, pas
+un champ ignoré), types dérivés par `z.infer`, table type → schéma exhaustive par construction.
+Zod 4.4.3, **zéro dépendance ajoutée à l'arbre**. 63 tests ; **neuf mutations appliquées au code de
+production, les neuf tuées** ([`phase-2-log.md`](./phase-2-log.md) §8).
+⚠ **Écart tracé** : `content → i18n` a été **ajouté au graphe de dépendances** — `architecture.md`
+§1.2 (`content → rien`) contredisait §3.3 (API typée par locale). Justification, options pesées et
+échecs observés en [`phase-2-log.md`](./phase-2-log.md) §7. Les interdictions React / Next /
+Three.js de CT-09 sont inchangées et revérifiées. · Depends on: P2-01
+
 **Critères de sortie** — Couverture ≥ 95 % sur `src/content/**` ; un frontmatter invalide fait
 échouer `make build` (prouvé par un test) ; aucun import React/Three.js dans la couche (vérifié par
 le lint) ; les fixtures de test sont indépendantes du contenu réel.
@@ -485,7 +495,7 @@ le lint) ; les fixtures de test sont indépendantes du contenu réel.
 
 | ID | Tâche | Dépend de |
 |---|---|---|
-| P3-01 | Type `Locale`, liste des locales, locale par défaut | P2-05 |
+| P3-01 | Type `Locale`, liste des locales, locale par défaut — **partiellement livré en P2-02** : `src/i18n/locales.ts` existe déjà (`LOCALES`, `Locale`, `DEFAULT_LOCALE`, `isLocale`), la couche Content en dépendant. À **compléter**, jamais à recréer | P2-05 |
 | P3-02 | Segment `app/[locale]` + `generateStaticParams` ; locale inconnue → 404 | P3-01 |
 | P3-03 | Négociation `Accept-Language` sur `/` avec repli | P3-01 |
 | P3-04 | Dictionnaires d'interface typés, complétude garantie à la compilation | P3-01 |

@@ -43,7 +43,7 @@ uniquement de l'**état de navigation** (quelle section est active) et des **anc
 ### 1.2 Dépendances autorisées entre modules
 
 ```text
-content/  ──────▶  (rien)
+content/  ──────▶  i18n
 i18n/     ──────▶  (rien)
 routing/  ──────▶  i18n
 scene/    ──────▶  routing, i18n          ✗ jamais content
@@ -62,6 +62,15 @@ seo/      ──────▶  i18n, routing
 > - **`seo` ajouté.** Le dossier figure dans l'arborescence de §8 mais dans aucune liste de
 >   dépendances. Contrainte posée par défaut, **à confirmer en P3-06** quand les métadonnées seront
 >   réellement écrites.
+>
+> **Modifié le 2026-08-12 (P2-02) : `content → i18n` est autorisé.** La rédaction initiale
+> (`content → rien`) rendait impossible ce que §3.3 exige au même moment : une API de contenu
+> **typée par locale**. Les deux issues étaient une seconde liste de locales dans `src/content` — donc
+> deux sources de vérité destinées à diverger — ou cette autorisation. `i18n` ne dépendant de rien,
+> aucun cycle n'est possible, et la couche Content reste du TypeScript pur sans React, sans Next et
+> sans Three.js : c'est cela que CT-09 protège, et non l'absence de tout import. Le vocabulaire des
+> locales est écrit dans `src/i18n/locales.ts`, que P3-01 complète au lieu de le recréer.
+> Détail : [`phase-2-log.md`](./phase-2-log.md) §7.
 
 Contrainte vérifiée automatiquement par une règle ESLint (`import/no-restricted-paths`) — tâche
 `P1-05`. Elle rend l'ADR-0001 exécutable plutôt que déclaratif : une régression échoue au lint,
