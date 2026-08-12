@@ -21,7 +21,7 @@ silencieusement.
 | Phase | Nom | Statut | Livrable central |
 |---|---|---|---|
 | 0 | Discovery et cadrage | **DONE** | `docs/` complet, ADR 0001–0008 |
-| 1 | Fondation technique | **IN_PROGRESS** | Squelette dockerisé, gates verts, CI, déploiement du squelette |
+| 1 | Fondation technique | **DONE** *(2026-08-12)* | Squelette dockerisé, gates verts, CI, déploiement du squelette |
 | 2 | Content layer | TODO | Markdown → objets typés validés, build cassé si invalide |
 | 3 | Internationalisation | TODO | `/fr` et `/en` résolus indépendamment, hreflang exact |
 | 4 | Portfolio HTML | TODO | **Produit utilisable sans Three.js** (phase obligatoire) |
@@ -372,13 +372,20 @@ Acceptance:
 > tâche de la Phase 2. Ce report est le seul autorisé, et il est tracé ici.
 
 **P1-17 — Nom de domaine et zone DNS** *(prérequis transverse — à engager en premier)*
-Status: **IN_PROGRESS** — procédure exécutable rédigée dans
-[`domain-and-dns.md`](./domain-and-dns.md) ; **action utilisateur**, rien à coder.
+Status: **DONE** (2026-08-12) — `make check-dns` vert sur tous les points vérifiables, jugés sur
+**deux résolveurs indépendants** : apex et `www` servis par Cloudflare, `AAAA` synthétisée, un seul
+`SPF` incluant Mailjet, `DKIM` publié, `DMARC` en `p=none` avec une adresse de rapport **dans le
+domaine** (une adresse externe n'aurait produit aucun rapport), et des `MX` pour que cette adresse
+soit joignable. Domaine `aurelienfeignon.com` chez Namecheap, expirant le 2027-08-11, renouvellement
+automatique vérifié au whois ; domaine `Active` chez Mailjet le 2026-08-12.
 · Depends on: — · Bloque : P1-15, P3-06, P10-11
 Acceptance:
 - Domaine acheté, registraire et date d'expiration consignés ; **renouvellement automatique
   activé** (une expiration de domaine coupe simultanément le site, le HTTPS et l'expédition).
-- Enregistrements `A`/`AAAA` pointant le VPS.
+- ~~Enregistrements `A`/`AAAA` pointant le VPS.~~ **Reformulé le 2026-08-12** : l'apex et `www` sont
+  servis par **Cloudflare**, et ne doivent surtout plus exposer l'IP d'origine — celle-ci n'accepte
+  d'ailleurs plus que les plages Cloudflare (`deploy/README.md` §6.3). `make check-dns` vérifie
+  désormais l'appartenance à ces plages, à la même source que le pare-feu de l'origine.
 - Authentification Mailjet du domaine : `SPF` et `DKIM` publiés, expéditeur validé.
 - **`DMARC` publié**, en observation (`p=none`) au départ, avec adresse de rapport.
 - Identité d'expédition alignée sur le domaine du portfolio (ou l'un de ses sous-domaines), pour
@@ -422,13 +429,19 @@ image de production démarrant et répondant au healthcheck.
       avec `--admin` ; le dépôt est passé en public pour débloquer Actions (voir Q5).*
 - [x] Image de production construite, non-root, démarrant avec healthcheck.
 - [x] Budget de bundle mesuré et automatiquement surveillé — gate vu échouer.
-- [ ] P1-17 : domaine acheté ✅, SPF et DKIM publiés ✅ ; DMARC, validation Mailjet et `A` restants.
-- [x] P1-15 explicitement `BLOCKED` avec cause tracée.
+- [x] P1-17 : domaine, `A`/`AAAA`, `SPF`, `DKIM`, `DMARC` et `MX` — `make check-dns` vert sur deux
+      résolveurs ; domaine `Active` chez Mailjet.
+- [x] P1-15 : **déployé et en ligne** sur <https://aurelienfeignon.com>, rollback exécuté.
 - [x] Aucune dépendance Three.js présente dans le projet.
 
-> **Un seul critère reste ouvert : P1-17**, et il ne dépend pas du code — DMARC, validation Mailjet
-> et enregistrement `A`. Il ne bloque rien avant la Phase 3 (URL canoniques, `hreflang`). Tous les
-> critères techniques sont satisfaits et vérifiés par exécution.
+> **Tous les critères de sortie sont satisfaits, chacun vérifié par une exécution.** La Phase 1 est
+> close.
+>
+> Deux réserves consignées plutôt que passées sous silence : le CPU du conteneur n'a été relevé
+> qu'une minute après démarrage (32 %, au-dessus du seuil d'alerte de 25 %) et n'a donc pas été
+> mesuré en régime stable — c'est l'objet de P11-08 ; et la procédure de restauration du serveur
+> reste à écrire sous la contrainte du risque R-23, l'hébergeur ne garantissant pas la création
+> d'une machine neuve à la demande.
 
 ---
 
