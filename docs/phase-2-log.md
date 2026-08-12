@@ -392,3 +392,30 @@ une promesse fausse faite à un moteur de recherche.
 départagée, collateur remplacé par une comparaison brute, niveau croissant, tri en place, recherche
 par slug ignorée, toutes les locales déclarées existantes, dérivation « en cours » inversée, filtre
 `featured` retiré.
+
+---
+
+## 12. P2-07 — la faute qui n'existe qu'entre deux fichiers
+
+`technologies: ["typscript"]` satisfait le schéma : c'est bien un tableau de chaînes au format slug.
+La faute n'apparaît qu'en confrontant le projet aux compétences — et sa conséquence est visible par
+un recruteur avant de l'être par moi : un lien mort vers une compétence qui n'existe pas.
+
+**La cohérence se juge à l'intérieur d'une locale.** Un projet anglais qui cite `typescript` a
+besoin de `en/skills/typescript.md` ; sinon sa page renvoie vers une compétence absente **dans cette
+langue**. Ce choix a immédiatement trouvé un défaut dans nos propres fixtures : `valid/en/` citait
+`postgresql` sans que la compétence anglaise existe. Fixture complétée, ce qui est exactement ce
+qu'on attend d'une règle le jour où on l'active.
+
+La détection est une **fonction pure** — elle ne connaît ni locale, ni système de fichiers : on lui
+donne les références d'un côté, les compétences existantes de l'autre. Le gate de P2-04 l'appelle,
+donc **une référence morte casse le build** avec le même traitement que le reste :
+
+```text
+content/fr/projects/augure.mdx — cite des technologies inconnues des compétences
+de cette locale : « typscript », « postgresql »
+```
+
+Toutes les références mortes de tous les fichiers sortent en une passe. **Trois mutations
+appliquées, les trois tuées** : références mortes ignorées, contrôle non branché sur le gate,
+compétences d'une autre locale acceptées.

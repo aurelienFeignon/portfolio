@@ -459,7 +459,7 @@ dépendance à React ni à Three.js. Un contenu invalide casse le build.
 | P2-04 | Validation stricte : erreur nommant le fichier fautif, échec du build | **DONE** *(2026-08-12)* | P2-03 |
 | P2-05 | Repositories typés (`getAll*`, `get*BySlug`, `getContentLocales`) | **DONE** *(2026-08-12)* | P2-03 |
 | P2-06 | Normalisations et dérivations (tri, dates, poste en cours, `featured`) | **DONE** *(2026-08-12)* | P2-05 |
-| P2-07 | Vérification de cohérence référentielle `technologies` ↔ `Skill.slug` | TODO | P2-05 |
+| P2-07 | Vérification de cohérence référentielle `technologies` ↔ `Skill.slug` | **DONE** *(2026-08-12)* | P2-05 |
 | P2-08 | Compilation MDX en RSC avec liste blanche de composants | TODO | P2-01 |
 | P2-09 | Fixtures valides **et invalides** + fabriques d'objets de test | TODO | P2-02 |
 | P2-10 | Contenu réel d'amorçage : 2 expériences, 2 projets, 5 compétences (fr + en) | TODO | P2-06 |
@@ -520,6 +520,14 @@ appliquées et tuées** ([`phase-2-log.md`](./phase-2-log.md) §11).
 Deux niveaux de types introduits — `*Entry` (ce que le chargeur produit) et `Project` /
 `Experience` / `Skill` (dérivations appliquées) — sans quoi `isOngoing` devrait exister avant
 d'être calculé. · Depends on: P2-03, P2-05
+
+**P2-07 — Cohérence référentielle**
+Status: **DONE** (2026-08-12) — détection en fonction pure, branchée sur le gate de P2-04 : une
+technologie inconnue **casse le build**, en nommant le fichier et toutes les références mortes en une
+passe. La cohérence est jugée **à l'intérieur d'une locale** — un projet anglais citant `typescript`
+a besoin de `en/skills/typescript.md`. Ce choix a trouvé un défaut dans nos propres fixtures dès son
+activation. 7 tests, trois mutations appliquées et tuées
+([`phase-2-log.md`](./phase-2-log.md) §12). · Depends on: P2-05
 
 **Critères de sortie** — Couverture ≥ 95 % sur `src/content/**` ; un frontmatter invalide fait
 échouer `make build` (prouvé par un test) ; aucun import React/Three.js dans la couche (vérifié par

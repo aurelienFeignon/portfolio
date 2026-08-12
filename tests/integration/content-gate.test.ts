@@ -45,6 +45,11 @@ describe('gate de contenu', () => {
     ['un frontmatter absent', 'no-frontmatter', /ne commence pas par un frontmatter/],
     ['un YAML illisible', 'broken-yaml', /YAML illisible/],
     ['deux fichiers pour une URL', 'duplicate-slug', /même slug/],
+    [
+      'une technologie inconnue des compétences',
+      'unknown-technology',
+      /cite des technologies inconnues.*« typscript »/,
+    ],
   ])('sort en 1 sur %s, en nommant le fichier', async (_label, fixture, expected) => {
     const { code, output } = await checkContent(join(FIXTURES, 'invalid', fixture))
 

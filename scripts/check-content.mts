@@ -16,6 +16,11 @@
  */
 import { CONTENT_TYPES } from '../src/content/content-type.ts'
 import { ContentError } from '../src/content/errors.ts'
+import {
+  describeUnknownTechnologies,
+  findUnknownTechnologies,
+  type TechnologyReference,
+} from '../src/content/integrity.ts'
 import { validateFile } from '../src/content/loader.ts'
 import { createContentSource, defaultContentRoot } from '../src/content/source.ts'
 import { LOCALES } from '../src/i18n/locales.ts'
@@ -29,6 +34,13 @@ const failures: string[] = []
 let validated = 0
 
 for (const locale of LOCALES) {
+  // La cohérence référentielle se juge **à l'intérieur d'une locale** : un
+  // projet anglais qui cite `typescript` a besoin de `en/skills/typescript.md`,
+  // faute de quoi sa page renverra vers une compétence qui n'existe pas dans
+  // cette langue (P2-07).
+  const skillSlugs = new Set<string>()
+  const references: TechnologyReference[] = []
+
   for (const type of CONTENT_TYPES) {
     let files
     try {
@@ -44,12 +56,21 @@ for (const locale of LOCALES) {
 
     for (const file of files) {
       try {
-        validateFile({ ...file, type })
+        const entry = validateFile({ ...file, type })
         validated += 1
+
+        if (type === 'skills') skillSlugs.add(entry.slug)
+        if ('technologies' in entry) {
+          references.push({ file: file.file, technologies: entry.technologies })
+        }
       } catch (error) {
         failures.push(describe(error))
       }
     }
+  }
+
+  for (const problem of findUnknownTechnologies(references, skillSlugs)) {
+    failures.push(`${problem.file} — ${describeUnknownTechnologies(problem)}`)
   }
 }
 
