@@ -186,3 +186,66 @@ Trois choix de rigueur, qui sont des décisions et non des réglages par défaut
 > la main, son écriture du fichier n'avait pas pris effet avant l'exécution des tests : le code
 > n'était pas muté. Un faux négatif d'outil, corrigé en rejouant la mutation seule — et la seule
 > direction d'erreur possible ici, puisqu'un « tuée » exige que la suite ait réellement rougi.
+
+---
+
+## 9. P2-03 — deux étapes du pipeline de `architecture.md` §3.2 ont changé
+
+Le chargeur lit `content/{locale}/{type}/`, découpe le frontmatter, en lit le YAML et mémorise le
+résultat. **31 tests**, dont onze décrivent un rejet. **Huit mutations appliquées, les huit tuées** :
+normalisation BOM/CRLF retirée, délimiteur de fermeture non exigé sur sa ligne, frontmatter non-objet
+accepté, slugs en double acceptés, racine absente non signalée, cache retiré, échec mémorisé, panne
+système convertie en liste vide.
+
+### 9.1 `gray-matter` remplacé par `yaml`
+
+**Constat, obtenu en exécutant les deux.** `gray-matter` rend `startedAt` sous la forme
+`Date { "2024-01-15T00:00:00.000Z" }`, là où `yaml` rend la chaîne `"2024-01-15"`. La cause est le
+schéma : `js-yaml` applique YAML 1.1, qui définit un type *timestamp* ; `yaml` applique le schéma
+core de YAML 1.2, qui n'en a pas.
+
+Nos schémas attendent une chaîne ISO (P2-02). Avec `gray-matter`, il faudrait reconvertir chaque
+date avant validation — et une conversion `Date` → chaîne traverse la question du fuseau horaire,
+c'est-à-dire un moyen de décaler une date d'un jour sans que rien ne le signale.
+
+Le même schéma protège d'un second piège : `flag: yes` reste `"yes"` au lieu de devenir `true`.
+
+S'ajoute l'état des paquets : `yaml` 2.9.0, publié en 2026, **aucune dépendance** ;
+`gray-matter` 4.0.3, publié en 2021, quatre dépendances dont `js-yaml` 3.
+
+Le découpage `---` lui-même fait dix lignes, et il nous rend une chose que ces bibliothèques ne
+donnent pas : **le contrôle du message d'erreur**, qui doit nommer le fichier (CF-10).
+
+### 9.2 Le cache « par requête » devient une mémoïsation par processus
+
+`architecture.md` §3.2 annonçait un cache React (`cache()`). C'est impossible : la couche Content ne
+peut pas importer React (CT-09) — le document se contredisait, comme en §1.2.
+
+Ce n'est pas une perte. Le contenu ne change qu'au déploiement (pas d'ISR, H-05) et les pages sont
+générées au build : une mémoïsation à la durée du processus est **strictement plus forte** qu'une
+mémoïsation par requête, et elle ne peut pas servir deux états différents à deux requêtes puisqu'il
+n'existe qu'un état.
+
+Deux détails qui ne se devinent pas, et que les tests fixent :
+
+- **La promesse est mémorisée, pas son résultat** : deux lectures simultanées du même dossier
+  partagent le même travail au lieu de le faire deux fois.
+- **Un échec n'est pas mémorisé.** Sans éviction, une erreur corrigée dans l'éditeur continuerait
+  d'être servie jusqu'au redémarrage du serveur de développement.
+
+### 9.3 Ce qui est une erreur, et ce qui n'en est pas
+
+| Situation | Comportement | Motif |
+|---|---|---|
+| `content/en/experiences/` absent | liste vide | Une locale peut ne pas tout traduire (risque R-07) |
+| **Racine `content/` absente** | **erreur** | Rendrait tout le site vide, en silence : le mode de panne exact à interdire |
+| Panne système autre qu'une absence (`ENOTDIR`, droits) | remontée telle quelle | Ce n'est pas « ce contenu n'existe pas » |
+| `augure.md` **et** `augure.mdx` | erreur | Deux fichiers pour une seule URL : sinon l'ordre de lecture du système de fichiers décide de ce qui est publié |
+| Fichier ni `.md` ni `.mdx` | ignoré | Notes de travail, brouillons |
+
+### 9.4 Un point à vérifier avant la mise en production (P4-13)
+
+`content/` **n'est pas dans l'image de production** : la lecture a lieu au build, toutes les pages
+étant statiques. C'est cohérent, et c'est aussi une contrainte à honorer — **aucune route ne doit
+pouvoir se rendre à la demande**, sans quoi le serveur chercherait un dossier absent. À vérifier au
+moment où les routes existent, en Phase 3 puis avant P4-13.

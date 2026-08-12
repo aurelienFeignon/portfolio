@@ -455,7 +455,7 @@ dépendance à React ni à Three.js. Un contenu invalide casse le build.
 |---|---|---|---|
 | P2-01 | ADR-0009 : choix de la bibliothèque MDX (compatibilité vérifiée) | **DONE** *(2026-08-12)* | P1-16 |
 | P2-02 | Schémas Zod `Project`, `Experience`, `Skill` + types dérivés | **DONE** *(2026-08-12)* | P2-01 |
-| P2-03 | Lecture du système de fichiers, parsing du frontmatter, cache par requête | TODO | P2-02 |
+| P2-03 | Lecture du système de fichiers, parsing du frontmatter, cache par requête | **DONE** *(2026-08-12)* | P2-02 |
 | P2-04 | Validation stricte : erreur nommant le fichier fautif, échec du build | TODO | P2-03 |
 | P2-05 | Repositories typés (`getAll*`, `get*BySlug`, `getContentLocales`) | TODO | P2-03 |
 | P2-06 | Normalisations et dérivations (tri, dates, poste en cours, `featured`) | TODO | P2-05 |
@@ -484,6 +484,15 @@ production, les neuf tuées** ([`phase-2-log.md`](./phase-2-log.md) §8).
 §1.2 (`content → rien`) contredisait §3.3 (API typée par locale). Justification, options pesées et
 échecs observés en [`phase-2-log.md`](./phase-2-log.md) §7. Les interdictions React / Next /
 Three.js de CT-09 sont inchangées et revérifiées. · Depends on: P2-01
+
+**P2-03 — Lecture, frontmatter, mémoïsation**
+Status: **DONE** (2026-08-12) — chargeur en fabrique (`createContentSource(racine)`), donc testable
+sur des fixtures sans variable d'environnement ni mutation globale. 31 tests, **couverture 100 %** ;
+**huit mutations appliquées, les huit tuées** ([`phase-2-log.md`](./phase-2-log.md) §9).
+⚠ **Deux étapes du pipeline de `architecture.md` §3.2 ont changé**, chacune après vérification par
+exécution : `gray-matter` → `yaml` (le premier transforme `2024-01-15` en objet `Date`, ce que nos
+schémas rejettent), et cache React → mémoïsation à la durée du processus (la couche Content ne peut
+pas importer React, CT-09). · Depends on: P2-02
 
 **Critères de sortie** — Couverture ≥ 95 % sur `src/content/**` ; un frontmatter invalide fait
 échouer `make build` (prouvé par un test) ; aucun import React/Three.js dans la couche (vérifié par

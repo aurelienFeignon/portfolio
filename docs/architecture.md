@@ -173,16 +173,30 @@ readdir(content/{locale}/{type})
       ▼
 lecture fichier
       ▼
-gray-matter  → { data: unknown, content: string }
+découpage `---` + yaml  → { frontmatter: unknown, body: string }
       ▼
 Zod schema par type  → échec = throw (build cassé)   ◀── exigence CF-10
       ▼
 normalisation (dates ISO, tri, dérivations)
       ▼
-index en mémoire + cache par requête (React "cache")
+index en mémoire, mémoïsé pour la durée du processus
       ▼
 API de repository typée
 ```
+
+> **Deux étapes modifiées le 2026-08-12 (P2-03), après vérification.**
+>
+> - **`gray-matter` → `yaml`.** `gray-matter` s'appuie sur `js-yaml` en schéma YAML 1.1, qui
+>   convertit `2024-01-15` en objet `Date` — constaté à l'exécution, pas déduit. Nos schémas
+>   attendent une chaîne ISO : il faudrait reconvertir chaque date, en traversant des questions de
+>   fuseau horaire, pour revenir à ce que l'auteur avait écrit. Le paquet `yaml` applique le schéma
+>   **core de YAML 1.2** : une date reste une chaîne, et `yes` reste `"yes"`. Il est par ailleurs
+>   sans dépendance et publié en 2026, contre quatre dépendances et 2021.
+> - **Cache par requête → mémoïsation à la durée du processus.** Le cache annoncé était celui de
+>   React (`cache()`), que la couche Content ne peut pas importer (CT-09) — les deux lignes du
+>   document se contredisaient. Le contenu ne changeant qu'au déploiement (pas d'ISR, H-05) et les
+>   pages étant générées au build, une mémoïsation par processus est **strictement plus forte**
+>   qu'une mémoïsation par requête. Détail : [`phase-2-log.md`](./phase-2-log.md) §9.
 
 ### 3.3 API exposée (esquisse, figée en Phase 2)
 
