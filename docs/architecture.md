@@ -43,7 +43,7 @@ uniquement de l'**état de navigation** (quelle section est active) et des **anc
 ### 1.2 Dépendances autorisées entre modules
 
 ```text
-content/  ──────▶  (rien)
+content/  ──────▶  i18n
 i18n/     ──────▶  (rien)
 routing/  ──────▶  i18n
 scene/    ──────▶  routing, i18n          ✗ jamais content
@@ -62,6 +62,15 @@ seo/      ──────▶  i18n, routing
 > - **`seo` ajouté.** Le dossier figure dans l'arborescence de §8 mais dans aucune liste de
 >   dépendances. Contrainte posée par défaut, **à confirmer en P3-06** quand les métadonnées seront
 >   réellement écrites.
+>
+> **Modifié le 2026-08-12 (P2-02) : `content → i18n` est autorisé.** La rédaction initiale
+> (`content → rien`) rendait impossible ce que §3.3 exige au même moment : une API de contenu
+> **typée par locale**. Les deux issues étaient une seconde liste de locales dans `src/content` — donc
+> deux sources de vérité destinées à diverger — ou cette autorisation. `i18n` ne dépendant de rien,
+> aucun cycle n'est possible, et la couche Content reste du TypeScript pur sans React, sans Next et
+> sans Three.js : c'est cela que CT-09 protège, et non l'absence de tout import. Le vocabulaire des
+> locales est écrit dans `src/i18n/locales.ts`, que P3-01 complète au lieu de le recréer.
+> Détail : [`phase-2-log.md`](./phase-2-log.md) §7.
 
 Contrainte vérifiée automatiquement par une règle ESLint (`import/no-restricted-paths`) — tâche
 `P1-05`. Elle rend l'ADR-0001 exécutable plutôt que déclaratif : une régression échoue au lint,
@@ -164,16 +173,30 @@ readdir(content/{locale}/{type})
       ▼
 lecture fichier
       ▼
-gray-matter  → { data: unknown, content: string }
+découpage `---` + yaml  → { frontmatter: unknown, body: string }
       ▼
 Zod schema par type  → échec = throw (build cassé)   ◀── exigence CF-10
       ▼
 normalisation (dates ISO, tri, dérivations)
       ▼
-index en mémoire + cache par requête (React "cache")
+index en mémoire, mémoïsé pour la durée du processus
       ▼
 API de repository typée
 ```
+
+> **Deux étapes modifiées le 2026-08-12 (P2-03), après vérification.**
+>
+> - **`gray-matter` → `yaml`.** `gray-matter` s'appuie sur `js-yaml` en schéma YAML 1.1, qui
+>   convertit `2024-01-15` en objet `Date` — constaté à l'exécution, pas déduit. Nos schémas
+>   attendent une chaîne ISO : il faudrait reconvertir chaque date, en traversant des questions de
+>   fuseau horaire, pour revenir à ce que l'auteur avait écrit. Le paquet `yaml` applique le schéma
+>   **core de YAML 1.2** : une date reste une chaîne, et `yes` reste `"yes"`. Il est par ailleurs
+>   sans dépendance et publié en 2026, contre quatre dépendances et 2021.
+> - **Cache par requête → mémoïsation à la durée du processus.** Le cache annoncé était celui de
+>   React (`cache()`), que la couche Content ne peut pas importer (CT-09) — les deux lignes du
+>   document se contredisaient. Le contenu ne changeant qu'au déploiement (pas d'ISR, H-05) et les
+>   pages étant générées au build, une mémoïsation par processus est **strictement plus forte**
+>   qu'une mémoïsation par requête. Détail : [`phase-2-log.md`](./phase-2-log.md) §9.
 
 ### 3.3 API exposée (esquisse, figée en Phase 2)
 

@@ -19,6 +19,12 @@ Statuts : `PROPOSÉ` · `ACCEPTÉ` · `REMPLACÉ PAR ADR-xxxx` · `ABANDONNÉ`
 | [0007](./0007-dockerized-development-environment.md) | Environnement de développement entièrement dockerisé | ACCEPTÉ | 1 |
 | [0008](./0008-self-hosted-vps-deployment.md) | Auto-hébergement VPS, image Docker derrière Caddy | ACCEPTÉ | 1, 15 |
 
+## Décisions actées (Phase 2)
+
+| # | Titre | Statut | Phase d'application |
+|---|---|---|---|
+| [0009](./0009-mdx-compilation.md) | Compilation MDX : `@mdx-js/mdx` appelé directement | ACCEPTÉ | 2 |
+
 ## Décisions identifiées, à instruire plus tard
 
 Ces sujets sont structurants mais ne peuvent pas être tranchés honnêtement en Phase 0 : ils
@@ -27,7 +33,7 @@ pas encore. Les instruire maintenant produirait une décision inventée plutôt 
 
 | # prévu | Sujet | À trancher en | Ce qui manque aujourd'hui |
 |---|---|---|---|
-| 0009 | Bibliothèque de compilation MDX (`next-mdx-remote/rsc` vs `@next/mdx` vs maison) | Phase 2 | Vérification de compatibilité avec la version de Next retenue |
+| ~~0009~~ | ~~Bibliothèque de compilation MDX~~ — **tranché le 2026-08-12**, voir [ADR-0009](./0009-mdx-compilation.md) | — | — |
 | 0010 | Stratégie de style (CSS Modules vs Tailwind vs vanilla-extract) | Phase 4 | Aucun besoin exprimé avant d'écrire des composants ; à trancher avant, pas pendant |
 | 0011 | Provenance et pipeline des assets 3D (modélisation, licences, compression) | Phase 8 | Dépend de H-09 et du niveau de détail visé |
 | 0012 | Stratégie d'animation de caméra (interpolation maison vs bibliothèque de ressorts) | Phase 6 | Dépend du ressenti réel, non prévisible sur le papier |
@@ -39,6 +45,7 @@ pas encore. Les instruire maintenant produirait une décision inventée plutôt 
 
 | Date | ADR | Nature du changement | Origine |
 |---|---|---|---|
+| 2026-08-12 | 0009 | Création : compilation MDX par `@mdx-js/mdx` appelé directement, après vérification par exécution des deux candidats applicables (build de production, prérendu, image de production, qualité des erreurs, empreinte). `next-mdx-remote` devient le repli désigné. | Ouverture de la Phase 2 (P2-01) |
 | 2026-08-11 | 0007 | Amendement : **GNU Make ajouté aux prérequis d'hôte** (Docker, Git, Make). La rédaction initiale — « l'hôte n'a besoin que de Docker et de Git » — contredisait la règle 4 du même ADR, qui fait du `Makefile` l'interface de commandes. Aucune chaîne Node sur l'hôte : l'intention de l'ADR est inchangée. | Constat à l'ouverture de la Phase 1 |
 | 2026-08-11 | 0006 | Transport : Resend (hypothèse) → **SMTP auto-hébergé**, pour s'aligner sur Augure. Risques R-19 et R-20 ajoutés. | Demande explicite |
 | 2026-08-11 | 0006 | Transport : SMTP auto-hébergé → **Mailjet**, après vérification de ce qu'utilise réellement Augure. Annule la révision précédente. R-19 abaissé (délivrabilité déléguée), R-20 requalifié (quota et réputation d'un compte partagé), R-21 ajouté (adresse transmise à un tiers). Aucune dépendance ajoutée : API HTTP via `fetch` natif, ni SDK ni Nodemailer. Mailpit retiré de l'environnement de développement. | Correction de l'utilisateur |

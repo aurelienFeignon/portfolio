@@ -36,7 +36,7 @@ $(MOUNTPOINTS):
 install up up-d sh typecheck lint format test test-watch coverage bundle: | $(MOUNTPOINTS)
 
 .PHONY: help doctor image install up up-d down sh logs ps reset typecheck lint format e2e \
-        build prod-up prod-down e2e-prod bundle ci check-dns \
+        build prod-up prod-down e2e-prod bundle ci check-dns check-content \
         test test-watch coverage
 
 help: ## Affiche cette aide
@@ -104,6 +104,9 @@ e2e-prod: ## Tests end-to-end contre le BUILD DE PRODUCTION (testing-strategy §
 
 check-dns: ## Vérifie la zone DNS et l'authentification d'expédition (P1-17)
 	$(RUN) node scripts/check-dns.mts
+
+check-content: ## Valide tout le contenu Markdown/MDX (CF-10) — inclus dans `build`
+	$(RUN) pnpm check-content
 
 bundle: ## Mesure le JS de première visite et applique les budgets
 	$(COMPOSE) run --rm -e NODE_ENV=production web \

@@ -60,6 +60,7 @@ divergent pas.
 | `make test` / `make test-watch` | Vitest (unitaires, composants) |
 | `make coverage` | Tests + seuils de couverture |
 | `make bundle` | Mesure le JS de première visite, applique les budgets |
+| `make check-content` | Valide tout le contenu Markdown/MDX (CF-10) — déjà inclus dans `build` |
 | `make build` | Construit l'image de **production** |
 | `make prod-up` / `make prod-down` | Lance l'image de production sur `:3001` |
 | `make e2e` | Playwright contre le serveur de développement |

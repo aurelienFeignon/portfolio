@@ -17,3 +17,9 @@ next-env.d.ts
 # Le code (`.ts`, `.tsx`, `.mjs`, `.json`, `.yml`) reste, lui, formaté sans
 # discussion possible — c'est là que l'uniformité a de la valeur.
 *.md
+
+# `.mdx` pour la même raison, plus une seconde : les fixtures de la Phase 2 sont
+# volontairement mal formées (frontmatter jamais refermé, YAML illisible). Les
+# soumettre à un formateur les corrigerait — ou ferait échouer `--check` sur des
+# fichiers dont l'invalidité est précisément l'objet.
+*.mdx

@@ -35,7 +35,10 @@ export default defineConfig({
   projects: [
     {
       name: 'desktop-chromium',
-      testMatch: '**/shared/**/*.spec.ts',
+      // Ce profil porte aussi ce qui ne dépend d'aucun profil — une assertion
+      // sur une réponse HTTP, par exemple. La jouer quatre fois donnerait quatre
+      // fois le même résultat.
+      testMatch: ['**/shared/**/*.spec.ts', '**/profiles/desktop-chromium/**/*.spec.ts'],
       use: { ...devices['Desktop Chrome'], viewport: { width: 1440, height: 900 } },
     },
     {

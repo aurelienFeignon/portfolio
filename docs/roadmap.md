@@ -1,8 +1,11 @@
 # Roadmap
 
-> Statut global : **Phase 0 terminée et validée. Phase 1 ouverte le 2026-08-11.**
-> Journal de la phase en cours : [`phase-1-log.md`](./phase-1-log.md)
-> Dernière mise à jour : 2026-08-11
+> Statut global : **Phases 0, 1 et 2 terminées et validées.** Phase 2 ouverte et close le
+> 2026-08-12 ; P2-11 (rédaction du contenu réel) reste à la charge de l'utilisateur et ne bloque pas
+> la Phase 3.
+> Journal de la Phase 2 : [`phase-2-log.md`](./phase-2-log.md) — phase précédente :
+> [`phase-1-log.md`](./phase-1-log.md)
+> Dernière mise à jour : 2026-08-12
 
 Ce document est la **source de vérité unique des tâches**. Les identifiants sont stables et ne
 sont jamais réutilisés, même si une tâche est abandonnée.
@@ -22,7 +25,7 @@ silencieusement.
 |---|---|---|---|
 | 0 | Discovery et cadrage | **DONE** | `docs/` complet, ADR 0001–0008 |
 | 1 | Fondation technique | **DONE** *(2026-08-12)* | Squelette dockerisé, gates verts, CI, déploiement du squelette |
-| 2 | Content layer | TODO | Markdown → objets typés validés, build cassé si invalide |
+| 2 | Content layer | **DONE** *(2026-08-12)* | Markdown → objets typés validés, build cassé si invalide |
 | 3 | Internationalisation | TODO | `/fr` et `/en` résolus indépendamment, hreflang exact |
 | 4 | Portfolio HTML | TODO | **Produit utilisable sans Three.js** (phase obligatoire) |
 | 5 | Fondation Three.js | TODO | Scène primitive : bureau + 3 écrans, budget tenu |
@@ -450,23 +453,138 @@ image de production démarrant et répondant au healthcheck.
 **Objectif** — Transformer les fichiers Markdown/MDX en objets typés et validés, sans aucune
 dépendance à React ni à Three.js. Un contenu invalide casse le build.
 
-| ID | Tâche | Dépend de |
-|---|---|---|
-| P2-01 | ADR-0009 : choix de la bibliothèque MDX (compatibilité vérifiée) | P1-16 |
-| P2-02 | Schémas Zod `Project`, `Experience`, `Skill` + types dérivés | P2-01 |
-| P2-03 | Lecture du système de fichiers, parsing du frontmatter, cache par requête | P2-02 |
-| P2-04 | Validation stricte : erreur nommant le fichier fautif, échec du build | P2-03 |
-| P2-05 | Repositories typés (`getAll*`, `get*BySlug`, `getContentLocales`) | P2-03 |
-| P2-06 | Normalisations et dérivations (tri, dates, poste en cours, `featured`) | P2-05 |
-| P2-07 | Vérification de cohérence référentielle `technologies` ↔ `Skill.slug` | P2-05 |
-| P2-08 | Compilation MDX en RSC avec liste blanche de composants | P2-01 |
-| P2-09 | Fixtures valides **et invalides** + fabriques d'objets de test | P2-02 |
-| P2-10 | Contenu réel d'amorçage : 2 expériences, 2 projets, 5 compétences (fr + en) | P2-06 |
-| P2-11 | **Rédaction du contenu réel complet (fr + en)** — chemin critique de T1, à votre charge, **peut démarrer immédiatement** : le format du frontmatter est arrêté et ne dépend d'aucun code | — |
+| ID | Tâche | Statut | Dépend de |
+|---|---|---|---|
+| P2-01 | ADR-0009 : choix de la bibliothèque MDX (compatibilité vérifiée) | **DONE** *(2026-08-12)* | P1-16 |
+| P2-02 | Schémas Zod `Project`, `Experience`, `Skill` + types dérivés | **DONE** *(2026-08-12)* | P2-01 |
+| P2-03 | Lecture du système de fichiers, parsing du frontmatter, cache par requête | **DONE** *(2026-08-12)* | P2-02 |
+| P2-04 | Validation stricte : erreur nommant le fichier fautif, échec du build | **DONE** *(2026-08-12)* | P2-03 |
+| P2-05 | Repositories typés (`getAll*`, `get*BySlug`, `getContentLocales`) | **DONE** *(2026-08-12)* | P2-03 |
+| P2-06 | Normalisations et dérivations (tri, dates, poste en cours, `featured`) | **DONE** *(2026-08-12)* | P2-05 |
+| P2-07 | Vérification de cohérence référentielle `technologies` ↔ `Skill.slug` | **DONE** *(2026-08-12)* | P2-05 |
+| P2-08 | Compilation MDX en RSC avec liste blanche de composants | **DONE** *(2026-08-12)* | P2-01 |
+| P2-09 | Fixtures valides **et invalides** + fabriques d'objets de test | **DONE** *(2026-08-12)* | P2-02 |
+| P2-10 | Contenu réel d'amorçage : 2 expériences, 2 projets, 5 compétences (fr + en) | **DONE** *(2026-08-12)* | P2-06 |
+| P2-11 | **Rédaction du contenu réel complet (fr + en)** — chemin critique de T1, à votre charge, **peut démarrer immédiatement** : le format du frontmatter est arrêté et ne dépend d'aucun code | — | — |
 
-**Critères de sortie** — Couverture ≥ 95 % sur `src/content/**` ; un frontmatter invalide fait
-échouer `make build` (prouvé par un test) ; aucun import React/Three.js dans la couche (vérifié par
-le lint) ; les fixtures de test sont indépendantes du contenu réel.
+**P2-01 — ADR-0009, choix de la bibliothèque MDX**
+Status: **DONE** (2026-08-12) — `@mdx-js/mdx` appelé directement, `next-mdx-remote` désigné comme
+repli. Les deux candidats applicables ont été **construits et servis**, pas comparés sur leur
+documentation : build Turbopack de production, route prérendue statiquement, **0,0 Ko** de
+JavaScript client, rendu vérifié depuis l'**image de production**, et compilateur tracé dans
+`.next/standalone`. Les erreurs ont été comparées sur trois cas fautifs. Deux constats consignés
+dans [`phase-2-log.md`](./phase-2-log.md) §6 : la compilation a lieu **au build** (toutes les pages
+sont SSG), et **MDX exécute du JavaScript** — `content/` est donc du code.
+· Depends on: P1-16
+
+**P2-02 — Schémas Zod et types dérivés**
+Status: **DONE** (2026-08-12) — trois schémas `strictObject` (une clé inconnue est une erreur, pas
+un champ ignoré), types dérivés par `z.infer`, table type → schéma exhaustive par construction.
+Zod 4.4.3, **zéro dépendance ajoutée à l'arbre**. 63 tests ; **neuf mutations appliquées au code de
+production, les neuf tuées** ([`phase-2-log.md`](./phase-2-log.md) §8).
+⚠ **Écart tracé** : `content → i18n` a été **ajouté au graphe de dépendances** — `architecture.md`
+§1.2 (`content → rien`) contredisait §3.3 (API typée par locale). Justification, options pesées et
+échecs observés en [`phase-2-log.md`](./phase-2-log.md) §7. Les interdictions React / Next /
+Three.js de CT-09 sont inchangées et revérifiées. · Depends on: P2-01
+
+**P2-03 — Lecture, frontmatter, mémoïsation**
+Status: **DONE** (2026-08-12) — chargeur en fabrique (`createContentSource(racine)`), donc testable
+sur des fixtures sans variable d'environnement ni mutation globale. 31 tests, **couverture 100 %** ;
+**huit mutations appliquées, les huit tuées** ([`phase-2-log.md`](./phase-2-log.md) §9).
+⚠ **Deux étapes du pipeline de `architecture.md` §3.2 ont changé**, chacune après vérification par
+exécution : `gray-matter` → `yaml` (le premier transforme `2024-01-15` en objet `Date`, ce que nos
+schémas rejettent), et cache React → mémoïsation à la durée du processus (la couche Content ne peut
+pas importer React, CT-09). · Depends on: P2-02
+
+**P2-04 — Validation stricte, et le build vu casser**
+Status: **DONE** (2026-08-12) — gate `scripts/check-content.mts` branché **avant** `next build`.
+Motif : en Phase 2 aucune page ne lit le contenu, et même en Phase 4 seules les entités rendues
+seraient validées — CF-10 serait resté une intention. Le gate valide **tout** `content/`, dans la CI
+comme dans la construction de l'image.
+**Prouvé par exécution** : un `content/fr/projects/augure.mdx` fautif écrit exprès a fait échouer
+`make build`, avec un message nommant le fichier et **les quatre défauts en une seule passe**
+([`phase-2-log.md`](./phase-2-log.md) §10). Automatisé ensuite : `tests/integration/content-gate.test.ts`
+exécute le gate en sous-processus et constate son code de sortie sur cinq familles de fautes.
+Quatre mutations appliquées, les quatre tuées. Couverture `src/content/**` : **100 %**.
+⚠ Trois conséquences assumées, toutes vérifiées : extensions `.ts` explicites dans les imports de
+`src/content/**` (Node ESM), plus de propriété de paramètre dans `ContentError`, et `"type": "module"`
+ajouté à `package.json`. Le socle de bundle est inchangé (129,5 Ko).
+⚠ Réserve : un gate qui ne trouve **aucun** fichier sort en 0 aujourd'hui — à rendre bloquant en
+P2-10, une fois le contenu d'amorçage écrit. · Depends on: P2-03
+
+**P2-05 et P2-06 — API de lecture, tris et dérivations**
+Status: **DONE** (2026-08-12) — dépôt en fabrique, `get*BySlug` rendant `null` (une route inconnue
+n'est pas une erreur, `architecture.md` §10), `getContentLocales` ne citant que les locales
+réellement présentes (base du traitement de R-07). Tris et dérivations appliqués **dans la couche**,
+une fois pour tous les consommateurs : sans horloge, sans conversion en `Date`, avec le slug comme
+départage pour un ordre stable d'un build à l'autre. 34 tests, couverture 100 %, **neuf mutations
+appliquées et tuées** ([`phase-2-log.md`](./phase-2-log.md) §11).
+Deux niveaux de types introduits — `*Entry` (ce que le chargeur produit) et `Project` /
+`Experience` / `Skill` (dérivations appliquées) — sans quoi `isOngoing` devrait exister avant
+d'être calculé. · Depends on: P2-03, P2-05
+
+**P2-07 — Cohérence référentielle**
+Status: **DONE** (2026-08-12) — détection en fonction pure, branchée sur le gate de P2-04 : une
+technologie inconnue **casse le build**, en nommant le fichier et toutes les références mortes en une
+passe. La cohérence est jugée **à l'intérieur d'une locale** — un projet anglais citant `typescript`
+a besoin de `en/skills/typescript.md`. Ce choix a trouvé un défaut dans nos propres fixtures dès son
+activation. 7 tests, trois mutations appliquées et tuées
+([`phase-2-log.md`](./phase-2-log.md) §12). · Depends on: P2-05
+
+**P2-08 — Compilation MDX et liste blanche**
+Status: **DONE** (2026-08-12) — rendu dans `src/ui/mdx/`, jamais dans `src/content` (CT-09). La
+liste blanche **refuse avant de rendre** : un greffon remark relève les composants appelés pendant
+la compilation, ce qui produit une erreur nommant le fichier **et** le composant, au lieu du message
+de React au milieu du rendu de la page. 13 tests, couverture 100 %, six mutations appliquées et
+tuées. La liste ne contient qu'un composant (`Callout`, sémantique et sans style) : les ajouts
+appartiennent à la Phase 4, avec l'ADR-0010.
+⚠ Rappel consigné : cette liste **n'est pas une mesure de sécurité** — MDX exécute du JavaScript
+sans passer par un composant (§6.1). À reprendre tel quel en Phase 14.
+📏 Image de production **381 Mo**, inchangée depuis la Phase 1 : le runtime MDX n'y est pas, aucune
+route ne compilant encore de corps. Les ~7 Mo mesurés en P2-01 reviendront en Phase 4
+([`phase-2-log.md`](./phase-2-log.md) §13). · Depends on: P2-01
+
+**P2-09 — Fixtures et fabriques**
+Status: **DONE** (2026-08-12) — deux jeux de fabriques qui ne se remplacent pas : `frontmatter.ts`
+(du YAML lu sur disque, donc `Record<string, unknown>` — les typer interdirait d'écrire les cas
+invalides) et `entities.ts` (ce que rend le dépôt). Sept racines de fixtures invalides, une par
+famille de faute.
+**Indépendance prouvée** : la suite complète a été exécutée avec `content/` **entièrement déplacé
+hors du dépôt** — 201 tests verts, couverture 100 %. Un garde-fou permanent refuse désormais toute
+mention du dépôt de l'application dans `tests/**`
+([`phase-2-log.md`](./phase-2-log.md) §14). · Depends on: P2-02
+
+**P2-10 — Contenu d'amorçage**
+Status: **DONE** (2026-08-12) — 18 fichiers (2 expériences, 2 projets, 5 compétences par locale),
+chacun portant en clair la mention « à remplacer en P2-11 ». Il couvre volontairement les cas que le
+code doit traiter : poste en cours, projet terminé, `featured` et non-`featured`, les cinq
+catégories, un corps avec composant, un lien de dépôt.
+**Le gate a immédiatement trouvé une faute réelle** : `summary: Ce site : un portfolio…` — un `:`
+suivi d'une espace dans une valeur non entre guillemets, que YAML lit comme une table imbriquée. Elle
+touchait les deux locales et serait passée inaperçue (page absente, sans erreur). Règle écrite dans
+`content/README.md`.
+Le cas « aucun contenu trouvé » est **désormais bloquant**, comme annoncé
+([`phase-2-log.md`](./phase-2-log.md) §15). · Depends on: P2-06
+
+**Critères de sortie** — État au 2026-08-12, détail et mesures dans
+[`phase-2-log.md`](./phase-2-log.md).
+
+- [x] Couverture ≥ 95 % sur `src/content/**` — **100 %** sur les quatre métriques, et sur
+      `src/ui/mdx/**` et `src/i18n/**` également.
+- [x] Un frontmatter invalide fait échouer `make build`, **prouvé par un test** — vu échouer à la
+      main sur un fichier écrit exprès (§10.2), puis automatisé : le gate est exécuté en
+      sous-processus contre six familles de fautes, et son code de sortie est celui du build.
+- [x] Aucun import React ou Three.js dans la couche, **vérifié par le lint** — règle revérifiée par
+      échec observé après la modification du graphe (§7).
+- [x] Fixtures indépendantes du contenu réel — **suite complète verte avec `content/` déplacé hors
+      du dépôt**, plus un garde-fou permanent (§14).
+
+> **Tous les critères de sortie sont satisfaits, chacun vérifié par une exécution.** La Phase 2 est
+> close. Trois réserves consignées plutôt que passées sous silence : la liste blanche MDX **n'est pas
+> une mesure de sécurité** (§6.1, à reprendre en Phase 14) ; le runtime MDX n'entrera dans l'image de
+> production qu'avec la première page qui rend un corps, ce qui rapprochera du seuil de 400 Mo (§13.3) ;
+> et `content/` n'étant pas dans l'image, **aucune route ne devra pouvoir se rendre à la demande**
+> (§9.4, à vérifier avant P4-13).
 
 ---
 
@@ -474,7 +592,7 @@ le lint) ; les fixtures de test sont indépendantes du contenu réel.
 
 | ID | Tâche | Dépend de |
 |---|---|---|
-| P3-01 | Type `Locale`, liste des locales, locale par défaut | P2-05 |
+| P3-01 | Type `Locale`, liste des locales, locale par défaut — **partiellement livré en P2-02** : `src/i18n/locales.ts` existe déjà (`LOCALES`, `Locale`, `DEFAULT_LOCALE`, `isLocale`), la couche Content en dépendant. À **compléter**, jamais à recréer | P2-05 |
 | P3-02 | Segment `app/[locale]` + `generateStaticParams` ; locale inconnue → 404 | P3-01 |
 | P3-03 | Négociation `Accept-Language` sur `/` avec repli | P3-01 |
 | P3-04 | Dictionnaires d'interface typés, complétude garantie à la compilation | P3-01 |
@@ -631,7 +749,7 @@ information n'existe uniquement dans la scène.
 | P10-05 | Plafond global journalier persisté sur volume | P10-04 |
 | P10-06 | Server Action + formulaire fonctionnant **sans JavaScript** | P10-03 |
 | P10-07 | `MailjetResumeSender` (API Send v3.1, `fetch` natif, délai d'expiration) + validation des variables d'environnement | P10-02 |
-| P10-08 | Téléchargement direct du PDF en complément | P10-06 |
+| P10-08 | Téléchargement direct du PDF en complément — **les deux PDF existent depuis le 2026-08-12** (`public/resume/cv-{fr,en}.pdf`, `noindex` posé et vérifié en E2E) ; reste le lien et son libellé | P10-06 |
 | P10-09 | Garde-fou : la suite échoue si des identifiants Mailjet de production sont présents | P10-07 |
 | P10-10 | E2E : succès, adresse invalide, panne serveur, rate limit, sans JS | P10-06 |
 | P10-11 | **Vérification des prérequis d'expédition** : authentification du domaine effective (SPF, DKIM, DMARC en place depuis P1-17), expéditeur validé, quota du plan connu (H-02c) | P1-17 |
