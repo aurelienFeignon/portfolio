@@ -28,14 +28,22 @@ Les Phases 0, 1 et 2 sont TERMINÉES et validées. Ne les refais pas, ne les red
 
 ## État
 
-Phases 0 et 1 : DONE. **Phase 2 : DONE (2026-08-12)** — 10 tâches sur 10, quatre critères de sortie
-satisfaits, chacun vérifié par une exécution. 201 tests, 100 % de couverture sur `src/content/**`,
-39 mutations appliquées au code de production et toutes tuées.
+Phases 0 et 1 : DONE. **Phase 2 : DONE (2026-08-14)** — 10 tâches sur 10, quatre critères de sortie
+satisfaits, chacun vérifié par une exécution. 228 tests, **100 % de couverture** sur `src/content/**`,
+`src/ui/mdx/**` et `src/i18n/**`, 39 mutations appliquées au code de production et toutes tuées.
 Phase 3 (Internationalisation) : à ouvrir, aucune tâche démarrée.
+
+⚠️ **La PR #10 est ouverte, CI verte, et N'EST PAS FUSIONNÉE.** C'est le premier point à trancher :
+la fusionner met le CV en ligne et redéploie le site. Vérifie son état avant toute chose
+(`gh pr view 10`), et n'ouvre pas la Phase 3 sur une branche qui diverge d'elle.
+
+**Le CV est dans le dépôt** : `public/resume/cv-fr.pdf` et `cv-en.pdf`, servis à URL stable avec
+`X-Robots-Tag: noindex` posé par l'application et vérifié en E2E contre l'image de production.
 
 **P2-11 — la rédaction du contenu réel — reste à ma charge et n'est PAS faite.** `content/` porte
 aujourd'hui 18 fichiers d'amorçage qui le disent en toutes lettres. Ils suffisent à développer les
-Phases 3 et 4 ; ils ne doivent pas être publiés.
+Phases 3 et 4 ; ils ne doivent pas être publiés. **Le CV extrait suffit à en rédiger l'essentiel**
+dès que j'aurai tranché les questions du bloc « Décisions » ci-dessous.
 
 **Le site est EN LIGNE** sur https://aurelienfeignon.com. Ce n'est pas une maquette : chaque push
 sur `main` reconstruit, teste, publie et déploie.
@@ -106,12 +114,90 @@ mets l'ADR à jour et ajoute une ligne au journal des révisions. Jamais de chan
   abandonnée est marquée DROPPED avec sa cause.
 - Aucune dépendance structurante sans justifier : problème / pourquoi adaptée / alternatives /
   pourquoi préférée. Écris-le dans un ADR si la décision est structurante.
+- **Avant CHAQUE push : `/code-review` puis `/simplify`**, et traite les retours avant de pousser,
+  pas après. C'est en plus de `make ci`, pas à la place : les gates prouvent que le code marche, la
+  revue dit s'il est juste. Ce rituel a trouvé cinq défauts réels sur du code qui passait déjà
+  222 tests et 100 % de couverture, dont trois pannes silencieuses.
+- **Heures de publication** : je travaille pour mon employeur 9h-12h30 et 14h-17h30 (heure de Paris),
+  et le dépôt est public. Dans ces créneaux, commite localement mais **demande avant de pousser**.
+  En dehors, pousse et ouvre les PR sans demander. La **fusion**, elle, se demande toujours : elle
+  déclenche un déploiement en production.
 - Mets à jour docs/roadmap.md (statuts) au fil de l'eau, pas à la fin.
 - Documentation et échanges en français ; identifiants, code et noms de fichiers en anglais.
 
 ## Ta mission cette session
 
-Ouvre la PHASE 3 — Internationalisation (tâches P3-01 à P3-09, détaillées dans roadmap.md).
+**Commence par me faire trancher le bloc « Décisions » ci-dessous.** Pose-les-moi groupées, avec ta
+recommandation, et n'attends pas mes réponses pour ce qui n'en dépend pas. Une fois D1 tranchée,
+enchaîne dans cet ordre :
+
+1. **D1 — fusionner la PR #10**, ou pas. Rien d'autre ne devrait avancer sur une branche qui diverge.
+2. **P2-11 — la rédaction du contenu réel**, si D2 et D3 sont tranchées : tu as les deux versions du
+   CV, tu peux en écrire l'essentiel toi-même. C'est le chemin critique de T1.
+
+   Pour lire les PDF : l'hôte n'a pas `poppler-utils` et n'aura pas Node (ADR-0007). Passe par un
+   conteneur jetable, comme tout le reste :
+
+   ```bash
+   docker run --rm -v "$PWD/public/resume:/cv:ro" -v "$PWD/.tmp:/out" debian:trixie-slim \
+     sh -c 'apt-get -qq update && apt-get -qq install -y poppler-utils &&
+            pdftotext -layout /cv/cv-fr.pdf /out/cv-fr.txt &&
+            pdftotext -layout /cv/cv-en.pdf /out/cv-en.txt'
+   ```
+
+   Deux garde-fous : **mon téléphone et mon adresse e-mail n'entrent jamais dans `content/`** — ils
+   relèvent de la page contact en Phase 10 —, et tu ne transposes que ce que le CV dit. Ce qu'il ne
+   dit pas, tu me le demandes.
+3. **PHASE 3 — Internationalisation** (P3-01 à P3-09), qui ne dépend d'aucune des deux.
+
+Si je ne réponds pas, ouvre la Phase 3 et signale ce qui reste en attente. Ne simule jamais une
+réponse à ma place.
+
+---
+
+## Décisions qui m'attendent
+
+Format des réponses : « D1 oui, D2 …, défaut partout ailleurs » suffit.
+
+**D1 🔴 — Fusionner la PR #10 ?**
+Elle clôt la Phase 2. La fusionner **met le CV en ligne** (`/resume/cv-fr.pdf`, en `noindex`) et
+redéploie le site. Le contenu d'amorçage, lui, n'apparaîtra nulle part : aucune page ne le consomme
+encore. → *Recommandation : oui. La CI est verte, le rollback est prouvé, et laisser diverger une
+branche de 12 commits coûte plus que de la fusionner.*
+
+**D2 🔴 — `company` et `role` pour Augure et Askor ?**
+Le CV les titre par leur **produit** (« AUGURE — PLATEFORME PRÉDICTIVE TEMPS RÉEL »), jamais par un
+employeur ni un intitulé de poste. Le schéma exige les deux. Les deux sont par ailleurs donnés comme
+en cours simultanément — c'est probablement juste, mais la page doit pouvoir l'expliquer.
+→ *Sans réponse, je ne peux pas écrire les expériences : je refuse d'inventer un employeur.*
+
+**D3 🔴 — Augure et Askor : expériences, projets, ou les deux ?**
+S'ils sont les deux, la même information vit à deux endroits, ce que l'ADR-0001 interdit
+explicitement. → *Recommandation : les deux en **expériences** ; les **projets** accueillent ce
+portfolio et ce que je voudrai montrer pour lui-même.*
+
+**D4 🟠 — Niveau (1 à 5) des ~40 technologies du CV ?**
+→ *Recommandation : tu proposes un classement d'après la place qu'elles occupent dans mes
+expériences, je corrige. C'est un jugement sur moi-même, il ne se délègue pas — mais il se corrige
+vite, et il ne bloque pas.*
+
+**D5 🟠 — Publier les chiffres du CV ?** (48 services, 151 modèles, 214 migrations, 27 outils)
+Ils seront déjà dans le PDF public, mais une page HTML indexée n'a pas la même portée.
+→ *Recommandation : oui — ce sont eux qui rendent une réalisation crédible.*
+
+**D6 🟠 — Combien de compétences publier ?** Le CV en liste ~40 ; H-05 prévoyait 20 à 30.
+→ *Recommandation : toutes celles du CV, `featured` sur une dizaine. La page les groupe par
+catégorie, donc le volume ne nuit pas.*
+
+**D7 🟢 — Rendre le paquet GHCR public ?**
+Un PAT `read:packages` est posé sur le VPS pour tirer une image privée. À son expiration, les
+déploiements s'arrêteront sans rapport apparent avec le code. → *Recommandation : oui, rendre le
+paquet public supprime définitivement ce secret et son renouvellement ; le dépôt est déjà public et
+l'image ne contient rien de plus.*
+
+---
+
+Puis : ouvre la PHASE 3 — Internationalisation (tâches P3-01 à P3-09, détaillées dans roadmap.md).
 
 Objectif : `/fr/...` et `/en/...` résolus **indépendamment**, avec des métadonnées, un `hreflang` et
 un sitemap qui ne mentent jamais sur ce qui existe réellement.
@@ -158,12 +244,11 @@ personne ne les écrit.
 - **Le runtime MDX n'est pas encore dans l'image de production** (381 Mo, inchangée) : il y entrera
   avec la première page qui rend un corps, en Phase 4, pour environ 7 Mo. Le seuil bloquant est à
   400 Mo.
+- **La liste blanche MDX n'est pas une barrière de sécurité** : MDX exécute du JavaScript sans passer
+  par un composant, `content/` est donc du code. À reprendre tel quel à l'audit de la Phase 14.
+- **`content/` n'est pas dans l'image de production** : aucune route ne doit pouvoir se rendre à la
+  demande. C'est en Phase 3 que cette dette devient réelle.
 
-- **Le jeton GHCR expire.** Un PAT `read:packages` est posé sur le VPS pour tirer l'image, qui est
-  dans un paquet privé. À son expiration, `docker compose pull` échouera et les déploiements
-  s'arrêteront — sans rapport apparent avec le code. Rendre le paquet public supprimerait
-  définitivement ce secret et son renouvellement ; le dépôt est déjà public, l'image ne contient
-  rien de plus.
 - **Mesure CPU en régime stable** (P11-08) : le seul relevé date d'une minute après démarrage du
   conteneur — 32 %, au-dessus du seuil d'alerte de 25 %. Ce n'est pas une mesure valide, et ce
   n'est pas non plus un problème constaté. Le RSS, lui, est net : 38 Mo pour un budget de 250.
@@ -186,6 +271,9 @@ l'hypothèse. Ne construis jamais une architecture cachée.
 À la fin de chaque phase, mettre à jour dans le bloc ci-dessus :
 
 - la section **État** (phase terminée, phase suivante, tâches en cours) ;
+- le bloc **Décisions qui m'attendent** : retirer celles qui ont été tranchées — en les reportant
+  dans `phase-0-questions.md` ou dans un ADR selon leur portée — et y monter celles qui bloquent
+  réellement la suite. Ce bloc n'a de valeur que s'il ne contient QUE des questions vivantes ;
 - la liste des **ADR** si de nouveaux ont été créés ;
 - la section **Ta mission cette session** ;
 - les **points encore ouverts**.
