@@ -4,7 +4,7 @@
 import { render, screen } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 
-import { MdxRenderError, messageOf, renderMdx, type MdxWhitelist } from '@/ui/mdx/render'
+import { MdxRenderError, renderMdx, type MdxWhitelist } from '@/ui/mdx/render'
 
 const FILE = 'content/fr/projects/augure.mdx'
 
@@ -66,6 +66,19 @@ describe('refus', () => {
     )
   })
 
+  it('rejette un composant caché dans une expression JavaScript', async () => {
+    // `{<Danger />}` n'est pas un enfant du nœud MDX : c'est un arbre ESTree
+    // accroché à `data.estree`. Un parcours limité à `children` le manque, et
+    // l'erreur ne survient alors qu'au rendu, sans nommer le fichier.
+    await expect(compile('{<Danger />}\n')).rejects.toThrow(/« Danger »/)
+  })
+
+  it('rejette un composant placé dans la valeur d’un attribut', async () => {
+    await expect(compile('<Callout tone={<Danger />}>Texte.</Callout>\n')).rejects.toThrow(
+      /« Danger »/,
+    )
+  })
+
   it('rejette avant tout rendu : la liste blanche vide n’autorise rien', async () => {
     await expect(compile('<Callout>Rien n’est autorisé.</Callout>\n', {})).rejects.toThrow(
       /aucun composant autorisé/,
@@ -81,15 +94,5 @@ describe('refus', () => {
   it('rejette un corps MDX syntaxiquement invalide, en nommant le fichier', async () => {
     await expect(compile('<div>jamais refermée\n')).rejects.toThrow(MdxRenderError)
     await expect(compile('<div>jamais refermée\n')).rejects.toThrow(/corps MDX illisible/)
-  })
-})
-
-describe('message d’une cause quelconque', () => {
-  it('prend le message d’une erreur', () => {
-    expect(messageOf(new Error('quelque chose'))).toBe('quelque chose')
-  })
-
-  it('reste lisible pour ce qui n’est pas une erreur', () => {
-    expect(messageOf('panne')).toBe('panne')
   })
 })

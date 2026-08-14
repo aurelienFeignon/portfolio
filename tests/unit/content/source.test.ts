@@ -57,9 +57,12 @@ describe('lecture d’un dossier de contenu', () => {
   })
 
   it('ignore les fichiers qui ne sont ni `.md` ni `.mdx`', async () => {
-    const files = await valid().read('fr', 'skills')
+    // Le chargeur est tolérant ; le gate de contenu, lui, refuse ces fichiers
+    // (`content-gate.test.ts`). La fixture est donc à part : `valid/` ne
+    // contient que du contenu.
+    const source = createContentSource(join(FIXTURES, 'other-extensions'))
 
-    expect(files.map((file) => file.slug)).toEqual(['postgresql', 'typescript'])
+    expect((await source.read('fr', 'skills')).map((file) => file.slug)).toEqual(['typescript'])
   })
 
   it('laisse remonter une panne du système de fichiers qui n’est pas une absence', async () => {
@@ -126,6 +129,19 @@ describe('mémoïsation', () => {
     // Une nouvelle promesse, donc une nouvelle lecture : l'échec n'a pas été
     // mis en cache.
     expect(second).not.toBe(first)
+  })
+
+  it('relit le disque quand la mémoïsation est désactivée', async () => {
+    // C'est le réglage du développement : sans cela, modifier un fichier de
+    // contenu resterait invisible jusqu'au redémarrage du serveur.
+    const source = createContentSource(join(FIXTURES, 'valid'), { memoise: false })
+
+    const first = source.read('fr', 'projects')
+    const second = source.read('fr', 'projects')
+
+    expect(second).not.toBe(first)
+    await expect(second).resolves.toHaveLength(2)
+    await first
   })
 
   it('donne des caches indépendants à deux sources', async () => {

@@ -7,48 +7,45 @@
  * raison de passer par le système de fichiers pour obtenir un projet.
  *
  * Les fabriques de `frontmatter.ts`, elles, produisent du YAML lu sur disque,
- * c'est-à-dire de l'inconnu à valider. Les deux ne se remplacent pas.
+ * c'est-à-dire de l'inconnu à valider. Les deux ne se remplacent pas — mais
+ * **les données, elles, ne sont écrites qu'une fois** : celles-ci sont validées
+ * par le vrai schéma, exactement comme le fait le chargeur. Deux jeux de valeurs
+ * recopiées avaient déjà commencé à diverger.
  */
+import { experienceFrontmatterSchema } from '@/content/schemas/experience'
+import { projectFrontmatterSchema } from '@/content/schemas/project'
+import { skillFrontmatterSchema } from '@/content/schemas/skill'
 import type { Experience, Project, Skill } from '@/content/types'
 
+import {
+  makeExperienceFrontmatter,
+  makeProjectFrontmatter,
+  makeSkillFrontmatter,
+} from './frontmatter'
+
 export function makeProject(overrides: Partial<Project> = {}): Project {
+  const frontmatter = projectFrontmatterSchema.parse(makeProjectFrontmatter())
   return {
-    slug: 'augure',
-    title: 'Augure',
-    summary: 'Une plateforme de gestion documentaire, écrite en TypeScript de bout en bout.',
-    type: 'professional',
-    featured: true,
-    technologies: ['typescript', 'postgresql'],
-    startedAt: '2024-01-15',
-    endedAt: '2025-06-30',
+    ...frontmatter,
     body: 'Le corps du projet.',
-    isOngoing: false,
+    isOngoing: frontmatter.endedAt === undefined,
     ...overrides,
   }
 }
 
 export function makeExperience(overrides: Partial<Experience> = {}): Experience {
+  const frontmatter = experienceFrontmatterSchema.parse(makeExperienceFrontmatter())
   return {
-    slug: 'evea',
-    company: 'Evea',
-    role: 'Développeur Full-Stack',
-    location: 'Nantes',
-    startedAt: '2022-03-01',
-    technologies: ['typescript'],
-    highlights: ['Refonte du moteur de recherche interne'],
+    ...frontmatter,
     body: 'Le corps de l’expérience.',
-    isOngoing: true,
+    isOngoing: frontmatter.endedAt === undefined,
     ...overrides,
   }
 }
 
 export function makeSkill(overrides: Partial<Skill> = {}): Skill {
   return {
-    slug: 'typescript',
-    name: 'TypeScript',
-    category: 'language',
-    level: 5,
-    featured: true,
+    ...skillFrontmatterSchema.parse(makeSkillFrontmatter()),
     body: 'Le corps de la compétence.',
     ...overrides,
   }

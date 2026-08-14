@@ -12,7 +12,9 @@
  * font là-bas, en même temps que leur mise en forme et leurs tests
  * d'accessibilité.
  */
-import type { ReactNode } from 'react'
+import type { ComponentType, ReactNode } from 'react'
+
+import type { MdxComponentName } from './whitelist'
 
 const TONES = ['info', 'warning'] as const
 
@@ -36,5 +38,12 @@ export function Callout({ tone = 'info', children }: CalloutProps) {
   )
 }
 
-/** Le contrat passé à `evaluate` : rien d'autre n'est appelable depuis un MDX. */
-export const MDX_COMPONENTS = { Callout } as const
+/**
+ * Le contrat passé à `evaluate` : rien d'autre n'est appelable depuis un MDX.
+ *
+ * `satisfies` amarre cette table à `whitelist.ts`, que le gate de contenu lit de
+ * son côté. Ajouter un composant ici sans l'y déclarer — ou l'inverse — devient
+ * une erreur de compilation, et non un écart que personne ne remarque jusqu'à ce
+ * que le gate laisse passer un contenu fautif.
+ */
+export const MDX_COMPONENTS = { Callout } satisfies Record<MdxComponentName, ComponentType<never>>

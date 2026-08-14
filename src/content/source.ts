@@ -12,14 +12,21 @@
 import { readFile, readdir } from 'node:fs/promises'
 import { join } from 'node:path'
 
-import type { Locale } from '@/i18n/locales'
+import type { Locale } from '../i18n/locales.ts'
 
 import type { ContentType } from './content-type.ts'
 import { ContentError } from './errors.ts'
 import { parseFrontmatter, splitFrontmatter } from './frontmatter.ts'
 
-/** `.md` pour un contenu simple, `.mdx` dès qu'un composant est utilisé. */
-const EXTENSIONS = ['.md', '.mdx'] as const
+/**
+ * `.md` pour un contenu simple, `.mdx` dès qu'un composant est utilisé.
+ *
+ * Exporté parce que le gate de contenu doit dire **exactement** ce que le
+ * chargeur lit. Une seconde liste écrite ailleurs finirait par diverger, et le
+ * gate refuserait alors un fichier que le chargeur lit très bien — la panne
+ * inverse de celle qu'il existe pour empêcher.
+ */
+export const CONTENT_EXTENSIONS = ['.md', '.mdx'] as const
 
 export interface ContentFile {
   readonly locale: Locale
@@ -36,8 +43,9 @@ export interface ContentSource {
   read(locale: Locale, type: ContentType): Promise<readonly ContentFile[]>
 }
 
-function slugOf(filename: string): string | null {
-  const extension = EXTENSIONS.find((candidate) => filename.endsWith(candidate))
+/** Le slug d'un fichier lisible, ou `null` si le chargeur l'ignore. */
+export function slugOf(filename: string): string | null {
+  const extension = CONTENT_EXTENSIONS.find((candidate) => filename.endsWith(candidate))
   return extension === undefined ? null : filename.slice(0, -extension.length)
 }
 
@@ -45,7 +53,30 @@ function isMissingDirectory(error: unknown): boolean {
   return (error as NodeJS.ErrnoException | null)?.code === 'ENOENT'
 }
 
-export function createContentSource(root: string): ContentSource {
+export interface ContentSourceOptions {
+  /**
+   * Mémoïser les lectures réussies pour la durée du processus.
+   *
+   * Vrai par défaut : au build et en production, le contenu est figé et le
+   * relire serait du travail pur perte.
+   *
+   * **À passer à `false` en développement.** Une lecture mémoïsée y rendrait
+   * toute édition de contenu invisible **jusqu'au redémarrage du serveur** — le
+   * chemin d'échec évictait déjà son entrée pour cette raison exacte, mais le
+   * chemin nominal, non. Trouvé en revue.
+   *
+   * Le choix est une **option et non une lecture de `NODE_ENV`** : la couche
+   * Content ne consulte pas l'environnement, elle reçoit une décision prise à sa
+   * composition. C'est aussi ce qui rend les deux comportements testables sans
+   * manipuler de variable globale.
+   */
+  readonly memoise?: boolean
+}
+
+export function createContentSource(
+  root: string,
+  { memoise = true }: ContentSourceOptions = {},
+): ContentSource {
   /**
    * Mémoïsation à la **durée de vie du processus**, et non par requête.
    *
@@ -127,6 +158,8 @@ export function createContentSource(root: string): ContentSource {
 
   return {
     read(locale, type) {
+      if (!memoise) return readDirectory(locale, type)
+
       const key = `${locale}/${type}`
       const cached = cache.get(key)
       if (cached !== undefined) return cached

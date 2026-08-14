@@ -3,13 +3,15 @@
  *
  * Deux niveaux, et la distinction compte :
  *
- * - **`*Entry`** : ce que le chargeur produit — le frontmatter validé, plus le
- *   corps. Rien d'autre : c'est exactement le fichier.
+ * - **`ContentEntryByType`** : ce que le chargeur produit — le frontmatter
+ *   validé, plus le corps. Rien d'autre : c'est exactement le fichier.
  * - **`Project` / `Experience` / `Skill`** : ce que le dépôt rend, une fois les
  *   dérivations appliquées (P2-06). C'est ce que consomment les vues.
  *
  * Sans cette séparation, `isOngoing` devrait être présent dès la validation,
- * c'est-à-dire avant d'avoir été calculé.
+ * c'est-à-dire avant d'avoir été calculé. Les niveaux intermédiaires ne sont pas
+ * nommés : aucun consommateur ne les exerce, et un alias sans appelant est du
+ * vocabulaire public à maintenir pour rien.
  *
  * Ce fichier ne produit aucun code à l'exécution : tout y est effacé à la
  * compilation. C'est aussi pourquoi il est exclu de la mesure de couverture
@@ -33,23 +35,19 @@ interface Ongoing {
   readonly isOngoing: boolean
 }
 
-export type ProjectFrontmatter = z.infer<typeof projectFrontmatterSchema>
-export type ExperienceFrontmatter = z.infer<typeof experienceFrontmatterSchema>
-export type SkillFrontmatter = z.infer<typeof skillFrontmatterSchema>
+export type SkillCategory = z.infer<typeof skillFrontmatterSchema>['category']
 
-export type SkillCategory = SkillFrontmatter['category']
-
-export type ProjectEntry = WithBody<ProjectFrontmatter>
-export type ExperienceEntry = WithBody<ExperienceFrontmatter>
-export type SkillEntry = WithBody<SkillFrontmatter>
-
-export type Project = ProjectEntry & Ongoing
-export type Experience = ExperienceEntry & Ongoing
-export type Skill = SkillEntry
-
-/** Association type de contenu → entrée validée, pour typer le chargeur. */
+/**
+ * Association type de contenu → **entrée validée**, pour typer le chargeur.
+ * C'est exactement le fichier : frontmatter validé plus corps, sans dérivation.
+ */
 export interface ContentEntryByType {
-  experiences: ExperienceEntry
-  projects: ProjectEntry
-  skills: SkillEntry
+  experiences: WithBody<z.infer<typeof experienceFrontmatterSchema>>
+  projects: WithBody<z.infer<typeof projectFrontmatterSchema>>
+  skills: WithBody<z.infer<typeof skillFrontmatterSchema>>
 }
+
+/** Ce que rend le dépôt : l'entrée, dérivations appliquées (P2-06). */
+export type Project = ContentEntryByType['projects'] & Ongoing
+export type Experience = ContentEntryByType['experiences'] & Ongoing
+export type Skill = ContentEntryByType['skills']

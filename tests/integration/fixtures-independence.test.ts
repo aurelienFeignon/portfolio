@@ -11,59 +11,52 @@
 import { readdir, readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 
-import { describe, expect, it } from 'vitest'
+import { beforeAll, describe, expect, it } from 'vitest'
 
 const TESTS = join(process.cwd(), 'tests')
 
-async function testSources(directory: string): Promise<string[]> {
-  const entries = await readdir(directory, { withFileTypes: true })
-  const files = await Promise.all(
-    entries.map(async (entry) => {
-      const path = join(directory, entry.name)
-      if (entry.isDirectory()) return testSources(path)
-      return entry.name.endsWith('.ts') || entry.name.endsWith('.tsx') ? [path] : []
-    }),
+/** Chargé une fois : les trois contrôles filtrent le même relevé. */
+let sources: { path: string; code: string }[] = []
+
+beforeAll(async () => {
+  // `recursive` évite de réécrire une descente à la main — disponible depuis
+  // Node 20.1, et `package.json#engines` exige 24.
+  const paths = (await readdir(TESTS, { recursive: true })).filter(
+    (path) => path.endsWith('.ts') || path.endsWith('.tsx'),
   )
-  return files.flat()
-}
+
+  sources = await Promise.all(
+    paths.map(async (path) => ({
+      path: join(TESTS, path),
+      code: await readFile(join(TESTS, path), 'utf8'),
+    })),
+  )
+})
+
+const SELF = 'fixtures-independence.test.ts'
 
 describe('indépendance vis-à-vis du contenu réel', () => {
-  it('aucun test n’utilise le dépôt de l’application', async () => {
-    const sources = await testSources(TESTS)
-    const offenders: string[] = []
+  const offenders = (pattern: RegExp) =>
+    sources
+      .filter(({ path, code }) => pattern.test(code) && !path.endsWith(SELF))
+      .map(({ path }) => path)
 
-    for (const source of sources) {
-      const code = await readFile(source, 'utf8')
-      // `contentRepository` est l'instance branchée sur `content/`. Les tests
-      // construisent la leur avec `createContentRepository`, sur des fixtures.
-      if (/\bcontentRepository\b/.test(code) && !source.endsWith('fixtures-independence.test.ts')) {
-        offenders.push(source)
-      }
-    }
-
-    expect(offenders).toEqual([])
+  it('aucun test n’utilise le dépôt de l’application', () => {
+    // `contentRepository` est l'instance branchée sur `content/`. Les tests
+    // construisent la leur avec `createContentRepository`, sur des fixtures.
+    expect(offenders(/\bcontentRepository\b/)).toEqual([])
   })
 
-  it('aucun test ne pointe la racine de contenu par défaut', async () => {
-    const sources = await testSources(TESTS)
-    const offenders: string[] = []
-
-    for (const source of sources) {
-      const code = await readFile(source, 'utf8')
-      // Constater la valeur de `defaultContentRoot()` est permis ; la donner à
-      // une source, c'est lire le contenu réel.
-      if (/createContentSource\(\s*defaultContentRoot\(\)/.test(code)) offenders.push(source)
-    }
-
-    expect(offenders).toEqual([])
+  it('aucun test ne pointe la racine de contenu par défaut', () => {
+    // Constater la valeur de `defaultContentRoot()` est permis ; la donner à une
+    // source, c'est lire le contenu réel.
+    expect(offenders(/createContentSource\(\s*defaultContentRoot\(\)/)).toEqual([])
   })
 
-  it('trouve bien les fichiers de test qu’il prétend inspecter', async () => {
-    const sources = await testSources(TESTS)
-
+  it('trouve bien les fichiers de test qu’il prétend inspecter', () => {
     // Sans ce contrôle, un parcours qui ne trouve rien rendrait les deux
     // assertions précédentes vertes pour la pire des raisons.
     expect(sources.length).toBeGreaterThan(10)
-    expect(sources.some((source) => source.endsWith('repository.test.ts'))).toBe(true)
+    expect(sources.some(({ path }) => path.endsWith('repository.test.ts'))).toBe(true)
   })
 })

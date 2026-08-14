@@ -17,7 +17,7 @@
     "lint": "eslint . && prettier --check .",
     "lint:fix": "eslint . --fix && prettier --write .",
     "check-content": "node scripts/check-content.mts",
-    "build": "pnpm check-content && next build",
+    "build": "node scripts/check-content.mts && next build",
     "start": "next start -H 0.0.0.0 -p 3000",
     "check-dns": "node scripts/check-dns.mts"
   },

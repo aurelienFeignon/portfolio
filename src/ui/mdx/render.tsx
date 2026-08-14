@@ -16,6 +16,7 @@ import type { ComponentType, ReactElement } from 'react'
 import * as runtime from 'react/jsx-runtime'
 
 import { MDX_COMPONENTS } from './components'
+import { describeIfForbidden, describeUnreadableBody, mdxOptions } from './inspect'
 
 /**
  * Erreur de compilation ou de rendu d'un corps MDX.
@@ -70,60 +71,17 @@ export async function renderMdx({
     // liste blanche —, mais l'option n'est pas facultative.
     ;({ default: Compiled } = await evaluate(
       { path: file, value: source },
-      { ...runtime, baseUrl: import.meta.url, remarkPlugins: [collectComponentNames(used)] },
+      { ...runtime, baseUrl: import.meta.url, ...mdxOptions(used) },
     ))
   } catch (cause) {
-    throw new MdxRenderError(file, `corps MDX illisible — ${messageOf(cause)}`, { cause })
+    throw new MdxRenderError(file, describeUnreadableBody(cause), { cause })
   }
 
   // Le contrôle a lieu **avant** le rendu, et c'est tout l'intérêt : laissé à
   // React, il surviendrait au milieu de la génération de la page, avec un
   // message qui nomme le composant mais pas le fichier.
-  const forbidden = [...used].filter((name) => !(name in components))
-  if (forbidden.length > 0) {
-    throw new MdxRenderError(
-      file,
-      `utilise ${forbidden.map((name) => `« ${name} »`).join(', ')}, hors de la liste blanche des composants MDX (${Object.keys(components).join(', ') || 'aucun composant autorisé'})`,
-    )
-  }
+  const refusal = describeIfForbidden(used, Object.keys(components))
+  if (refusal !== null) throw new MdxRenderError(file, refusal)
 
   return <Compiled components={components} />
-}
-
-/**
- * Relève les composants appelés par le corps, avant compilation.
- *
- * Un nom de balise commençant par une majuscule est un composant ; en
- * minuscules, c'est un élément HTML, que MDX rend nativement et qui n'a rien à
- * faire dans une liste blanche.
- */
-function collectComponentNames(into: Set<string>) {
-  interface MdxNode {
-    type?: string
-    name?: string | null
-    children?: MdxNode[]
-  }
-
-  const walk = (node: MdxNode): void => {
-    if (
-      (node.type === 'mdxJsxFlowElement' || node.type === 'mdxJsxTextElement') &&
-      typeof node.name === 'string' &&
-      /^[A-Z]/.test(node.name)
-    ) {
-      into.add(node.name)
-    }
-    for (const child of node.children ?? []) walk(child)
-  }
-
-  return () => walk
-}
-
-/**
- * Jumeau de `messageOf` de la couche Content, et non son import : `src/ui` ne
- * peut pas importer `src/content` (`architecture.md` §1.2). Deux lignes
- * dupliquées sont le prix du cloisonnement, et un prix qu'on préfère payer
- * plutôt que d'ouvrir une dépendance pour si peu.
- */
-export function messageOf(cause: unknown): string {
-  return cause instanceof Error ? cause.message : String(cause)
 }

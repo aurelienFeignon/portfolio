@@ -9,8 +9,8 @@
  * les tests construisent la leur sur des fixtures, et ne lisent jamais le contenu
  * réel.
  */
-import type { Locale } from '@/i18n/locales'
-import { LOCALES } from '@/i18n/locales'
+import type { Locale } from '../i18n/locales.ts'
+import { LOCALES } from '../i18n/locales.ts'
 
 import type { ContentType } from './content-type.ts'
 import { createContentLoader, type ContentLoader } from './loader.ts'
@@ -103,7 +103,15 @@ export function createContentRepository(loader: ContentLoader): ContentRepositor
 /**
  * L'instance de l'application, sur `content/` à la racine du dépôt. Sa
  * construction ne lit rien : la première lecture a lieu au premier appel.
+ *
+ * C'est **ici**, à la composition, que se décide la mémoïsation — la couche
+ * Content, elle, ne consulte jamais l'environnement. En développement, elle est
+ * désactivée pour qu'une édition de contenu se voie au rafraîchissement suivant.
  */
 export const contentRepository: ContentRepository = createContentRepository(
-  createContentLoader(createContentSource(defaultContentRoot())),
+  createContentLoader(
+    createContentSource(defaultContentRoot(), {
+      memoise: process.env['NODE_ENV'] !== 'development',
+    }),
+  ),
 )

@@ -50,12 +50,36 @@ describe('gate de contenu', () => {
       'unknown-technology',
       /cite des technologies inconnues.*« typscript »/,
     ],
+    ['un composant hors liste blanche dans le corps', 'unknown-component', /« Calout »/],
+    ['un corps MDX jamais refermé', 'broken-body', /corps MDX illisible/],
   ])('sort en 1 sur %s, en nommant le fichier', async (_label, fixture, expected) => {
     const { code, output } = await checkContent(join(FIXTURES, 'invalid', fixture))
 
     expect(code).toBe(1)
     expect(output).toMatch(expected)
     expect(output).toContain('fr/projects/augure')
+  })
+
+  it.each([
+    ['une locale inconnue', 'unknown-locale', /dossier de locale inattendu/],
+    ['un type mal orthographié', 'mistyped-type', /entrée inattendue/],
+    ['un fichier qu’aucun chargeur ne lira', 'stray-file', /le chargeur ne lira pas cette entrée/],
+  ])('sort en 1 sur %s, que rien n’aurait lu autrement', async (_label, fixture, expected) => {
+    // Sans ce contrôle, l'entrée n'existe simplement pas et le build reste vert.
+    const { code, output } = await checkContent(join(FIXTURES, 'invalid', fixture))
+
+    expect(code).toBe(1)
+    expect(output).toMatch(expected)
+  })
+
+  it('ne fabrique pas de références mortes quand une compétence est illisible', async () => {
+    // La compétence manquante au référentiel ferait passer chaque projet qui la
+    // cite pour fautif : une vraie erreur, plus autant de fausses.
+    const { output } = await checkContent(join(FIXTURES, 'invalid', 'broken-skill'))
+
+    expect(output).toContain('1 problème(s)')
+    expect(output).not.toContain('technologie inconnue')
+    expect(output).toContain('cohérence référentielle non vérifiée')
   })
 
   it('rapporte tous les fichiers fautifs en une seule passe', async () => {

@@ -617,3 +617,93 @@ est consigné ici est ce qui a été **décidé et appliqué** à leur arrivée,
 Conséquence à ne pas manquer : dès le prochain déploiement, `https://aurelienfeignon.com/resume/cv-fr.pdf`
 est en ligne — avant même que la Phase 10 n'existe. C'est voulu, et c'est pourquoi l'en-tête a été
 posé maintenant plutôt qu'en P3-08.
+
+---
+
+## 18. Revue avant fusion — ce que `/code-review` et `/simplify` ont trouvé
+
+Nouvelle règle de travail posée le 2026-08-12 : `/code-review` puis `/simplify` **avant chaque
+push**, retours traités avant de pousser. La PR #10 étant ouverte mais non fusionnée, la règle a été
+appliquée rétroactivement — c'est-à-dire au dernier moment où elle coûte encore peu.
+
+### 18.1 Cinq défauts de correction, tous réels
+
+| # | Défaut | Ce qu'il cassait |
+|---|---|---|
+| 1 | Une compétence illisible sortait du référentiel, donc **chaque projet qui la citait** était en plus signalé « technologie inconnue » | 1 vraie erreur + 4 fabriquées, ce qui ruine la promesse « tout voir en une passe » |
+| 2 | Le relevé des composants ne descendait que dans `children` : `{<Danger />}` et un composant en valeur d'attribut **échappaient à la liste blanche** | L'erreur ne survenait qu'au rendu, sans nommer le fichier |
+| 3 | Une locale ou un type **mal orthographiés** (`content/fr/skill/`, `content/de/`) n'étaient ni lus ni signalés | Le build restait vert et l'entrée n'existait pas |
+| 4 | Le gate ne validait **que le frontmatter** : `<Calout>` ou une balise jamais refermée passaient | Le `Makefile` annonçait pourtant valider « tout le contenu Markdown/MDX » |
+| 5 | Les lectures réussies étaient mémoïsées pour la durée du processus, **sans invalidation** | En développement, une édition de contenu resterait invisible jusqu'au redémarrage |
+
+Les trois premiers sont des **pannes silencieuses** — exactement la classe que cette phase existe
+pour supprimer, et qu'elle laissait subsister dans son propre gate.
+
+Correctifs, chacun à la profondeur du mécanisme et non du symptôme :
+
+- le parcours des composants est devenu **générique** sur toute valeur atteignable, reconnaissant les
+  deux formes de nœud porteuses d'un nom (mdast et ESTree) — plutôt qu'un cas particulier pour les
+  expressions ;
+- la forme de l'arborescence est devenue une **règle de la couche** (`src/content/tree.ts`), énoncée
+  une fois, et non une seconde implémentation dans le gate ;
+- la mémoïsation est devenue une **option de fabrique**, décidée à la composition
+  (`repository.ts`) : la couche Content ne consulte jamais l'environnement.
+
+### 18.2 Ce que `/simplify` a corrigé
+
+Quatre agents (réutilisation, simplification, efficacité, altitude). Les constats retenus :
+
+| Constat | Correctif |
+|---|---|
+| Les extensions lues étaient réécrites en dur dans le gate | `CONTENT_EXTENSIONS` et `slugOf` exportés depuis la couche : **une seule liste** |
+| Trois façons de fabriquer un message d'erreur dans le même fichier | un seul `fail(file, reason)`, bâti sur `ContentError` |
+| `describe()` réimplémentait `messageOf` — et **avait déjà divergé** (`String(error)` contre `error.message`) | `messageOf` appelé, `describe` supprimé |
+| Les options de compilation MDX étaient écrites deux fois | `mdxOptions()` partagé : un greffon ajouté au rendu ne peut plus faire valider au gate un **autre dialecte** |
+| Le message « corps MDX illisible » existait en double, figé par deux tests | `describeUnreadableBody()` partagé |
+| `forbiddenComponents` + `describeForbiddenComponents` : la même séquence de quatre lignes chez les deux appelants | `describeIfForbidden()` rend le refus ou `null` |
+| Une racine absente était signalée **sept fois** | contrôle unique, rapport puis sortie |
+| Six alias de types exportés sans aucun consommateur | supprimés ; la distinction reste là où elle produit quelque chose |
+| Deux jeux de données de test recopiés, **déjà divergents** | les fabriques d'entités sont bâties sur celles de frontmatter |
+| Le parcours de `tests/` était refait trois fois | chargé une fois en `beforeAll`, `readdir({ recursive: true })` |
+| `scripts/` échappait au graphe de dépendances | déclaré **racine de composition**, comme `app`, avec ses autorisations |
+| Rien n'interdisait React dans les modules chargés par `node` | règle ESLint dédiée, **vue échouer** |
+
+### 18.3 Ce qui a été mesuré plutôt que supposé
+
+L'agent d'efficacité a chiffré ce que je n'aurais pas su estimer, et la plupart des « gaspillages »
+sont sous le bruit :
+
+| Piste | Mesure | Décision |
+|---|---|---|
+| **`pnpm build` lançait un `pnpm` imbriqué pour le gate** | **1007 ms contre 237 ms** en appelant `node` directement | **corrigé** — le seul gain réel, ~770 ms par build, donc par construction d'image |
+| Double parcours de l'arborescence (contrôle de forme puis lecture) | 1,6 ms | **ne rien faire** : fusionner coûterait le couplage de deux modules testables séparément |
+| Compilations MDX en série dans une locale | 240 ms contre 241 ms en concurrent | **ne rien faire** : le gain disparaît derrière 197 ms d'import de modules |
+| Rechargement et retri à chaque appel du dépôt | 0,007 à 0,020 ms par appel | **ne rien faire** à 2–5 entités par type |
+| `Intl.Collator` construit par tri | 4,4 µs | **ne rien faire** |
+
+Le travail de contenu proprement dit représente **45 ms sur un build de 6 s** — 0,7 %. Le reste du
+gate est du démarrage de processus.
+
+### 18.4 Constats refusés, et pourquoi
+
+- **Ouvrir une couche transverse pour `messageOf`** (deux lignes dupliquées entre `content` et
+  `ui/mdx`). Créer un module partagé et modifier le graphe de dépendances pour deux lignes coûterait
+  plus que la duplication. **Déclencheur écrit** : au troisième bout de code réellement transverse,
+  la question se rouvre — et pas au cas par cas.
+- **Donner au chargeur un mode « collecter les erreurs »** pour que le gate cesse d'appeler
+  `source.read` + `validateFile` à la main. Le gate ne consomme pas des entités mais valide des
+  **fichiers** — il a besoin du chemin et du corps, que les entités ne portent pas. Un second mode
+  pour un seul appelant serait spéculatif.
+- **Factoriser les 18 copies de fixtures** par une copie en dossier temporaire. Le coût est réel
+  (ajouter un champ obligatoire en Phase 4 demandera d'éditer six fichiers identiques) mais il est
+  **visible immédiatement** : les tests du gate rougissent. À traiter en Phase 4, au moment où le
+  besoin se manifestera pour de bon.
+
+### 18.5 Ce que la revue n'a pas remis en cause
+
+Les agents ont explicitement validé : l'option `memoise` décidée à la composition, la généralisation
+du parcours des composants, `satisfies` comme amarrage compilé entre la liste blanche et les
+composants, `content → i18n` modifié à l'endroit où la contrainte est écrite, l'usage systématique
+de `ContentError`, et la centralisation des tris dans le dépôt.
+
+**État final** : 228 tests, **couverture 100 %** sur les quatre métriques, `make ci` vert en 1 min 03.

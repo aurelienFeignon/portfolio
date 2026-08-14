@@ -8,7 +8,7 @@
  */
 import { z } from 'zod'
 
-import type { Locale } from '@/i18n/locales'
+import type { Locale } from '../i18n/locales.ts'
 
 import { FRONTMATTER_SCHEMAS, type ContentType } from './content-type.ts'
 import { ContentError } from './errors.ts'

@@ -6,7 +6,7 @@
  * résultats différents à deux builds, ce qui est intestable et se voit en
  * production sous forme de page qui change sans que le contenu ait bougé.
  */
-import type { Locale } from '@/i18n/locales'
+import type { Locale } from '../i18n/locales.ts'
 
 import type { SkillCategory } from './types.ts'
 
