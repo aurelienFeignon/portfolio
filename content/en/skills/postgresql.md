@@ -2,9 +2,8 @@
 slug: postgresql
 name: PostgreSQL
 category: infrastructure
-level: 4
+level: 5
+featured: true
 ---
 
-Seed content (P2-10), to be replaced in P2-11.
-
-Relational modelling, indexing, and reading execution plans.
+Main database of Augure, with least-privilege role separation and 214 versioned migrations.

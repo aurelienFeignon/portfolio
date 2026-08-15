@@ -1,12 +1,9 @@
 ---
 slug: docker
 name: Docker
-category: tooling
-level: 4
+category: infrastructure
+level: 5
 featured: true
 ---
 
-Seed content (P2-10), to be replaced in P2-11.
-
-Fully containerised development environment, multi-stage production image running
-as a non-root user.
+48 containerised services in Augure. This portfolio takes the principle further: no Node tooling is installed on the development machine, everything runs in containers.

@@ -3,10 +3,7 @@ slug: automated-testing
 name: Tests automatisés
 category: practice
 level: 4
-featured: true
+featured: false
 ---
 
-Contenu d'amorçage (P2-10), à remplacer en P2-11.
-
-Un test qui n'a jamais été vu échouer n'est pas un test : chaque assertion de ce
-projet a été confrontée à une mutation du code qu'elle protège.
+Porte de tests unifiée réunissant Vitest et pytest sur Augure. Sur ce portfolio, chaque assertion est vue échouer avant d'être déclarée acquise, et le code de production est éprouvé par mutation.

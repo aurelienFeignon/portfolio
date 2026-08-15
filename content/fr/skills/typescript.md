@@ -6,7 +6,4 @@ level: 5
 featured: true
 ---
 
-Contenu d'amorçage (P2-10), à remplacer en P2-11.
-
-Typage strict activé sans exception : `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`,
-et aucune directive de suppression d'erreur dans le code du projet.
+Langage principal d'Augure, dont le monorepo est écrit en TypeScript et en Python. Sert aussi de socle aux contrats typés générés vers Python, avec des gardes structurelles en intégration continue qui garantissent la parité entre les deux.

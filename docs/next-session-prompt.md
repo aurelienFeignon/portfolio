@@ -33,7 +33,9 @@ Phases 0, 1 et 2 : DONE. **Phase 3 (Internationalisation) : DONE (2026-08-14)** 
 cinq critères de sortie satisfaits, chacun vérifié par une exécution. **436 tests**, couverture
 **100 %** sur les quatre métriques (globale comprise), 17 mutations appliquées au code de production
 et toutes tuées. `make ci` vert.
-Phase 4 (Portfolio HTML) : à ouvrir, aucune tâche démarrée. **C'est la dernière phase de la tranche T1.**
+Phase 4 (Portfolio HTML) : à ouvrir, aucune tâche démarrée. **C'est la dernière phase de la tranche
+T1.** **P2-11 est DONE (2026-08-15)** : contenu réel écrit, 2 expériences, 1 projet et 40 compétences
+par locale — le chemin critique de T1 est levé.
 
 **Tout est sur `main` et déployé.** PR #10 (Phase 2) fusionnée le 2026-08-14, PR #11 (Phase 3) le
 2026-08-15 — les cinq jobs de la CI verts, image publiée sur GHCR, VPS mis à jour. Aucune branche en
@@ -44,9 +46,8 @@ portfolio n'est pas terminé. Une requête anonyme reçoit une 302 vers `cloudfl
 n'est pas une panne**, et j'ai commencé à le diagnostiquer comme telle une fois. Ce qui fait foi est
 `gh run list --branch main --limit 1`. Détail et conséquences : `deploy/README.md` §4.2.
 
-**À traiter avant de lever Access**, et pas avant : le contenu d'amorçage de P2-10 est publié sur
-`/fr` et `/en`, et chaque fichier porte « à remplacer en P2-11 ». Tant qu'Access est actif, aucun
-moteur ne le voit. Le jour où il tombe, soit P2-11 est écrite, soit un `noindex` est posé.
+Le contenu publié sur `/fr` et `/en` est désormais le **contenu réel** (P2-11) : le `noindex` qui se
+posait la question n'a plus lieu d'être.
 
 Ce qui a été ajouté par la Phase 3 et ne doit pas être redécouvert :
 
@@ -140,9 +141,8 @@ mets l'ADR à jour et ajoute une ligne au journal des révisions. Jamais de chan
 **Commence par me faire trancher le bloc « Décisions » ci-dessous.** Pose-les-moi groupées, avec ta
 recommandation, et n'attends pas mes réponses pour ce qui n'en dépend pas. Puis, dans cet ordre :
 
-1. **P2-11 — la rédaction du contenu réel**, dès que D1 est tranchée : tu as les deux versions du
-   CV, tu peux en écrire l'essentiel toi-même. C'est le chemin critique de T1, et **c'est ce qui
-   bloque P4-13**, la mise en production.
+1. **PHASE 4 — Portfolio HTML** (P4-01 à P4-16). P2-11 est faite : le chemin critique de T1 est
+   levé, et plus rien ne bloque P4-13 côté contenu.
 
    Pour lire les PDF : l'hôte n'a ni `poppler-utils` ni Node (ADR-0007). Conteneur jetable :
 
@@ -156,8 +156,6 @@ recommandation, et n'attends pas mes réponses pour ce qui n'en dépend pas. Pui
    Deux garde-fous : **mon téléphone et mon adresse e-mail n'entrent jamais dans `content/`** — ils
    relèvent de la page contact en Phase 10 —, et tu ne transposes que ce que le CV dit. Ce qu'il ne
    dit pas, tu me le demandes. `.tmp/` n'est pas dans `.gitignore` : sors-en les fichiers.
-
-2. **PHASE 4 — Portfolio HTML** (P4-01 à P4-16), qui n'en dépend pas **sauf P4-13**.
 
 Si je ne réponds pas, ouvre la Phase 4 et signale ce qui reste en attente. Ne simule jamais une
 réponse à ma place.
@@ -226,10 +224,11 @@ Aucun ne bloque la Phase 4 — sauf le premier, qui bloque sa mise en production
   du workflow CI sur `main`. Conséquence : P4-16 (vérification post-déploiement) suppose de lever
   Access, et aucun moteur n'atteint le site d'ici là — ce qui retire d'ailleurs son urgence au
   `noindex` de D1. Détail : `deploy/README.md` §4.2.
-- **P2-11, la rédaction du contenu réel, est le chemin critique de T1** et n'a pas commencé. Le
-  format est figé, vérifié par `make check-content`, et deux règles d'écriture sont dans
-  `content/README.md` — dont celle qui a déjà mordu : une valeur contenant `: ` doit être entre
-  guillemets.
+- **Deux réserves sur le contenu réel**, écrites dans `content/README.md` : les **dates de début**
+  sont au 1ᵉʳ janvier faute de mois dans le CV, et les **niveaux** de compétence (1 à 5) sont une
+  proposition déduite de la place de chaque technologie dans les expériences. À relire.
+- **Un seul projet publié** — ce portfolio. Le CV n'en cite aucun autre : les expériences portent
+  Augure et Askor. C'est un choix éditorial à rouvrir si tu veux montrer autre chose pour lui-même.
 - **`SITE_URL` a deux sources en production** : l'`ENV` de l'image et l'`env_file` de Compose, ce
   dernier l'emportant. À vérifier dans la checklist de P4-15.
 - **La marge sous le seuil d'image est de 15 Mo** (385 Mo pour 400), et la Phase 4 y ajoutera ~7 Mo.

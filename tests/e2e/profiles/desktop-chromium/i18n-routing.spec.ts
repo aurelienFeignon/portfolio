@@ -64,6 +64,27 @@ async function sitemapPaths(request: APIRequestContext): Promise<string[]> {
   return paths
 }
 
+/**
+ * Une entité traduite dans les deux langues, **déduite du sitemap**.
+ *
+ * Surtout pas un slug codé en dur : `content/` appartient à l'auteur du site, et
+ * P2-11 a justement déplacé Augure des projets vers les expériences — ce qui a
+ * cassé la première version de ces tests. Un E2E qui nomme une entité teste le
+ * contenu du jour ; celui-ci teste la **propriété** qui doit rester vraie quel
+ * que soit le contenu.
+ */
+async function translatedPair(request: APIRequestContext): Promise<{ fr: string; en: string }> {
+  const paths = await sitemapPaths(request)
+  const pair = paths
+    .filter((path) => path.startsWith('/fr/') && path.split('/').length === 4)
+    .map((path) => ({ fr: path, en: path.replace(/^\/fr\//, '/en/') }))
+    .find(({ en }) => paths.includes(en))
+
+  // Sans entité traduite, ces tests ne vérifieraient rien : mieux vaut échouer.
+  expect(pair, 'aucune entité présente dans les deux langues au sitemap').toBeDefined()
+  return pair as { fr: string; en: string }
+}
+
 function canonicalOf(html: string): string | undefined {
   const tag = /<link[^>]+rel="canonical"[^>]*>/i.exec(html)?.[0]
   return tag === undefined ? undefined : /href="([^"]+)"/i.exec(tag)?.[1]
@@ -122,17 +143,19 @@ test.describe('locale inconnue', () => {
 
   test('répond 404 sur un slug inconnu, dans les deux langues', async ({ request }) => {
     expect((await request.get('/fr/projects/inexistant')).status()).toBe(404)
-    expect((await request.get('/en/projects/inexistant')).status()).toBe(404)
+    expect((await request.get('/en/experiences/inexistant')).status()).toBe(404)
   })
 })
 
 test.describe('deux locales, deux pages', () => {
-  test('résolvent chacune leur contenu, indépendamment', async ({ page }) => {
+  test('résolvent chacune leur contenu, indépendamment', async ({ page, request }) => {
     // C'est le critère de sortie de la phase, constaté sur l'artefact.
-    await page.goto('/fr/projects/augure')
+    const { fr, en } = await translatedPair(request)
+
+    await page.goto(fr)
     const french = await page.getByRole('main').textContent()
 
-    await page.goto('/en/projects/augure')
+    await page.goto(en)
     const english = await page.getByRole('main').textContent()
 
     expect(french).toBeTruthy()
@@ -141,20 +164,23 @@ test.describe('deux locales, deux pages', () => {
   })
 
   test('chacune est canonique d’elle-même', async ({ request }) => {
-    for (const path of ['/fr/projects/augure', '/en/projects/augure']) {
+    const pair = await translatedPair(request)
+
+    for (const path of [pair.fr, pair.en]) {
       const html = await (await request.get(path)).text()
       expect(canonicalOf(html)).toBe(`${origin}${path}`)
     }
   })
 
   test('se référencent mutuellement, et déclarent un `x-default`', async ({ request }) => {
-    const html = await (await request.get('/fr/projects/augure')).text()
+    const { fr, en } = await translatedPair(request)
+    const html = await (await request.get(fr)).text()
 
     expect(hreflangsOf(html)).toEqual(
       expect.arrayContaining([
-        { hreflang: 'fr', href: `${origin}/fr/projects/augure` },
-        { hreflang: 'en', href: `${origin}/en/projects/augure` },
-        { hreflang: 'x-default', href: `${origin}/fr/projects/augure` },
+        { hreflang: 'fr', href: `${origin}${fr}` },
+        { hreflang: 'en', href: `${origin}${en}` },
+        { hreflang: 'x-default', href: `${origin}${fr}` },
       ]),
     )
   })
@@ -172,10 +198,11 @@ test.describe('sitemap et robots', () => {
   })
 
   test('le sitemap contient les deux versions d’une entité traduite', async ({ request }) => {
+    const { fr, en } = await translatedPair(request)
     const xml = await (await request.get('/sitemap.xml')).text()
 
-    expect(xml).toContain(`<loc>${origin}/fr/projects/augure</loc>`)
-    expect(xml).toContain(`<loc>${origin}/en/projects/augure</loc>`)
+    expect(xml).toContain(`<loc>${origin}${fr}</loc>`)
+    expect(xml).toContain(`<loc>${origin}${en}</loc>`)
   })
 
   test('aucune URL du sitemap ne renvoie une erreur', async ({ request }) => {

@@ -1,8 +1,8 @@
 # Roadmap
 
 > Statut global : **Phases 0, 1, 2 et 3 terminées et validées.** Phase 3 ouverte et close le
-> 2026-08-14 ; P2-11 (rédaction du contenu réel) reste à la charge de l'utilisateur et ne bloque pas
-> la Phase 4.
+> 2026-08-14. **P2-11 (rédaction du contenu réel) est DONE (2026-08-15)** : le contenu d'amorçage est
+> entièrement remplacé, et le chemin critique de T1 est donc levé.
 > Journal de la Phase 3 : [`phase-3-log.md`](./phase-3-log.md) — phases précédentes :
 > [`phase-2-log.md`](./phase-2-log.md), [`phase-1-log.md`](./phase-1-log.md)
 > Dernière mise à jour : 2026-08-14
@@ -76,11 +76,9 @@ P2-11 rédaction du contenu réel ───────┘   ⚠ le plus sous-es
 
 **Deux menaces réelles sur la date, et aucune n'est technique :**
 
-1. **La rédaction du contenu.** Écrire quatre à huit expériences, six à douze projets et une
-   trentaine de compétences, **en deux langues**, prend plus de temps que d'écrire le code qui les
-   affiche. C'est P2-11, c'est à votre charge, et **cela peut commencer aujourd'hui** : le format
-   du frontmatter est déjà arrêté (`architecture.md` §3.4) et ne dépend d'aucune ligne de code.
-   C'est le meilleur usage possible du temps d'ici l'ouverture de la Phase 1.
+1. ~~**La rédaction du contenu.**~~ **Levée le 2026-08-15** (P2-11) : 2 expériences, 1 projet et
+   40 compétences par locale. Le volume de projets reste faible — un seul, ce portfolio — parce que
+   le CV n'en cite aucun autre ; c'est un choix éditorial à rouvrir, pas une dette technique.
 2. **Les prérequis externes** : achat du domaine (P1-17) et disponibilité du VPS. Ils bloquent la
    mise en ligne, pas le développement.
 
@@ -465,7 +463,7 @@ dépendance à React ni à Three.js. Un contenu invalide casse le build.
 | P2-08 | Compilation MDX en RSC avec liste blanche de composants | **DONE** *(2026-08-12)* | P2-01 |
 | P2-09 | Fixtures valides **et invalides** + fabriques d'objets de test | **DONE** *(2026-08-12)* | P2-02 |
 | P2-10 | Contenu réel d'amorçage : 2 expériences, 2 projets, 5 compétences (fr + en) | **DONE** *(2026-08-12)* | P2-06 |
-| P2-11 | **Rédaction du contenu réel complet (fr + en)** — chemin critique de T1, à votre charge, **peut démarrer immédiatement** : le format du frontmatter est arrêté et ne dépend d'aucun code | — | — |
+| P2-11 | **Rédaction du contenu réel complet (fr + en)** | **DONE** *(2026-08-15)* | P2-06 |
 
 **P2-01 — ADR-0009, choix de la bibliothèque MDX**
 Status: **DONE** (2026-08-12) — `@mdx-js/mdx` appelé directement, `next-mdx-remote` désigné comme
@@ -565,6 +563,18 @@ touchait les deux locales et serait passée inaperçue (page absente, sans erreu
 `content/README.md`.
 Le cas « aucun contenu trouvé » est **désormais bloquant**, comme annoncé
 ([`phase-2-log.md`](./phase-2-log.md) §15). · Depends on: P2-06
+
+**P2-11 — contenu réel**
+Status: **DONE** (2026-08-15) — le contenu d'amorçage est **entièrement remplacé**. Par locale :
+2 expériences, 1 projet, 40 compétences en cinq catégories dont dix `featured`. Écrit à partir des
+deux versions du CV, après que trois questions bloquantes ont été tranchées — Askor est une
+expérience chez **EVEA Conseil**, Augure est le projet propre de l'utilisateur (propriétaire, PO et
+unique développeur, société non constituée), et les deux sont **en cours**.
+⚠️ Deux réserves, écrites dans `content/README.md` : les **dates de début** sont au 1ᵉʳ janvier faute
+de mois dans le CV, et les **niveaux** de compétence sont une proposition à relire.
+⚠️ Un test E2E codait `/fr/projects/augure` en dur et a cassé, Augure étant devenu une expérience.
+Corrigé à la bonne profondeur : le test **déduit du sitemap** une entité traduite dans les deux
+langues, au lieu d'en nommer une. Un E2E qui nomme une entité teste le contenu du jour.
 
 **Critères de sortie** — État au 2026-08-12, détail et mesures dans
 [`phase-2-log.md`](./phase-2-log.md).

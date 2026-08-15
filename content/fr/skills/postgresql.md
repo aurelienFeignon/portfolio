@@ -2,9 +2,8 @@
 slug: postgresql
 name: PostgreSQL
 category: infrastructure
-level: 4
+level: 5
+featured: true
 ---
 
-Contenu d'amorçage (P2-10), à remplacer en P2-11.
-
-Modélisation relationnelle, index, et lecture de plans d'exécution.
+Base principale d'Augure, avec séparation des rôles au moindre privilège et 214 migrations versionnées.
