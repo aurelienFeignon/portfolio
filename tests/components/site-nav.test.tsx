@@ -4,13 +4,10 @@
 import { render, screen } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 
-import { SiteNav, type SectionLink } from '@/ui/site-nav'
+import { makeSectionLinks } from '../fixtures/builders/navigation'
+import { SiteNav } from '@/ui/site-nav'
 
-const LINKS: SectionLink[] = [
-  { section: 'experiences', href: '/fr/experiences' },
-  { section: 'projects', href: '/fr/projects' },
-  { section: 'skills', href: '/fr/skills' },
-]
+const LINKS = makeSectionLinks()
 
 describe('navigation principale', () => {
   it('est un point de repère nommé', () => {
@@ -49,5 +46,30 @@ describe('navigation principale', () => {
     render(<SiteNav locale="fr" links={[{ section: 'projects', href: '/fr/projects' }]} />)
 
     expect(screen.getAllByRole('link')).toHaveLength(1)
+  })
+})
+
+describe('section active', () => {
+  it('marque le lien de la section courante, et lui seul', () => {
+    render(<SiteNav locale="fr" links={LINKS} current="projects" />)
+
+    // `true` et non `page` : la même navigation sert la liste d'une section ET
+    // les pages de détail qu'elle contient. Sur `/fr/projects/portfolio`, un
+    // `aria-current="page"` annoncerait « page courante » sur un lien qui mène
+    // ailleurs — ce que la valeur `page` affirme précisément, et à tort.
+    expect(screen.getByRole('link', { name: 'Projets' })).toHaveAttribute('aria-current', 'true')
+    expect(screen.getByRole('link', { name: 'Expériences' })).not.toHaveAttribute('aria-current')
+    expect(screen.getByRole('link', { name: 'Compétences' })).not.toHaveAttribute('aria-current')
+  })
+
+  it('ne marque rien quand aucune section n’est courante', () => {
+    // L'accueil est dans ce cas : il est atteignable par la marque, pas par un
+    // lien de section. Un `aria-current` posé par défaut y désignerait une page
+    // où le visiteur n'est pas.
+    render(<SiteNav locale="fr" links={LINKS} />)
+
+    for (const link of screen.getAllByRole('link')) {
+      expect(link).not.toHaveAttribute('aria-current')
+    }
   })
 })

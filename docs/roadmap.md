@@ -1,11 +1,12 @@
 # Roadmap
 
-> Statut global : **Phases 0, 1, 2 et 3 terminées et validées.** Phase 3 ouverte et close le
-> 2026-08-14. **P2-11 (rédaction du contenu réel) est DONE (2026-08-15)** : le contenu d'amorçage est
-> entièrement remplacé, et le chemin critique de T1 est donc levé.
-> Journal de la Phase 3 : [`phase-3-log.md`](./phase-3-log.md) — phases précédentes :
-> [`phase-2-log.md`](./phase-2-log.md), [`phase-1-log.md`](./phase-1-log.md)
-> Dernière mise à jour : 2026-08-14
+> Statut global : **Phases 0, 1, 2 et 3 terminées et validées.** **Phase 4 ouverte le 2026-08-15**,
+> dernière phase de la tranche T1. **P2-11 (rédaction du contenu réel) est DONE (2026-08-15)** : le
+> contenu d'amorçage est entièrement remplacé, et le chemin critique de T1 est donc levé.
+> Journal de la Phase 4 : [`phase-4-log.md`](./phase-4-log.md) — phases précédentes :
+> [`phase-3-log.md`](./phase-3-log.md), [`phase-2-log.md`](./phase-2-log.md),
+> [`phase-1-log.md`](./phase-1-log.md)
+> Dernière mise à jour : 2026-08-15
 
 Ce document est la **source de vérité unique des tâches**. Les identifiants sont stables et ne
 sont jamais réutilisés, même si une tâche est abandonnée.
@@ -27,7 +28,7 @@ silencieusement.
 | 1 | Fondation technique | **DONE** *(2026-08-12)* | Squelette dockerisé, gates verts, CI, déploiement du squelette |
 | 2 | Content layer | **DONE** *(2026-08-12)* | Markdown → objets typés validés, build cassé si invalide |
 | 3 | Internationalisation | **DONE** *(2026-08-14)* | `/fr` et `/en` résolus indépendamment, hreflang exact |
-| 4 | Portfolio HTML | TODO | **Produit utilisable sans Three.js** (phase obligatoire) |
+| 4 | Portfolio HTML | **IN_PROGRESS** *(ouverte le 2026-08-15)* | **Produit utilisable sans Three.js** (phase obligatoire) |
 | 5 | Fondation Three.js | TODO | Scène primitive : bureau + 3 écrans, budget tenu |
 | 6 | Navigation spatiale | TODO | Route ↔ scène, testé sans WebGL |
 | 7 | Interfaces des écrans | TODO | Contenu affiché sur les moniteurs, instance unique |
@@ -700,26 +701,65 @@ ce qu'on annonce à un moteur de recherche, pas ce qu'on offre à un visiteur.
 ## PHASE 4 — Portfolio HTML *(obligatoire)*
 
 **Objectif** — Un portfolio complet et utilisable **sans Three.js**. C'est le socle de tout le
-reste et le filet de sécurité permanent du projet.
+reste et le filet de sécurité permanent du projet. Journal de phase :
+[`phase-4-log.md`](./phase-4-log.md).
 
-| ID | Tâche | Dépend de |
-|---|---|---|
-| P4-01 | ADR-0010 : stratégie de style | P3-09 |
-| P4-02 | Layout documentaire : en-tête, navigation, pied de page, lien d'évitement | P4-01 |
-| P4-03 | Accueil : présentation et accès aux trois sections | P4-02 |
-| P4-04 | Liste et détail des expériences | P4-02 |
-| P4-05 | Liste et détail des projets | P4-02 |
-| P4-06 | Compétences (groupées par catégorie) | P4-02 |
-| P4-07 | Pages 404 et erreur, localisées | P4-02 |
-| P4-08 | Métadonnées OpenGraph et images de partage | P3-06 |
-| P4-09 | JSON-LD : `Person`, `WebSite`, `CreativeWork`, `BreadcrumbList` | P4-05 |
-| P4-10 | Passe accessibilité : titres, focus, contrastes, points de repère | P4-06 |
-| P4-11 | Responsive documentaire : mobile, tablette, desktop | P4-06 |
-| P4-12 | E2E : navigation complète, deep links, bascule de langue, clavier | P4-11 |
-| P4-13 | **Mise en production du portfolio documentaire** *(jalon T1)* | P4-12, P1-15, P2-11 |
-| P4-14 | Supervision : healthcheck conteneur + sonde externe avec alerte (risque R-15) | P4-13 |
-| P4-15 | Checklist de mise en ligne + rollback vérifié en conditions réelles | P4-13 |
-| P4-16 | Vérification post-déploiement : indexation, canonical, hreflang, sitemap accessibles publiquement — **suppose de lever Cloudflare Access**, qui ferme le site au public depuis le 2026-08-15 (`deploy/README.md` §4.2) | P4-13 |
+| ID | Tâche | Statut | Dépend de |
+|---|---|---|---|
+| P4-01 | ADR-0010 : stratégie de style | **DONE** *(2026-08-15)* | P3-09 |
+| P4-02 | Layout documentaire : en-tête, navigation, pied de page, lien d'évitement | **DONE** *(2026-08-15)* | P4-01 |
+| P4-03 | Accueil : présentation et accès aux trois sections | TODO | P4-02 |
+| P4-04 | Liste et détail des expériences | TODO | P4-02 |
+| P4-05 | Liste et détail des projets — **première page qui rend un corps MDX** | TODO | P4-02 |
+| P4-06 | Compétences (groupées par catégorie) | TODO | P4-02 |
+| P4-07 | Pages 404 et erreur, localisées | TODO | P4-02 |
+| P4-08 | Métadonnées OpenGraph et images de partage | TODO | P3-06 |
+| P4-09 | JSON-LD : `Person`, `WebSite`, `CreativeWork`, `BreadcrumbList` | TODO | P4-05 |
+| P4-10 | Passe accessibilité : titres, focus, contrastes, points de repère | TODO | P4-06 |
+| P4-11 | Responsive documentaire : mobile, tablette, desktop | TODO | P4-06 |
+| P4-12 | E2E : navigation complète, deep links, bascule de langue, clavier | TODO | P4-11 |
+| P4-13 | **Mise en production du portfolio documentaire** *(jalon T1)* | TODO | P4-12, P1-15, P2-11 |
+| P4-14 | Supervision : healthcheck conteneur + sonde externe avec alerte (risque R-15) | TODO | P4-13 |
+| P4-15 | Checklist de mise en ligne + rollback vérifié en conditions réelles | TODO | P4-13 |
+| P4-16 | Vérification post-déploiement : indexation, canonical, hreflang, sitemap accessibles publiquement — **suppose de lever Cloudflare Access**, qui ferme le site au public depuis le 2026-08-15 (`deploy/README.md` §4.2) | TODO | P4-13 |
+
+**P4-01 — ADR-0010, stratégie de style**
+Status: **DONE** (2026-08-15) — **CSS Modules + tokens en variables CSS**, décidé sur une exécution
+et non sur une comparaison de documentations : une sonde construite par `make bundle` mesure **0,0 Ko
+de JavaScript ajouté** sur les 16 routes, un socle **inchangé à 129,5 Ko**, des classes réellement
+cloisonnées (`style-probe-module__e50QiW__probe`), une feuille servie en fichier statique immuable —
+et **aucun paquet ajouté au verrou**, les CSS Modules étant déjà dans Next.
+Deux alternatives écartées avec leur déclencheur de réexamen : Tailwind (dépendance structurante au
+sens de CT-08, et balisage plus difficile à relire à l'audit de P4-10 — à rouvrir si la Phase 8 amène
+une direction artistique dense), vanilla-extract (compatibilité Turbopack dépendante d'un greffon
+tiers). Le mode de panne des CSS Modules est consigné dans l'ADR plutôt que passé sous silence : une
+classe mal orthographiée rend `undefined` **sans erreur**. · Depends on: P3-09
+
+**P4-02 — Layout documentaire**
+Status: **DONE** (2026-08-15) — en-tête (marque + navigation), pied de page, lien d'évitement, et la
+première application de l'ADR-0010 : trois `*.module.css`, tous les littéraux remontés en tokens dans
+`globals.css`. **2,7 Ko de CSS** en deux fichiers statiques immuables, **0,0 Ko de JavaScript** sur
+les 16 routes, socle **inchangé à 129,5 Ko**.
+Trois points reportés de la Phase 3 sont levés. **(1)** `aria-current="page"` sur la section active :
+le layout racine ne peut pas la connaître — l'App Router ne la lui donne pas, et `headers()`
+rendrait la route dynamique, ce que le gate de rendu statique refuse. Ce sont donc **quatre layouts**,
+un par endroit, qui déclarent chacun le leur ; l'accueil a reçu un groupe de routes `(home)` pour être
+sur le même plan que les trois sections plutôt que de rendre son en-tête lui-même. **(2)** L'identité
+de marque devient **« Aurélien Feignon »** : nom propre, donc identique dans les deux locales —
+l'exception que tolérait déjà le test de non-régression des dictionnaires devient structurelle au lieu
+d'être fortuite. **(3)** La navigation client est **tranchée par la mesure** et reste en balises
+`<a>` : `next/link` n'a pas été introduit, et c'est ce qui garde les 0,0 Ko.
+Décidé au passage, plutôt que subi : **pas de lien « Accueil » dans la navigation**, c'est la marque
+qui y mène — la clé `nav.home` ne revient donc pas, et les technologies d'assistance n'annoncent pas
+deux fois la même cible.
+⚠️ `aria-current` vaut **`true`** et non `page` sur les liens de section : le layout couvre aussi les
+pages de détail, où `page` annoncerait « page courante » sur un lien qui mène ailleurs. `page` reste
+sur la marque, à l'accueil, où le lien désigne bien la page affichée.
+⭐ L'accord « un endroit ⇒ un layout » est gardé par un test **exhaustif tenu par le compilateur**
+(`Record<CurrentPlace, …>`) qui **appelle** chaque layout et lit la valeur transmise — sans quoi une
+quatrième section aurait sa route, son lien et son entrée au sitemap, mais aucun en-tête, tous gates
+verts. Neuf défauts trouvés par `/code-review` puis `/simplify` sur un travail déjà vert
+(`phase-4-log.md` §7.5). · Depends on: P4-01
 
 **Critères de sortie** — Toutes les exigences de la §20 de la mission satisfaites ; Lighthouse
 mobile ≥ 85 / a11y 100 / SEO 100 ; 0 violation axe serious/critical ; le projet `no-js` passe ;

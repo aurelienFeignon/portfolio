@@ -13,8 +13,8 @@ import type { PageLocation } from '@/routing/paths'
 import { pageMetadata } from '@/seo/metadata'
 import { LanguageSwitcher } from '@/ui/language-switcher'
 
-import { languageOptions } from './language-options'
-import { readLocale, type LocaleParams } from './locale-param'
+import { languageOptions } from '../language-options'
+import { readLocale, type LocaleParams } from '../locale-param'
 
 const LOCATION: PageLocation = { kind: 'home' }
 

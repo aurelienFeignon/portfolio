@@ -7,7 +7,7 @@ test.describe('sans JavaScript', () => {
   test('le contenu et les repères sont présents dans le HTML servi', async ({ page }) => {
     await page.goto('/fr')
 
-    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Portfolio')
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Aurélien Feignon')
     await expect(page.getByRole('main')).toBeVisible()
     await expect(page.getByRole('link', { name: 'Aller au contenu principal' })).toHaveAttribute(
       'href',

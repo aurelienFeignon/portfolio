@@ -39,7 +39,7 @@ test.describe('profil sans WebGL', () => {
   test('le contenu documentaire reste entièrement présent (CF-12)', async ({ page }) => {
     await page.goto('/fr')
 
-    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Portfolio')
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Aurélien Feignon')
     await expect(page.getByRole('main')).toBeVisible()
   })
 })

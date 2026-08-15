@@ -1,0 +1,28 @@
+/*
+ * Pied de page (P4-02).
+ *
+ * `--color-text-muted` et non une opacité : une opacité change le rapport de
+ * contraste sans que rien ne le dise, alors que ce token porte le sien dans
+ * `globals.css`. ⚠️ Ici le fond est `--color-surface` et non `--color-background` :
+ * le rapport est **6,7:1**, pas 7,2:1. Les deux valeurs sont notées à la source,
+ * parce qu'un token de couleur n'a pas *un* contraste — il en a un par fond.
+ *
+ * La taille est portée par `.note` et non par `.inner` : `<small>` réduit déjà
+ * la taille héritée, et deux réductions successives donnaient ~11,7 px.
+ */
+
+.footer {
+  background: var(--color-surface);
+  border-top: 1px solid var(--color-border);
+}
+
+.inner {
+  composes: container from './container.module.css';
+
+  padding-block: var(--space-6);
+  color: var(--color-text-muted);
+}
+
+.note {
+  font-size: var(--text-sm);
+}

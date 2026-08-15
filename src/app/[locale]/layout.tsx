@@ -14,10 +14,9 @@ import type { ReactNode } from 'react'
 
 import { LOCALES } from '@/i18n/locales'
 import { getMessages } from '@/i18n/messages'
-import { sectionPath } from '@/routing/paths'
-import { SECTIONS } from '@/routing/sections'
-import { SiteNav } from '@/ui/site-nav'
+import { SiteFooter } from '@/ui/site-footer'
 
+import styles from './layout.module.css'
 import { readLocale, type LocaleParams } from './locale-param'
 import '../globals.css'
 
@@ -52,11 +51,17 @@ export default async function LocaleLayout({
         <a className="skip-link" href="#main">
           {messages.skipToContent}
         </a>
-        <SiteNav
-          locale={locale}
-          links={SECTIONS.map((section) => ({ section, href: sectionPath(locale, section) }))}
-        />
-        {children}
+        {/* L'en-tête n'est pas ici mais dans les layouts d'endroit (P4-02) :
+            marquer le lien actif demande de savoir où l'on est, et ce layout ne
+            le sait pas. Voir `place-layout.tsx`.
+            La boîte qui les enveloppe est ce que ce layout possède, donc ce
+            qu'il a le droit de styler — c'est elle qui pousse le pied de page
+            en bas d'une page courte. */}
+        <div className={styles.grow}>{children}</div>
+        {/* Le pied de page, lui, est identique partout : il n'a besoin de rien
+            savoir de la page. L'année est lue au build — toutes les routes sont
+            prérendues, elle est donc gravée à chaque déploiement. */}
+        <SiteFooter locale={locale} year={new Date().getFullYear()} />
       </body>
     </html>
   )

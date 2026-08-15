@@ -14,18 +14,8 @@
  */
 import type { APIRequestContext } from '@playwright/test'
 
+import { ORIGIN as origin, sitemapPaths } from '../../support/sitemap'
 import { expect, test } from '../../support/test'
-
-const SITE_URL = process.env['SITE_URL']
-
-if (SITE_URL === undefined || SITE_URL === '') {
-  throw new Error(
-    'SITE_URL est absente : ces tests comparent les URL servies à l’origine de construction. ' +
-      'Elle est fournie par docker-compose*.yml et par la CI.',
-  )
-}
-
-const origin = SITE_URL.replace(/\/$/, '')
 
 /**
  * Extrait les `href` des balises `<link rel="alternate" hreflang="…">` du HTML.
@@ -45,23 +35,6 @@ function hreflangsOf(html: string): { hreflang: string; href: string }[] {
     const href = /href="([^"]+)"/i.exec(tag[0])?.[1]
     return hreflang !== undefined && href !== undefined ? [{ hreflang, href }] : []
   })
-}
-
-/**
- * Les chemins listés par le sitemap.
- *
- * Écrit une fois : l'extraction était recopiée trois fois, et ce fichier
- * documente lui-même (voir `hreflangsOf`) la panne exacte que produit un
- * extracteur fautif — un test vert qui n'a rien inspecté.
- */
-async function sitemapPaths(request: APIRequestContext): Promise<string[]> {
-  const xml = await (await request.get('/sitemap.xml')).text()
-  const paths = [...xml.matchAll(/<loc>([^<]+)<\/loc>/g)].map((match) =>
-    (match[1] as string).slice(origin.length),
-  )
-
-  expect(paths.length).toBeGreaterThan(0)
-  return paths
 }
 
 /**

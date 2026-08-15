@@ -54,8 +54,11 @@ describe('dictionnaires', () => {
       .filter(([key, value]) => fr.get(key) === value)
       .map(([key]) => key)
 
-    // `site.name` vaut « Portfolio » dans les deux langues, et c'est correct :
-    // le mot est le même. Toute autre égalité est un oubli de traduction.
+    // `site.name` vaut « Aurélien Feignon » dans les deux langues, et c'est
+    // correct : c'est un **nom propre**, il ne se traduit pas. L'exception
+    // existait déjà pour « Portfolio », où le mot se trouvait être commun aux
+    // deux langues ; depuis P4-02 elle est structurelle et non plus fortuite.
+    // Toute autre égalité est un oubli de traduction.
     expect(untranslated).toEqual(['site.name'])
   })
 

@@ -1,0 +1,42 @@
+/*
+ * Navigation principale (P4-02).
+ *
+ * L'état actif est stylé par l'**attribut** `[aria-current]`, jamais par une
+ * classe ajoutée en parallèle : l'information n'existe alors qu'à un seul
+ * endroit, et le style ne peut pas se désynchroniser de ce qu'annonce un lecteur
+ * d'écran. La valeur est `true` et non `page` — voir `site-nav.tsx`.
+ *
+ * Il est signalé par **trois** moyens — graisse, trait, couleur — et non par la
+ * couleur seule, que WCAG 2.2 (1.4.1) n'accepte pas comme unique porteur d'une
+ * information.
+ */
+
+.list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.link {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--tap-target-min);
+  padding-inline: var(--space-3);
+  color: var(--color-text);
+  text-decoration: none;
+  border-bottom: 2px solid transparent;
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+}
+
+.link:hover {
+  background: var(--color-surface);
+}
+
+.link[aria-current='true'] {
+  font-weight: 600;
+  color: var(--color-accent);
+  border-bottom-color: var(--color-accent);
+}
