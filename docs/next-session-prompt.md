@@ -30,7 +30,7 @@ Les Phases 0, 1, 2 et 3 sont TERMINÉES et validées. Ne les refais pas, ne les 
 ## État
 
 Phases 0, 1 et 2 : DONE. **Phase 3 (Internationalisation) : DONE (2026-08-14)** — 9 tâches sur 9,
-cinq critères de sortie satisfaits, chacun vérifié par une exécution. **415 tests**, couverture
+cinq critères de sortie satisfaits, chacun vérifié par une exécution. **436 tests**, couverture
 **100 %** sur les quatre métriques (globale comprise), 17 mutations appliquées au code de production
 et toutes tuées. `make ci` vert.
 Phase 4 (Portfolio HTML) : à ouvrir, aucune tâche démarrée. **C'est la dernière phase de la tranche T1.**
@@ -60,7 +60,11 @@ Ce qui a été ajouté par la Phase 3 et ne doit pas être redécouvert :
 - **`src/ui/`** : `SiteNav`, `LanguageSwitcher`, `EntityList`, `DateRange` — tous testés, tous sans
   style (l'ADR-0010 est en P4-01).
 - **Un gate de plus** : `scripts/check-static-rendering.mts`, branché sur `pnpm build`, refuse toute
-  route qui se rendrait à la demande.
+  route qui se rendrait à la demande **et** toute page prégénérée absente du sitemap. Il prend sa
+  racine en argument, donc il est testé contre des manifestes fabriqués.
+- **Les gates ne se gardent plus du zéro mais du sous-comptage** : `check-bundle-budget` confronte
+  ses pages mesurées à celles que Next déclare. C'est ce qui aurait attrapé le défaut « 4 pages
+  sur 20 » de cette phase.
 
 Ce qui existait déjà et fonctionne, à ne pas redécouvrir non plus :
 

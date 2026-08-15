@@ -13,12 +13,10 @@ export const en: Messages = {
 
   nav: {
     label: 'Main navigation',
-    home: 'Home',
   },
 
   language: {
     label: 'Language',
-    current: 'Current language',
     unavailable: 'This page is not available in this language.',
   },
 

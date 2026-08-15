@@ -3,6 +3,7 @@
  */
 import { afterEach, describe, expect, it } from 'vitest'
 
+import { LOCALES, type Locale } from '@/i18n/locales'
 import { buildPageMetadata, pageMetadata } from '@/seo/metadata'
 import type { PageLocation } from '@/routing/paths'
 
@@ -12,13 +13,13 @@ const HOME: PageLocation = { kind: 'home' }
 const SECTION: PageLocation = { kind: 'section', section: 'projects' }
 const ENTITY: PageLocation = { kind: 'entity', section: 'projects', slug: 'augure' }
 
-function metadataFor(location: PageLocation, availableLocales?: readonly ('fr' | 'en')[]) {
+function metadataFor(location: PageLocation, availableLocales: readonly Locale[] = LOCALES) {
   return buildPageMetadata(SITE, {
     locale: 'fr',
     location,
     title: 'Titre',
     description: 'Description',
-    ...(availableLocales === undefined ? {} : { availableLocales }),
+    availableLocales,
   })
 }
 
@@ -51,12 +52,14 @@ describe('métadonnées de page', () => {
         location: ENTITY,
         title: 'x',
         description: 'y',
+        availableLocales: LOCALES,
       })
       const english = buildPageMetadata(SITE, {
         locale: 'en',
         location: ENTITY,
         title: 'x',
         description: 'y',
+        availableLocales: LOCALES,
       })
 
       expect(french.alternates?.canonical).not.toBe(english.alternates?.canonical)
@@ -123,6 +126,7 @@ describe('métadonnées de page', () => {
       location: SECTION,
       title: 'x',
       description: 'y',
+      availableLocales: LOCALES,
     })
 
     expect(metadata.alternates?.canonical).toBe('http://localhost:3001/en/projects')
@@ -145,6 +149,7 @@ describe('lecture de l’origine dans l’environnement', () => {
       location: { kind: 'section', section: 'skills' },
       title: 'x',
       description: 'y',
+      availableLocales: LOCALES,
     })
 
     expect(metadata.alternates?.canonical).toBe('https://depuis-lenvironnement.test/fr/skills')
@@ -156,7 +161,13 @@ describe('lecture de l’origine dans l’environnement', () => {
     delete process.env['SITE_URL']
 
     expect(() =>
-      pageMetadata({ locale: 'fr', location: { kind: 'home' }, title: 'x', description: 'y' }),
+      pageMetadata({
+        locale: 'fr',
+        location: { kind: 'home' },
+        title: 'x',
+        description: 'y',
+        availableLocales: LOCALES,
+      }),
     ).toThrow(/SITE_URL/)
   })
 })

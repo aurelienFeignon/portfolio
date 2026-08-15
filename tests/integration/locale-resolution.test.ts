@@ -10,39 +10,57 @@
  * disparaîtrait du contenu réel, et un test adossé à lui cesserait de vérifier
  * quoi que ce soit.
  *
- * L'E2E, lui, constate la même chose au niveau HTTP contre l'image de production.
- * Les deux sont nécessaires : celui-ci dit *pourquoi* c'est vrai, l'autre dit
- * *que* c'est vrai sur l'artefact livré.
+ * **Il appelle `entityMetadata`, le code que les pages appellent.** La première
+ * rédaction en réécrivait la composition, avec un commentaire disant « reproduit
+ * ce que fait `projects/[slug]/page.tsx` » — donc un test qui serait resté vert
+ * si la page avait cessé de passer `getContentLocales`, c'est-à-dire au moment
+ * précis où R-07 se casse. Constaté en revue.
+ *
+ * L'E2E, lui, constate la même chose au niveau HTTP contre l'image de
+ * production. Les deux sont nécessaires : celui-ci dit *pourquoi* c'est vrai,
+ * l'autre dit *que* c'est vrai sur l'artefact livré.
  */
 import { join } from 'node:path'
 
-import { describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
+import { entityMetadata } from '@/app/[locale]/page-metadata'
 import { createContentLoader } from '@/content/loader'
 import { createContentRepository } from '@/content/repository'
 import { createContentSource } from '@/content/source'
+import type { Locale } from '@/i18n/locales'
 import { entityPath } from '@/routing/paths'
-import { buildPageMetadata } from '@/seo/metadata'
 
 const FIXTURES = join(process.cwd(), 'tests', 'fixtures', 'content', 'valid')
-const SITE = new URL('https://exemple.test')
+const ORIGIN = 'https://exemple.test'
 
 const repository = () => createContentRepository(createContentLoader(createContentSource(FIXTURES)))
 
-/** Reproduit ce que fait `app/[locale]/projects/[slug]/page.tsx`. */
-async function resolveProject(locale: 'fr' | 'en', slug: string) {
+// `entityMetadata` passe par `pageMetadata`, qui lit l'origine dans
+// l'environnement — comme en production, où elle est gravée au build.
+const previousSiteUrl = process.env['SITE_URL']
+beforeAll(() => {
+  process.env['SITE_URL'] = ORIGIN
+})
+afterAll(() => {
+  if (previousSiteUrl === undefined) delete process.env['SITE_URL']
+  else process.env['SITE_URL'] = previousSiteUrl
+})
+
+/** Exactement ce que fait `app/[locale]/projects/[slug]/page.tsx`, sans le rendu. */
+async function resolveProject(locale: Locale, slug: string) {
   const repo = repository()
   const project = await repo.getProjectBySlug(locale, slug)
   if (project === null) return null
 
   return {
     project,
-    metadata: buildPageMetadata(SITE, {
+    metadata: await entityMetadata(repo, {
       locale,
-      location: { kind: 'entity', section: 'projects', slug },
+      section: 'projects',
+      slug,
       title: project.title,
       description: project.summary,
-      availableLocales: await repo.getContentLocales('projects', slug),
     }),
   }
 }
@@ -65,17 +83,17 @@ describe('une entité traduite dans les deux langues', () => {
     const french = await resolveProject('fr', 'augure')
     const english = await resolveProject('en', 'augure')
 
-    expect(french?.metadata.alternates?.canonical).toBe('https://exemple.test/fr/projects/augure')
-    expect(english?.metadata.alternates?.canonical).toBe('https://exemple.test/en/projects/augure')
+    expect(french?.metadata.alternates?.canonical).toBe(`${ORIGIN}/fr/projects/augure`)
+    expect(english?.metadata.alternates?.canonical).toBe(`${ORIGIN}/en/projects/augure`)
   })
 
   it('se référencent mutuellement en `hreflang`', async () => {
     const french = await resolveProject('fr', 'augure')
 
     expect(french?.metadata.alternates?.languages).toEqual({
-      fr: 'https://exemple.test/fr/projects/augure',
-      en: 'https://exemple.test/en/projects/augure',
-      'x-default': 'https://exemple.test/fr/projects/augure',
+      fr: `${ORIGIN}/fr/projects/augure`,
+      en: `${ORIGIN}/en/projects/augure`,
+      'x-default': `${ORIGIN}/fr/projects/augure`,
     })
   })
 })
@@ -92,8 +110,8 @@ describe('une entité absente d’une locale (R-07)', () => {
     const french = await resolveProject('fr', 'portfolio')
 
     expect(french?.metadata.alternates?.languages).toEqual({
-      fr: 'https://exemple.test/fr/projects/portfolio',
-      'x-default': 'https://exemple.test/fr/projects/portfolio',
+      fr: `${ORIGIN}/fr/projects/portfolio`,
+      'x-default': `${ORIGIN}/fr/projects/portfolio`,
     })
   })
 

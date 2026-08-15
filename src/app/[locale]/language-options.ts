@@ -16,7 +16,7 @@ import type { LanguageOption } from '@/ui/language-switcher'
 
 export function languageOptions(
   location: PageLocation,
-  availableLocales?: readonly Locale[],
+  availableLocales: readonly Locale[],
 ): readonly LanguageOption[] {
   return localeAlternates(location, availableLocales).map(
     ({ locale, path, fallbackPath, translated }) => ({

@@ -1,30 +1,22 @@
 /**
  * Liste des projets (P3-02). Mise en forme réelle : P4-05.
  */
-import type { Metadata } from 'next'
-
 import { contentRepository } from '@/content/repository'
+import { LOCALES } from '@/i18n/locales'
 import { getMessages } from '@/i18n/messages'
 import { entityPath, type PageLocation } from '@/routing/paths'
-import { pageMetadata } from '@/seo/metadata'
 import { EntityList } from '@/ui/entity-list'
 import { LanguageSwitcher } from '@/ui/language-switcher'
 
 import { languageOptions } from '../language-options'
-import { readLocale } from '../locale-param'
+import { readLocale, type LocaleParams } from '../locale-param'
+import { sectionMetadata } from '../page-metadata'
 
 const LOCATION: PageLocation = { kind: 'section', section: 'projects' }
 
-type Params = { readonly params: Promise<{ locale: string }> }
+export const generateMetadata = sectionMetadata('projects')
 
-export async function generateMetadata({ params }: Params): Promise<Metadata> {
-  const locale = await readLocale(params)
-  const { name, description } = getMessages(locale).sections.projects
-
-  return pageMetadata({ locale, location: LOCATION, title: name, description })
-}
-
-export default async function ProjectsPage({ params }: Params) {
+export default async function ProjectsPage({ params }: LocaleParams) {
   const locale = await readLocale(params)
   const messages = getMessages(locale)
   const projects = await contentRepository.getAllProjects(locale)
@@ -32,7 +24,7 @@ export default async function ProjectsPage({ params }: Params) {
   return (
     <main id="main">
       <h1>{messages.sections.projects.name}</h1>
-      <LanguageSwitcher current={locale} options={languageOptions(LOCATION)} />
+      <LanguageSwitcher current={locale} options={languageOptions(LOCATION, LOCALES)} />
       <EntityList
         locale={locale}
         items={projects.map((project) => ({

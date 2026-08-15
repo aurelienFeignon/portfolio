@@ -4,6 +4,8 @@
  */
 import { describe, expect, it } from 'vitest'
 
+import { LOCALES, type Locale } from '@/i18n/locales'
+import { buildPageMetadata } from '@/seo/metadata'
 import { buildSitemap, entitySitemapPages } from '@/seo/sitemap'
 
 const SITE = new URL('https://exemple.test')
@@ -13,7 +15,10 @@ describe('sitemap', () => {
     // `/fr/projects/augure` et `/en/projects/augure` sont deux pages : une entrée
     // unique dirait à un moteur qu'il n'y en a qu'une.
     const entries = buildSitemap(SITE, [
-      { location: { kind: 'entity', section: 'projects', slug: 'augure' } },
+      {
+        location: { kind: 'entity', section: 'projects', slug: 'augure' },
+        availableLocales: LOCALES,
+      },
     ])
 
     expect(entries.map((entry) => entry.url)).toEqual([
@@ -24,12 +29,16 @@ describe('sitemap', () => {
 
   it('donne à chaque entrée toutes les versions existantes, y compris la sienne', () => {
     const [french] = buildSitemap(SITE, [
-      { location: { kind: 'entity', section: 'projects', slug: 'augure' } },
+      {
+        location: { kind: 'entity', section: 'projects', slug: 'augure' },
+        availableLocales: LOCALES,
+      },
     ])
 
     expect(french?.alternates?.languages).toEqual({
       fr: 'https://exemple.test/fr/projects/augure',
       en: 'https://exemple.test/en/projects/augure',
+      'x-default': 'https://exemple.test/fr/projects/augure',
     })
   })
 
@@ -44,7 +53,35 @@ describe('sitemap', () => {
     expect(entries.map((entry) => entry.url)).toEqual(['https://exemple.test/fr/projects/augure'])
     expect(entries[0]?.alternates?.languages).toEqual({
       fr: 'https://exemple.test/fr/projects/augure',
+      'x-default': 'https://exemple.test/fr/projects/augure',
     })
+  })
+
+  it('annonce exactement les mêmes alternatives que les balises de la page', () => {
+    // Les deux canaux disent la même chose au même moteur de recherche. Les
+    // construire séparément, c'est les laisser diverger — ce qui était arrivé :
+    // le sitemap omettait le `x-default` que les métadonnées émettaient toujours.
+    const combinations: readonly (readonly Locale[])[] = [LOCALES, ['fr'], ['en'], []]
+
+    for (const availableLocales of combinations) {
+      const page = {
+        location: { kind: 'entity', section: 'projects', slug: 'augure' },
+        availableLocales,
+      } as const
+
+      const fromSitemap = buildSitemap(SITE, [page])[0]?.alternates?.languages
+      const fromMetadata = buildPageMetadata(SITE, {
+        locale: 'fr',
+        location: page.location,
+        title: 'x',
+        description: 'y',
+        availableLocales,
+      }).alternates?.languages
+
+      // Une entité absente partout ne produit aucune entrée de sitemap : il n'y
+      // a alors rien à comparer, et c'est correct.
+      if (fromSitemap !== undefined) expect(fromSitemap).toEqual(fromMetadata)
+    }
   })
 
   it('n’inscrit rien pour une entité qui n’existe nulle part', () => {
@@ -60,8 +97,8 @@ describe('sitemap', () => {
 
   it('inscrit l’accueil et les sections dans les deux langues', () => {
     const entries = buildSitemap(SITE, [
-      { location: { kind: 'home' } },
-      { location: { kind: 'section', section: 'skills' } },
+      { location: { kind: 'home' }, availableLocales: LOCALES },
+      { location: { kind: 'section', section: 'skills' }, availableLocales: LOCALES },
     ])
 
     expect(entries.map((entry) => entry.url)).toEqual([
@@ -76,15 +113,17 @@ describe('sitemap', () => {
     // Un sitemap qui change d'ordre d'un build à l'autre produit un diff qui ne
     // dit rien, et masque les vraies apparitions ou disparitions.
     const pages = [
-      { location: { kind: 'section', section: 'projects' } },
-      { location: { kind: 'home' } },
+      { location: { kind: 'section', section: 'projects' }, availableLocales: LOCALES },
+      { location: { kind: 'home' }, availableLocales: LOCALES },
     ] as const
 
     expect(buildSitemap(SITE, pages)[0]?.url).toBe('https://exemple.test/fr/projects')
   })
 
   it('n’inscrit aucune URL relative', () => {
-    for (const entry of buildSitemap(SITE, [{ location: { kind: 'home' } }])) {
+    for (const entry of buildSitemap(SITE, [
+      { location: { kind: 'home' }, availableLocales: LOCALES },
+    ])) {
       expect(entry.url.startsWith('https://exemple.test/')).toBe(true)
     }
   })

@@ -15,9 +15,11 @@ export const SECTIONS = ['experiences', 'projects', 'skills'] as const
 
 export type Section = (typeof SECTIONS)[number]
 
-export function isSection(value: string): value is Section {
-  return (SECTIONS as readonly string[]).includes(value)
-}
+// Pas d'`isSection` : contrairement à `[locale]`, un segment de section n'est
+// jamais une chaîne à valider — c'est un dossier de l'App Router, donc une
+// valeur littérale du code. En écrire une garde laisserait croire qu'une
+// validation a lieu quelque part ; il n'y en a pas, et il n'en faut pas.
+// Retiré en revue, avec ses onze lignes de test.
 
 /**
  * Segments d'URL par locale — **l'identité en v1** (ADR-0005).

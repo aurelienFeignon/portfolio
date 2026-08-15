@@ -5,29 +5,21 @@
  * elles ne figurent donc ni dans le sitemap comme entités, ni dans aucun
  * `hreflang` autre que celui de cette liste.
  */
-import type { Metadata } from 'next'
-
 import { contentRepository } from '@/content/repository'
+import { LOCALES } from '@/i18n/locales'
 import { getMessages } from '@/i18n/messages'
 import type { PageLocation } from '@/routing/paths'
-import { pageMetadata } from '@/seo/metadata'
 import { LanguageSwitcher } from '@/ui/language-switcher'
 
 import { languageOptions } from '../language-options'
-import { readLocale } from '../locale-param'
+import { readLocale, type LocaleParams } from '../locale-param'
+import { sectionMetadata } from '../page-metadata'
 
 const LOCATION: PageLocation = { kind: 'section', section: 'skills' }
 
-type Params = { readonly params: Promise<{ locale: string }> }
+export const generateMetadata = sectionMetadata('skills')
 
-export async function generateMetadata({ params }: Params): Promise<Metadata> {
-  const locale = await readLocale(params)
-  const { name, description } = getMessages(locale).sections.skills
-
-  return pageMetadata({ locale, location: LOCATION, title: name, description })
-}
-
-export default async function SkillsPage({ params }: Params) {
+export default async function SkillsPage({ params }: LocaleParams) {
   const locale = await readLocale(params)
   const messages = getMessages(locale)
   const skills = await contentRepository.getAllSkills(locale)
@@ -35,7 +27,7 @@ export default async function SkillsPage({ params }: Params) {
   return (
     <main id="main">
       <h1>{messages.sections.skills.name}</h1>
-      <LanguageSwitcher current={locale} options={languageOptions(LOCATION)} />
+      <LanguageSwitcher current={locale} options={languageOptions(LOCATION, LOCALES)} />
       {skills.length === 0 ? (
         <p>{messages.empty}</p>
       ) : (

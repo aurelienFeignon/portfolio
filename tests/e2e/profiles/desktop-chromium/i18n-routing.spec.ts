@@ -12,6 +12,8 @@
  * dépendent pas de l'adresse par laquelle on interroge le serveur. C'est
  * précisément ce que ces tests vérifient.
  */
+import type { APIRequestContext } from '@playwright/test'
+
 import { expect, test } from '../../support/test'
 
 const SITE_URL = process.env['SITE_URL']
@@ -43,6 +45,23 @@ function hreflangsOf(html: string): { hreflang: string; href: string }[] {
     const href = /href="([^"]+)"/i.exec(tag[0])?.[1]
     return hreflang !== undefined && href !== undefined ? [{ hreflang, href }] : []
   })
+}
+
+/**
+ * Les chemins listés par le sitemap.
+ *
+ * Écrit une fois : l'extraction était recopiée trois fois, et ce fichier
+ * documente lui-même (voir `hreflangsOf`) la panne exacte que produit un
+ * extracteur fautif — un test vert qui n'a rien inspecté.
+ */
+async function sitemapPaths(request: APIRequestContext): Promise<string[]> {
+  const xml = await (await request.get('/sitemap.xml')).text()
+  const paths = [...xml.matchAll(/<loc>([^<]+)<\/loc>/g)].map((match) =>
+    (match[1] as string).slice(origin.length),
+  )
+
+  expect(paths.length).toBeGreaterThan(0)
+  return paths
 }
 
 function canonicalOf(html: string): string | undefined {
@@ -160,42 +179,46 @@ test.describe('sitemap et robots', () => {
   })
 
   test('aucune URL du sitemap ne renvoie une erreur', async ({ request }) => {
-    const xml = await (await request.get('/sitemap.xml')).text()
-    const paths = [...xml.matchAll(/<loc>([^<]+)<\/loc>/g)].map((match) =>
-      (match[1] as string).slice(origin.length),
+    const paths = await sitemapPaths(request)
+    const statuses = await Promise.all(
+      paths.map(async (path) => `${path} → ${(await request.get(path)).status()}`),
     )
 
-    for (const path of paths) {
-      expect(`${path} → ${(await request.get(path)).status()}`).toBe(`${path} → 200`)
-    }
+    expect(statuses).toEqual(paths.map((path) => `${path} → 200`))
   })
 
   test('aucun `hreflang` ne pointe vers une page inexistante (R-07)', async ({ request }) => {
     // La vérification qui compte : on suit réellement chaque lien alternatif de
     // chaque page du sitemap. Une promesse fausse faite à un moteur de recherche
     // se constate ici, pas en relisant le code.
-    const xml = await (await request.get('/sitemap.xml')).text()
-    const paths = [...xml.matchAll(/<loc>([^<]+)<\/loc>/g)].map((match) =>
-      (match[1] as string).slice(origin.length),
-    )
+    const paths = await sitemapPaths(request)
 
-    let inspected = 0
-
-    for (const path of paths) {
-      const html = await (await request.get(path)).text()
-      for (const { href } of hreflangsOf(html)) {
-        expect(href.startsWith(`${origin}/`)).toBe(true)
-        const target = href.slice(origin.length)
-        expect(`${path} → ${href} : ${(await request.get(target)).status()}`).toBe(
-          `${path} → ${href} : 200`,
-        )
-        inspected += 1
-      }
-    }
+    const announced = (
+      await Promise.all(
+        paths.map(async (path) => {
+          const html = await (await request.get(path)).text()
+          return hreflangsOf(html).map(({ href }) => ({ path, href }))
+        }),
+      )
+    ).flat()
 
     // Sans ce compte, le test passe au vert quand l'extraction ne trouve rien —
     // et c'est exactement ce qui s'est produit au premier essai.
-    expect(inspected).toBeGreaterThanOrEqual(paths.length)
+    expect(announced.length).toBeGreaterThanOrEqual(paths.length)
+
+    for (const { href } of announced) {
+      expect(href.startsWith(`${origin}/`)).toBe(true)
+    }
+
+    // Dédupliquées : les alternatives d'un groupe de traductions sont les mêmes
+    // sur chaque page du groupe, et les suivre une fois par page multiplierait
+    // les requêtes par le nombre de langues sans rien vérifier de plus.
+    const targets = [...new Set(announced.map(({ href }) => href.slice(origin.length)))].sort()
+    const statuses = await Promise.all(
+      targets.map(async (target) => `${target} → ${(await request.get(target)).status()}`),
+    )
+
+    expect(statuses).toEqual(targets.map((target) => `${target} → 200`))
   })
 
   test('robots.txt autorise tout et désigne le sitemap', async ({ request }) => {

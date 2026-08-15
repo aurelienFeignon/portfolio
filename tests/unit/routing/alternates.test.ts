@@ -3,6 +3,7 @@
  */
 import { describe, expect, it } from 'vitest'
 
+import { LOCALES } from '@/i18n/locales'
 import { localeAlternates, translatedAlternates } from '@/routing/alternates'
 import type { PageLocation } from '@/routing/paths'
 
@@ -12,7 +13,10 @@ const ENTITY: PageLocation = { kind: 'entity', section: 'projects', slug: 'augur
 
 describe('alternatives de locale', () => {
   it('donne une entrée par locale déclarée, dans l’ordre de LOCALES', () => {
-    expect(localeAlternates(HOME).map((alternate) => alternate.locale)).toEqual(['fr', 'en'])
+    expect(localeAlternates(HOME, LOCALES).map((alternate) => alternate.locale)).toEqual([
+      'fr',
+      'en',
+    ])
   })
 
   it('conserve cet ordre quel que soit celui des locales disponibles', () => {
@@ -27,7 +31,7 @@ describe('alternatives de locale', () => {
       ['accueil', HOME, ['/fr', '/en']],
       ['section', SECTION, ['/fr/projects', '/en/projects']],
     ])('%s : les deux locales sont traduites', (_name, location, expected) => {
-      const alternates = localeAlternates(location as PageLocation)
+      const alternates = localeAlternates(location as PageLocation, LOCALES)
 
       expect(alternates.map((alternate) => alternate.path)).toEqual(expected)
       expect(alternates.every((alternate) => alternate.translated)).toBe(true)

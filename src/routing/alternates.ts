@@ -36,24 +36,35 @@ export interface LocaleAlternate {
 }
 
 /**
- * @param availableLocales Les locales où l'entité existe réellement. Pour
- * l'accueil et les sections, ce sont toutes les locales : ces pages existent
- * toujours, même vides.
+ * Une alternative dont la page **existe** : c'est le vocabulaire central de
+ * R-07, et le seul que `hreflang` et le sitemap ont le droit d'annoncer.
+ */
+export type TranslatedAlternate = LocaleAlternate & { readonly path: string }
+
+/**
+ * @param availableLocales Les locales où l'entité existe réellement.
+ * **Obligatoire** : un défaut « toutes les locales » serait juste pour l'accueil
+ * et les sections, et faux pour toute entité — l'oublier annoncerait un
+ * `hreflang` vers une traduction absente. L'accueil et les sections passent donc
+ * `LOCALES` explicitement.
  */
 export function localeAlternates(
   location: PageLocation,
-  availableLocales: readonly Locale[] = LOCALES,
+  availableLocales: readonly Locale[],
 ): readonly LocaleAlternate[] {
   // L'ordre est celui de `LOCALES`, jamais celui de `availableLocales` : un
   // sitemap ou un jeu de balises `hreflang` ne doit pas changer d'ordre d'un
   // build à l'autre, sinon chaque déploiement produit un diff qui ne dit rien.
   return LOCALES.map((locale) => {
-    const translated = availableLocales.includes(locale)
+    const path = availableLocales.includes(locale) ? pathFor(locale, location) : null
     return {
       locale,
-      path: translated ? pathFor(locale, location) : null,
-      fallbackPath: pathFor(locale, translated ? location : fallbackLocation(location)),
-      translated,
+      path,
+      // Quand la page existe, elle **est** son propre repli : l'écrire par un
+      // second calcul laisserait les deux valeurs diverger sans que rien ne
+      // l'empêche.
+      fallbackPath: path ?? pathFor(locale, fallbackLocation(location)),
+      translated: path !== null,
     }
   })
 }
@@ -61,9 +72,9 @@ export function localeAlternates(
 /** Les seules locales qu'un `hreflang` ou un sitemap a le droit d'annoncer (R-07). */
 export function translatedAlternates(
   location: PageLocation,
-  availableLocales: readonly Locale[] = LOCALES,
-): readonly (LocaleAlternate & { path: string })[] {
+  availableLocales: readonly Locale[],
+): readonly TranslatedAlternate[] {
   return localeAlternates(location, availableLocales).filter(
-    (alternate): alternate is LocaleAlternate & { path: string } => alternate.path !== null,
+    (alternate): alternate is TranslatedAlternate => alternate.path !== null,
   )
 }

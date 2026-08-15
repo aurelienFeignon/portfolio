@@ -17,10 +17,27 @@
 import { describe, expect, it } from 'vitest'
 
 import { CONTENT_TYPES } from '@/content/content-type'
+import { getMessages } from '@/i18n/messages'
+import { LOCALES } from '@/i18n/locales'
 import { SECTIONS } from '@/routing/sections'
 
 describe('sections ↔ types de contenu', () => {
   it('porte exactement les mêmes valeurs, dans le même ordre', () => {
     expect([...SECTIONS]).toEqual([...CONTENT_TYPES])
+  })
+})
+
+describe('sections ↔ libellés du dictionnaire', () => {
+  /**
+   * Troisième liste qui doit s'accorder aux deux autres, ajoutée en revue.
+   *
+   * `src/ui` ne peut pas importer `src/routing` : le composant de navigation
+   * type ses sections par `keyof Messages['sections']`. L'accord est vérifié à
+   * la compilation **à un seul point d'appel** — le layout —, et il est
+   * unidirectionnel : une clé orpheline dans le dictionnaire ne produit aucun
+   * signal, alors qu'elle coûte une traduction et laisse croire à une section.
+   */
+  it.each(LOCALES)('nomme exactement les sections déclarées, en « %s »', (locale) => {
+    expect(Object.keys(getMessages(locale).sections).sort()).toEqual([...SECTIONS].sort())
   })
 })

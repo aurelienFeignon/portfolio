@@ -76,6 +76,11 @@ export default defineConfig({
         'src/content/**': { statements: 95, branches: 95, functions: 95, lines: 95 },
         'src/i18n/**': { statements: 95, branches: 95, functions: 95, lines: 95 },
         'src/routing/**': { statements: 95, branches: 95, functions: 95, lines: 95 },
+        // Ajouté en P3-06 : cette phase a déplacé la vérité de R-07 —
+        // `canonical`, `hreflang`, `x-default`, sitemap — dans `src/seo`. Le
+        // laisser sous le seul plancher global (80 %) ferait du risque principal
+        // de la phase le module le moins exigeant du projet.
+        'src/seo/**': { statements: 95, branches: 95, functions: 95, lines: 95 },
         'src/scene/state/**': { statements: 95, branches: 95, functions: 95, lines: 95 },
         'src/features/resume/**': { statements: 95, branches: 95, functions: 95, lines: 95 },
       },

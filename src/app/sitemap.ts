@@ -15,7 +15,7 @@ import { contentRepository } from '@/content/repository'
 import { LOCALES, type Locale } from '@/i18n/locales'
 import { SECTIONS, SECTIONS_WITH_DETAIL, type SectionWithDetail } from '@/routing/sections'
 import { getSiteUrl } from '@/seo/site-url'
-import { buildSitemap, entitySitemapPages, type SitemapPage } from '@/seo/sitemap'
+import { buildSitemap, entitySitemapPages } from '@/seo/sitemap'
 
 /**
  * Table exhaustive par construction : une section à page de détail sans moyen
@@ -37,14 +37,19 @@ async function slugsByLocale(section: SectionWithDetail) {
 }
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const entityPages: SitemapPage[] = []
-  for (const section of SECTIONS_WITH_DETAIL) {
-    entityPages.push(...entitySitemapPages(section, await slugsByLocale(section)))
-  }
+  const entityPages = await Promise.all(
+    SECTIONS_WITH_DETAIL.map(async (section) =>
+      entitySitemapPages(section, await slugsByLocale(section)),
+    ),
+  )
 
   return buildSitemap(getSiteUrl(), [
-    { location: { kind: 'home' } },
-    ...SECTIONS.map((section) => ({ location: { kind: 'section' as const, section } })),
-    ...entityPages,
+    // L'accueil et les sections existent dans toutes les langues, même vides.
+    { location: { kind: 'home' }, availableLocales: LOCALES },
+    ...SECTIONS.map((section) => ({
+      location: { kind: 'section' as const, section },
+      availableLocales: LOCALES,
+    })),
+    ...entityPages.flat(),
   ])
 }

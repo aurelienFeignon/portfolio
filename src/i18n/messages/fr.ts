@@ -14,20 +14,24 @@
  *
  * Pas d'`as const` : le type dérivé doit être `string`, sinon l'anglais devrait
  * porter les **mêmes littéraux** que le français pour compiler.
+ *
+ * **Aucune clé n'est écrite en prévision d'un usage.** Une clé traduite que rien
+ * ne rend est un coût de traduction sans contrepartie, et elle laisse croire que
+ * le besoin est traité. Deux d'entre elles (`language.current`, `nav.home`) ont
+ * été retirées en revue pour cette raison : la première parce qu'`aria-current`
+ * porte déjà l'information à un lecteur d'écran, la seconde parce qu'il n'y a pas
+ * encore de lien d'accueil dans la navigation — ce sera P4-02.
  */
 export const fr = {
   skipToContent: 'Aller au contenu principal',
 
   nav: {
     label: 'Navigation principale',
-    home: 'Accueil',
   },
 
   language: {
     /** Nom accessible du sélecteur de langue (P3-09). */
     label: 'Langue',
-    /** Décrit la langue active pour un lecteur d'écran. */
-    current: 'Langue actuelle',
     /** Affiché quand l'entité courante n'existe pas dans l'autre langue. */
     unavailable: 'Cette page n’existe pas dans cette langue.',
   },

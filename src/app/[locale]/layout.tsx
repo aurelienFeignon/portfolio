@@ -18,7 +18,7 @@ import { sectionPath } from '@/routing/paths'
 import { SECTIONS } from '@/routing/sections'
 import { SiteNav } from '@/ui/site-nav'
 
-import { readLocale } from './locale-param'
+import { readLocale, type LocaleParams } from './locale-param'
 import '../globals.css'
 
 /**
@@ -40,10 +40,7 @@ export function generateStaticParams() {
 export default async function LocaleLayout({
   children,
   params,
-}: {
-  readonly children: ReactNode
-  readonly params: Promise<{ locale: string }>
-}) {
+}: LocaleParams & { readonly children: ReactNode }) {
   const locale = await readLocale(params)
   const messages = getMessages(locale)
 

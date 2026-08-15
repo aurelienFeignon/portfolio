@@ -17,16 +17,18 @@
 import type { MetadataRoute } from 'next'
 
 import { LOCALES, type Locale } from '../i18n/locales.ts'
-import { translatedAlternates } from '../routing/alternates.ts'
 import type { PageLocation } from '../routing/paths.ts'
 import type { Section } from '../routing/sections.ts'
 
-import { buildAbsoluteUrl } from './site-url.ts'
+import { localeLinks } from './hreflang.ts'
 
 export interface SitemapPage {
   readonly location: PageLocation
-  /** Les locales où la page existe. Absent ⇒ toutes (accueil, sections). */
-  readonly availableLocales?: readonly Locale[]
+  /**
+   * Les locales où la page existe. **Obligatoire** : voir `PageMetadataInput`,
+   * un défaut « toutes » serait faux pour toute entité (R-07).
+   */
+  readonly availableLocales: readonly Locale[]
 }
 
 /**
@@ -57,15 +59,14 @@ export function entitySitemapPages(
 
 export function buildSitemap(siteUrl: URL, pages: readonly SitemapPage[]): MetadataRoute.Sitemap {
   return pages.flatMap(({ location, availableLocales }) => {
-    const alternates = translatedAlternates(location, availableLocales)
+    // Les URL **et** la carte viennent du même appel. Les recalculer séparément
+    // — ce que faisait la première version de ce refactor — laisserait le
+    // sitemap dériver de ses propres `hreflang`, c'est-à-dire rouvrirait la
+    // divergence qu'on venait de fermer (R-07).
+    const { languages, pages: urls } = localeLinks(siteUrl, location, availableLocales)
 
-    const languages: Record<string, string> = {}
-    for (const alternate of alternates) {
-      languages[alternate.locale] = buildAbsoluteUrl(siteUrl, alternate.path)
-    }
-
-    return alternates.map((alternate) => ({
-      url: buildAbsoluteUrl(siteUrl, alternate.path),
+    return urls.map((url) => ({
+      url,
       // Chaque entrée annonce **toutes** les versions existantes, y compris la
       // sienne : c'est ce que Google attend pour reconnaître un groupe de
       // traductions. Une entité absente d'une langue n'y figure simplement pas.

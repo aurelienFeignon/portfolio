@@ -42,13 +42,23 @@ function parsePreferences(header: string): readonly Preference[] {
       const tag = (separator === -1 ? entry : entry.slice(0, separator)).trim().toLowerCase()
       if (tag === '') return null
 
+      // Le **nom** du paramètre est insensible à la casse (RFC 9110 §5.6.6) :
+      // `;Q=0.9` est une pondération valide. La comparer telle quelle la ferait
+      // manquer, et l'entrée hériterait alors de la pondération maximale — un
+      // en-tête `fr;Q=0.1, en;Q=0.9` rendrait `fr`. Constaté en revue.
       const qualityParameter = (separator === -1 ? [] : entry.slice(separator + 1).split(';'))
-        .map((parameter) => parameter.trim())
+        .map((parameter) => parameter.trim().toLowerCase())
         .find((parameter) => parameter.startsWith('q='))
 
       if (qualityParameter === undefined) return { tag, quality: 1, index }
 
-      const quality = Number(qualityParameter.slice(2))
+      const rawQuality = qualityParameter.slice(2)
+      // `Number('')` vaut **0**, pas `NaN` : sans ce contrôle, un `;q=` tronqué
+      // passerait le garde-fou suivant et signifierait « surtout pas cette
+      // langue » — une interdiction déduite d'une faute de frappe.
+      if (rawQuality === '') return null
+
+      const quality = Number(rawQuality)
       // Une pondération illisible ou hors domaine rend l'entrée inexploitable.
       // La traiter comme « souhaitée au maximum » ferait gagner une valeur
       // erronée contre des préférences correctement écrites.

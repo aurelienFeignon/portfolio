@@ -7,19 +7,18 @@
  */
 import type { Metadata } from 'next'
 
+import { LOCALES } from '@/i18n/locales'
 import { getMessages } from '@/i18n/messages'
 import type { PageLocation } from '@/routing/paths'
 import { pageMetadata } from '@/seo/metadata'
 import { LanguageSwitcher } from '@/ui/language-switcher'
 
 import { languageOptions } from './language-options'
-import { readLocale } from './locale-param'
+import { readLocale, type LocaleParams } from './locale-param'
 
 const LOCATION: PageLocation = { kind: 'home' }
 
-type Params = { readonly params: Promise<{ locale: string }> }
-
-export async function generateMetadata({ params }: Params): Promise<Metadata> {
+export async function generateMetadata({ params }: LocaleParams): Promise<Metadata> {
   const locale = await readLocale(params)
   const messages = getMessages(locale)
 
@@ -28,10 +27,13 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
     location: LOCATION,
     title: messages.site.name,
     description: messages.site.description,
+    // L'accueil existe dans toutes les langues : on le dit, plutôt que de
+    // compter sur un défaut qui serait faux pour toute page de détail (R-07).
+    availableLocales: LOCALES,
   })
 }
 
-export default async function HomePage({ params }: Params) {
+export default async function HomePage({ params }: LocaleParams) {
   const locale = await readLocale(params)
   const messages = getMessages(locale)
 
@@ -39,7 +41,7 @@ export default async function HomePage({ params }: Params) {
     <main id="main">
       <h1>{messages.site.name}</h1>
       <p>{messages.site.description}</p>
-      <LanguageSwitcher current={locale} options={languageOptions(LOCATION)} />
+      <LanguageSwitcher current={locale} options={languageOptions(LOCATION, LOCALES)} />
     </main>
   )
 }

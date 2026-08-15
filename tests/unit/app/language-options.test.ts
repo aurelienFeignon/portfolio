@@ -8,13 +8,17 @@
  */
 import { describe, expect, it } from 'vitest'
 
+import { LOCALES } from '@/i18n/locales'
 import { languageOptions } from '@/app/[locale]/language-options'
 
 const ENTITY = { kind: 'entity', section: 'projects', slug: 'augure' } as const
 
 describe('options de langue', () => {
   it('propose toutes les locales, dans l’ordre déclaré', () => {
-    expect(languageOptions({ kind: 'home' }).map((option) => option.locale)).toEqual(['fr', 'en'])
+    expect(languageOptions({ kind: 'home' }, LOCALES).map((option) => option.locale)).toEqual([
+      'fr',
+      'en',
+    ])
   })
 
   it('mène à la même entité quand elle est traduite', () => {

@@ -676,7 +676,7 @@ ce qu'on annonce à un moteur de recherche, pas ce qu'on offre à un visiteur.
 - [x] *(hérité de la Phase 2)* Aucune route ne se rend à la demande — gate **vu échouer**.
 
 > **Tous les critères de sortie sont satisfaits, chacun vérifié par une exécution.** La Phase 3 est
-> close. 415 tests, `make ci` vert, 17 mutations appliquées et toutes tuées.
+> close. 436 tests, `make ci` vert, 17 mutations appliquées et toutes tuées.
 >
 > Quatre réserves consignées plutôt que passées sous silence : `SITE_URL` a désormais **deux
 > sources** en production (`ENV` de l'image et `env_file` de Compose), à vérifier en P4-13 ; les

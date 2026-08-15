@@ -340,7 +340,7 @@ tuée.
 | Taille de l'image de production | ≤ 250 Mo (bloquant 400) | **385 Mo**, contre 381 en fin de Phase 2 |
 | Couverture `src/i18n/**`, `src/routing/**` | ≥ 95 % | **100 %** sur les quatre métriques |
 | Couverture globale | ≥ 80 % | **100 %** |
-| Tests | — | **415** (contre 228 en fin de Phase 2) |
+| Tests | — | **436** (contre 228 en fin de Phase 2) |
 | Pages prégénérées | — | 18 pages HTML + `sitemap.xml` + `robots.txt`, **aucune route à la demande** |
 
 > ⚠️ **+4 Mo sur l'image, et une marge qui se réduit.** Le responsable est le runtime du proxy, seul
@@ -380,7 +380,7 @@ Ce qui rend l'exclusion honnête est ce qui a été fait **pour** la rendre honn
 | Couverture ≥ 95 % sur `i18n` et `routing` | ✅ **100 %** sur les quatre métriques |
 | *(hérité de la Phase 2)* aucune route rendue à la demande | ✅ gate branché sur `pnpm build`, **vu échouer** |
 
-**415 tests**, `make ci` vert, 17 mutations appliquées au code de production et toutes tuées.
+**436 tests**, `make ci` vert, 17 mutations appliquées au code de production et toutes tuées.
 
 **Ce que je retiens** : les trois défauts réels de cette phase ont été trouvés en **lisant la sortie
 d'un outil**, pas en relisant du code — un test E2E qui passait sans rien inspecter, un gate de
@@ -421,3 +421,142 @@ un cas que la RFC décrit explicitement.
 4. **Le contenu de `content/` est parfaitement symétrique** : le cas « entité non traduite » n'existe
    que dans les fixtures. C'est correct — mais cela veut dire qu'aucun E2E ne peut l'exercer tant que
    P2-11 n'aura pas produit une entité réellement non traduite.
+
+---
+
+## 18. Revue avant push — ce que `/code-review` a trouvé
+
+Rituel du projet, appliqué avant de pousser : cinq défauts, tous réels.
+
+| # | Défaut | Ce qu'il cassait |
+|---|---|---|
+| 1 | `Accept-Language` : le **nom** du paramètre de pondération comparé en casse sensible | `fr;Q=0.1, en;Q=0.9` rendait `fr`. Les deux entrées héritaient de la pondération maximale, et l'ordre d'écriture décidait à la place du visiteur. La RFC 9110 §5.6.6 rend ce nom insensible à la casse |
+| 2 | `Number('')` vaut **0**, pas `NaN` | Un `;q=` tronqué passait le garde-fou et signifiait « surtout pas cette langue » — une **interdiction déduite d'une faute de frappe**. Latent aujourd'hui, observable dès qu'une troisième locale existe |
+| 3 | Un **octet NUL brut** dans `negotiate.test.ts` | `file` classait le fichier en `data` : git le traitait comme **binaire**, donc indiffable en revue et infusionnable en cas de conflit |
+| 4 | Le sitemap omettait le `x-default` que les métadonnées émettaient toujours | Les deux canaux disent la même chose au même moteur de recherche, et **avaient déjà divergé** — alors que les deux fichiers documentaient l'invariant inverse |
+| 5 | `language.current` et `nav.home` jamais rendus | Deux clés traduites que rien n'affiche : un coût de traduction sans contrepartie, et l'illusion qu'un besoin d'accessibilité est traité |
+
+Les deux premiers sont des **erreurs de lecture de spécification**, la classe que la phase avait
+déjà rencontrée sur le joker `*` (§11.1). Le quatrième est le plus instructif : la promesse
+« une seule source pour trois consommateurs » (§12.2) était tenue pour *quelles* langues annoncer,
+et pas pour *comment* les annoncer — la carte `hreflang` était construite deux fois.
+
+Correctifs, chacun à la profondeur du mécanisme et non du symptôme :
+
+- la carte des langues devient **une seule fonction** (`src/seo/hreflang.ts`), que les métadonnées et
+  le sitemap appellent tous les deux. Le `x-default` n'est pas « ajouté au sitemap » : la seconde
+  construction est **supprimée**. Un test compare désormais les deux sorties sur cinq combinaisons de
+  locales disponibles, et échouerait à la prochaine divergence ;
+- les deux clés mortes sont retirées, et le dictionnaire porte la règle : aucune clé n'est écrite en
+  prévision d'un usage.
+
+## 19. Ce que `/simplify` a corrigé
+
+Quatre agents (réutilisation, simplification, efficacité, altitude). Les trois premiers ont convergé
+sur le même résidu, et le quatrième a trouvé ce que personne d'autre n'avait vu.
+
+### 19.1 Le constat le plus profond : les gates se gardaient du zéro, jamais du sous-comptage
+
+Les trois gates du dépôt portaient la même sentinelle — « si je n'ai rien trouvé, j'échoue ». Or le
+défaut réellement rencontré cette phase-ci était un sous-comptage **non nul** : 4 pages mesurées sur
+20 (§14.2). Aucune des trois sentinelles ne l'aurait vu, et le `{ recursive: true }` ne corrigeait
+que l'instance.
+
+Deux confrontations remplacent désormais la comparaison à zéro, chacune **vue échouer** :
+
+| Gate | Ce qu'il confronte | Sonde |
+|---|---|---|
+| `check-bundle-budget` | pages HTML mesurées **contre** pages déclarées par le manifeste de Next | parcours redevenu non récursif → *« 4 page(s) HTML mesurée(s) pour 18 déclarée(s) »* |
+| `check-static-rendering` | pages prégénérées publiques **contre** URL du sitemap | une section retirée du sitemap → *« /fr/projects/augure — prégénérée mais absente du sitemap »* |
+
+La seconde ferme un trou qui n'avait été identifié par personne : l'E2E vérifiait le sens
+**sitemap → routes** (chaque URL répond 200) mais jamais **routes → sitemap**. Le jour où une section
+gagne des pages de détail sans entrer dans `SECTIONS_WITH_DETAIL`, elles seraient absentes de l'index
+**et** invisibles au test de R-07, qui ne parcourt que les URL du sitemap — les deux trous se
+composent.
+
+### 19.2 Le gate qui protège la production n'était pas testable
+
+`check-static-rendering.mts` codait `.next` en dur, alors que `check-content.mts` prend sa racine en
+argument **précisément** pour être exécuté contre des arbres fautifs par
+`tests/integration/content-gate.test.ts`. Le seul échec observé du nouveau gate était une capture de
+texte dans ce journal — une observation non rejouable, pour le mécanisme qui protège toute la
+production.
+
+Il prend désormais sa racine en argument, et `tests/integration/static-rendering-gate.test.ts`
+l'exécute en sous-processus contre dix manifestes fabriqués, en constatant son code de sortie.
+
+### 19.3 Le résidu du refactor `hreflang`, signalé par trois agents sur quatre
+
+La consolidation de §18 avait laissé `buildSitemap` appeler `translatedAlternates` **après**
+`hreflangMap`, qui l'appelait déjà : les URL du sitemap et sa carte de langues étaient reconstruites
+par deux chemins qui devaient rester d'accord sans que rien ne l'impose. C'est la divergence qu'on
+venait de fermer, un niveau plus bas.
+
+`localeLinks` rend maintenant **les deux lectures dont ses appelants ont besoin** — la carte et les
+pages —, ce qui rend le couplage structurel. Coût mesuré du calcul en double : 2,2 µs par build, donc
+corrigé pour la forme et non pour la vitesse.
+
+### 19.4 `availableLocales` reposait sur la discipline de l'appelant
+
+Le défaut `= LOCALES` était juste pour l'accueil et les sections, et **faux pour toute entité**.
+L'omettre sur une page de détail n'aurait produit ni erreur de type ni échec de test : simplement un
+`hreflang` vers une traduction absente, la panne exacte que toute cette chaîne existe pour empêcher.
+
+Le paramètre est devenu **obligatoire** partout. L'accueil et les sections passent `LOCALES`
+explicitement — ce qui est une affirmation, pas un défaut. L'oubli coûte désormais une erreur de
+compilation ; il en a d'ailleurs produit cinq à l'application du changement, toutes dans les tests.
+
+### 19.5 Ce que les routes portaient encore
+
+| Constat | Correctif |
+|---|---|
+| Le type des `params` recopié **sept fois** | `LocaleParams` / `EntityParams` exportés par `locale-param.ts` — le contrat de Next change de forme environ une fois par version majeure |
+| `generateStaticParams` dupliqué à l'identique, les deux copies se renvoyant l'une à l'autre en commentaire | `staticSlugParams(params, list)`, testé |
+| Trois `generateMetadata` de section identiques, où le nom de la section figurait **deux fois sans lien** — écrire `projects` dans l'emplacement et lire `skills` dans les messages compilait | `sectionMetadata(section)` dérive les deux d'un seul argument |
+| Le test du critère de sortie **réimplémentait** la composition des métadonnées, avec un commentaire l'avouant — il serait resté vert si la page avait cessé de passer `getContentLocales` | `entityMetadata(repository, …)` extrait ; le test appelle le code que les pages appellent |
+| `isSection` sans consommateur de production | supprimé, avec ses onze lignes de test |
+| `fallbackPath` recalculé par un double ternaire alors qu'il **est** `path` quand la page existe | `path ?? pathFor(…)` |
+| `LocaleAlternate & { path: string }` écrit trois fois dans une seule signature | `TranslatedAlternate`, le vocabulaire central de R-07 |
+| L'extraction des `<loc>` du sitemap recopiée trois fois en E2E | `sitemapPaths()`, dans le fichier même qui documente la panne d'un extracteur fautif |
+| 84 requêtes HTTP séquentielles pour 17 URL distinctes en E2E | `Promise.all` et déduplication des cibles — le coût était linéaire en volume de contenu |
+| `src/seo/**` absent des modules critiques de couverture, alors que la phase y a déplacé la vérité de R-07 | seuil à 95 % ajouté (relevé : 100 %) |
+| Trois listes doivent s'accorder (`CONTENT_TYPES`, `SECTIONS`, `Messages['sections']`), une seule paire verrouillée | le test d'intégration existant couvre les trois |
+
+### 19.6 Constats refusés, et pourquoi
+
+- **Mutualiser les constantes de test** (`SITE`, `HOME`, `SECTION`, `ENTITY`, déclarées dans trois
+  fichiers). L'agent de simplification le déconseille explicitement — trois littéraux d'une ligne,
+  l'indirection coûterait plus que la duplication. Les fabriques de `tests/fixtures/builders/`
+  n'ont rien à y faire : ces tests portent sur des **props de présentation**, pas sur des entités.
+- **Un `scripts/support/gate.mts` partagé.** L'agent qui le propose le classe lui-même en dernier :
+  les trois gates diffèrent réellement dans ce qu'ils inspectent, et §19.1 traite la substance du
+  problème — la force de la sentinelle, pas sa duplication.
+- **Un `getAll(type, locale)` générique sur le dépôt**, qui supprimerait la table `LIST_BY_SECTION`.
+  La table est `satisfies`-gardée donc exhaustive par construction, et un accesseur générique
+  rendrait un type union qui perdrait les normalisations par type. Arbitrage délibéré, pas défaut.
+- **Quatre optimisations mesurées sous le bruit** : revalidation Zod à chaque appel du dépôt
+  (0,4–1,1 ms par build), sections du sitemap en série (0 ms à chaud), double appel au dépôt par page
+  de détail (aucune E/S, la lecture est mémoïsée), allocations de `governing()` sur le chemin chaud
+  (0,12–1,05 µs par requête). Conformément à ce que la Phase 2 a établi, on ne fait rien — mais deux
+  **déclencheurs chiffrés** sont consignés ci-dessous.
+
+### 19.7 Déclencheurs chiffrés, à ne pas redécouvrir
+
+- **Revalidation Zod** : le coût est quadratique en nombre d'entités par section (≈ 120·N² µs). À
+  N=2, 0,5 ms ; à N=20, ~50 ms ; à N=50, ~300 ms ; à N=100, ~1,2 s. **Le point où cela mérite un
+  regard est ~50 entités par section**, pas avant. Mémoïser la validation, et pas seulement la
+  lecture, sera alors le correctif.
+- **Cascade E2E** : le contrôle de R-07 suit les `hreflang` de chaque page du sitemap. La
+  déduplication et la parallélisation appliquées ici tiennent jusqu'à quelques centaines d'URL ; à
+  ~50 entités par section, le sitemap en compte ~200 et ce seul test redeviendra le plus long de la
+  suite.
+
+### 19.8 Une instabilité observée, et sa cause
+
+Une exécution de `make e2e` a échoué sur trois tests, puis les mêmes ont passé sans modification.
+La cause est le **serveur de développement**, qui compile les routes à la demande : la première
+requête vers une route jamais visitée peut dépasser le délai d'attente. `make e2e-prod` — celui de
+`make ci`, contre l'image de production — est stable et boucle les 50 tests en 4 s. C'est aussi ce
+que `testing-strategy.md` §8 désigne comme la vérification qui fait foi. Consigné plutôt que traité :
+le correctif serait un préchauffage des routes, qui ne prouverait rien de plus.
