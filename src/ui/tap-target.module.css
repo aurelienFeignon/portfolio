@@ -1,0 +1,19 @@
+/*
+ * La hauteur minimale d'une cible cliquable (P4-03).
+ *
+ * Écrite une fois, au troisième exemplaire : la marque de l'en-tête, les liens
+ * de la navigation et ceux des cartes d'accueil la déclaraient chacun. C'est le
+ * seuil auquel `container.module.css` a été extrait, et la raison est la même —
+ * ce n'est pas la valeur qui divergerait, `--tap-target-min` étant un token,
+ * mais ce qui l'accompagne : sans `inline-flex` et `align-items`, un
+ * `min-height` sur un élément en ligne ne produit rien du tout.
+ *
+ * P4-11 vérifiera les cibles sur trois largeurs. Qu'elles viennent toutes d'ici
+ * est ce qui rend cette vérification tenable.
+ */
+
+.tapTarget {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--tap-target-min);
+}

@@ -21,9 +21,8 @@
 }
 
 .link {
-  display: inline-flex;
-  align-items: center;
-  min-height: var(--tap-target-min);
+  composes: tapTarget from './tap-target.module.css';
+
   padding-inline: var(--space-3);
   color: var(--color-text);
   text-decoration: none;

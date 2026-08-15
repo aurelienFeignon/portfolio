@@ -708,7 +708,7 @@ reste et le filet de sécurité permanent du projet. Journal de phase :
 |---|---|---|---|
 | P4-01 | ADR-0010 : stratégie de style | **DONE** *(2026-08-15)* | P3-09 |
 | P4-02 | Layout documentaire : en-tête, navigation, pied de page, lien d'évitement | **DONE** *(2026-08-15)* | P4-01 |
-| P4-03 | Accueil : présentation et accès aux trois sections | TODO | P4-02 |
+| P4-03 | Accueil : présentation et accès aux trois sections | **DONE** *(2026-08-15)* | P4-02 |
 | P4-04 | Liste et détail des expériences | TODO | P4-02 |
 | P4-05 | Liste et détail des projets — **première page qui rend un corps MDX** | TODO | P4-02 |
 | P4-06 | Compétences (groupées par catégorie) | TODO | P4-02 |
@@ -760,6 +760,18 @@ sur la marque, à l'accueil, où le lien désigne bien la page affichée.
 quatrième section aurait sa route, son lien et son entrée au sitemap, mais aucun en-tête, tous gates
 verts. Neuf défauts trouvés par `/code-review` puis `/simplify` sur un travail déjà vert
 (`phase-4-log.md` §7.5). · Depends on: P4-01
+
+**P4-03 — Accueil**
+Status: **DONE** (2026-08-15) — identité, phrase de situation, et accès aux trois sections par un
+`SectionGuide` qui **dit ce que chaque section contient** au lieu de la nommer. C'est ce qui le
+distingue de la navigation de l'en-tête et ce qui justifie de doubler la cible ; il n'est
+délibérément **pas** un second point de repère `navigation`, sa structure étant portée par des titres
+de niveau 2 — le plan du document, que les lecteurs d'écran parcourent aussi.
+⛔ **Aucun texte de présentation n'a été écrit.** Une prose sur le parcours d'Aurélien est du contenu
+éditorial (CF-09, ADR-0001) : en inventer aurait mis des affirmations sur quelqu'un dans un
+dictionnaire d'interface, sans rien pour les distinguer d'un libellé. La page affiche
+`site.description`, qui existe et est traduite ; le vrai texte d'accroche est une **décision
+éditoriale ouverte** (`phase-4-log.md` §8). · Depends on: P4-02
 
 **Critères de sortie** — Toutes les exigences de la §20 de la mission satisfaites ; Lighthouse
 mobile ≥ 85 / a11y 100 / SEO 100 ; 0 violation axe serious/critical ; le projet `no-js` passe ;

@@ -51,6 +51,7 @@
   --text-sm: 0.875rem;
   --text-base: 1rem;
   --text-lg: 1.125rem;
+  --text-2xl: 2rem; /* entré en P4-03 avec le `h1` de l'accueil, son premier usage */
 
   --radius-sm: 0.25rem;
 

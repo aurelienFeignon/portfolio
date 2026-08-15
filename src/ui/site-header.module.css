@@ -25,9 +25,8 @@
 }
 
 .brand {
-  display: inline-flex;
-  align-items: center;
-  min-height: var(--tap-target-min);
+  composes: tapTarget from './tap-target.module.css';
+
   font-size: var(--text-lg);
   font-weight: 600;
   color: var(--color-text);
