@@ -25,6 +25,12 @@ Statuts : `PROPOSÉ` · `ACCEPTÉ` · `REMPLACÉ PAR ADR-xxxx` · `ABANDONNÉ`
 |---|---|---|---|
 | [0009](./0009-mdx-compilation.md) | Compilation MDX : `@mdx-js/mdx` appelé directement | ACCEPTÉ | 2 |
 
+## Décisions actées (Phase 4)
+
+| # | Titre | Statut | Phase d'application |
+|---|---|---|---|
+| [0010](./0010-styling-strategy.md) | Style : CSS Modules et tokens en variables CSS | ACCEPTÉ | 4 |
+
 ## Décisions identifiées, à instruire plus tard
 
 Ces sujets sont structurants mais ne peuvent pas être tranchés honnêtement en Phase 0 : ils
@@ -34,7 +40,7 @@ pas encore. Les instruire maintenant produirait une décision inventée plutôt 
 | # prévu | Sujet | À trancher en | Ce qui manque aujourd'hui |
 |---|---|---|---|
 | ~~0009~~ | ~~Bibliothèque de compilation MDX~~ — **tranché le 2026-08-12**, voir [ADR-0009](./0009-mdx-compilation.md) | — | — |
-| 0010 | Stratégie de style (CSS Modules vs Tailwind vs vanilla-extract) | Phase 4 | Aucun besoin exprimé avant d'écrire des composants ; à trancher avant, pas pendant |
+| ~~0010~~ | ~~Stratégie de style~~ — **tranché le 2026-08-15**, voir [ADR-0010](./0010-styling-strategy.md) | — | — |
 | 0011 | Provenance et pipeline des assets 3D (modélisation, licences, compression) | Phase 8 | Dépend de H-09 et du niveau de détail visé |
 | 0012 | Stratégie d'animation de caméra (interpolation maison vs bibliothèque de ressorts) | Phase 6 | Dépend du ressenti réel, non prévisible sur le papier |
 | 0013 | Régression visuelle : adopter ou non | Phase 12 | Dépend de la stabilité constatée de la scène |
@@ -45,6 +51,7 @@ pas encore. Les instruire maintenant produirait une décision inventée plutôt 
 
 | Date | ADR | Nature du changement | Origine |
 |---|---|---|---|
+| 2026-08-15 | 0010 | Création : **CSS Modules + tokens en variables CSS**. Vérifié par exécution avant d'être décidé — une sonde construite par `make bundle` mesure 0,0 Ko de JavaScript ajouté, un socle inchangé à 129,5 Ko, des classes réellement cloisonnées et **aucun paquet ajouté au verrou**. Tailwind écarté pour la conjonction dépendance structurante / lisibilité du balisage à l'audit d'accessibilité, avec déclencheur de réexamen en Phase 8 ; vanilla-extract écarté sur le risque d'intégration Turbopack. | Ouverture de la Phase 4 (P4-01) |
 | 2026-08-14 | 0008 | Amendement : **`SITE_URL` devient un argument de construction**. Les pages de contenu étant statiques, `canonical`, `hreflang` et sitemap sont gravés au build ; l'image cesse d'être neutre vis-à-vis du domaine et un changement de domaine impose une reconstruction. Trois options pesées, aucune ne permettant de rester agnostique. | Écriture des métadonnées (P3-06) |
 | 2026-08-12 | 0009 | Création : compilation MDX par `@mdx-js/mdx` appelé directement, après vérification par exécution des deux candidats applicables (build de production, prérendu, image de production, qualité des erreurs, empreinte). `next-mdx-remote` devient le repli désigné. | Ouverture de la Phase 2 (P2-01) |
 | 2026-08-11 | 0007 | Amendement : **GNU Make ajouté aux prérequis d'hôte** (Docker, Git, Make). La rédaction initiale — « l'hôte n'a besoin que de Docker et de Git » — contredisait la règle 4 du même ADR, qui fait du `Makefile` l'interface de commandes. Aucune chaîne Node sur l'hôte : l'intention de l'ADR est inchangée. | Constat à l'ouverture de la Phase 1 |
