@@ -35,16 +35,18 @@ cinq critères de sortie satisfaits, chacun vérifié par une exécution. **436 
 et toutes tuées. `make ci` vert.
 Phase 4 (Portfolio HTML) : à ouvrir, aucune tâche démarrée. **C'est la dernière phase de la tranche T1.**
 
-**La Phase 2 est sur `main`** : la PR #10 a été fusionnée en squash le 2026-08-14, sa CI est verte
-sur `main`, et le CV est donc **en ligne** (`/resume/cv-fr.pdf`, en `noindex`).
+**Tout est sur `main` et déployé.** PR #10 (Phase 2) fusionnée le 2026-08-14, PR #11 (Phase 3) le
+2026-08-15 — les cinq jobs de la CI verts, image publiée sur GHCR, VPS mis à jour. Aucune branche en
+attente : la prochaine phase repart d'un `main` propre.
 
-⚠️ **La PR #11 est ouverte, CI verte, et N'EST PAS FUSIONNÉE.** C'est la Phase 3 :
-`feat/phase-3-i18n`, rebasée sur `main` (deux commits, plus aucun empilement). Vérifie son état avant
-toute chose (`gh pr view 11`).
+⚠️ **Le site est volontairement fermé au public** : Cloudflare Access, OTP par e-mail, tant que le
+portfolio n'est pas terminé. Une requête anonyme reçoit une 302 vers `cloudflareaccess.com` — **ce
+n'est pas une panne**, et j'ai commencé à le diagnostiquer comme telle une fois. Ce qui fait foi est
+`gh run list --branch main --limit 1`. Détail et conséquences : `deploy/README.md` §4.2.
 
-**La fusionner publie les pages `/fr` et `/en`** — donc le contenu d'amorçage de P2-10, qui porte « à
-remplacer en P2-11 » dans chaque fichier, sur un site indexable. C'est exactement ce que tranche D1
-ci-dessous, et c'est le premier point à régler.
+**À traiter avant de lever Access**, et pas avant : le contenu d'amorçage de P2-10 est publié sur
+`/fr` et `/en`, et chaque fichier porte « à remplacer en P2-11 ». Tant qu'Access est actif, aucun
+moteur ne le voit. Le jour où il tombe, soit P2-11 est écrite, soit un `noindex` est posé.
 
 Ce qui a été ajouté par la Phase 3 et ne doit pas être redécouvert :
 
@@ -138,8 +140,7 @@ mets l'ADR à jour et ajoute une ligne au journal des révisions. Jamais de chan
 **Commence par me faire trancher le bloc « Décisions » ci-dessous.** Pose-les-moi groupées, avec ta
 recommandation, et n'attends pas mes réponses pour ce qui n'en dépend pas. Puis, dans cet ordre :
 
-1. **D1 — la PR #11.** Rien d'autre ne devrait s'empiler dessus.
-2. **P2-11 — la rédaction du contenu réel**, dès que D2 est tranchée : tu as les deux versions du
+1. **P2-11 — la rédaction du contenu réel**, dès que D1 est tranchée : tu as les deux versions du
    CV, tu peux en écrire l'essentiel toi-même. C'est le chemin critique de T1, et **c'est ce qui
    bloque P4-13**, la mise en production.
 
@@ -156,7 +157,7 @@ recommandation, et n'attends pas mes réponses pour ce qui n'en dépend pas. Pui
    relèvent de la page contact en Phase 10 —, et tu ne transposes que ce que le CV dit. Ce qu'il ne
    dit pas, tu me le demandes. `.tmp/` n'est pas dans `.gitignore` : sors-en les fichiers.
 
-3. **PHASE 4 — Portfolio HTML** (P4-01 à P4-16), qui ne dépend d'aucune des deux **sauf P4-13**.
+2. **PHASE 4 — Portfolio HTML** (P4-01 à P4-16), qui n'en dépend pas **sauf P4-13**.
 
 Si je ne réponds pas, ouvre la Phase 4 et signale ce qui reste en attente. Ne simule jamais une
 réponse à ma place.
@@ -165,29 +166,20 @@ réponse à ma place.
 
 ## Décisions qui m'attendent
 
-Format des réponses : « D1 fusionner avec noindex, D2 …, défaut partout ailleurs » suffit.
+Format des réponses : « D1 = …, défaut partout ailleurs » suffit.
 
-**D1 🔴 — Fusionner la PR #11 (Phase 3) ?**
-CI verte, rebasée sur `main`, deux commits. La fusionner publie `/fr` et `/en` et redéploie le site —
-et rend donc **visible et indexable** le contenu d'amorçage.
-→ *Recommandation : fusionner, **après** avoir posé un `noindex` sur les pages de contenu (une ligne
-dans `generateMetadata`, à retirer en P2-11). On obtient un site dont la structure i18n est en
-production et vérifiable — `hreflang`, sitemap, négociation de langue — sans qu'un moteur indexe du
-remplissage. Un site indexé avec du contenu d'amorçage se désindexe mal.
-Alternative : ne pas fusionner avant P2-11, au prix d'une branche qui vieillit.*
-
-**D2 🔴 — `company` et `role` pour Augure et Askor ?** *(reposée : elle bloque toujours)*
+**D1 🔴 — `company` et `role` pour Augure et Askor ?** *(reposée : elle bloque toujours)*
 Le CV les titre par leur **produit** (« AUGURE — PLATEFORME PRÉDICTIVE TEMPS RÉEL »), jamais par un
 employeur ni un intitulé de poste. Le schéma exige les deux, et les deux périodes sont données comme
 simultanées. → *Sans réponse, je ne peux pas écrire les expériences : je refuse d'inventer un
 employeur. Réponds en une ligne : « Augure = <société> / <intitulé> ; Askor = <société> /
 <intitulé> ».*
 
-**D3 🟠 — Photos de ton poste de travail ?** (question Q17, qui arrive en Phase 8)
+**D2 🟠 — Photos de ton poste de travail ?** (question Q17, qui arrive en Phase 8)
 → *Recommandation : les rassembler quand tu y penses, sans urgence. C'est l'élément qui distingue ce
 portfolio d'une démo Three.js, et ça ne coûte rien de le préparer tôt.*
 
-**D4 🟢 — Rendre le paquet GHCR public ?** *(reposée : je n'ai pas pu le faire)*
+**D3 🟢 — Rendre le paquet GHCR public ?** *(reposée : je n'ai pas pu le faire)*
 Tu l'avais accepté, mais mon jeton `gh` local n'a pas la portée `read:packages`.
 → *Action manuelle : GitHub → Packages → portfolio → Package settings → Change visibility → Public.
 Puis sur le VPS : `docker logout ghcr.io && rm /srv/portfolio/.ghcr-token`, et retirer le
@@ -228,6 +220,12 @@ Le chemin critique n'est pas technique : c'est la rédaction du contenu (P2-11).
 
 Aucun ne bloque la Phase 4 — sauf le premier, qui bloque sa mise en production.
 
+- **Le site est volontairement fermé au public.** `aurelienfeignon.com` est derrière Cloudflare
+  Access (OTP par e-mail) tant que le portfolio n'est pas terminé. Une requête anonyme renvoie une
+  302 vers `cloudflareaccess.com` : **ce n'est pas une panne**, et ce qui fait foi est la conclusion
+  du workflow CI sur `main`. Conséquence : P4-16 (vérification post-déploiement) suppose de lever
+  Access, et aucun moteur n'atteint le site d'ici là — ce qui retire d'ailleurs son urgence au
+  `noindex` de D1. Détail : `deploy/README.md` §4.2.
 - **P2-11, la rédaction du contenu réel, est le chemin critique de T1** et n'a pas commencé. Le
   format est figé, vérifié par `make check-content`, et deux règles d'écriture sont dans
   `content/README.md` — dont celle qui a déjà mordu : une valeur contenant `: ` doit être entre
