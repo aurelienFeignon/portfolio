@@ -19,8 +19,13 @@
  * ne rend est un coût de traduction sans contrepartie, et elle laisse croire que
  * le besoin est traité. Deux d'entre elles (`language.current`, `nav.home`) ont
  * été retirées en revue pour cette raison : la première parce qu'`aria-current`
- * porte déjà l'information à un lecteur d'écran, la seconde parce qu'il n'y a pas
- * encore de lien d'accueil dans la navigation — ce sera P4-02.
+ * porte déjà l'information à un lecteur d'écran, la seconde parce qu'il n'y avait
+ * pas de lien d'accueil dans la navigation.
+ *
+ * P4-02 a ajouté ce lien sans faire revenir `nav.home` : c'est **la marque** qui
+ * ramène à l'accueil, et son libellé est `site.name`. Un second lien
+ * « Accueil » aurait doublé la cible et sa lecture par les technologies
+ * d'assistance.
  */
 export const fr = {
   skipToContent: 'Aller au contenu principal',
@@ -37,8 +42,16 @@ export const fr = {
   },
 
   site: {
-    /** Sert au `h1` de l'accueil, au titre de la page, et de suffixe aux autres. */
-    name: 'Portfolio',
+    /**
+     * Identité de marque, tranchée à l'ouverture de la Phase 4
+     * (`phase-4-log.md` §3.1) : c'est le nom que cherche un recruteur, celui du
+     * domaine, et celui qui deviendra le suffixe du gabarit de titre en P4-08.
+     *
+     * Sert au libellé de la marque dans l'en-tête, au `h1` de l'accueil et au
+     * titre de la page. **Nom propre, donc identique en anglais** — c'est
+     * l'unique égalité que le test de non-régression des dictionnaires tolère.
+     */
+    name: 'Aurélien Feignon',
     description:
       'Portfolio de développeur Full-Stack : expériences professionnelles, projets et compétences.',
   },

@@ -707,7 +707,7 @@ reste et le filet de sécurité permanent du projet. Journal de phase :
 | ID | Tâche | Statut | Dépend de |
 |---|---|---|---|
 | P4-01 | ADR-0010 : stratégie de style | **DONE** *(2026-08-15)* | P3-09 |
-| P4-02 | Layout documentaire : en-tête, navigation, pied de page, lien d'évitement | TODO | P4-01 |
+| P4-02 | Layout documentaire : en-tête, navigation, pied de page, lien d'évitement | **DONE** *(2026-08-15)* | P4-01 |
 | P4-03 | Accueil : présentation et accès aux trois sections | TODO | P4-02 |
 | P4-04 | Liste et détail des expériences | TODO | P4-02 |
 | P4-05 | Liste et détail des projets — **première page qui rend un corps MDX** | TODO | P4-02 |
@@ -734,6 +734,32 @@ sens de CT-08, et balisage plus difficile à relire à l'audit de P4-10 — à r
 une direction artistique dense), vanilla-extract (compatibilité Turbopack dépendante d'un greffon
 tiers). Le mode de panne des CSS Modules est consigné dans l'ADR plutôt que passé sous silence : une
 classe mal orthographiée rend `undefined` **sans erreur**. · Depends on: P3-09
+
+**P4-02 — Layout documentaire**
+Status: **DONE** (2026-08-15) — en-tête (marque + navigation), pied de page, lien d'évitement, et la
+première application de l'ADR-0010 : trois `*.module.css`, tous les littéraux remontés en tokens dans
+`globals.css`. **2,7 Ko de CSS** en deux fichiers statiques immuables, **0,0 Ko de JavaScript** sur
+les 16 routes, socle **inchangé à 129,5 Ko**.
+Trois points reportés de la Phase 3 sont levés. **(1)** `aria-current="page"` sur la section active :
+le layout racine ne peut pas la connaître — l'App Router ne la lui donne pas, et `headers()`
+rendrait la route dynamique, ce que le gate de rendu statique refuse. Ce sont donc **quatre layouts**,
+un par endroit, qui déclarent chacun le leur ; l'accueil a reçu un groupe de routes `(home)` pour être
+sur le même plan que les trois sections plutôt que de rendre son en-tête lui-même. **(2)** L'identité
+de marque devient **« Aurélien Feignon »** : nom propre, donc identique dans les deux locales —
+l'exception que tolérait déjà le test de non-régression des dictionnaires devient structurelle au lieu
+d'être fortuite. **(3)** La navigation client est **tranchée par la mesure** et reste en balises
+`<a>` : `next/link` n'a pas été introduit, et c'est ce qui garde les 0,0 Ko.
+Décidé au passage, plutôt que subi : **pas de lien « Accueil » dans la navigation**, c'est la marque
+qui y mène — la clé `nav.home` ne revient donc pas, et les technologies d'assistance n'annoncent pas
+deux fois la même cible.
+⚠️ `aria-current` vaut **`true`** et non `page` sur les liens de section : le layout couvre aussi les
+pages de détail, où `page` annoncerait « page courante » sur un lien qui mène ailleurs. `page` reste
+sur la marque, à l'accueil, où le lien désigne bien la page affichée.
+⭐ L'accord « un endroit ⇒ un layout » est gardé par un test **exhaustif tenu par le compilateur**
+(`Record<CurrentPlace, …>`) qui **appelle** chaque layout et lit la valeur transmise — sans quoi une
+quatrième section aurait sa route, son lien et son entrée au sitemap, mais aucun en-tête, tous gates
+verts. Neuf défauts trouvés par `/code-review` puis `/simplify` sur un travail déjà vert
+(`phase-4-log.md` §7.5). · Depends on: P4-01
 
 **Critères de sortie** — Toutes les exigences de la §20 de la mission satisfaites ; Lighthouse
 mobile ≥ 85 / a11y 100 / SEO 100 ; 0 violation axe serious/critical ; le projet `no-js` passe ;

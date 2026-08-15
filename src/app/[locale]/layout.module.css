@@ -1,0 +1,15 @@
+/*
+ * Le layout racine style la boîte qu'il possède (P4-02, ADR-0010 règle 3).
+ *
+ * Cette boîte est ce qui s'étire entre l'en-tête et le pied de page pour que
+ * celui-ci reste en bas d'une page courte. Le faire ici plutôt que par un
+ * `body > main` dans `globals.css` évite de viser le balisage d'un autre
+ * fichier : une page qui envelopperait son `<main>` — ou le canvas de scène que
+ * la Phase 5 fera monter — perdrait l'effet sans qu'aucune erreur ne le dise.
+ */
+
+.grow {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}

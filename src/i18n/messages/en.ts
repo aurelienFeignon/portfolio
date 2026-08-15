@@ -21,7 +21,8 @@ export const en: Messages = {
   },
 
   site: {
-    name: 'Portfolio',
+    /** Nom propre : identique au français, et c'est voulu (P4-02). */
+    name: 'Aurélien Feignon',
     description: 'Full-Stack developer portfolio: professional experience, projects and skills.',
   },
 

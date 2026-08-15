@@ -1,9 +1,73 @@
 /*
- * Réinitialisation minimale et style de focus.
+ * Tokens du site, réinitialisation minimale, et style de focus (ADR-0010).
  *
- * La stratégie de style définitive est l'ADR-0010 (Phase 4) : ce fichier ne
- * préjuge de rien et se limite à ce qui est déjà une exigence d'accessibilité.
+ * **Ce fichier ne porte que ce qui est global par nature.** Aucun sélecteur ne
+ * vise un composant : chacun a son `*.module.css`, et va chercher ici ses
+ * valeurs. C'est la règle 3 de l'ADR-0010, et elle a une raison chiffrée — les
+ * contrastes et les tailles de cible sont des critères de sortie de la phase
+ * (P4-10). Vérifier quarante littéraux recopiés n'est pas faisable ; vérifier
+ * une dizaine de tokens l'est.
+ *
+ * Le mode sombre n'est pas décidé (ADR-0010 §Décision 5). S'il l'est un jour, il
+ * se fera par redéfinition de ces mêmes variables sous `prefers-color-scheme`,
+ * jamais par une seconde feuille.
  */
+
+:root {
+  /*
+   * Couleurs. Les rapports de contraste sont calculés sur `--color-background`
+   * et notés ici : c'est ce qui permet de ne les recalculer qu'une fois.
+   */
+  --color-background: #ffffff;
+  --color-surface: #f6f7f9;
+  /*
+   * ⚠️ Un token de couleur n'a pas *un* contraste : il en a un par fond. Les
+   * deux fonds du site sont notés, faute de quoi la valeur mesurée sur
+   * `--color-background` serait recopiée là où c'est `--color-surface` qui
+   * s'applique — le pied de page, par exemple.
+   */
+  --color-text: #1a1a1a; /* 16,2:1 sur background · 16,2:1 sur surface */
+  --color-text-muted: #55575c; /* 7,2:1 sur background · 6,7:1 sur surface */
+  --color-accent: #0b57d0; /* 6,4:1 sur background · 5,9:1 sur surface */
+  --color-border: #d8dade; /* trait de séparation, décoratif */
+
+  /*
+   * Espacements : une seule échelle, en rem, pour que le zoom la suive.
+   *
+   * Les échelons sont nommés par leur valeur (`--space-6` = 1,5 rem) et non
+   * indexés séquentiellement : **on n'en déclare aucun avant qu'une règle ne le
+   * consomme**, et un échelon qui manquera entrera plus tard sans renuméroter le
+   * reste. C'est la règle qu'applique déjà `src/i18n/messages/fr.ts` aux clés de
+   * traduction — trois échelons posés en prévision ont été retirés en revue pour
+   * cette raison.
+   */
+  --space-1: 0.25rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-6: 1.5rem;
+
+  /* Typographie. */
+  --font-sans: system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --text-sm: 0.875rem;
+  --text-base: 1rem;
+  --text-lg: 1.125rem;
+
+  --radius-sm: 0.25rem;
+
+  /*
+   * Largeur du contenu. Une mesure de ~70 caractères est ce que la lisibilité
+   * demande ; la valeur est ici et non dans chaque gabarit, sans quoi l'en-tête,
+   * le pied de page et les pages divergeraient d'un demi-rem chacun.
+   */
+  --layout-max-width: 68rem;
+  --layout-gutter: var(--space-4);
+
+  /*
+   * Cible tactile minimale : 44 px (WCAG 2.2 — 2.5.8 exige 24, les
+   * recommandations mobiles 44). Nommée parce que P4-11 la vérifiera.
+   */
+  --tap-target-min: 2.75rem;
+}
 
 *,
 *::before,
@@ -13,24 +77,31 @@
 
 body {
   margin: 0;
-  font-family:
-    system-ui,
-    -apple-system,
-    'Segoe UI',
-    sans-serif;
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
   line-height: 1.5;
-  /* Contraste 15,8:1 — bien au-delà du 4,5:1 exigé par WCAG 2.2 AA. */
-  color: #1a1a1a;
-  background: #ffffff;
+  color: var(--color-text);
+  background: var(--color-background);
+
+  /*
+   * Le pied de page reste en bas d'une page courte, sans `position: fixed` qui
+   * lui volerait de la hauteur sur mobile. Ce qui s'étire entre les deux est la
+   * boîte que le layout racine possède (`layout.module.css`) — et non un
+   * `body > main`, qui viserait le balisage d'un *autre* fichier et casserait en
+   * silence le jour où une page enveloppe son `<main>` (règle 3 de l'ADR-0010).
+   */
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
 }
 
 /*
- * Focus visible dès maintenant, jamais supprimé (WCAG 2.2 — 2.4.7 et 2.4.13).
+ * Focus visible dès la fondation, jamais supprimé (WCAG 2.2 — 2.4.7 et 2.4.13).
  * `:focus-visible` plutôt que `:focus` : l'indicateur apparaît au clavier sans
  * encombrer la navigation à la souris.
  */
 :focus-visible {
-  outline: 3px solid #0b57d0;
+  outline: 3px solid var(--color-accent);
   outline-offset: 2px;
 }
 
@@ -43,9 +114,10 @@ body {
   position: absolute;
   top: 0;
   left: 0;
-  padding: 0.75rem 1rem;
-  background: #ffffff;
-  color: #1a1a1a;
+  z-index: 1;
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-background);
+  color: var(--color-text);
   transform: translateY(-150%);
 }
 

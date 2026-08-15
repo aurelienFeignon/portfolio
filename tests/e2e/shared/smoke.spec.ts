@@ -12,8 +12,11 @@ test.describe('page d’accueil', () => {
     const response = await page.goto('/fr')
 
     expect(response?.status()).toBe(200)
-    await expect(page).toHaveTitle(/Portfolio/)
-    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Portfolio')
+    // « Aurélien Feignon » et non « Portfolio » depuis P4-02 : l'identité de
+    // marque est tranchée (`phase-4-log.md` §3.1), et c'est elle que porte
+    // `site.name`. Le gabarit de titre qui en fera un suffixe est P4-08.
+    await expect(page).toHaveTitle(/Aurélien Feignon/)
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Aurélien Feignon')
     expect(consoleErrors).toEqual([])
   })
 

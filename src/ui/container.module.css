@@ -1,0 +1,18 @@
+/*
+ * La boîte qui borne la mesure du texte (P4-02).
+ *
+ * Écrite une fois : la règle était déjà en deux exemplaires — en-tête et pied de
+ * page — et chaque gabarit de P4-03 à P4-06 en aurait ajouté un. Le token
+ * `--layout-max-width` seul n'y suffit pas : ce qui diverge n'est pas la largeur
+ * mais ce qui l'accompagne, la gouttière et le centrage recopiés à côté.
+ *
+ * Elle ne pose **que** le cadrage horizontal. Le rythme vertical appartient à
+ * chaque usage, qui déclare son `padding-block` — en longhand, pour ne pas
+ * écraser la gouttière posée ici par un `padding` raccourci.
+ */
+
+.container {
+  max-width: var(--layout-max-width);
+  margin-inline: auto;
+  padding-inline: var(--layout-gutter);
+}
