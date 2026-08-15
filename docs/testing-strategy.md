@@ -223,7 +223,23 @@ assertions comportementales, pas visuelles.
 | `src/features/resume/**` | ≥ 95 % | ≥ 95 % | ≥ 95 % | ≥ 95 % |
 
 Exclus de la mesure : `src/scene/components/**` (rendu R3F, couvert par E2E), fichiers de
-configuration, types purs, `app/**/layout.tsx` sans logique.
+configuration, types purs, `app/**/layout.tsx` sans logique, et — **ajouté en P3-02** — les routes
+de l'App Router (`app/**/page.tsx`, `app/sitemap.ts`, `app/robots.ts`).
+
+**Ce qui rend cette dernière exclusion admissible**, et qui a été fait *pour* la rendre admissible :
+
+- toute décision à branches a été **sortie** des routes, dans des modules couverts — c'est l'origine
+  de `src/ui/date-range.tsx` (cas « en cours ») et de `entitySitemapPages` (union des slugs) ;
+- ce qui reste est de la composition : lire le dépôt, passer les données à `languageOptions`,
+  `pageMetadata`, `buildSitemap` et aux composants de `src/ui`, tous à 100 % ;
+- les routes sont exercées par les E2E **contre l'image de production**, ce qu'un rendu jsdom ne
+  ferait pas ;
+- les couvrir en Vitest supposerait de leur faire lire `content/`, ce que le garde-fou
+  d'indépendance des fixtures interdit (P2-09) : un test de page casserait dès que P2-11 réécrit un
+  projet.
+
+Le jour où une route se remet à décider quelque chose, la décision se sort de la route — elle ne
+justifie pas d'élargir l'exclusion.
 
 **Ces exclusions sont explicites et limitées** : c'est la seule manière honnête d'avoir un seuil
 qui veut dire quelque chose. Exclure un module métier pour atteindre un seuil serait une fraude et

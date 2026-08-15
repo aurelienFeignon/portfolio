@@ -36,8 +36,14 @@ Le dépôt doit résider dans le **système de fichiers natif WSL2** (`/home/...
 git clone <dépôt> && cd portfolio
 make image      # construit l'image de développement
 make install    # installe les dépendances dans le volume nommé
-make up         # http://localhost:3000
+make up         # http://localhost:3000 → redirige vers /fr ou /en selon votre navigateur
 ```
+
+**`SITE_URL`** est l'origine publique du site, et elle est nécessaire **à la construction** autant
+qu'à l'exécution : toutes les pages étant statiques, leurs `canonical`, leurs `hreflang` et le
+sitemap sont gravés pendant le build. Les fichiers Compose fournissent une valeur locale par défaut
+(`http://localhost:3000`, `:3001` en production locale) ; copier [`.env.example`](.env.example) en
+`.env` permet de la changer.
 
 ## Commandes
 
@@ -61,6 +67,7 @@ divergent pas.
 | `make coverage` | Tests + seuils de couverture |
 | `make bundle` | Mesure le JS de première visite, applique les budgets |
 | `make check-content` | Valide tout le contenu Markdown/MDX (CF-10) — déjà inclus dans `build` |
+| *(dans `build`)* `check-static` | Vérifie qu'**aucune route ne se rend à la demande** — `content/` n'étant pas dans l'image de production, une route dynamique échouerait chez le visiteur |
 | `make build` | Construit l'image de **production** |
 | `make prod-up` / `make prod-down` | Lance l'image de production sur `:3001` |
 | `make e2e` | Playwright contre le serveur de développement |
@@ -97,10 +104,11 @@ docs/                     décisions, roadmap, stratégies      ← à lire en p
 docs/adr/                 décisions d'architecture (ADR)
 content/                  source de vérité du contenu (Markdown) — Phase 2
 src/                      un README par dossier : responsabilité + dépendances autorisées
-  app/                    App Router (page provisoire — contenu réel en Phase 4)
+  app/[locale]/           App Router — layout **racine**, d'où `<html lang>` (mise en forme : Phase 4)
+  proxy.ts                `/` négocie la langue et redirige (307 + `Vary`)
   content/ i18n/ routing/ scene/ ui/ features/ seo/
 tests/                    unit · components · e2e (par profil)
-scripts/                  outillage de build (budget de bundle)
+scripts/                  outillage de build (contenu, budget de bundle, rendu statique)
 deploy/                   Caddyfile de la pile « edge » du VPS
 Dockerfile                étages base / deps / dev / build / runner
 docker-compose.yml        développement (web + e2e)

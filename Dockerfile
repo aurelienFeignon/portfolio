@@ -74,6 +74,20 @@ FROM base AS build
 
 ENV NODE_ENV=production
 
+# L'origine du site est un **argument de construction**, et pas seulement une
+# variable d'exécution (P3-06).
+#
+# Toutes les pages de contenu sont statiques (`architecture.md` §4.2) : leurs
+# `canonical`, leurs `hreflang` et le sitemap sont donc écrits **pendant** cette
+# étape, pas à la requête. Sans cette valeur ici, `next build` échoue — ce qui est
+# le comportement voulu : une origine devinée produirait des URL fausses, c'est-à-dire
+# une erreur qui ne se voit qu'une fois le site indexé.
+#
+# Aucune valeur par défaut : un défaut silencieux publierait des canoniques vers
+# `localhost`. L'appelant la fournit (`docker-compose*.yml`, CI).
+ARG SITE_URL
+ENV SITE_URL=${SITE_URL}
+
 COPY --from=deps --chown=node:node /app/node_modules ./node_modules
 COPY --chown=node:node . .
 
@@ -90,6 +104,17 @@ ENV NODE_ENV=production \
     NEXT_TELEMETRY_DISABLED=1 \
     PORT=3000 \
     HOSTNAME=0.0.0.0
+
+# La même origine qu'à la construction, inscrite dans l'image : celle-ci devient
+# **auto-descriptive**, et un consommateur d'exécution (Phase 10, expédition du
+# CV) voit exactement l'origine qui a été gravée dans le HTML.
+#
+# ⚠️ Un `env_file` de Compose l'emporte sur cette valeur. `/srv/portfolio/.env`
+# porte encore `SITE_URL` : les deux doivent coïncider, faute de quoi le site
+# servirait des canoniques d'un domaine et enverrait des liens vers un autre.
+# Point ajouté à la checklist de P4-13, et tracé dans `phase-3-log.md`.
+ARG SITE_URL
+ENV SITE_URL=${SITE_URL}
 
 WORKDIR /app
 # Non-root : l'utilisateur `node` de l'image officielle, jamais `root`.

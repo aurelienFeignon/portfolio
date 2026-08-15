@@ -200,6 +200,26 @@ le serveur déclare lui-même. `StrictHostKeyChecking=no` accepterait n'importe 
 Sur le serveur, rien n'est dans le dépôt : `/srv/portfolio/.env` (dont `SITE_URL`, sans laquelle
 l'application refuse de démarrer) et `/srv/portfolio/.ghcr-token` sont en `600`.
 
+> ⚠️ **`SITE_URL` est désormais fixée à la construction, et l'image la porte** (Phase 3,
+> [ADR-0008](../docs/adr/0008-self-hosted-vps-deployment.md) amendé). Les pages de contenu étant
+> statiques, leurs `canonical`, leurs `hreflang` et le `sitemap.xml` sont **gravés dans le HTML** au
+> moment du `docker build` — la CI la fournit en argument de construction, et l'étage `runner`
+> l'inscrit en `ENV`.
+>
+> Conséquences pour l'exploitation :
+>
+> - **Un changement de domaine impose une reconstruction**, pas une modification du `.env`.
+> - **`env_file` de Compose l'emporte sur l'`ENV` de l'image.** Si `/srv/portfolio/.env` portait une
+>   autre origine, le site servirait des canoniques d'un domaine et des liens d'exécution d'un autre
+>   — sans que rien n'échoue. Les deux valeurs doivent coïncider ; c'est un point de la checklist de
+>   P4-15.
+>
+> Vérifier la valeur réellement servie :
+>
+> ```bash
+> curl -s https://aurelienfeignon.com/fr | grep -o '<link rel="canonical"[^>]*>'
+> ```
+
 > Le paquet GHCR est **privé**, d'où le jeton `read:packages` sur le VPS et le `docker login`.
 > Docker range l'identifiant en clair (base64) dans `~/.docker/config.json` — il le signale
 > lui-même. Rendre le paquet public supprimerait ce secret et son renouvellement, l'image ne

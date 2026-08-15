@@ -34,3 +34,6 @@ Thumbs.db
 # Artefacts de build divers
 *.tsbuildinfo
 .turbo/
+
+# Extractions jetables (texte des PDF du CV, sondes) : jamais versionnées.
+.tmp/

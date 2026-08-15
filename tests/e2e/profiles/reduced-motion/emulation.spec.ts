@@ -11,7 +11,7 @@ import { expect, test } from '../../support/test'
  */
 test.describe('profil reduced-motion', () => {
   test('la préférence est effectivement transmise au navigateur', async ({ page }) => {
-    await page.goto('/')
+    await page.goto('/fr')
 
     const prefersReduce = await page.evaluate(
       () => window.matchMedia('(prefers-reduced-motion: reduce)').matches,

@@ -1,11 +1,11 @@
 # Roadmap
 
-> Statut global : **Phases 0, 1 et 2 terminées et validées.** Phase 2 ouverte et close le
-> 2026-08-12 ; P2-11 (rédaction du contenu réel) reste à la charge de l'utilisateur et ne bloque pas
-> la Phase 3.
-> Journal de la Phase 2 : [`phase-2-log.md`](./phase-2-log.md) — phase précédente :
-> [`phase-1-log.md`](./phase-1-log.md)
-> Dernière mise à jour : 2026-08-12
+> Statut global : **Phases 0, 1, 2 et 3 terminées et validées.** Phase 3 ouverte et close le
+> 2026-08-14 ; P2-11 (rédaction du contenu réel) reste à la charge de l'utilisateur et ne bloque pas
+> la Phase 4.
+> Journal de la Phase 3 : [`phase-3-log.md`](./phase-3-log.md) — phases précédentes :
+> [`phase-2-log.md`](./phase-2-log.md), [`phase-1-log.md`](./phase-1-log.md)
+> Dernière mise à jour : 2026-08-14
 
 Ce document est la **source de vérité unique des tâches**. Les identifiants sont stables et ne
 sont jamais réutilisés, même si une tâche est abandonnée.
@@ -26,7 +26,7 @@ silencieusement.
 | 0 | Discovery et cadrage | **DONE** | `docs/` complet, ADR 0001–0008 |
 | 1 | Fondation technique | **DONE** *(2026-08-12)* | Squelette dockerisé, gates verts, CI, déploiement du squelette |
 | 2 | Content layer | **DONE** *(2026-08-12)* | Markdown → objets typés validés, build cassé si invalide |
-| 3 | Internationalisation | TODO | `/fr` et `/en` résolus indépendamment, hreflang exact |
+| 3 | Internationalisation | **DONE** *(2026-08-14)* | `/fr` et `/en` résolus indépendamment, hreflang exact |
 | 4 | Portfolio HTML | TODO | **Produit utilisable sans Three.js** (phase obligatoire) |
 | 5 | Fondation Three.js | TODO | Scène primitive : bureau + 3 écrans, budget tenu |
 | 6 | Navigation spatiale | TODO | Route ↔ scène, testé sans WebGL |
@@ -590,21 +590,100 @@ Le cas « aucun contenu trouvé » est **désormais bloquant**, comme annoncé
 
 ## PHASE 3 — Internationalisation
 
-| ID | Tâche | Dépend de |
-|---|---|---|
-| P3-01 | Type `Locale`, liste des locales, locale par défaut — **partiellement livré en P2-02** : `src/i18n/locales.ts` existe déjà (`LOCALES`, `Locale`, `DEFAULT_LOCALE`, `isLocale`), la couche Content en dépendant. À **compléter**, jamais à recréer | P2-05 |
-| P3-02 | Segment `app/[locale]` + `generateStaticParams` ; locale inconnue → 404 | P3-01 |
-| P3-03 | Négociation `Accept-Language` sur `/` avec repli | P3-01 |
-| P3-04 | Dictionnaires d'interface typés, complétude garantie à la compilation | P3-01 |
-| P3-05 | Table `routeSegments` (identité en v1) et constructeurs d'URL | P3-02 |
-| P3-06 | `generateMetadata` : title, description, canonical | P3-02 |
-| P3-07 | `hreflang` dérivé des locales réellement existantes + `x-default` | P3-06, P2-05 |
-| P3-08 | `sitemap.xml` et `robots.txt` générés depuis le Content Layer | P3-07 |
-| P3-09 | Sélecteur de langue préservant l'entité courante ; cas sans traduction | P3-05 |
+**Objectif** — `/fr/...` et `/en/...` résolus **indépendamment**, avec des métadonnées, un
+`hreflang` et un sitemap qui ne mentent jamais sur ce qui existe réellement. Journal de phase :
+[`phase-3-log.md`](./phase-3-log.md).
 
-**Critères de sortie** — `/fr/projects/augure` et `/en/projects/augure` résolus indépendamment,
-prouvé par test ; aucun `hreflang` vers une page inexistante ; sitemap exact ; couverture ≥ 95 %
-sur `i18n` et `routing`.
+| ID | Tâche | Statut | Dépend de |
+|---|---|---|---|
+| P3-01 | Type `Locale`, liste des locales, locale par défaut — **partiellement livré en P2-02**. À **compléter**, jamais à recréer | **DONE** *(2026-08-14)* | P2-05 |
+| P3-02 | Segment `app/[locale]` + `generateStaticParams` ; locale inconnue → 404 | **DONE** *(2026-08-14)* | P3-01 |
+| P3-03 | Négociation `Accept-Language` sur `/` avec repli | **DONE** *(2026-08-14)* | P3-01 |
+| P3-04 | Dictionnaires d'interface typés, complétude garantie à la compilation | **DONE** *(2026-08-14)* | P3-01 |
+| P3-05 | Table `routeSegments` (identité en v1) et constructeurs d'URL | **DONE** *(2026-08-14)* | P3-02 |
+| P3-06 | `generateMetadata` : title, description, canonical | **DONE** *(2026-08-14)* | P3-02 |
+| P3-07 | `hreflang` dérivé des locales réellement existantes + `x-default` | **DONE** *(2026-08-14)* | P3-06, P2-05 |
+| P3-08 | `sitemap.xml` et `robots.txt` générés depuis le Content Layer | **DONE** *(2026-08-14)* | P3-07 |
+| P3-09 | Sélecteur de langue préservant l'entité courante ; cas sans traduction | **DONE** *(2026-08-14)* | P3-05 |
+
+**P3-01 — vocabulaire des locales**
+Status: **DONE** (2026-08-14) — `LOCALE_NAMES` (endonymes) ajouté, et rien d'autre : le reste
+existait depuis P2-02. **`parseLocale` n'a pas été créé** : `isLocale` rend le même service sous la
+forme dont les appelants ont besoin — une garde de type. Les comportements exigés par
+`testing-strategy.md` §4.2 sont tous testés ([`phase-3-log.md`](./phase-3-log.md) §8).
+
+**P3-05 — segments et constructeurs d'URL**
+Status: **DONE** (2026-08-14) — écrit **avant** P3-02 : quatre consommateurs en dépendent (segment de
+route, métadonnées, sitemap, sélecteur de langue). Table `routeSegments` à l'identité, conservée
+comme point unique du changement (ADR-0005). Une mutation survit **par construction** —
+`segmentFor` ignorant la locale est indétectable tant que la table est l'identité — et c'est
+consigné plutôt que masqué par un test artificiel.
+
+**P3-04 — dictionnaires d'interface**
+Status: **DONE** (2026-08-14) — complétude tenue par le compilateur, **vue échouer dans les deux
+sens** (clé manquante `TS2741`, clé en trop `TS2353`). Écrit avant P3-02 et non après P3-03 comme
+prévu : le lien d'évitement est un libellé, et il vit dans le layout.
+
+**P3-02 — segment `[locale]`, et la dette de la Phase 2 qui devient réelle**
+Status: **DONE** (2026-08-14) — `src/app/layout.tsx` et `src/app/page.tsx` **supprimés** : le layout
+racine est `app/[locale]/layout.tsx`, ce qui permet à `<html lang>` de porter la langue réelle
+(dette 1 de `phase-1-log.md` §7.4, levée). `dynamicParams = false` **plus un gate** :
+`scripts/check-static-rendering.mts` lit les manifestes de build et exige que chaque route soit
+prégénérée ou close ; il est branché sur `pnpm build`, donc son code de sortie est celui du build.
+**Vu échouer** sur quatre routes en retirant la déclaration du layout.
+⚠️ Trois obstacles rencontrés et consignés ([`phase-3-log.md`](./phase-3-log.md) §10.1) : un échec de
+prérendu qui n'était qu'un `NODE_ENV=development`, la signature imposée de `generateStaticParams`, et
+la convention `middleware` **dépréciée par Next 16.3** au profit de `proxy`.
+
+**P3-03 — négociation de `/`**
+Status: **DONE** (2026-08-14) — `src/proxy.ts`, 307 et `Vary: Accept-Language`. Un test a trouvé une
+**erreur de raisonnement** sur le joker `*` : le premier jet répondait `fr` à `fr;q=0.1,*;q=0.9`, là
+où la RFC 9110 §12.5.4 impose `en`. Corrigé en raisonnant par locale disponible et non par
+préférence ([`phase-3-log.md`](./phase-3-log.md) §11.1).
+
+**P3-06 et P3-07 — métadonnées et `hreflang`**
+Status: **DONE** (2026-08-14) — une seule fonction produit `title`, `description`, `canonical` et
+`hreflang` ; le sitemap et le sélecteur de langue lisent **la même** source d'alternatives, ce qui
+les rend incapables de se contredire (R-07).
+⚠️ **`SITE_URL` devient un argument de construction** : les pages étant statiques, les URL sont
+gravées au build. L'image n'est plus neutre vis-à-vis du domaine — [ADR-0008](./adr/0008-self-hosted-vps-deployment.md)
+amendé, journal des révisions à jour.
+✅ **Contrainte `seo → i18n, routing` confirmée** (elle était posée par défaut depuis P1-05), et
+**`app → seo` ajoutée** : §1.2 de `architecture.md` l'omettait alors que §9 l'exige — même famille
+d'omission que `app → scene` en Phase 1.
+
+**P3-08 — sitemap et robots**
+Status: **DONE** (2026-08-14) — une entrée par **page réellement servie**, union des slugs de toutes
+les locales, alternatives dérivées de la même source que le `hreflang`. `robots.txt` **n'interdit
+pas** `/resume/` : le bloquer empêcherait le robot de lire le `X-Robots-Tag: noindex` qui, lui, fait
+le travail.
+
+**P3-09 — sélecteur de langue**
+Status: **DONE** (2026-08-14) — propose **toujours** les deux langues, en pointant vers la page
+existante la plus proche quand la traduction manque, et en le disant (`aria-describedby`). R-07 vise
+ce qu'on annonce à un moteur de recherche, pas ce qu'on offre à un visiteur.
+
+**Critères de sortie** — État au 2026-08-14, détail et mesures dans
+[`phase-3-log.md`](./phase-3-log.md) §17.
+
+- [x] `/fr/projects/augure` et `/en/projects/augure` résolus **indépendamment**, prouvé par test —
+      intégration sur fixtures **et** E2E contre l'image de production.
+- [x] Aucun `hreflang` vers une page inexistante — unitaires, **et** un E2E qui suit réellement
+      chaque lien alternatif de chaque page du sitemap.
+- [x] Sitemap exact — **et** aucune de ses URL ne renvoie autre chose que 200.
+- [x] Couverture ≥ 95 % sur `i18n` et `routing` — **100 %** sur les quatre métriques, et 100 % au
+      global.
+- [x] *(hérité de la Phase 2)* Aucune route ne se rend à la demande — gate **vu échouer**.
+
+> **Tous les critères de sortie sont satisfaits, chacun vérifié par une exécution.** La Phase 3 est
+> close. 415 tests, `make ci` vert, 17 mutations appliquées et toutes tuées.
+>
+> Quatre réserves consignées plutôt que passées sous silence : `SITE_URL` a désormais **deux
+> sources** en production (`ENV` de l'image et `env_file` de Compose), à vérifier en P4-13 ; les
+> `dynamicParams = false` des pages de détail sont **inertes**, la valeur du parent étant héritée ;
+> l'image passe à **385 Mo** pour un seuil bloquant à 400, alors que la Phase 4 y ajoutera ~7 Mo de
+> runtime MDX ; et `content/` étant parfaitement symétrique, le cas « entité non traduite » n'existe
+> que dans les fixtures tant que P2-11 n'a pas produit la sienne.
 
 ---
 

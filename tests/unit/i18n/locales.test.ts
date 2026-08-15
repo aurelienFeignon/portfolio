@@ -3,7 +3,7 @@
  */
 import { describe, expect, it } from 'vitest'
 
-import { DEFAULT_LOCALE, LOCALES, isLocale } from '@/i18n/locales'
+import { DEFAULT_LOCALE, LOCALES, LOCALE_NAMES, isLocale } from '@/i18n/locales'
 
 describe('locales', () => {
   it('déclare les deux locales de la v1', () => {
@@ -21,5 +21,15 @@ describe('locales', () => {
 
   it.each(['de', 'FR', 'fr-FR', '', 'toString'])('rejette « %s »', (value) => {
     expect(isLocale(value)).toBe(false)
+  })
+
+  describe('noms des langues', () => {
+    it('nomme chaque langue dans cette langue, et non dans la nôtre', () => {
+      expect(LOCALE_NAMES).toEqual({ fr: 'Français', en: 'English' })
+    })
+
+    it('en nomme une, et une seule, par locale déclarée', () => {
+      expect(Object.keys(LOCALE_NAMES).sort()).toEqual([...LOCALES].sort())
+    })
   })
 })

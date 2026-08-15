@@ -64,7 +64,20 @@ function scriptsOf(html: string): { modern: string[]; legacy: string[] } {
   return { modern: [...modern], legacy: [...legacy] }
 }
 
-const routes = readdirSync(APP_DIR)
+/**
+ * ⚠️ **Le parcours est récursif, et il ne l'était pas.** Jusqu'en Phase 3, le
+ * site n'avait qu'une route : `readdirSync(APP_DIR)` sans option la trouvait, et
+ * rien ne signalait qu'il ne descendait pas. À l'arrivée du segment `[locale]`,
+ * 4 pages sur 20 étaient mesurées — `/fr` et `/en`, jamais `/fr/projects` ni
+ * `/fr/projects/augure`. Une page de détail qui aurait embarqué du JavaScript
+ * client serait passée sous le budget sans être vue.
+ *
+ * Constaté en lisant la sortie du gate (« Socle partagé par les 4 routes ») avec
+ * 20 pages au build. Le mode de panne est celui de tous les gates de ce dépôt :
+ * il passait au vert en mesurant moins que ce qui existe.
+ */
+const routes = readdirSync(APP_DIR, { recursive: true })
+  .map(String)
   .filter((name) => name.endsWith('.html'))
   .map((name) => ({
     name: name === 'index.html' ? '/' : `/${name.replace(/\.html$/, '')}`,
