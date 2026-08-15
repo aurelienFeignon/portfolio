@@ -15,7 +15,7 @@ import tseslint from 'typescript-eslint'
  *   ui/               →  i18n
  *   features/         →  i18n
  *   seo/              →  i18n, routing
- *   app/              →  content, i18n, routing, ui, scene
+ *   app/              →  content, i18n, routing, ui, scene, seo
  *
  * Deux écarts par rapport à §1.2, l'un corrigé et l'autre ajouté — voir
  * `phase-1-log.md` §5 bis :
@@ -23,6 +23,12 @@ import tseslint from 'typescript-eslint'
  *     le layout. Contradiction interne du document, tranchée en faveur de §5.1.
  *   - `seo` ne figurait dans aucune liste. Contrainte posée par défaut, à
  *     confirmer en P3-06.
+ *
+ * **P3-06 confirme `seo → i18n, routing` et ajoute `app → seo`** (`phase-3-log.md`).
+ * Le second est la même omission que `app → scene` : §1.2 ne cite pas `seo` parmi
+ * les dépendances d'`app`, alors que §9 du même document fait alimenter
+ * `generateMetadata` — qui ne peut vivre que dans `app` — par cette couche. Sans
+ * cette autorisation, aucune page ne peut porter de `canonical`.
  *
  * Un troisième, ouvert en Phase 2 (`phase-2-log.md` §7) : `content → i18n`. Le
  * contenu est indexé par locale, donc typé par elle ; l'alternative était une
@@ -44,7 +50,14 @@ const LAYERS = ['content', 'i18n', 'routing', 'scene', 'ui', 'features', 'seo', 
  * cloisonnement. Ajouté en revue — le dépôt pose lui-même le standard qu'une
  * règle d'architecture non vérifiée est une intention.
  */
-const COMPOSITION_ROOTS = { scripts: ['content', 'i18n', 'routing', 'ui', 'seo'] }
+const COMPOSITION_ROOTS = [
+  { target: './scripts', label: 'scripts', allowed: ['content', 'i18n', 'routing', 'ui', 'seo'] },
+  // `src/proxy.ts` n'est dans aucune couche : il négocie la langue de `/` et
+  // redirige (P3-03). Sans cette déclaration il échapperait entièrement au
+  // graphe — or c'est un point d'entrée exécuté à chaque visite de la racine, et
+  // donc le dernier endroit où l'on veut pouvoir importer n'importe quoi.
+  { target: './src/proxy.ts', label: 'src/proxy.ts', allowed: ['i18n', 'routing'] },
+]
 
 const ALLOWED = {
   content: ['i18n'],
@@ -54,7 +67,7 @@ const ALLOWED = {
   ui: ['i18n'],
   features: ['i18n'],
   seo: ['i18n', 'routing'],
-  app: ['content', 'i18n', 'routing', 'ui', 'scene'],
+  app: ['content', 'i18n', 'routing', 'ui', 'scene', 'seo'],
 }
 
 const zones = [
@@ -67,11 +80,11 @@ const zones = [
       }),
     ),
   ),
-  ...Object.entries(COMPOSITION_ROOTS).flatMap(([root, allowed]) =>
+  ...COMPOSITION_ROOTS.flatMap(({ target, label, allowed }) =>
     LAYERS.filter((layer) => !allowed.includes(layer)).map((forbidden) => ({
-      target: `./${root}`,
+      target,
       from: `./src/${forbidden}`,
-      message: `\`${root}\` ne peut pas importer \`src/${forbidden}\` (architecture.md §1.2).`,
+      message: `\`${label}\` ne peut pas importer \`src/${forbidden}\` (architecture.md §1.2).`,
     })),
   ),
 ]

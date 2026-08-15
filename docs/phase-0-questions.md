@@ -29,8 +29,29 @@ ici. Elles sont dans les ADR.
 | **Q1** | *Répondu le 2026-08-11* : VPS **commandé et provisionné** — Hetzner CX23 à Nuremberg, 2 vCPU / 3,7 Gio, Debian 13. H-01a confirmée, pas seulement supposée. | `deploy/README.md` §1 |
 | **Q5** | **Réponse modifiée le 2026-08-11 : dépôt PUBLIC dès maintenant**, et non « privé jusqu'à la release ». Cause : GitHub Actions était bloqué par la facturation sur un dépôt privé. Actions est gratuit et illimité sur un dépôt public, et un dépôt lisible — ADR, journal de phase, gates d'accessibilité — est un argument pour un portfolio de développeur. Historique vérifié sans secret avant bascule : aucun `.env`, aucune clé. Contrepartie assumée : l'historique est définitivement visible. | `phase-1-log.md` §5 |
 
-**Encore ouvertes** : Q3 à Q6, Q8, Q9, Q11 à Q19. Toutes peuvent prendre la
+**Encore ouvertes** : Q3 à Q6, Q8, Q9, Q11, Q14 à Q19. Toutes peuvent prendre la
 valeur recommandée sans engager l'architecture.
+
+## Réponses enregistrées — 2026-08-14 (ouverture de la Phase 3)
+
+| # | Réponse | Répercuté dans |
+|---|---|---|
+| **Q13** | **(a) confirmée par l'implémentation** : français par défaut, `/` négocie `Accept-Language` puis redirige en **307**, avec `Vary: Accept-Language`. La négociation est une fonction pure (`src/i18n/negotiate.ts`), la redirection un `src/proxy.ts` — `/` est la seule route qui ne peut pas être statique. | `phase-3-log.md` §11, `architecture.md` §4.2 |
+| **Q12** | **(a) / (b) confirmées sans changement de code** : l'architecture traite les deux sans distinction. Une entité absente d'une locale n'est ni listée, ni référencée en `hreflang`, ni au sitemap — et le sélecteur de langue mène quand même à la section, en le disant. | `phase-3-log.md` §12.2, risque R-07 |
+
+## Décisions de contenu — 2026-08-14
+
+Posées à l'ouverture de la session, en vue de P2-11.
+
+| # | Question | Réponse |
+|---|---|---|
+| **D1** | Fusionner la PR #10 ? | **Non**, pas maintenant. La Phase 3 est développée sur `feat/phase-3-i18n`, branchée **sur** `feat/phase-2-content-layer` pour ne pas en diverger. |
+| **D2** | `company` et `role` d'Augure et d'Askor | **En attente.** Le CV les titre par leur produit, jamais par un employeur ni un intitulé de poste. Les expériences ne peuvent pas être rédigées sans : je n'invente pas d'employeur. |
+| **D3** | Augure et Askor : expériences, projets, ou les deux ? | **Expériences uniquement.** `content/*/projects/` accueille ce portfolio et ce qui mérite d'être montré pour lui-même. Une seule source de vérité (ADR-0001). |
+| **D4** | Niveau 1–5 des ~40 technologies | **Défaut appliqué** : je proposerai un classement d'après leur place dans les expériences, à corriger. |
+| **D5** | Publier les chiffres du CV (48 services, 151 modèles, 214 migrations, 27 outils) | **Oui.** Ce sont eux qui rendent une réalisation crédible. |
+| **D6** | Combien de compétences publier | **Toutes celles du CV**, `featured` sur une dizaine. La page les groupe par catégorie, le volume ne nuit pas. |
+| **D7** | Rendre le paquet GHCR public | **Oui — action manuelle restante.** Le jeton `gh` local n'a pas la portée `read:packages`, je n'ai donc pas pu le faire. Chemin : *GitHub → Packages → portfolio → Package settings → Change visibility → Public*. Ensuite, sur le VPS : `docker logout ghcr.io && rm /srv/portfolio/.ghcr-token`, et retirer le `docker login` de `deploy.sh`. Bénéfice : plus de PAT à renouveler, donc plus de déploiement qui s'arrête un jour sans rapport apparent avec le code. |
 
 ---
 

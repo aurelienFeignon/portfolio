@@ -83,11 +83,14 @@ pas casser quand j'écris un nouveau projet.
 
 ### 4.2 i18n et routing (Phase 3) — couverture cible ≥ 95 % branches
 
-- `parseLocale` : `fr`, `en`, `FR`, `de`, chaîne vide, valeur injectée.
+- Lecture d'un segment de locale : `fr`, `en`, `FR`, `de`, chaîne vide, valeur injectée. *(Écrit
+  ici comme `parseLocale` ; la fonction livrée est `isLocale`, une **garde de type** — même
+  comportement, forme utilisable par l'appelant. Voir `phase-3-log.md` §8.)*
 - Négociation `Accept-Language` : correspondances exactes, partielles, pondérations `q`, absence
   d'en-tête, repli sur `fr`.
 - Construction d'URL : sections, détails, échappement des slugs, absence de double slash.
-- `hreflang` : émis uniquement vers les locales existantes pour l'entité, `x-default` présent.
+- `hreflang` : émis uniquement vers les locales existantes pour l'entité, `x-default` présent — et
+  **identique** à ce que le sitemap annonce, vérifié sur toutes les combinaisons de disponibilité.
 - Complétude des dictionnaires : garantie par le compilateur, doublée d'un test de non-régression
   sur les clés vides.
 - Preuve exigée par la mission : `/fr/projects/augure` et `/en/projects/augure` résolvent chacune
@@ -219,11 +222,28 @@ assertions comportementales, pas visuelles.
 | Global (gate CI) | ≥ 80 % | ≥ 75 % | ≥ 80 % | ≥ 80 % |
 | `src/content/**` | ≥ 95 % | ≥ 95 % | ≥ 95 % | ≥ 95 % |
 | `src/i18n/**`, `src/routing/**` | ≥ 95 % | ≥ 95 % | ≥ 95 % | ≥ 95 % |
+| `src/seo/**` *(ajouté en P3-06)* | ≥ 95 % | ≥ 95 % | ≥ 95 % | ≥ 95 % |
 | `src/scene/state/**` | ≥ 95 % | ≥ 95 % | ≥ 95 % | ≥ 95 % |
 | `src/features/resume/**` | ≥ 95 % | ≥ 95 % | ≥ 95 % | ≥ 95 % |
 
 Exclus de la mesure : `src/scene/components/**` (rendu R3F, couvert par E2E), fichiers de
-configuration, types purs, `app/**/layout.tsx` sans logique.
+configuration, types purs, `app/**/layout.tsx` sans logique, et — **ajouté en P3-02** — les routes
+de l'App Router (`app/**/page.tsx`, `app/sitemap.ts`, `app/robots.ts`).
+
+**Ce qui rend cette dernière exclusion admissible**, et qui a été fait *pour* la rendre admissible :
+
+- toute décision à branches a été **sortie** des routes, dans des modules couverts — c'est l'origine
+  de `src/ui/date-range.tsx` (cas « en cours ») et de `entitySitemapPages` (union des slugs) ;
+- ce qui reste est de la composition : lire le dépôt, passer les données à `languageOptions`,
+  `pageMetadata`, `buildSitemap` et aux composants de `src/ui`, tous à 100 % ;
+- les routes sont exercées par les E2E **contre l'image de production**, ce qu'un rendu jsdom ne
+  ferait pas ;
+- les couvrir en Vitest supposerait de leur faire lire `content/`, ce que le garde-fou
+  d'indépendance des fixtures interdit (P2-09) : un test de page casserait dès que P2-11 réécrit un
+  projet.
+
+Le jour où une route se remet à décider quelque chose, la décision se sort de la route — elle ne
+justifie pas d'élargir l'exclusion.
 
 **Ces exclusions sont explicites et limitées** : c'est la seule manière honnête d'avoir un seuil
 qui veut dire quelque chose. Exclure un module métier pour atteindre un seuil serait une fraude et

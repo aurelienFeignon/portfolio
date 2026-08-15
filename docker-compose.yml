@@ -24,6 +24,10 @@ services:
     ports:
       - '3000:3000'
     environment:
+      # Origine du site (P1-17, P3-06). Sans elle, toute page qui construit un
+      # `canonical` échoue au rendu — délibérément : une origine devinée produit
+      # des URL fausses qui ne se voient qu'une fois le site indexé.
+      - SITE_URL=${SITE_URL:-http://localhost:3000}
       # Repli documenté si inotify est inopérant (projet hors du FS natif WSL2).
       # Coûteux en CPU : à activer ponctuellement via .env, jamais par défaut.
       - WATCHPACK_POLLING
@@ -71,6 +75,10 @@ services:
         condition: service_healthy
     environment:
       - PLAYWRIGHT_BASE_URL=http://web:3000
+      # L'origine attendue dans les `canonical` et les `hreflang` servis. Elle
+      # doit être **celle du serveur testé**, sinon le test constate un accord
+      # avec lui-même au lieu d'une valeur.
+      - SITE_URL=${SITE_URL:-http://localhost:3000}
       # L'image ne définit pas HOME pour un UID arbitraire ; sans cela Playwright
       # tente d'écrire dans `/` et échoue.
       - HOME=/tmp

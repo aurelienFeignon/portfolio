@@ -32,7 +32,7 @@ test.describe('CV', () => {
   }
 
   test('les pages du site, elles, restent indexables', async ({ request }) => {
-    const response = await request.get('/')
+    const response = await request.get('/fr')
 
     expect(response.headers()['x-robots-tag']).toBeUndefined()
   })

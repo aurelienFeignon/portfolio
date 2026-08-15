@@ -85,4 +85,37 @@ déjà : l'étage `runner`.
 Indisponibilité répétée ou charge d'exploitation subie comme excessive → réévaluer une plateforme
 gérée. Trafic international significatif avec TTFB hors budget malgré le CDN → réévaluer la
 distribution.
+
+---
+
+## Amendement du 2026-08-14 (P3-06) — l'image est liée à son domaine
+
+**Constat, fait en écrivant les métadonnées.** Toutes les pages de contenu sont statiques
+(`architecture.md` §4.2) : leurs `canonical`, leurs `hreflang` et le `sitemap.xml` sont donc écrits
+**pendant `next build`**, pas à la requête. `SITE_URL` n'était fournie qu'à l'exécution
+(`/srv/portfolio/.env`) : le build n'en disposait pas, et échouait.
+
+Aucune issue ne permet de rester agnostique du domaine :
+
+| Option | Pourquoi elle est écartée |
+|---|---|
+| URL canoniques relatives | `hreflang` exige des URL absolues ; un `canonical` relatif est toléré mais déconseillé |
+| Résoudre l'origine à la requête | Rendrait dynamiques toutes les pages de contenu — or `content/` n'est pas dans l'image (`phase-2-log.md` §9.4) |
+| `metadataBase` | Même problème : elle est elle-même fixée au build |
+
+**Décision** — `SITE_URL` devient un **argument de construction** (`ARG` dans l'étage `build` du
+Dockerfile), et l'étage `runner` l'inscrit en `ENV` pour que l'image soit auto-descriptive. Elle est
+fournie par `docker-compose*.yml` en local et par la variable d'environnement du workflow en CI.
+Aucune valeur par défaut : une origine devinée publierait des canoniques vers `localhost`.
+
+**Conséquences**
+
+- **L'artefact n'est plus neutre vis-à-vis du domaine.** Une même image ne peut pas servir deux
+  domaines, et changer de domaine impose une **reconstruction**, pas une variable d'exécution. Pour
+  un portfolio mono-domaine, c'est sans coût réel ; le noter évite de le redécouvrir.
+- Le rollback n'est pas affecté : chaque image porte l'origine avec laquelle elle a été construite.
+- ⚠️ **Deux sources pour une même valeur.** `env_file` de Compose l'emporte sur l'`ENV` de l'image :
+  si `/srv/portfolio/.env` portait une autre origine, le site servirait des canoniques d'un domaine
+  et des liens d'exécution d'un autre. La vérification est portée par la checklist de P4-13, et la
+  dette est tracée dans `phase-3-log.md`.
 </content>

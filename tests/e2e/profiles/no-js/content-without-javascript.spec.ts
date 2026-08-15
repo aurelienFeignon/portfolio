@@ -5,7 +5,7 @@ import { expect, test } from '../../support/test'
 // Profil `no-js` uniquement — filtré par `testMatch` dans playwright.config.ts.
 test.describe('sans JavaScript', () => {
   test('le contenu et les repères sont présents dans le HTML servi', async ({ page }) => {
-    await page.goto('/')
+    await page.goto('/fr')
 
     await expect(page.getByRole('heading', { level: 1 })).toHaveText('Portfolio')
     await expect(page.getByRole('main')).toBeVisible()
@@ -13,5 +13,29 @@ test.describe('sans JavaScript', () => {
       'href',
       '#main',
     )
+  })
+
+  test('la navigation et le changement de langue fonctionnent sans JavaScript', async ({
+    page,
+  }) => {
+    // Ce sont des balises `<a>`, pas des gestionnaires d'événements : rien à
+    // hydrater, donc rien à perdre. C'est ce qui rend le profil `no-js` vrai par
+    // construction plutôt que par vérification (P3-02).
+    await page.goto('/fr')
+
+    await page
+      .getByRole('navigation', { name: 'Navigation principale' })
+      .getByText('Projets')
+      .click()
+    await expect(page).toHaveURL(/\/fr\/projects$/)
+
+    await page.getByRole('link', { name: 'English' }).click()
+    await expect(page).toHaveURL(/\/en\/projects$/)
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Projects')
+  })
+
+  test('la racine négocie la langue et redirige, sans JavaScript', async ({ page }) => {
+    await page.goto('/')
+    await expect(page).toHaveURL(/\/(fr|en)$/)
   })
 })

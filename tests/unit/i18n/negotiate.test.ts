@@ -1,0 +1,130 @@
+/**
+ * Négociation `Accept-Language` (P3-03) — `testing-strategy.md` §4.2.
+ */
+import { describe, expect, it } from 'vitest'
+
+import { negotiateLocale } from '@/i18n/negotiate'
+
+describe('négociation de langue', () => {
+  describe('correspondances exactes', () => {
+    it.each([
+      ['fr', 'fr'],
+      ['en', 'en'],
+    ])('« %s » → %s', (header, expected) => {
+      expect(negotiateLocale(header)).toBe(expected)
+    })
+  })
+
+  describe('correspondances partielles', () => {
+    it.each([
+      ['fr-FR', 'fr'],
+      ['fr-CA', 'fr'],
+      ['en-GB', 'en'],
+      ['en-us', 'en'],
+    ])('« %s » → %s : seule la sous-étiquette primaire compte', (header, expected) => {
+      expect(negotiateLocale(header)).toBe(expected)
+    })
+
+    it('ignore la casse de l’étiquette', () => {
+      expect(negotiateLocale('EN-GB')).toBe('en')
+      expect(negotiateLocale('FR')).toBe('fr')
+    })
+  })
+
+  describe('pondérations', () => {
+    it('respecte l’ordre des pondérations, pas celui de l’écriture', () => {
+      expect(negotiateLocale('fr;q=0.2,en;q=0.9')).toBe('en')
+      expect(negotiateLocale('en;q=0.3,fr;q=0.8')).toBe('fr')
+    })
+
+    it('traite une étiquette sans pondération comme la plus souhaitée', () => {
+      expect(negotiateLocale('en,fr;q=0.9')).toBe('en')
+    })
+
+    it('à pondération égale, l’ordre d’écriture fait foi (RFC 9110)', () => {
+      expect(negotiateLocale('en;q=0.5,fr;q=0.5')).toBe('en')
+      expect(negotiateLocale('fr;q=0.5,en;q=0.5')).toBe('fr')
+    })
+
+    it('écarte une langue refusée par `q=0`', () => {
+      expect(negotiateLocale('en;q=0,fr;q=0.1')).toBe('fr')
+    })
+
+    it('écarte une entrée dont la pondération est illisible ou hors domaine', () => {
+      // La traiter comme « souhaitée au maximum » ferait gagner une valeur
+      // erronée contre une préférence correctement écrite.
+      expect(negotiateLocale('en;q=abc,fr;q=0.1')).toBe('fr')
+      expect(negotiateLocale('en;q=5,fr;q=0.1')).toBe('fr')
+      expect(negotiateLocale('en;q=-1,fr;q=0.1')).toBe('fr')
+    })
+
+    it('tolère les espaces et les paramètres supplémentaires', () => {
+      expect(negotiateLocale('  en ; q=0.9 ,  fr ; q=0.4 ')).toBe('en')
+      expect(negotiateLocale('en;charset=utf-8;q=0.2,fr;q=0.7')).toBe('fr')
+    })
+
+    it('reconnaît le paramètre quelle que soit sa casse (RFC 9110 §5.6.6)', () => {
+      // Le manquer ferait hériter les deux entrées de la pondération maximale,
+      // et l'ordre d'écriture déciderait à la place du visiteur.
+      expect(negotiateLocale('fr;Q=0.1, en;Q=0.9')).toBe('en')
+      expect(negotiateLocale('en;Q=0.1, fr;Q=0.9')).toBe('fr')
+    })
+
+    it('traite une pondération tronquée comme illisible, non comme un refus', () => {
+      // `Number('')` vaut 0 : sans garde, `en;q=` signifierait « surtout pas
+      // l'anglais » — une interdiction déduite d'une faute de frappe.
+      expect(negotiateLocale('en;q=,*;q=0.9')).toBe('fr')
+      expect(negotiateLocale('fr;q=,en;q=0.4')).toBe('en')
+      expect(negotiateLocale('fr;q=0,en;q=0.4')).toBe('en')
+    })
+  })
+
+  describe('repli sur la locale par défaut (H-04)', () => {
+    it.each([
+      ['en-tête absent', undefined],
+      ['en-tête nul', null],
+      ['chaîne vide', ''],
+      ['virgules seules', ',,,'],
+      ['langues inconnues', 'de,es-ES;q=0.8,it;q=0.5'],
+      ['toutes refusées', 'en;q=0,fr;q=0'],
+      ['valeur absurde', ';;;=='],
+    ])('%s → fr', (_name, header) => {
+      expect(negotiateLocale(header)).toBe('fr')
+    })
+
+    it('rend la locale par défaut sur le joker `*`', () => {
+      expect(negotiateLocale('*')).toBe('fr')
+    })
+
+    it('applique le joker aux langues que rien d’autre ne couvre', () => {
+      // RFC 9110 §12.5.4 : `*` vaut pour toute étiquette non citée ailleurs.
+      // Ici `en` vaut 0,1 parce qu'il est cité ; `fr` ne l'est pas, donc il vaut
+      // 1 par le joker — et il gagne.
+      expect(negotiateLocale('en;q=0.1,*;q=1')).toBe('fr')
+    })
+
+    it('n’applique PAS le joker à une langue citée explicitement', () => {
+      // Le cas qui a fait tomber la première implémentation : elle rendait `fr`
+      // au premier `*` rencontré, en ignorant que `fr` était déjà déclassé.
+      expect(negotiateLocale('fr;q=0.1,*;q=0.9')).toBe('en')
+    })
+
+    it('écarte une langue explicitement refusée, même quand le joker l’aurait reprise', () => {
+      expect(negotiateLocale('fr;q=0,*;q=1')).toBe('en')
+    })
+
+    it('préfère la mention explicite la mieux pondérée à une mention régionale', () => {
+      expect(negotiateLocale('en-GB;q=0.1,en;q=0.9,fr;q=0.5')).toBe('en')
+    })
+
+    it('ignore une langue inconnue mieux pondérée et prend la suivante connue', () => {
+      expect(negotiateLocale('de;q=1,en;q=0.5')).toBe('en')
+    })
+  })
+
+  it('ne lève jamais, quelle que soit l’entrée', () => {
+    for (const header of ['', ' ', ';q=', 'q=0.5', '\0', 'fr;q=', 'a'.repeat(5000)]) {
+      expect(() => negotiateLocale(header)).not.toThrow()
+    }
+  })
+})

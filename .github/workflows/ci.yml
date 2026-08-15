@@ -15,6 +15,19 @@ concurrency:
 permissions:
   contents: read
 
+# Origine publique du site — **valeur unique de la CI** (P1-17).
+#
+# Elle est ici et non dans le code : `src/seo/site-url.ts` reste le seul point de
+# lecture, et il la reçoit par l'environnement. Elle est ici et non dans un secret
+# de dépôt parce qu'un domaine public n'est pas un secret, et qu'une valeur
+# versionnée se relit dans une revue de code — un réglage d'interface GitHub, non.
+#
+# Elle est consommée à **deux moments** : au `docker build` (les `canonical`, les
+# `hreflang` et le sitemap sont gravés dans le HTML statique) et par les E2E, qui
+# vérifient que l'image sert bien cette origine-là.
+env:
+  SITE_URL: https://aurelienfeignon.com
+
 jobs:
   # ---------------------------------------------------------------------------
   # Les versions ne sont recopiées NULLE PART dans ce fichier : elles sont lues
@@ -98,6 +111,8 @@ jobs:
           target: runner
           load: true
           tags: portfolio:ci
+          build-args: |
+            SITE_URL=${{ env.SITE_URL }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -139,6 +154,10 @@ jobs:
         run: pnpm exec playwright test
         env:
           PLAYWRIGHT_BASE_URL: http://localhost:3000
+          # L'image est servie depuis `localhost`, mais elle a été construite avec
+          # l'origine de production : c'est cette dernière que les `canonical` et
+          # les `hreflang` doivent annoncer, et c'est ce que le test vérifie.
+          SITE_URL: ${{ env.SITE_URL }}
           CI: 'true'
 
       - name: Publier le rapport Playwright
@@ -195,6 +214,10 @@ jobs:
           tags: |
             ${{ steps.ref.outputs.image }}:${{ github.sha }}
             ${{ steps.ref.outputs.image }}:latest
+          # La même origine qu'au job `e2e` : l'image publiée doit être celle qui
+          # a été testée, jusqu'aux URL gravées dans son HTML.
+          build-args: |
+            SITE_URL=${{ env.SITE_URL }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 

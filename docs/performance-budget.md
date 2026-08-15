@@ -114,6 +114,27 @@ permet de retirer du runtime client.
 échouer la mesure (82 Ko de JS de route contre 40 Ko bloquants, code de sortie 1). Le mécanisme a
 été vu échouer avant d'être déclaré actif.
 
+### 4.2 Le gate mesurait 4 pages sur 20 — corrigé le 2026-08-14 (Phase 3)
+
+> ⚠️ **Un gate qui passait au vert en mesurant moins que ce qui existe.** La classe de défaut que ce
+> dépôt traque, trouvée dans son propre outillage.
+
+`scripts/check-bundle-budget.mts` énumérait les pages prérendues avec un `readdirSync` **non
+récursif**. Jusqu'en Phase 3, le site n'avait qu'une route à la racine de `.next/server/app` : la
+mesure était exacte, et rien ne signalait qu'elle ne descendait pas.
+
+À l'arrivée du segment `[locale]`, il mesurait `/fr` et `/en` — jamais `/fr/projects`, jamais
+`/fr/projects/augure`. Une page de détail qui aurait embarqué du JavaScript client serait passée
+sous le budget **sans être vue**.
+
+Constaté en lisant la sortie du gate (« Socle partagé par les **4** routes prérendues ») alors que le
+build en annonçait 20. Corrigé par un parcours récursif.
+
+**Relevé après correction (2026-08-14)** : **18 routes HTML** mesurées, socle partagé **129,5 Ko**
+(inchangé depuis la Phase 1, dont +3,5 Ko applicatifs), et **0,0 Ko de JS propre sur les 18**. Le
+site n'a toujours aucun composant client : la navigation et le sélecteur de langue sont des balises
+`<a>`, ce qui rend le profil `no-js` vrai par construction.
+
 ---
 
 ## 5. Budget des assets 3D
@@ -163,6 +184,7 @@ Conséquence directe de l'auto-hébergement : les ressources sont finies et à m
 | Temps de réponse d'une page SSG (origine) | ≤ 50 ms | 150 ms |
 | Taille de l'image Docker de production | ≤ 250 Mo | 400 Mo |
 | *(relevé 2026-08-11 : **381 Mo**, dont 340 Mo d'image de base — voir §7.1)* | | |
+| *(relevé 2026-08-14, fin de Phase 3 : **385 Mo** — +4 Mo, le runtime du proxy)* | | |
 | Durée de démarrage à froid du conteneur | ≤ 5 s | 15 s |
 | Taux de succès du cache CDN sur `/_next/static` | ≥ 95 % | — |
 

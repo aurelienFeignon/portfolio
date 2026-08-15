@@ -15,6 +15,12 @@ services:
     build:
       context: .
       target: runner
+      args:
+        # Les `canonical`, `hreflang` et le sitemap sont écrits **au build** :
+        # toutes les pages de contenu sont statiques. L'origine est donc un
+        # argument de construction, pas seulement une variable d'exécution
+        # (Dockerfile, étage `build`).
+        SITE_URL: ${SITE_URL:-http://localhost:3001}
     image: portfolio:local
     init: true
     ports:
@@ -48,6 +54,9 @@ services:
         condition: service_healthy
     environment:
       - PLAYWRIGHT_BASE_URL=http://web:3000
+      # Doit valoir exactement l'argument de construction ci-dessus : c'est
+      # l'origine que les tests s'attendent à lire dans les `canonical` servis.
+      - SITE_URL=${SITE_URL:-http://localhost:3001}
       - HOME=/tmp
       - CI=${CI:-}
     volumes:

@@ -20,67 +20,79 @@ Lis, dans cet ordre, et ne me demande pas de te les résumer :
 5. docs/testing-strategy.md   ← ce qui est testé, comment, seuils de couverture
 6. docs/performance-budget.md ← budgets chiffrés
 7. docs/phase-0-questions.md  ← ce qui est tranché et ce qui reste ouvert
-8. docs/phase-1-log.md        ← journal de la Phase 1 : mesures, dérives, dette tracée
-9. docs/phase-2-log.md        ← journal de la Phase 2 : ce que l'exécution a renversé, dette tracée
-10. deploy/README.md          ← exploitation réelle du serveur : déploiement, rollback, journaux
+8. docs/phase-1-log.md        ← journal de la Phase 1
+9. docs/phase-2-log.md        ← journal de la Phase 2
+10. docs/phase-3-log.md       ← journal de la Phase 3 : ce que l'exécution a renversé, dette tracée
+11. deploy/README.md          ← exploitation réelle du serveur : déploiement, rollback, journaux
 
-Les Phases 0, 1 et 2 sont TERMINÉES et validées. Ne les refais pas, ne les rediscute pas.
+Les Phases 0, 1, 2 et 3 sont TERMINÉES et validées. Ne les refais pas, ne les rediscute pas.
 
 ## État
 
-Phases 0 et 1 : DONE. **Phase 2 : DONE (2026-08-14)** — 10 tâches sur 10, quatre critères de sortie
-satisfaits, chacun vérifié par une exécution. 228 tests, **100 % de couverture** sur `src/content/**`,
-`src/ui/mdx/**` et `src/i18n/**`, 39 mutations appliquées au code de production et toutes tuées.
-Phase 3 (Internationalisation) : à ouvrir, aucune tâche démarrée.
+Phases 0, 1 et 2 : DONE. **Phase 3 (Internationalisation) : DONE (2026-08-14)** — 9 tâches sur 9,
+cinq critères de sortie satisfaits, chacun vérifié par une exécution. **436 tests**, couverture
+**100 %** sur les quatre métriques (globale comprise), 17 mutations appliquées au code de production
+et toutes tuées. `make ci` vert.
+Phase 4 (Portfolio HTML) : à ouvrir, aucune tâche démarrée. **C'est la dernière phase de la tranche T1.**
 
-⚠️ **La PR #10 est ouverte, CI verte, et N'EST PAS FUSIONNÉE.** C'est le premier point à trancher :
-la fusionner met le CV en ligne et redéploie le site. Vérifie son état avant toute chose
-(`gh pr view 10`), et n'ouvre pas la Phase 3 sur une branche qui diverge d'elle.
+**La Phase 2 est sur `main`** : la PR #10 a été fusionnée en squash le 2026-08-14, sa CI est verte
+sur `main`, et le CV est donc **en ligne** (`/resume/cv-fr.pdf`, en `noindex`).
 
-**Le CV est dans le dépôt** : `public/resume/cv-fr.pdf` et `cv-en.pdf`, servis à URL stable avec
-`X-Robots-Tag: noindex` posé par l'application et vérifié en E2E contre l'image de production.
+⚠️ **La PR #11 est ouverte, CI verte, et N'EST PAS FUSIONNÉE.** C'est la Phase 3 :
+`feat/phase-3-i18n`, rebasée sur `main` (deux commits, plus aucun empilement). Vérifie son état avant
+toute chose (`gh pr view 11`).
 
-**P2-11 — la rédaction du contenu réel — reste à ma charge et n'est PAS faite.** `content/` porte
-aujourd'hui 18 fichiers d'amorçage qui le disent en toutes lettres. Ils suffisent à développer les
-Phases 3 et 4 ; ils ne doivent pas être publiés. **Le CV extrait suffit à en rédiger l'essentiel**
-dès que j'aurai tranché les questions du bloc « Décisions » ci-dessous.
+**La fusionner publie les pages `/fr` et `/en`** — donc le contenu d'amorçage de P2-10, qui porte « à
+remplacer en P2-11 » dans chaque fichier, sur un site indexable. C'est exactement ce que tranche D1
+ci-dessous, et c'est le premier point à régler.
 
-**Le site est EN LIGNE** sur https://aurelienfeignon.com. Ce n'est pas une maquette : chaque push
-sur `main` reconstruit, teste, publie et déploie.
+Ce qui a été ajouté par la Phase 3 et ne doit pas être redécouvert :
 
-Ce qui existe et fonctionne, à ne pas redécouvrir :
+- **Routage par locale** : `src/app/[locale]/` est le layout **racine** — il n'y a plus de
+  `app/layout.tsx`. C'est ce qui permet à `<html lang>` de porter la langue réelle. `/` n'est pas
+  une page mais une redirection, faite par `src/proxy.ts` (Next 16.3 déprécie `middleware.ts`).
+- **Métadonnées** : `src/seo/metadata.ts` produit `title`, `description`, `canonical` et `hreflang`
+  en un seul endroit. Le sitemap et le sélecteur de langue lisent la **même** source d'alternatives
+  (`src/routing/alternates.ts`) : ils ne peuvent pas se contredire.
+- **`sitemap.xml` et `robots.txt`** dérivés du Content Layer. `robots.txt` n'interdit **pas**
+  `/resume/` — le bloquer empêcherait le robot de lire le `noindex` qui, lui, fait le travail.
+- **Dictionnaires d'interface** (`src/i18n/messages/`) : une clé manquante **ne compile pas**.
+- **`src/ui/`** : `SiteNav`, `LanguageSwitcher`, `EntityList`, `DateRange` — tous testés, tous sans
+  style (l'ADR-0010 est en P4-01).
+- **Un gate de plus** : `scripts/check-static-rendering.mts`, branché sur `pnpm build`, refuse toute
+  route qui se rendrait à la demande **et** toute page prégénérée absente du sitemap. Il prend sa
+  racine en argument, donc il est testé contre des manifestes fabriqués.
+- **Les gates ne se gardent plus du zéro mais du sous-comptage** : `check-bundle-budget` confronte
+  ses pages mesurées à celles que Next déclare. C'est ce qui aurait attrapé le défaut « 4 pages
+  sur 20 » de cette phase.
+
+Ce qui existait déjà et fonctionne, à ne pas redécouvrir non plus :
 
 - Squelette Next.js 16 / React 19, TypeScript strict, ESLint avec règles de cloisonnement,
   Vitest + Playwright, environnement 100 % dockerisé (`make`).
 - CI GitHub Actions en cinq jobs : versions → gates → E2E contre l'image de production →
-  publication GHCR taguée par SHA → déploiement SSH. `main` est protégée, gates non contournables,
-  vérifié par un push direct refusé et une PR fautive vue échouer.
-- VPS Hetzner CX23 (Debian 13, Nuremberg), durci : SSH par clé seule, `root` refusé, `ufw`,
-  mises à jour automatiques, purge Docker hebdomadaire. La clé de déploiement de la CI est
-  restreinte par `command=` et ne donne pas de shell.
-- Rollback **exécuté pour de vrai** (9 s) ; `deploy.sh` revient seul au tag précédent si le
-  conteneur ne devient pas sain.
-- Domaine `aurelienfeignon.com` (Namecheap, expire le 2027-08-11), zone chez Cloudflare, proxy
-  actif en *Full (strict)*, TLS Let's Encrypt automatique. SPF, DKIM, DMARC publiés ; domaine
-  `Active` chez Mailjet. `make check-dns` vérifie tout cela sur deux résolveurs.
-- L'origine n'accepte plus que les plages Cloudflare, filtrées dans `DOCKER-USER`.
-- **Content Layer complet** (`src/content/`) : schémas Zod stricts, lecture du disque, validation,
-  dépôt typé, tris et dérivations, cohérence référentielle. `make check-content` valide tout
-  `content/` et **casse le build** ; il est déjà branché dans `pnpm build`, donc dans la CI.
-- **Rendu MDX** (`src/ui/mdx/`) avec liste blanche de composants, qui refuse **avant** de rendre.
-- Vocabulaire des locales dans `src/i18n/locales.ts` : `LOCALES`, `Locale`, `DEFAULT_LOCALE`,
-  `isLocale`. P3-01 le **complète**, ne le recrée pas.
+  publication GHCR taguée par SHA → déploiement SSH. `main` est protégée, gates non contournables.
+- VPS Hetzner CX23 (Debian 13, Nuremberg), durci ; rollback **exécuté pour de vrai** (9 s).
+- Domaine `aurelienfeignon.com`, zone Cloudflare, proxy *Full (strict)*, SPF/DKIM/DMARC publiés.
+  L'origine n'accepte plus que les plages Cloudflare, filtrées dans `DOCKER-USER`.
+- **Content Layer complet** (`src/content/`) : schémas Zod stricts, dépôt typé, tris, cohérence
+  référentielle. `make check-content` casse le build.
+- **Rendu MDX** (`src/ui/mdx/`) avec liste blanche, qui refuse **avant** de rendre. Aucune page ne
+  l'appelle encore : c'est P4-05.
 
-⚠️ Deux pièges de cette infrastructure, déjà payés une fois — voir `deploy/README.md` §1.1 et §6.3 :
-`ufw` ne gouverne PAS les ports publiés par un conteneur, et le port 22 ne peut pas être restreint
-à une IP tant que le déploiement part des runners GitHub.
+⚠️ Contraintes héritées, à ne pas défaire par mégarde :
 
-⚠️ Trois contraintes héritées de la Phase 2, à ne pas défaire par mégarde :
-`package.json` porte `"type": "module"` et les imports relatifs de `src/content/**` portent leur
-extension `.ts` — c'est ce qui rend la couche exécutable par `node` seul, donc le gate de contenu
-possible ; `content/` n'est PAS dans l'image de production, donc **aucune route ne doit pouvoir se
-rendre à la demande** ; et la liste blanche MDX n'est **pas** une barrière de sécurité (MDX exécute
-du JavaScript). Détail dans `docs/phase-2-log.md` §9.4, §10.3 et §6.1.
+- **`SITE_URL` est un argument de construction**, pas seulement une variable d'exécution : les
+  `canonical`, `hreflang` et le sitemap sont gravés dans le HTML statique. L'image n'est plus neutre
+  vis-à-vis du domaine (ADR-0008 amendé). ⚠️ `env_file` de Compose l'emporte sur l'`ENV` de l'image :
+  les deux valeurs **doivent** coïncider — c'est un point de la checklist de P4-15.
+- **Aucune route ne doit pouvoir se rendre à la demande** : `content/` n'est pas dans l'image. Le
+  gate le vérifie, ne le contourne pas.
+- `package.json` porte `"type": "module"` et les imports relatifs de `src/content/**` portent leur
+  extension `.ts` — c'est ce qui rend la couche exécutable par `node` seul.
+- La liste blanche MDX n'est **pas** une barrière de sécurité (MDX exécute du JavaScript).
+- `ufw` ne gouverne PAS les ports publiés par un conteneur, et le port 22 ne peut pas être restreint
+  à une IP tant que le déploiement part des runners GitHub (`deploy/README.md` §1.1 et §6.3).
 
 ## Décisions déjà prises — ne pas les rejouer
 
@@ -91,7 +103,7 @@ ADR-0004  Contenu des écrans = DOM superposé, instance unique déplacée par p
 ADR-0005  i18n sans bibliothèque, dictionnaires TS, contenu localisé par fichier
 ADR-0006  CV : Server Action + Mailjet (API Send v3.1 via fetch natif, ZÉRO dépendance)
 ADR-0007  Environnement de développement 100 % dockerisé
-ADR-0008  Auto-hébergement VPS, image Docker derrière Caddy en pile « edge » autonome
+ADR-0008  Auto-hébergement VPS — **amendé le 2026-08-14** : `SITE_URL` est un argument de build
 ADR-0009  Compilation MDX par @mdx-js/mdx appelé directement (next-mdx-remote = repli désigné)
 ADR-0010  À CRÉER en P4-01 : stratégie de style
 
@@ -104,39 +116,34 @@ mets l'ADR à jour et ajoute une ligne au journal des révisions. Jamais de chan
   accessibilité > indexabilité > performance du contenu > richesse de la scène 3D
 - Node.js N'EST PAS installé sur l'hôte, et c'est voulu (ADR-0007). Tout passe par Docker.
   Toute commande que tu proposes doit être exécutable en conteneur (`make ...`).
+  ⚠️ `pnpm build` appelé directement dans le conteneur de développement échoue au prérendu :
+  `NODE_ENV` y vaut `development`. `make bundle` et `make build` passent déjà `NODE_ENV=production`.
 - Une tâche n'est DONE que si : implémentation finie, code typé, tests pertinents ajoutés et
   verts, lint vert, zéro erreur TypeScript, doc à jour, critères d'acceptation satisfaits,
   aucune dette introduite silencieusement.
-- Petits incréments : une tâche → implémentation → test → validation. Jamais dix fonctionnalités
-  avant de lancer les tests.
+- Petits incréments : une tâche → implémentation → test → validation.
 - Ne jamais supprimer ni affaiblir un test pour verdir la suite sans justification fonctionnelle.
-- Les identifiants de tâches (P1-01…) sont stables et ne sont JAMAIS réutilisés. Une tâche
-  abandonnée est marquée DROPPED avec sa cause.
+- Les identifiants de tâches (P1-01…) sont stables et ne sont JAMAIS réutilisés.
 - Aucune dépendance structurante sans justifier : problème / pourquoi adaptée / alternatives /
   pourquoi préférée. Écris-le dans un ADR si la décision est structurante.
-- **Avant CHAQUE push : `/code-review` puis `/simplify`**, et traite les retours avant de pousser,
-  pas après. C'est en plus de `make ci`, pas à la place : les gates prouvent que le code marche, la
-  revue dit s'il est juste. Ce rituel a trouvé cinq défauts réels sur du code qui passait déjà
-  222 tests et 100 % de couverture, dont trois pannes silencieuses.
+- **Avant CHAQUE push : `/code-review` puis `/simplify`**, et traite les retours avant de pousser.
 - **Heures de publication** : je travaille pour mon employeur 9h-12h30 et 14h-17h30 (heure de Paris),
   et le dépôt est public. Dans ces créneaux, commite localement mais **demande avant de pousser**.
-  En dehors, pousse et ouvre les PR sans demander. La **fusion**, elle, se demande toujours : elle
-  déclenche un déploiement en production.
+  En dehors, pousse et ouvre les PR sans demander. La **fusion**, elle, se demande toujours.
 - Mets à jour docs/roadmap.md (statuts) au fil de l'eau, pas à la fin.
 - Documentation et échanges en français ; identifiants, code et noms de fichiers en anglais.
 
 ## Ta mission cette session
 
 **Commence par me faire trancher le bloc « Décisions » ci-dessous.** Pose-les-moi groupées, avec ta
-recommandation, et n'attends pas mes réponses pour ce qui n'en dépend pas. Une fois D1 tranchée,
-enchaîne dans cet ordre :
+recommandation, et n'attends pas mes réponses pour ce qui n'en dépend pas. Puis, dans cet ordre :
 
-1. **D1 — fusionner la PR #10**, ou pas. Rien d'autre ne devrait avancer sur une branche qui diverge.
-2. **P2-11 — la rédaction du contenu réel**, si D2 et D3 sont tranchées : tu as les deux versions du
-   CV, tu peux en écrire l'essentiel toi-même. C'est le chemin critique de T1.
+1. **D1 — la PR #11.** Rien d'autre ne devrait s'empiler dessus.
+2. **P2-11 — la rédaction du contenu réel**, dès que D2 est tranchée : tu as les deux versions du
+   CV, tu peux en écrire l'essentiel toi-même. C'est le chemin critique de T1, et **c'est ce qui
+   bloque P4-13**, la mise en production.
 
-   Pour lire les PDF : l'hôte n'a pas `poppler-utils` et n'aura pas Node (ADR-0007). Passe par un
-   conteneur jetable, comme tout le reste :
+   Pour lire les PDF : l'hôte n'a ni `poppler-utils` ni Node (ADR-0007). Conteneur jetable :
 
    ```bash
    docker run --rm -v "$PWD/public/resume:/cv:ro" -v "$PWD/.tmp:/out" debian:trixie-slim \
@@ -147,82 +154,67 @@ enchaîne dans cet ordre :
 
    Deux garde-fous : **mon téléphone et mon adresse e-mail n'entrent jamais dans `content/`** — ils
    relèvent de la page contact en Phase 10 —, et tu ne transposes que ce que le CV dit. Ce qu'il ne
-   dit pas, tu me le demandes.
-3. **PHASE 3 — Internationalisation** (P3-01 à P3-09), qui ne dépend d'aucune des deux.
+   dit pas, tu me le demandes. `.tmp/` n'est pas dans `.gitignore` : sors-en les fichiers.
 
-Si je ne réponds pas, ouvre la Phase 3 et signale ce qui reste en attente. Ne simule jamais une
+3. **PHASE 4 — Portfolio HTML** (P4-01 à P4-16), qui ne dépend d'aucune des deux **sauf P4-13**.
+
+Si je ne réponds pas, ouvre la Phase 4 et signale ce qui reste en attente. Ne simule jamais une
 réponse à ma place.
 
 ---
 
 ## Décisions qui m'attendent
 
-Format des réponses : « D1 oui, D2 …, défaut partout ailleurs » suffit.
+Format des réponses : « D1 fusionner avec noindex, D2 …, défaut partout ailleurs » suffit.
 
-**D1 🔴 — Fusionner la PR #10 ?**
-Elle clôt la Phase 2. La fusionner **met le CV en ligne** (`/resume/cv-fr.pdf`, en `noindex`) et
-redéploie le site. Le contenu d'amorçage, lui, n'apparaîtra nulle part : aucune page ne le consomme
-encore. → *Recommandation : oui. La CI est verte, le rollback est prouvé, et laisser diverger une
-branche de 12 commits coûte plus que de la fusionner.*
+**D1 🔴 — Fusionner la PR #11 (Phase 3) ?**
+CI verte, rebasée sur `main`, deux commits. La fusionner publie `/fr` et `/en` et redéploie le site —
+et rend donc **visible et indexable** le contenu d'amorçage.
+→ *Recommandation : fusionner, **après** avoir posé un `noindex` sur les pages de contenu (une ligne
+dans `generateMetadata`, à retirer en P2-11). On obtient un site dont la structure i18n est en
+production et vérifiable — `hreflang`, sitemap, négociation de langue — sans qu'un moteur indexe du
+remplissage. Un site indexé avec du contenu d'amorçage se désindexe mal.
+Alternative : ne pas fusionner avant P2-11, au prix d'une branche qui vieillit.*
 
-**D2 🔴 — `company` et `role` pour Augure et Askor ?**
+**D2 🔴 — `company` et `role` pour Augure et Askor ?** *(reposée : elle bloque toujours)*
 Le CV les titre par leur **produit** (« AUGURE — PLATEFORME PRÉDICTIVE TEMPS RÉEL »), jamais par un
-employeur ni un intitulé de poste. Le schéma exige les deux. Les deux sont par ailleurs donnés comme
-en cours simultanément — c'est probablement juste, mais la page doit pouvoir l'expliquer.
-→ *Sans réponse, je ne peux pas écrire les expériences : je refuse d'inventer un employeur.*
+employeur ni un intitulé de poste. Le schéma exige les deux, et les deux périodes sont données comme
+simultanées. → *Sans réponse, je ne peux pas écrire les expériences : je refuse d'inventer un
+employeur. Réponds en une ligne : « Augure = <société> / <intitulé> ; Askor = <société> /
+<intitulé> ».*
 
-**D3 🔴 — Augure et Askor : expériences, projets, ou les deux ?**
-S'ils sont les deux, la même information vit à deux endroits, ce que l'ADR-0001 interdit
-explicitement. → *Recommandation : les deux en **expériences** ; les **projets** accueillent ce
-portfolio et ce que je voudrai montrer pour lui-même.*
+**D3 🟠 — Photos de ton poste de travail ?** (question Q17, qui arrive en Phase 8)
+→ *Recommandation : les rassembler quand tu y penses, sans urgence. C'est l'élément qui distingue ce
+portfolio d'une démo Three.js, et ça ne coûte rien de le préparer tôt.*
 
-**D4 🟠 — Niveau (1 à 5) des ~40 technologies du CV ?**
-→ *Recommandation : tu proposes un classement d'après la place qu'elles occupent dans mes
-expériences, je corrige. C'est un jugement sur moi-même, il ne se délègue pas — mais il se corrige
-vite, et il ne bloque pas.*
-
-**D5 🟠 — Publier les chiffres du CV ?** (48 services, 151 modèles, 214 migrations, 27 outils)
-Ils seront déjà dans le PDF public, mais une page HTML indexée n'a pas la même portée.
-→ *Recommandation : oui — ce sont eux qui rendent une réalisation crédible.*
-
-**D6 🟠 — Combien de compétences publier ?** Le CV en liste ~40 ; H-05 prévoyait 20 à 30.
-→ *Recommandation : toutes celles du CV, `featured` sur une dizaine. La page les groupe par
-catégorie, donc le volume ne nuit pas.*
-
-**D7 🟢 — Rendre le paquet GHCR public ?**
-Un PAT `read:packages` est posé sur le VPS pour tirer une image privée. À son expiration, les
-déploiements s'arrêteront sans rapport apparent avec le code. → *Recommandation : oui, rendre le
-paquet public supprime définitivement ce secret et son renouvellement ; le dépôt est déjà public et
-l'image ne contient rien de plus.*
+**D4 🟢 — Rendre le paquet GHCR public ?** *(reposée : je n'ai pas pu le faire)*
+Tu l'avais accepté, mais mon jeton `gh` local n'a pas la portée `read:packages`.
+→ *Action manuelle : GitHub → Packages → portfolio → Package settings → Change visibility → Public.
+Puis sur le VPS : `docker logout ghcr.io && rm /srv/portfolio/.ghcr-token`, et retirer le
+`docker login` de `deploy.sh`. Bénéfice : plus de PAT à renouveler, donc plus de déploiement qui
+s'arrête un jour sans rapport apparent avec le code.*
 
 ---
 
-Puis : ouvre la PHASE 3 — Internationalisation (tâches P3-01 à P3-09, détaillées dans roadmap.md).
+Puis : ouvre la PHASE 4 — Portfolio HTML (tâches P4-01 à P4-16, détaillées dans roadmap.md).
 
-Objectif : `/fr/...` et `/en/...` résolus **indépendamment**, avec des métadonnées, un `hreflang` et
-un sitemap qui ne mentent jamais sur ce qui existe réellement.
+Objectif : un portfolio **complet et utilisable sans Three.js**. C'est le socle de tout le reste et
+le filet de sécurité permanent du projet — et c'est le jalon T1.
 
-Trois points de méthode propres à cette phase :
+Quatre points de méthode propres à cette phase :
 
-- **P3-01 est déjà à moitié fait.** `src/i18n/locales.ts` existe depuis la Phase 2, la couche
-  Content en dépendant. Complète-le (négociation, repli), ne le recrée pas.
-- **`getContentLocales(type, slug)` existe déjà** et rend les locales où une entité existe vraiment.
-  C'est la brique de P3-07 : aucun `hreflang` ne doit pointer vers une page inexistante (R-07).
-  Le contenu d'amorçage contient exprès des entités traduites et non traduites.
-- **Vérifie qu'aucune route ne peut se rendre à la demande** (`dynamicParams`) : `content/` n'est
-  pas dans l'image de production. C'est une dette tracée en Phase 2 (`phase-2-log.md` §9.4), et
-  c'est en Phase 3 qu'elle devient réelle.
-
-P3-06 doit aussi confirmer la contrainte `seo → i18n, routing`, posée par défaut en Phase 1 et
-jamais confirmée depuis.
+- **P4-01 crée l'ADR-0010** (stratégie de style) **avant** d'écrire le moindre composant stylé. Rien
+  n'est stylé aujourd'hui, délibérément.
+- **Le corps MDX n'est rendu par aucune page.** P4-05 sera la première : c'est là que les ~7 Mo de
+  runtime MDX entreront dans l'image de production, qui est à **385 Mo** pour un seuil bloquant à
+  400. La marge est de 15 Mo. Mesure avant et après, ne découvre pas.
+- **Le site n'a aujourd'hui aucun composant client** (0,0 Ko de JS propre sur 18 routes) : la
+  navigation est faite de balises `<a>`. C'est ce qui rend le profil `no-js` vrai par construction.
+  Si P4-02 introduit `next/link`, mesure ce que ça coûte et écris-le.
+- **P4-13 dépend de P2-11.** Ne mets pas en production un site rempli de contenu d'amorçage.
 
 Avant de coder, applique la méthode de phase : objectif, décisions à prendre, tâches, tests
 correspondants, critères de sortie. Puis implémente par incréments.
-
-Ne démarre PAS la Phase 4 tant que les critères de sortie de la Phase 3 ne sont pas tous
-satisfaits : `/fr/projects/augure` et `/en/projects/augure` résolus indépendamment (prouvé par
-test), aucun `hreflang` vers une page inexistante, sitemap exact, couverture ≥ 95 % sur `i18n` et
-`routing`.
 
 À la fin de la phase, produis un bilan : fait / dérives / reporté.
 
@@ -230,35 +222,39 @@ test), aucun `hreflang` vers une page inexistante, sitemap exact, couverture ≥
 
 Objectif : portfolio documentaire EN LIGNE début septembre 2026 (tranche T1 = Phases 1 à 4 +
 P4-13 à P4-16). La 3D vient après, par incréments, sur le site déjà en ligne.
-Le chemin critique n'est pas technique : c'est la rédaction du contenu (P2-11), à ma charge.
+Le chemin critique n'est pas technique : c'est la rédaction du contenu (P2-11).
 
 ## Points encore ouverts
 
-Aucun ne bloque la Phase 3. Ils sont listés parce qu'ils se rappelleront au mauvais moment si
-personne ne les écrit.
+Aucun ne bloque la Phase 4 — sauf le premier, qui bloque sa mise en production.
 
 - **P2-11, la rédaction du contenu réel, est le chemin critique de T1** et n'a pas commencé. Le
   format est figé, vérifié par `make check-content`, et deux règles d'écriture sont dans
   `content/README.md` — dont celle qui a déjà mordu : une valeur contenant `: ` doit être entre
   guillemets.
-- **Le runtime MDX n'est pas encore dans l'image de production** (381 Mo, inchangée) : il y entrera
-  avec la première page qui rend un corps, en Phase 4, pour environ 7 Mo. Le seuil bloquant est à
-  400 Mo.
-- **La liste blanche MDX n'est pas une barrière de sécurité** : MDX exécute du JavaScript sans passer
-  par un composant, `content/` est donc du code. À reprendre tel quel à l'audit de la Phase 14.
-- **`content/` n'est pas dans l'image de production** : aucune route ne doit pouvoir se rendre à la
-  demande. C'est en Phase 3 que cette dette devient réelle.
-
-- **Mesure CPU en régime stable** (P11-08) : le seul relevé date d'une minute après démarrage du
-  conteneur — 32 %, au-dessus du seuil d'alerte de 25 %. Ce n'est pas une mesure valide, et ce
-  n'est pas non plus un problème constaté. Le RSS, lui, est net : 38 Mo pour un budget de 250.
+- **`SITE_URL` a deux sources en production** : l'`ENV` de l'image et l'`env_file` de Compose, ce
+  dernier l'emportant. À vérifier dans la checklist de P4-15.
+- **La marge sous le seuil d'image est de 15 Mo** (385 Mo pour 400), et la Phase 4 y ajoutera ~7 Mo.
+- **`dynamicParams = false` des pages de détail est inerte**, la valeur du segment parent étant
+  héritée. Conservé pour une restructuration future, mais ce n'est pas ce qui protège aujourd'hui —
+  c'est le gate.
+- **`content/` est parfaitement symétrique** : le cas « entité non traduite » n'existe que dans les
+  fixtures. Aucun E2E ne peut l'exercer tant que P2-11 n'aura pas produit une entité réellement non
+  traduite.
+- **Gabarit de titre** (`%s — <nom du site>`) reporté en P4-08 : il suppose de décider l'identité de
+  marque. Les titres sont aujourd'hui nus (« Projets », « Augure »).
+- **`aria-current` sur le lien de section actif** reporté en P4-02 : le layout ne connaît pas la
+  section affichée.
+- **La liste blanche MDX n'est pas une barrière de sécurité** : à reprendre tel quel à l'audit de la
+  Phase 14.
+- **Mesure CPU en régime stable** (P11-08) : le seul relevé date d'une minute après démarrage —
+  32 %, au-dessus du seuil d'alerte de 25 %. Ce n'est pas une mesure valide.
 - **Procédure de restauration du serveur** (risque R-23) : Hetzner restreint par intermittence la
-  création et le redimensionnement d'instances. Toute procédure supposant « je recrée un serveur »
-  peut échouer le jour où elle sert. À écrire sous cette contrainte en Phase 15.
-- **Plages Cloudflare** : un timer hebdomadaire les rafraîchit sur le VPS. En cas de doute,
+  création d'instances. À écrire sous cette contrainte en Phase 15.
+- **Plages Cloudflare** : un timer hebdomadaire les rafraîchit sur le VPS.
   `sudo /srv/edge/sync-cloudflare-origin-firewall.sh --check` sort en 1 s'il y a dérive.
-- Questions Q3 à Q6 et Q8 à Q19 de docs/phase-0-questions.md : applique la recommandation par
-  défaut et signale-le, ne me bloque pas dessus.
+- Questions Q3 à Q6, Q8, Q9, Q11, Q14 à Q19 de docs/phase-0-questions.md : applique la
+  recommandation par défaut et signale-le, ne me bloque pas dessus.
 
 Si quelque chose est ambigu : propose une solution argumentée et marque explicitement
 l'hypothèse. Ne construis jamais une architecture cachée.
@@ -274,9 +270,8 @@ l'hypothèse. Ne construis jamais une architecture cachée.
 - le bloc **Décisions qui m'attendent** : retirer celles qui ont été tranchées — en les reportant
   dans `phase-0-questions.md` ou dans un ADR selon leur portée — et y monter celles qui bloquent
   réellement la suite. Ce bloc n'a de valeur que s'il ne contient QUE des questions vivantes ;
-- la liste des **ADR** si de nouveaux ont été créés ;
+- la liste des **ADR** si de nouveaux ont été créés ou amendés ;
 - la section **Ta mission cette session** ;
 - les **points encore ouverts**.
 
 Le reste est stable et n'a pas vocation à changer.
-</content>

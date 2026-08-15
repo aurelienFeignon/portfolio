@@ -45,6 +45,7 @@ pas encore. Les instruire maintenant produirait une décision inventée plutôt 
 
 | Date | ADR | Nature du changement | Origine |
 |---|---|---|---|
+| 2026-08-14 | 0008 | Amendement : **`SITE_URL` devient un argument de construction**. Les pages de contenu étant statiques, `canonical`, `hreflang` et sitemap sont gravés au build ; l'image cesse d'être neutre vis-à-vis du domaine et un changement de domaine impose une reconstruction. Trois options pesées, aucune ne permettant de rester agnostique. | Écriture des métadonnées (P3-06) |
 | 2026-08-12 | 0009 | Création : compilation MDX par `@mdx-js/mdx` appelé directement, après vérification par exécution des deux candidats applicables (build de production, prérendu, image de production, qualité des erreurs, empreinte). `next-mdx-remote` devient le repli désigné. | Ouverture de la Phase 2 (P2-01) |
 | 2026-08-11 | 0007 | Amendement : **GNU Make ajouté aux prérequis d'hôte** (Docker, Git, Make). La rédaction initiale — « l'hôte n'a besoin que de Docker et de Git » — contredisait la règle 4 du même ADR, qui fait du `Makefile` l'interface de commandes. Aucune chaîne Node sur l'hôte : l'intention de l'ADR est inchangée. | Constat à l'ouverture de la Phase 1 |
 | 2026-08-11 | 0006 | Transport : Resend (hypothèse) → **SMTP auto-hébergé**, pour s'aligner sur Augure. Risques R-19 et R-20 ajoutés. | Demande explicite |

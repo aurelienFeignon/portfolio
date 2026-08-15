@@ -47,10 +47,11 @@ content/  ──────▶  i18n
 i18n/     ──────▶  (rien)
 routing/  ──────▶  i18n
 scene/    ──────▶  routing, i18n          ✗ jamais content
-app/      ──────▶  content, i18n, routing, ui, scene
+app/      ──────▶  content, i18n, routing, ui, scene, seo
 ui/       ──────▶  i18n
 features/resume/  ──────▶  i18n
 seo/      ──────▶  i18n, routing
+proxy.ts  ──────▶  i18n, routing          racine de composition, hors couches
 ```
 
 > **Corrigé le 2026-08-11 (P1-05), au moment d'écrire la règle.** Deux écarts par rapport à la
@@ -71,6 +72,20 @@ seo/      ──────▶  i18n, routing
 > sans Three.js : c'est cela que CT-09 protège, et non l'absence de tout import. Le vocabulaire des
 > locales est écrit dans `src/i18n/locales.ts`, que P3-01 complète au lieu de le recréer.
 > Détail : [`phase-2-log.md`](./phase-2-log.md) §7.
+>
+> **Modifié le 2026-08-14 (P3-06), deux points.**
+>
+> - **`seo → i18n, routing` est confirmée.** Elle était posée *par défaut* en P1-05, faute de
+>   métadonnées à écrire. Elles existent désormais, et le besoin est exactement celui-là : lire le
+>   vocabulaire des locales, construire des chemins. `src/seo` **ne lit aucun fichier** — les locales
+>   réellement disponibles lui sont données par l'appelant.
+> - **`app → seo` est ajoutée.** Cette liste l'omettait, alors que §9 fait alimenter
+>   `generateMetadata` — qui ne peut vivre que dans `app` — par cette couche. Sans elle, aucune page
+>   ne peut porter de `canonical`. Même famille d'omission que `app → scene` en Phase 1.
+>
+> S'y ajoute **`src/proxy.ts`**, qui n'est dans aucune couche : c'est une racine de composition, au
+> même titre que `app` et `scripts`, et elle est déclarée comme telle dans la règle ESLint plutôt que
+> laissée hors du graphe. Détail : [`phase-3-log.md`](./phase-3-log.md) §12.1.
 
 Contrainte vérifiée automatiquement par une règle ESLint (`import/no-restricted-paths`) — tâche
 `P1-05`. Elle rend l'ADR-0001 exécutable plutôt que déclaratif : une régression échoue au lint,
@@ -298,11 +313,25 @@ local, même si elle est l'identité en v1.
 | Route | Stratégie | Motif |
 |---|---|---|
 | Toutes les pages de contenu | **SSG** via `generateStaticParams` | Contenu figé au build, TTFB minimal, indexation optimale |
-| `/` | Redirection (edge) | Négociation de langue |
+| `/` | Redirection (edge), par `src/proxy.ts` | Négociation de langue |
 | Server Action CV | Runtime Node | Effet de bord, secrets |
 | `sitemap.xml`, `robots.txt` | Générés au build | Dérivés du Content Layer, jamais écrits à la main |
 
 Aucun ISR en v1 : le contenu ne change qu'au déploiement (H-05).
+
+> **Précisé le 2026-08-14 (P3-02, P3-03).** Trois points que l'exécution a rendus concrets.
+>
+> - **Aucune route ne peut se rendre à la demande**, et ce n'est pas une préférence :
+>   `content/` n'est pas dans l'image de production ([`phase-2-log.md`](./phase-2-log.md) §9.4). Une
+>   route rendue à la requête chercherait un dossier absent et échouerait chez le visiteur, jamais au
+>   build. `dynamicParams = false` le déclare ; `scripts/check-static-rendering.mts` le **vérifie**,
+>   branché sur `pnpm build`.
+> - **`/` est la seule chose qui ne peut pas être statique**, la négociation lisant un en-tête de
+>   requête. D'où un fichier `src/proxy.ts` (et non une page) : il sort ce cas du graphe de routes.
+>   Le nom vient de Next 16.3, qui déprécie la convention `middleware`.
+> - **`SITE_URL` est nécessaire au build**, et pas seulement à l'exécution : les `canonical`, les
+>   `hreflang` et le sitemap sont gravés dans le HTML statique. Voir l'amendement de
+>   l'[ADR-0008](./adr/0008-self-hosted-vps-deployment.md).
 
 ### 4.3 Internationalisation
 
@@ -324,12 +353,18 @@ avec traducteur externe).
 ### 4.4 Résolution de locale
 
 ```text
-URL /[locale]  ──▶  parseLocale()  ──▶  Locale | null
-                                            │
-                              null ──▶ notFound() (404, pas de redirection silencieuse)
+URL /[locale]  ──▶  isLocale()  ──▶  garde de type
+                                          │
+                            faux ──▶ notFound() (404, pas de redirection silencieuse)
 ```
 
 `/` seule fait une négociation `Accept-Language`, avec repli sur `fr` (H-04).
+
+> **Corrigé le 2026-08-14 (P3-01).** Ce schéma nommait `parseLocale`, de signature
+> `(string) => Locale | null`. La fonction écrite est `isLocale`, une **garde de type** : elle rend
+> le même service sous la forme dont les appelants ont besoin (`if (!isLocale(x)) notFound()`), sans
+> valeur intermédiaire à redéranger. Écrire les deux serait deux façons de poser la même question,
+> donc deux endroits à corriger le jour où la réponse change.
 
 ---
 
