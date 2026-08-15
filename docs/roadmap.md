@@ -709,7 +709,7 @@ reste et le filet de sécurité permanent du projet.
 | P4-13 | **Mise en production du portfolio documentaire** *(jalon T1)* | P4-12, P1-15, P2-11 |
 | P4-14 | Supervision : healthcheck conteneur + sonde externe avec alerte (risque R-15) | P4-13 |
 | P4-15 | Checklist de mise en ligne + rollback vérifié en conditions réelles | P4-13 |
-| P4-16 | Vérification post-déploiement : indexation, canonical, hreflang, sitemap accessibles publiquement | P4-13 |
+| P4-16 | Vérification post-déploiement : indexation, canonical, hreflang, sitemap accessibles publiquement — **suppose de lever Cloudflare Access**, qui ferme le site au public depuis le 2026-08-15 (`deploy/README.md` §4.2) | P4-13 |
 
 **Critères de sortie** — Toutes les exigences de la §20 de la mission satisfaites ; Lighthouse
 mobile ≥ 85 / a11y 100 / SEO 100 ; 0 violation axe serious/critical ; le projet `no-js` passe ;

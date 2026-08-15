@@ -289,6 +289,33 @@ ssh aurel@<ip> 'SSH_ORIGINAL_COMMAND="deploy <sha40>" /srv/portfolio/deploy.sh'
 
 ---
 
+## 4.2 Le site est volontairement fermé au public
+
+Depuis le 2026-08-15, `aurelienfeignon.com` est derrière **Cloudflare Access**, avec authentification
+**OTP par e-mail**, et le restera **tant que le portfolio n'est pas terminé**. Décision de
+l'utilisateur : le site est déployé et fonctionne, il n'est simplement pas encore montrable.
+
+⚠️ **Conséquence pour tout diagnostic.** Une requête anonyme sur n'importe quelle URL renvoie une
+redirection 302 vers `augure.cloudflareaccess.com/cdn-cgi/access/login/…`. Cela **ressemble** à une
+panne de déploiement ou à une zone DNS cassée, et ce n'en est pas une. Ce qui fait foi est la
+conclusion du workflow CI sur `main` — les jobs « publier l'image sur GHCR » et « déployer sur le
+VPS » :
+
+```bash
+gh run list --branch main --limit 1
+```
+
+⚠️ **Conséquence pour P4-16.** La vérification post-déploiement — indexation, `canonical`,
+`hreflang`, `sitemap.xml`, `robots.txt` observés depuis l'extérieur — est **impossible tant
+qu'Access est actif**, et aucun moteur de recherche n'atteint le site. Lever Access fait donc partie
+de la mise en ligne réelle, au même titre que le déploiement lui-même.
+
+Reste à vérifier **le jour où Access est levé** : Cloudflare sert actuellement son propre
+`robots.txt` managé (« Content Signals »), qui remplacerait celui de l'application et sa directive
+`Sitemap:`. Impossible de trancher aujourd'hui, la requête n'atteignant pas l'origine.
+
+---
+
 ## 5. Ce qui reste à faire
 
 P1-15 est **terminé** : les huit critères d'acceptation sont satisfaits, chacun vérifié par une
