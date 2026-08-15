@@ -6,8 +6,4 @@ level: 5
 featured: true
 ---
 
-Seed content (P2-10), to be replaced in P2-11.
-
-Strict typing with no exceptions: `noUncheckedIndexedAccess`,
-`exactOptionalPropertyTypes`, and no error-suppression directive anywhere in the
-project's code.
+Primary language of Augure, whose monorepo is written in TypeScript and Python. Also the basis of the typed contracts generated towards Python, with structural CI guards enforcing parity between the two.

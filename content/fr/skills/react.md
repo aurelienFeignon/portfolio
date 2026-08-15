@@ -6,6 +6,4 @@ level: 5
 featured: true
 ---
 
-Contenu d'amorçage (P2-10), à remplacer en P2-11.
-
-Composants serveur par défaut, client seulement là où l'interactivité l'exige.
+Interfaces d'Augure et d'Askor, dont la modélisation interactive de workflows et la visualisation temps réel côté client.

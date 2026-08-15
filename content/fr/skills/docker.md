@@ -1,12 +1,9 @@
 ---
 slug: docker
 name: Docker
-category: tooling
-level: 4
+category: infrastructure
+level: 5
 featured: true
 ---
 
-Contenu d'amorçage (P2-10), à remplacer en P2-11.
-
-Environnement de développement entièrement conteneurisé, image de production
-multi-étage exécutée en non-root.
+48 services conteneurisés sur Augure. Ce portfolio pousse le principe plus loin : aucun outil Node n'est installé sur la machine de développement, tout passe par des conteneurs.
