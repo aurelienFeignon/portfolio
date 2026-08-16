@@ -1002,22 +1002,33 @@ désormais entièrement sain, et l'échec porte le message attendu.
 ### 13.8 ⛔ « Couverture 100 % » n'était plus vrai, et depuis deux tâches
 
 Le chiffre a été **remesuré** au lieu d'être recopié, et il ne tient pas : la couverture globale est
-de **98,8 %**. Trois fichiers ne sont pas couverts, et aucun n'appartient à cette tâche — `git log`
-les rattache à P4-02 et P4-05 :
+de **98,8 %**. Les fichiers non couverts n'appartiennent pas à cette tâche — `git log` les rattache
+à P4-02 et P4-05.
 
-| Fichier | Couverture | Pourquoi |
-|---|---|---|
-| `src/app/[locale]/place-layout.tsx` | 0 % | Le garde des endroits **appelle** les layouts sans les rendre : il lit l'élément `PlaceLayout` retourné, si bien que le corps de celui-ci ne s'exécute jamais |
-| `src/ui/technology-section.tsx` | 0 % | Extrait en revue de P4-05, sans test de composant |
-| `src/ui/company-line.tsx` | 75 % de branches | Une branche jamais exercée |
+⛔⛔ **Cet inventaire, écrit à la main, était faux le jour même** — remesuré le 2026-08-16 à
+l'ouverture de la session suivante, il en compte **cinq** et non trois. La table ci-dessous est
+celle que la sortie de `make coverage` donne, et non celle qu'on croyait :
+
+| Fichier | Couverture | Origine | Pourquoi |
+|---|---|---|---|
+| `src/app/[locale]/place-layout.tsx` | 0 % | P4-02 | Le garde des endroits **appelle** les layouts sans les rendre : il lit l'élément `PlaceLayout` retourné, si bien que le corps de celui-ci ne s'exécute jamais |
+| `src/ui/technology-section.tsx` | 0 % | P4-05 | Extrait en revue de P4-05, sans test de composant |
+| `src/ui/mdx/prose.tsx` | 0 % | P4-05 | **Manquait à la liste d'origine** — extrait par le *même* commit que le précédent (`dfffe9c`) |
+| `src/ui/brand-palette.ts` | 0 % | P4-08 | Postérieur à cette section : la valeur unique des deux `ImageResponse` (§14.7 bis), qu'aucun test n'importe |
+| `src/ui/company-line.tsx` | 75 % de branches | P4-04 | Une branche jamais exercée |
 
 ⭐⭐ **C'est la leçon de §12.2 rejouée sur ce journal lui-même.** §11.5 annonce « 492 verts,
 couverture 100 % » pour P4-06, et ce chiffre a survécu à P4-05, qui l'a rendu faux. Il n'a rien
 décidé — parce qu'il a été remesuré ici —, mais **rien ne le remesurait**.
 
+⭐⭐⭐ **Et la rejouer à moitié ne suffit pas : le *nombre* a été remesuré, la *liste* a été écrite
+de mémoire.** Les deux extractions de P4-05 sont sorties du même commit ; une seule a été nommée.
+Un inventaire se lit dans la sortie de l'outil, exactement comme le chiffre qu'il accompagne —
+sans quoi il vieillit à la vitesse d'une tâche, et c'est arrivé dès la suivante.
+
 Le gate reste **vert** : les seuils sont à 80 % au global et à 95 % sur les modules critiques, tous
 tenus (`src/content`, `src/i18n`, `src/routing`, `src/seo` sont à 100 %). Ce n'est donc pas une
-régression de qualité, c'est une **affirmation périmée**. Traitement : trois tests de composant
+régression de qualité, c'est une **affirmation périmée**. Traitement : les tests de composant
 manquants, inscrits en **P4-10** — la passe d'accessibilité relit de toute façon ces fichiers.
 Nommés ici plutôt que corrigés : ce sont des composants d'autres tâches, et les mêler à ce diff le
 rendrait illisible.
@@ -1291,14 +1302,29 @@ le même où qu'elle vive — ajouter une locale sans sa forme OpenGraph ne comp
 | Dériver `title` et `description` de l'accueil, désormais redondants avec le `site` passé au même appel | Ferait de l'accueil le seul emplacement dont le titre est implicite, et `title` cesserait d'être une entrée uniformément obligatoire. La redondance est le côté le moins cher |
 | Deux relectures du disque par la sonde de palette | Sous le bruit : une poignée de fichiers, deux fois par exécution |
 
-### 14.8 Ce que P4-08 laisse ouvert
+### 14.8 Les six arbitrages, **tranchés le 2026-08-16 après la fusion**
 
-| Sujet | État |
-|---|---|
-| L'icône est un **monogramme d'attente** | Dérivé de `site.name`, dit comme tel ; un logo est une décision de marque (§14.4) |
-| `/favicon.ico` nu reste une 404 | Fermer ce cas demanderait une copie **figée** de l'icône générée (§14.4) |
-| L'`og:image` n'a pas de condensat | Déclencheur écrit : versionner l'adresse le jour où l'image change (§14.6) |
-| `og:type` vaut `website` partout | Une fiche est un `article` au sens d'OpenGraph, mais l'annoncer inviterait à chercher un `article:published_time` que nos dates à précision variable ne peuvent pas former. La sémantique d'entité passe par le JSON-LD — **P4-09** |
+⚠️ **Ils ont été posés trop tard, et c'est le défaut de méthode de ces deux tâches.** Ils étaient
+consignés — dans ce journal, dans le corps de la PR — mais noyés dans de la prose : l'utilisateur les
+a découverts **après avoir fusionné**. Un arbitrage enterré dans un rapport n'est pas un arbitrage
+posé.
+
+⭐ **Une décision qui n'est pas écrite est relitigée.** Elles le sont ici, datées, avec ce qui les
+rouvrirait — pour que la session suivante n'ait pas à les reposer.
+
+| # | Arbitrage | Décision | Ce qui la rouvre |
+|---|---|---|---|
+| 1 | **7,3 Ko de JS par route** (frontières d'erreur), là où le site était à 0,0 | **Garder les deux.** L'ordre d'arbitrage du projet met l'accessibilité avant la performance du contenu, et une page d'erreur sans `lang` est le même défaut WCAG 3.1.1 que la 404 corrigée | Un LCP sous pression mesuré en P4-13, ou l'arrivée d'un vrai composant client en Phase 5 — qui rendrait la question sans objet |
+| 2 | **L'icône est un monogramme d'attente** | **Garder en attendant.** Elle existe pour une raison mesurée : 14,5 Ko de page 404 à chaque requête d'icône sans elle | Un logo fourni par l'auteur : un `icon.png` dans `src/app/` remplace le fichier généré, rien d'autre ne bouge |
+| 3 | **`og:type` vaut `website` partout** | **Laisser.** L'annoncer `article` inviterait à chercher un `article:published_time` que nos dates à précision variable ne peuvent pas former | P4-09, qui porte la sémantique d'entité dans le JSON-LD |
+| 4 | **`og:image` sans condensat** | **Laisser.** Le condensat de Next n'est pas exposé, et le fabriquer supposerait de recalculer l'image au moment des métadonnées | Le jour où l'image est **redessinée** : versionner son adresse dans `shareImagePath` |
+| 5 | **`/favicon.ico` nu reste une 404** | **Laisser.** Le `<link rel="icon">` couvre tout navigateur qui lit le HTML ; fermer le cas nu demanderait une copie **figée** de l'icône générée | Une mesure qui montrerait un volume réel sur cette adresse |
+| 6 | **Image de production à 272 Mo** contre une cible de 250 | **Ne rien changer**, conformément à `performance-budget.md` §7.1 : aucune image Node officielle n'atteint 250 Mo | Phase 11, qui doit remplacer cette ligne de budget par « couche applicative par déploiement ≤ 60 Mo » — la quantité réellement pilotable |
+
+⭐⭐ **Ce qu'il faut retenir n'est aucune de ces six décisions**, mais le fait que cinq d'entre elles
+étaient **prêtes à être prises avant la fusion** et ne l'ont pas été. Une tâche qui produit des
+arbitrages doit les présenter **comme une liste de décisions**, au moment où ils naissent — pas les
+consigner en prose dans un journal que personne ne lit avant de fusionner.
 
 ## 15. P4-09 — ce que la page dit à une machine, et ce qu'elle refuse de lui dire
 

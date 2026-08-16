@@ -23,8 +23,11 @@ Lis, dans cet ordre, et ne me demande pas de te les résumer :
 8. docs/phase-1-log.md        ← journal de la Phase 1
 9. docs/phase-2-log.md        ← journal de la Phase 2
 10. docs/phase-3-log.md       ← journal de la Phase 3 : ce que l'exécution a renversé, dette tracée
-11. deploy/README.md          ← exploitation réelle du serveur : déploiement, rollback, journaux
-12. content/README.md         ← règles d'écriture du contenu, et deux réserves à corriger
+11. docs/phase-4-log.md       ← ⭐ journal de la phase EN COURS. Le plus important des trois :
+                                 §13 et §14 portent trois défauts déjà livrés et six arbitrages
+                                 tranchés. Il manquait à cette liste jusqu'au 2026-08-16.
+12. deploy/README.md          ← exploitation réelle du serveur : déploiement, rollback, journaux
+13. content/README.md         ← règles d'écriture du contenu, et deux réserves à corriger
 
 Les Phases 0, 1, 2 et 3 sont TERMINÉES et validées. Ne les refais pas, ne les rediscute pas.
 
@@ -44,10 +47,9 @@ Phases 0 à 3 : **DONE**. **Phase 4 (Portfolio HTML) : en cours**, 9 tâches sur
 | P4-06 | Compétences groupées par catégorie |
 | P4-05 | Liste et fiche des projets, **premier corps MDX rendu** |
 
-### ⚠️ P4-07 et P4-08 sont CLOSES, sur une branche, **en attente de fusion**
+### P4-07 et P4-08 — fusionnées et **déployées** le 2026-08-16 (PR #22, `50a3b4b`)
 
-Branche `feat/p4-07-not-found`, **PR #22**, CI verte sur `63f84d9`. La fusion attend ta décision :
-elle déclenche un déploiement en production.
+Les cinq jobs sont verts, publication GHCR et déploiement VPS compris. C'est en ligne.
 
 | Tâche | Ce qu'elle a livré |
 |---|---|
@@ -55,6 +57,23 @@ elle déclenche un déploiement en production.
 | P4-08 | Gabarit de titre, OpenGraph, image de partage, icône |
 
 **Reste : P4-09 à P4-16.**
+
+⚠️ **Une branche locale non poussée t'attend** : `docs/arbitrages-p4-07-p4-08`, **deux commits**,
+documentation seule. Elle inscrit les six arbitrages tranchés et remet ce prompt à jour. Pousse-la
+et ouvre la PR, ou dis-moi de la reprendre autrement.
+
+⛔⛔ **Le site est volontairement FERMÉ au public**, derrière Cloudflare Access (OTP par e-mail),
+et le restera tant que le portfolio n'est pas terminé. **Une requête anonyme reçoit une 302 vers
+`cloudflareaccess.com` : ce n'est PAS une panne de déploiement**, et cela y ressemble beaucoup.
+Ce qui fait foi pour juger d'un déploiement est la conclusion du workflow :
+
+```bash
+gh run list --branch main --limit 1
+```
+
+Conséquence pour **P4-16** : la vérification post-déploiement — indexation, `canonical`, `hreflang`,
+`sitemap.xml` observés **depuis l'extérieur** — est impossible tant qu'Access est actif. Lever Access
+fait partie de la mise en ligne réelle. Détail : `deploy/README.md` §4.2.
 
 ⭐⭐⭐ **Le journal de phase (`phase-4-log.md` §13 et §14) est ce qu'il faut lire, pas ce résumé.**
 Ces deux tâches ont trouvé **trois défauts déjà livrés**, et aucun n'était visible à la relecture :
@@ -88,8 +107,11 @@ texte source.
 | E2E | **117** verts sur 5 profils, 0 violation axe | — |
 
 ⛔ **« Couverture 100 % » était faux depuis P4-05**, et le chiffre a survécu deux tâches dans ce
-journal. Trois fichiers ne sont pas couverts (`place-layout.tsx`, `technology-section.tsx`,
-`company-line.tsx`) — dette nommée, reprise en **P4-10**. Remesure, ne recopie pas.
+journal. **Cinq** fichiers ne sont pas couverts — `place-layout.tsx`, `technology-section.tsx`,
+`prose.tsx`, `brand-palette.ts`, `company-line.tsx` — dette nommée, reprise en **P4-10**.
+⛔⛔ La liste en annonçait **trois** : le *chiffre* avait été remesuré, la *liste* écrite de mémoire,
+et elle oubliait l'une des deux extractions d'un même commit. Remesure, ne recopie pas — **la liste
+autant que le nombre**.
 
 ⛔ **Le profil `no-js` n'est plus vrai *par construction*** : il l'est **par vérification**. Les
 frontières d'erreur sont des composants client, et c'est le seul JavaScript applicatif du site.
@@ -141,7 +163,17 @@ mets l'ADR à jour et ajoute une ligne au journal des révisions. Jamais de chan
 ## Ta mission cette session
 
 **Enchaîne sur P4-09** (JSON-LD : `Person`, `WebSite`, `CreativeWork`, `BreadcrumbList`), puis la
-suite de la Phase 4. La PR #22 attend une décision de fusion — demande-la, ne la prends pas.
+suite de la Phase 4.
+
+⛔⛔ **Avant de commencer, lis `phase-4-log.md` §14.8 : les six arbitrages de P4-07 et P4-08 sont
+TRANCHÉS.** Ne les repose pas — chacun porte sa condition de réouverture. Et retiens **pourquoi** ils
+y sont : ils ont été posés **après la fusion**, parce qu'ils étaient consignés en prose au lieu
+d'être présentés comme une liste de décisions.
+
+⭐⭐⭐ **Une tâche qui produit des arbitrages les pose au moment où ils naissent**, comme une liste de
+choix avec un défaut recommandé — pas en fin de rapport, pas dans un journal qu'on lit après avoir
+fusionné. C'est la même faute que celles que la tâche traquait dans le code : *une chose écrite
+quelque part que rien ne confronte au moment où elle compte*.
 
 ⚠️ **P4-09 hérite de deux choses de P4-08**, écrites pour ne pas être redécouvertes :
 
@@ -257,15 +289,17 @@ officielle n'atteint 250 Mo.
   listes générées sont confrontées **aux pages réellement prégénérées**, pas au sitemap. Il y a trois
   énumérations, dont deux dérivées ; comparer deux dérivées produit un message qui accuse celle qui
   n'a pas tort. Le gate porte **six contrôles**, tous vus rouges.
-- ⛔ **Trois fichiers ne sont pas couverts** — `place-layout.tsx`, `technology-section.tsx`,
-  `company-line.tsx` (P4-02 et P4-05). Tests de composant manquants, à écrire en **P4-10**.
-- ⚠️ **L'icône du site est un monogramme d'attente** (P4-08), dérivé des initiales de `site.name`. Un
-  logo est **ta** décision ; le remplacer se fait par un `icon.png` dans `src/app/`, rien d'autre ne
-  bouge. Et une requête **nue** sur `/favicon.ico` reste une 404 : la fermer demanderait une copie
-  figée de l'icône générée, ce que ce dépôt passe son temps à supprimer.
-- ⚠️ **L'`og:image` n'a pas de condensat** : une image redessinée garderait la même URL, et un cache
-  social servirait l'ancienne vignette. Déclencheur écrit — versionner l'adresse le jour où l'image
-  change.
+- ⛔ **Cinq fichiers ne sont pas couverts** — `place-layout.tsx` (P4-02), `technology-section.tsx` et
+  `prose.tsx` (P4-05), `brand-palette.ts` (P4-08), `company-line.tsx` (P4-04, 75 % de branches).
+  Tests de composant manquants, à écrire en **P4-10**. La liste en annonçait trois : elle avait été
+  écrite de mémoire à côté d'un chiffre, lui, remesuré (`phase-4-log.md` §13.8).
+- ✅ **Les six arbitrages de P4-07 et P4-08 sont TRANCHÉS** (2026-08-16, `phase-4-log.md` §14.8) :
+  garder les deux frontières d'erreur, garder le monogramme d'attente, laisser `og:type` à
+  `website`, laisser l'`og:image` sans condensat, laisser `/favicon.ico` nu en 404, ne rien changer
+  aux 272 Mo. **Ne les repose pas** — chacun porte sa condition de réouverture.
+  ⚠️ Ils ont été posés **après la fusion**, parce qu'ils étaient consignés en prose au lieu d'être
+  présentés comme une liste de décisions. **Une tâche qui produit des arbitrages les pose au moment
+  où ils naissent.**
 - ⚠️ **Le sélecteur de langue est rendu par chaque page**, à l'intérieur du `main` — inhabituel pour
   une commande de portée globale. Ses options dépendent de la page, donc un layout ne peut pas le
   rendre. Choix de gabarit, à trancher.

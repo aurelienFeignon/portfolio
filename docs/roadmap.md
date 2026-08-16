@@ -716,7 +716,7 @@ reste et le filet de sécurité permanent du projet. Journal de phase :
 | P4-07 | Pages 404 et erreur, localisées | **DONE** *(2026-08-16)* | P4-02 |
 | P4-08 | Métadonnées OpenGraph, gabarit de titre, images de partage et icône | **DONE** *(2026-08-16)* | P3-06 |
 | P4-09 | JSON-LD : `Person`, `WebSite`, `CreativeWork`, `BreadcrumbList` | **DONE** *(2026-08-16)* | P4-05 |
-| P4-10 | Passe accessibilité : titres, focus, contrastes, points de repère — **plus les trois tests de composant manquants** (`phase-4-log.md` §13.8), le garde des endroits à piloter par l'arborescence, et l'instruction de `experimental.globalNotFound` comme plancher (§13.10) | TODO | P4-06 |
+| P4-10 | Passe accessibilité : titres, focus, contrastes, points de repère — **plus les cinq fichiers non couverts** (`phase-4-log.md` §13.8 — la liste en annonçait trois, remesurée le 2026-08-16), le garde des endroits à piloter par l'arborescence, et l'instruction de `experimental.globalNotFound` comme plancher (§13.10) | TODO | P4-06 |
 | P4-11 | Responsive documentaire : mobile, tablette, desktop | TODO | P4-06 |
 | P4-12 | E2E : navigation complète, deep links, bascule de langue, clavier | TODO | P4-11 |
 | P4-13 | **Mise en production du portfolio documentaire** *(jalon T1)* | TODO | P4-12, P1-15, P2-11 |
