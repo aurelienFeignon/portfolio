@@ -1389,6 +1389,79 @@ est écrite : un `WebSite` **est** le site, là où `Person.url` promet une page
 longueur d'un champ que l'émetteur **omet** délibérément quand la liste est vide. Un test doit
 échouer en disant pourquoi.
 
+### 15.5 bis Ce que `/simplify` a changé — et l'altitude est l'angle le plus tranchant
+
+⛔⛔ **Le câblage rouvrait la classe d'erreur que `page-metadata.ts` existe pour fermer.** Chaque
+route de section nommait désormais sa section **trois fois** — dans son `PageLocation`, dans
+`sectionMetadata(…)`, et dans les données structurées — sans que rien ne relie les trois. Une seule
+écriture par route, `SECTION`, dont les trois consommateurs dérivent. C'est aussi
+`projectStructuredData` qui écrivait `'projects'` deux fois dans la même fonction, là où
+`CreativeWork.url` et le dernier niveau du fil d'Ariane de la **même page** auraient pu désigner deux
+sections différentes.
+
+⭐⭐ **Deux fonctions dont les corps ne différaient que par un argument.** `sectionStructuredData` et
+`experienceStructuredData` produisaient toutes deux `jsonLdDocument([breadcrumbNode(…)])`, et
+`trailTo` acceptait déjà exactement la signature qui les réunit. Il n'y en a plus qu'une,
+`breadcrumbStructuredData` ; la prose sur l'absence de type schema.org honnête pour « un poste
+occupé » s'y déplace intacte.
+
+⛔ **La garde nullable de `JsonLd` était une branche morte, couverte par un test écrit pour elle** —
+c'est-à-dire, mot pour mot, ce que le commit précédent de cette même branche venait de supprimer dans
+`trailTo`. Le principe était appliqué à un fichier du lot et pas à l'autre. Le prop est devenu non
+nullable ; son type reste **structurel** (`Record<string, unknown>`) et non `JsonLdDocument`,
+`src/ui` n'ayant pas le droit d'importer `src/seo`.
+
+⭐ Réutilisation : `freezeSiteUrl` extrait au **deuxième exemplaire identique** — la restauration de
+`SITE_URL` est du code de garde, et une copie qui oublie le `delete` fait échouer une **autre** suite
+que celle qui a fauté ; `makeSkill` remplace un faux dépôt écrit à la main, ce qui rend le garde D2
+strictement plus fort ; `SCHEMA_CONTEXT` et `personId` sont **dérivés** en E2E au lieu d'être
+transcrits ; un document n'est plus téléchargé deux fois dans le même parcours ; et deux assertions
+qui ne pouvaient pas échouer ont été retirées.
+
+⭐⭐ **Le parcours qui lie le fil d'Ariane au `h1` visite désormais les deux sections à détail.** Le
+nom de la feuille est choisi par deux chemins différents — la route d'expérience passe
+`experience.role`, le composeur de projet dérive `project.title`. N'en garder qu'un laissait l'autre
+sans mécanisme, et c'est ce qui autorise la décision à vivre dans une route : elle est **confrontée**.
+
+⚠️ **Deux constats écartés, avec leur raison.** `projectStructuredData` reconstruit un `PageLocation`
+que la route possède déjà : le passer en paramètre serait **incohérent avec `entityMetadata`**, qui
+prend `section` et `slug` et construit le sien — l'uniformité des deux composeurs vaut mieux qu'une
+construction en moins. Et `await (await request.get(path)).text()` apparaît huit fois dans trois
+parcours, dont **six antérieures** à cette tâche : le double téléchargement de ce diff est corrigé,
+l'extraction d'un `htmlOf` partagé est un déclencheur écrit et non un refactor à faire passer dans
+une PR de fonctionnalité.
+
+### 15.5 ter Ce que la mesure d'efficacité a établi, et le seul coût qui atteint un visiteur
+
+Tout le travail que ce diff ajoute au build est **sous le plancher de bruit** que le dépôt s'est fixé
+(`phase-2-log.md` §18.3) : ~0,4 ms à chaud sur 851 ms de génération statique. La seule E/S neuve est
+`getFeaturedSkills` sur les deux accueils — **3,06 ms à froid**, 0,7 % du budget. Par la règle du
+dépôt, on ne fait rien.
+
+⚠️ **Un chiffre à consigner tout de même** : `phase-3-log.md` §19.7 place le déclencheur de la
+revalidation Zod à **~50 entités par section**. `skills` en compte **40**. L'appel ajouté est
+linéaire — les compétences n'ont pas de page de détail —, mais on s'approche du seuil.
+
+⭐⭐ **Le seul coût qui atteint réellement un visiteur, personne ne l'avait chiffré** : chaque page
+embarque son JSON-LD **deux fois** — le `<script>` servi, plus une copie échappée dans la charge RSC
+(`self.__next_f`), **34 % plus grosse** à cause du triple échappement. Soit **~200 octets brotli par
+page** de duplication pure.
+⚠️ **Ce n'est pas un défaut de ce diff** : tout balisage rendu par le serveur figure dans les deux
+canaux — « Aurélien Feignon » apparaît 24 fois dans `/fr.html`. Aucune API publique de Next ne permet
+d'émettre un `<script>` hors de l'arbre React. Le chiffre est ici pour ne pas être redécouvert, et
+pour que P4-13 sache d'où viennent ces octets s'il mesure un LCP sous pression.
+
+Deux corrections écrites malgré des gains nuls, **parce que le dépôt a déjà payé pour les apprendre** :
+
+- ⛔ **Le contrôle « chaque page du sitemap porte des données structurées » téléchargeait 14 pages en
+  série.** C'est mot pour mot le motif que `phase-3-log.md` §19.5 a supprimé et dont §19.7 a écrit le
+  déclencheur chiffré. Le réintroduire dans le commit qui cite la leçon aurait été le comble.
+- ⛔⛔ **`sitemapPaths` refaisait sa requête à chaque appel, alors que sa propre docstring affirme
+  « lu une seule fois pour tous les profils E2E ».** Cinquième prose de cette phase à survivre au code
+  qu'elle décrit, et la seule trouvée par la **mesure** : cinq téléchargements du même sitemap sur les
+  parcours de cette tâche. La promesse est désormais mémoïsée — pas son résultat, comme la couche
+  Content le fait depuis P2-03.
+
 ### 15.6 ⭐ Deux branches mortes, trouvées par la sortie de `make coverage`
 
 `trailTo` prenait un `PageLocation` complet et traitait le cas « accueil » — qu'aucun appelant ne lui
@@ -1427,10 +1500,16 @@ explicitement, a rendu les quatre constats de §15.5.
 | Socle partagé | **126,4 Ko — inchangé** | cible 136 · bloquant 146 |
 | JS propre à chaque route | **7,3 Ko — inchangé** sur 18 routes | cible 25 · bloquant 40 |
 | Image de production | **273 Mo** *(272 après P4-08)* — **+0,5 Mo** | cible 250 · **bloquant 400** |
-| Tests | **607** verts *(569 après P4-08)* | — |
-| E2E | **127** verts sur 5 profils *(117 après P4-08)* | — |
-| Couverture globale | **98,7 %** *(98,6 après P4-08)* | ≥ 80 % |
-| Mutations appliquées | **15**, toutes tuées | — |
+| Tests | **606** verts *(569 après P4-08)* | — |
+| E2E | **128** verts sur 5 profils *(117 après P4-08)* | — |
+| Couverture globale | **98,69 %** *(98,61 après P4-08)* | ≥ 80 % |
+| Mutations appliquées | **15** avant la revue, **13 rejouées** après le refactor — toutes tuées | — |
+
+⭐⭐ **Une seule de ces mutations n'est pas tuée par la suite unitaire, et c'est instructif** : coller
+`SECTION = 'projects'` sur la page des compétences laisse les 606 tests verts. Les routes ne sont pas
+exercées par Vitest, et c'est **écrit** (`testing-strategy.md` §6, exclusion assumée). Le banc E2E,
+lui, la tue sur **six parcours** — la vérification a été faite, pas supposée. C'est exactement ce qui
+rend l'exclusion honnête, et la première fois qu'elle est éprouvée par une mutation.
 
 ⭐ **Zéro octet de JavaScript client ajouté**, et c'est vérifié plutôt que supposé : un
 `<script type="application/ld+json">` est un bloc de **données**, pas de code. Le budget de bundle le

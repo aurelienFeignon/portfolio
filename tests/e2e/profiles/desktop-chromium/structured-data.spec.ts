@@ -210,12 +210,17 @@ test.describe('données structurées', () => {
      * de la septième page, écrite plus tard, qui aurait simplement oublié le
      * bloc. Le périmètre est donc **dérivé du sitemap**, pas énuméré.
      */
-    const missing: string[] = []
-
-    for (const path of await sitemapPaths(request)) {
-      const graph = await graphOf(request, path).catch(() => [])
-      if (graph.length === 0) missing.push(path)
-    }
+    /*
+     * ⚠️ Groupé, et non en série. La Phase 3 a supprimé exactement ce motif —
+     * « 84 requêtes séquentielles pour 17 URL distinctes » (`phase-3-log.md`
+     * §19.5) — et §19.7 en a écrit le déclencheur chiffré : à ~50 entités par
+     * section, le sitemap en compte ~200 et ce seul parcours redevient le plus
+     * long de la suite. Le rejouer en série ici l'aurait réintroduit dans le
+     * commit qui cite la leçon.
+     */
+    const paths = await sitemapPaths(request)
+    const graphs = await Promise.all(paths.map((path) => graphOf(request, path).catch(() => [])))
+    const missing = paths.filter((_, index) => (graphs[index] ?? []).length === 0)
 
     expect(missing).toEqual([])
   })

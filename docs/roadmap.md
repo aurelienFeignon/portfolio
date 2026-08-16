@@ -897,7 +897,10 @@ décrite avec la description du **site** — la faute de l'`alt` d'image de P4-0
 `Person.url` désignant une redirection, et un parcours qui échouait par `TypeError` avant son
 assertion. ⭐ Et la **couverture** a nommé deux branches mortes qu'aucune relecture n'avait vues.
 📏 Socle 126,4 Ko et 7,3 Ko par route, **tous deux inchangés** : un bloc `ld+json` est de la donnée,
-pas du code. Image 273 Mo, 607 tests, 127 E2E, couverture 98,7 %, 15 mutations toutes tuées.
+pas du code. Image 273 Mo, 606 tests, 128 E2E, couverture 98,69 %, 28 mutations toutes tuées.
+⭐⭐ L'une d'elles n'est tuée **que par le banc E2E** — une route qui déclare la mauvaise section
+laisse les 606 tests verts, les routes étant exclues de Vitest. C'est la première fois que cette
+exclusion est éprouvée par une mutation plutôt que défendue par un raisonnement.
 · Depends on: P4-05, P4-17
 
 **P4-05 — Liste et détail des projets, corps MDX rendu**
