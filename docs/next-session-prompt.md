@@ -39,7 +39,7 @@ Les Phases 0, 1, 2 et 3 sont TERMINÉES et validées. Ne les refais pas, ne les 
 
 ## État
 
-Phases 0 à 3 : **DONE**. **Phase 4 (Portfolio HTML) : en cours**, 12 tâches sur 17 closes.
+Phases 0 à 3 : **DONE**. **Phase 4 (Portfolio HTML) : en cours**, 13 tâches sur 17 closes.
 **Tout ce qui est ci-dessous est fusionné sur `main` et déployé**, CI verte à chaque fois.
 
 | Tâche | Ce qu'elle a livré |
@@ -56,8 +56,9 @@ Phases 0 à 3 : **DONE**. **Phase 4 (Portfolio HTML) : en cours**, 12 tâches su
 | P4-09 | JSON-LD : `Person`, `WebSite`, `CreativeWork`, `BreadcrumbList` |
 | P4-10 | Passe accessibilité, **périmètre dérivé du sitemap** ; plancher `globalNotFound` |
 | P4-11 | Responsive : débordement, cibles tactiles et rognage sur 16 pages × 5 largeurs |
+| P4-12 | Parcours complets, et l'**inventaire des 14 scénarios devenu un garde** |
 
-**Reste : P4-12 à P4-16.**
+**Reste : P4-13 à P4-16** — c'est-à-dire le jalon **T1**, la mise en production.
 
 ### ⛔⛔ Ce qui fait foi pour juger d'un déploiement
 
@@ -74,15 +75,15 @@ Conséquence pour **P4-16** : la vérification post-déploiement — indexation,
 `sitemap.xml` observés **depuis l'extérieur** — est impossible tant qu'Access est actif. Lever Access
 fait partie de la mise en ligne réelle. Détail : `deploy/README.md` §4.2.
 
-### Ce que la Phase 4 coûte, remesuré après P4-11
+### Ce que la Phase 4 coûte, remesuré après P4-12
 
 | Relevé | Valeur (2026-08-16) | Seuil |
 |---|---|---|
-| JS propre à chaque route | **7,3 Ko** — le seul JavaScript applicatif du site | cible 25 · bloquant 40 |
+| JS propre à chaque route | **8,2 Ko** — le seul JavaScript applicatif du site | cible 25 · bloquant 40 |
 | Socle partagé | **126,4 Ko** | cible 136 · bloquant 146 |
 | Image de production | **273 Mo** | cible 250 · bloquant 400 |
-| Tests | **627** verts, couverture **100 %** | ≥ 80 % |
-| E2E | **140** verts sur 5 profils, 0 violation axe sur les **16 pages servies** | — |
+| Tests | **631** verts, couverture **100 %** | ≥ 80 % |
+| E2E | **144** verts sur 5 profils, 0 violation axe sur les **16 pages servies** | — |
 
 ⛔ **Le profil `no-js` n'est plus vrai *par construction*** : il l'est **par vérification**. Les
 frontières d'erreur sont des composants client, et c'est tout le JavaScript applicatif du site.
@@ -159,14 +160,21 @@ mets l'ADR à jour et ajoute une ligne au journal des révisions. Jamais de chan
 
 ## Ta mission cette session
 
-**Enchaîne sur P4-12** — les parcours E2E complets (navigation, deep links, bascule de langue,
-clavier), puis le jalon **T1** : P4-13 met le site en production.
+**Enchaîne sur P4-13** — la **mise en production du portfolio documentaire**, jalon **T1**. Puis
+P4-14 (supervision), P4-15 (checklist et rollback) et P4-16 (vérification depuis l'extérieur, qui
+suppose de lever Cloudflare Access).
 
-⭐⭐ **P4-12 est en grande partie déjà écrite, et la première chose à faire est de le constater.**
-Les scénarios E2E-01 à E2E-03, E2E-08 et E2E-12 de `testing-strategy.md` §4.7 sont couverts par les
-parcours de P4-07 à P4-11. Le travail est un **inventaire** — confronter la liste de la stratégie à
-ce qui existe, et n'écrire que le manquant. Réécrire un parcours déjà écrit serait la duplication que
-cette phase passe son temps à supprimer.
+⭐⭐⭐ **Ce que P4-12 a appris, et qui vaut pour P4-13 : la mission précédente était fausse sur trois
+points, et sincère.** Elle annonçait cinq scénarios E2E « couverts » ; trois ne l'étaient pas. C'est
+la forme de défaut que la phase entière traque, arrivée dans le document qui demande de ne plus la
+produire. **Constate, ne crois pas** — y compris ce fichier-ci.
+
+⭐⭐ **L'inventaire des scénarios E2E est désormais un garde, pas un paragraphe.**
+`tests/integration/every-e2e-scenario-has-a-status.test.ts` confronte les quatorze scénarios de
+`testing-strategy.md` §4.7 au banc : un scénario sans statut rougit, un scénario déclaré couvert
+qu'aucun parcours ne revendique (`@covers E2E-xx`) rougit, un report vers une tâche inexistante
+rougit. **Écrire un parcours pour E2E-13 ou E2E-14 suppose donc de basculer son statut** — le garde
+te le dira.
 
 ⛔⛔ **Avant de commencer, lis `phase-4-log.md` §14.8 et §15.1 : dix arbitrages sont TRANCHÉS.** Ne
 les repose pas — chacun porte sa condition de réouverture.
@@ -250,6 +258,12 @@ Le chemin critique — la rédaction du contenu — est **levé** depuis le 2026
 divergé — sous un titre qui disait « chiffres à jour, remesurés ». Il n'y en a plus qu'un, en tête.
 **Remesure-le avant de t'y appuyer** : `make bundle`, `make check-image-size`, `make coverage`.
 
+⛔⛔ **Le JS par route valait 7,3 Ko dans cinq documents, et il en mesure 8,2** (remesuré en P4-12,
+sur un artefact identique à celui de `main` — cette branche ne touchait pas `src/`). Le budget n'est
+pas en cause (cible 25, bloquant 40) ; le chiffre l'était. P4-07 et P4-08 l'avaient **mesuré**, puis
+trois tâches ont écrit « inchangé » de suite. **D'où vient l'écart n'est pas établi** — le trancher
+demanderait de rejouer `make bundle` sur trois commits.
+
 ⛔ **L'image dépasse la cible de 250 Mo depuis toujours**, et rien ne le disait avant que le gate ne
 porte les deux paliers. `performance-budget.md` §7.1 tranche : ne rien changer, aucune image Node
 officielle n'atteint 250 Mo.
@@ -264,9 +278,15 @@ officielle n'atteint 250 Mo.
 - ⚠️ **`experimental.globalNotFound` est un drapeau expérimental** de Next 16.3, et le site en dépend
   depuis P4-10 pour que les voies hors du proxy déclarent leur langue. Sa stabilisation — ou son
   retrait — est un déclencheur de réexamen ; un parcours garde l'effet, donc le retrait se verrait.
-- ⛔ **`links.repository` n'est rendu par aucune page** (relevé en P4-09) : `content/` le porte,
-  personne ne l'affiche, et le JSON-LD ne peut donc pas l'annoncer — une donnée structurée décrit ce
-  que la page **montre**. À reprendre avec la fiche de projet.
+- ⛔⛔ **Lighthouse est un critère de SORTIE de la Phase 4 que rien ne mesure** (relevé en P4-12) :
+  « mobile ≥ 85 / a11y 100 / SEO 100 » n'apparaît que dans quatre documents, et aucun gate ne produit
+  de score. C'est le défaut du seuil de 400 Mo que P4-05 avait découvert **en s'y référant**.
+  **Arbitrage du 2026-08-16 : porté par P4-13 et P4-15**, la mesure se faisant contre le site
+  déployé. La phase ne peut pas se déclarer close sans ce relevé.
+- ⛔ **Une donnée structurée décrit ce que la page montre, et deux ne le font pas** : `links.repository`
+  (relevé en P4-09) *et* le `BreadcrumbList` (relevé en P4-12). `content/` porte le premier, P4-09
+  émet le second sur les sections **et** les fiches — et **aucune page ne rend de fil d'Ariane, ni
+  aucun retour visible**. Les deux sont la même dette, à reprendre avec la fiche de projet.
 - ⚠️ **Une CSP stricte supprimerait les blocs `ld+json` en silence** — note dans
   `src/seo/json-ld.ts` pour l'ADR-0015 (Phase 14) : il faudra un `nonce` ou un condensat.
 - ✅ **Les six arbitrages de P4-07 et P4-08 sont TRANCHÉS** (2026-08-16, `phase-4-log.md` §14.8) :
@@ -314,6 +334,10 @@ officielle n'atteint 250 Mo.
   neuf y reste après la « restauration ». Relire `git status` plutôt que supposer l'arbre propre.
 - ⚠️ Un `*/` dans un chemin écrit en commentaire **ferme le bloc JSDoc**. Deux fichiers s'en sont
   cassés.
+- - ⛔⛔ **Playwright sort en 1 sur « No tests found ».** Un filtre `-g` qui ne correspond à rien — une
+  apostrophe droite là où le titre porte une apostrophe typographique suffit — est alors lu comme un
+  test en échec. Un harnais de mutation doit vérifier que son filtre **sélectionne** quelque chose
+  avant de conclure. Trouvé en P4-12, sur sa première mutation.
 - ⚠️ **`pnpm build` régénère `src/routing/route-manifest.ts`** avant `next build`. Le générateur rend
   la forme déjà passée par Prettier — sans quoi chaque build salissait l'arbre de travail — et un
   test compare octet à octet le fichier committé à ce que produirait le générateur aujourd'hui.

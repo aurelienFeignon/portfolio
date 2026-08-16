@@ -191,6 +191,13 @@ E2E-13  Back/forward navigateur : URL et état de scène restaurés
 E2E-14  reduced-motion : navigation instantanée, aucune animation de caméra
 ```
 
+⭐⭐ **Le statut de chacun de ces quatorze scénarios est tenu par un garde, pas par la mémoire**
+(P4-12) : `tests/integration/every-e2e-scenario-has-a-status.test.ts` exige de chaque ligne ci-dessus
+soit un parcours qui la revendique — une annotation `@covers E2E-xx` en tête de fichier —, soit un
+report vers une tâche de `roadmap.md` qui existe. **Ajouter un scénario à cette liste sans lui donner
+de statut fait rougir la suite**, ce qui est le but : une liste d'exigences que rien ne confronte au
+banc finit par annoncer couvert ce qui ne l'est pas, et c'est arrivé.
+
 **Comment l'« état de scène » est vérifié en E2E sans tester des pixels** : le conteneur de scène
 expose son état sous forme d'attribut de données (`data-scene-focus="projects"`), alimenté par la
 même fonction pure que la caméra. On assère sur cet attribut. C'est stable, lisible, et cela ne

@@ -1863,3 +1863,168 @@ seuil sur ses propres mérites — le prétendre exclu aurait masqué le jour o�
 laissait les trois liens de retour distingués par la seule couleur — 2,72:1 contre le texte courant,
 sous les 3:1 de WCAG 1.4.1. Le cas est discutable, chacun étant le contenu unique de son paragraphe ;
 `.textLink` rend le soulignement et **lève la question au lieu de l'arbitrer**.
+
+## 19. P4-12 — l'inventaire, et ce qu'il a démenti
+
+### 19.1 ⭐⭐⭐ La tâche était un inventaire, et l'inventaire a contredit la mission
+
+Le prompt de reprise annonçait, en toutes lettres : *« P4-12 est en grande partie déjà écrite […]
+Les scénarios E2E-01 à E2E-03, E2E-08 et E2E-12 de `testing-strategy.md` §4.7 sont couverts par les
+parcours de P4-07 à P4-11. »* La première chose à faire était de le **constater**, pas de le croire.
+
+Trois des cinq ne l'étaient pas :
+
+| Scénario | Ce que le banc portait réellement |
+|---|---|
+| **E2E-01** | Trois clics isolés dans trois fichiers — accueil → compétences, liste → fiche, 404 → projets. Aucune **traversée** continue, et aucun retour d'aucune sorte |
+| **E2E-03** | La bascule de langue n'était exercée que depuis une page de **section**, dans le profil `no-js`. Or c'est le seul endroit où elle ne prouve rien : le repli de P3-09 et la cible juste y sont **la même URL** |
+| **E2E-08** | Le focus visible et le lien d'évitement, oui (P4-10). « Tab jusqu'aux trois sections, Entrée navigue » : rien |
+
+E2E-11 et E2E-12, eux, l'étaient — et sur un périmètre **plus large** que ce que la stratégie
+exige : les dix-sept documents servis, et non quatre pages nommées. En écrire une seconde mesure
+aurait produit exactement la duplication que cette phase passe son temps à supprimer.
+
+⭐⭐ **La forme du défaut est celle que la phase entière traque**, et elle a frappé le document qui
+demande de ne plus la produire : *une affirmation sur le monde que rien ne confronte au monde*.
+L'affirmation était sincère, plausible, et fausse sur trois points.
+
+### 19.2 ⭐⭐⭐ Un inventaire écrit dans un journal est déjà périmé — il est donc devenu un garde
+
+Écrire ce tableau ici et s'arrêter là aurait reproduit la panne un cran plus loin : le jour où un
+quinzième scénario entre dans §4.7, ou bien où l'un des quatorze est écrit, rien ne le dirait.
+
+`tests/integration/every-e2e-scenario-has-a-status.test.ts` lit les scénarios **dans le bloc de code
+de §4.7** — pas dans le document entier, où les identifiants apparaissent aussi en prose — et tient
+trois sens :
+
+| Sens | Ce qu'il attrape | Vu rouge |
+|---|---|---|
+| document → table | un quinzième scénario ajouté à §4.7 sans statut | ✅ |
+| table → document | un statut qui nomme un scénario retiré du document | ✅ *(même assertion)* |
+| table → disque | un scénario **couvert** qu'aucun parcours ne revendique | ✅ |
+| table → disque | un scénario **reporté** qu'un parcours revendique déjà | ✅ |
+| table → roadmap | un report vers une tâche qui n'existe pas | ✅ |
+
+⭐ **Aucun chemin de fichier dans la table.** La localisation d'un parcours vit dans le parcours,
+sous la forme d'une annotation `@covers E2E-xx` en tête de fichier. La nommer une seconde fois dans
+la table en ferait deux écritures à accorder.
+
+⚠️ **Ce que le garde ne prouve pas, et qui est écrit dans son en-tête** : `@covers` est une
+**déclaration**. Il vérifie qu'elle existe et qu'elle est cohérente, jamais que le parcours mesure
+ce que le scénario décrit — aucun test ne peut lire cette intention. Ce qu'il ferme est l'oubli
+silencieux, c'est-à-dire précisément le défaut trouvé au §19.1.
+
+Les deux reports pointent vers des tâches réelles : **P10-10** pour les quatre scénarios de CV, qui
+n'ont pas d'objet avant que le formulaire existe, et **P6-10** pour E2E-13 et E2E-14, qui supposent
+l'état de scène. Le retour de E2E-01 exerce déjà la moitié « back » de E2E-13 ; le déclarer couvert
+affirmerait l'autre moitié, qui n'existe pas.
+
+### 19.3 ⭐⭐ Une mutation a survécu, et le défaut était le périmètre — pas la mutation
+
+`tabIndex={-1}` posé sur **toute** la navigation principale laissait le parcours clavier **vert**.
+
+Interrogée avant le test, comme la phase l'a appris de P4-10, la mutation avait raison : l'accueil
+offre **deux** chemins au clavier vers les trois sections — l'en-tête et le `SectionGuide` de
+P4-03 —, et le scénario « Tab jusqu'aux trois sections » y reste satisfait. Le test mesure le
+résultat exigé, pas le mécanisme.
+
+⛔ **Mais le parcours ne visitait qu'une page**, et sur les quinze autres l'en-tête est la **seule**
+source : la mutation y rendait les sections inatteignables au clavier sans rien faire rougir. C'est
+le trou de P4-10 à l'identique — *un garde ne couvre que ce qu'on lui donne*. Le balayage porte
+désormais aussi sur une page de section, et la mutation est tuée.
+
+### 19.4 ⛔⛔ Le harnais de mutation a déclaré « tuée » une mutation qu'il n'avait jamais éprouvée
+
+Première mutation, premier verdict : *TUÉE*. Faux. Le filtre `-g` passé à Playwright contenait une
+apostrophe droite là où le titre du test porte une apostrophe typographique ; **aucun test n'a été
+sélectionné**, Playwright sort en 1 sur « No tests found », et le harnais a lu ce 1 comme un échec
+de test.
+
+⭐⭐ **C'est la panne de P4-10 — un harnais qui conclut sur une exécution qui n'a pas eu lieu —
+reproduite dans l'outillage écrit pour la traquer**, et cette fois par l'autre bout : là-bas le
+build échouait et le banc tournait contre l'image précédente, ici le banc tournait sur zéro test. Le
+harnais vérifie désormais, **avant de muter**, que le filtre sélectionne au moins un test.
+
+⛔ Et la restauration a menti aussi : `git checkout --` **ne restaure pas un fichier non suivi**, et
+deux mutations du garde — encore neuf, donc non indexé — sont restées en place, contaminant les deux
+exécutions suivantes. Le piège est écrit dans le prompt de reprise depuis P4-11 ; il a été payé une
+seconde fois. Les mutations ont été rejouées proprement, sur copie de sauvegarde.
+
+| # | Mutation | Verdict |
+|---|---|---|
+| 1 | la liste des projets pointe vers la **section** au lieu de la fiche | ✅ tuée — E2E-01 |
+| 2 | le proxy **redirige** une fiche vers sa section | ✅ tuée — E2E-02 |
+| 3 | le sélecteur de langue d'une fiche retombe sur la **section** | ✅ tuée — E2E-03 |
+| 4 | `tabIndex={-1}` sur la navigation, périmètre « accueil seul » | ⛔ **survivante** — §19.3 |
+| 4′ | la même, périmètre élargi à une page de section | ✅ tuée — E2E-08 |
+| 5 | un scénario couvert rebasculé en « reporté » | ✅ tuée |
+| 6 | un quinzième scénario ajouté à §4.7 | ✅ tuée |
+| 7 | un report vers une tâche inexistante (`P6-42`) | ✅ tuée |
+| 8 | une annotation `@covers` retirée | ✅ tuée — vue rouge à l'écriture du garde |
+
+⭐ La mutation 3 n'est **tuable par aucun test unitaire** : elle vit dans une route, et les routes
+sont exclues de Vitest (`testing-strategy.md` §6). C'est la seconde fois que cette exclusion est
+éprouvée par une mutation plutôt que défendue par un raisonnement — la première était P4-09 §15.9.
+
+### 19.5 Ce que la tâche a refusé de faire, et pourquoi
+
+⛔ **Une fiche n'offre aucun retour visible** : ni fil d'Ariane rendu, ni lien vers sa liste. Le
+`BreadcrumbList` de P4-09 est pourtant émis sur les sections **et** sur les fiches — la position
+exacte pour laquelle la même tâche avait refusé `links.repository` : *« une donnée structurée décrit
+ce que la page montre »*. Les deux dettes sont désormais **la même dette**, et elle est nommée.
+
+**Arbitrage du 2026-08-16, posé avant d'écrire une ligne** : le parcours revient par le **bouton du
+navigateur**, ce qu'un visiteur fait quand rien d'autre n'existe. Rendre un fil d'Ariane serait du
+produit dans une tâche de parcours — trois sections et les fiches à regabariter, un choix de design,
+des clés de dictionnaire. *Ce qui rouvre la question* : la reprise de la fiche de projet, où
+`links.repository` attend déjà.
+
+⛔⛔ **Et le critère de sortie « Lighthouse mobile ≥ 85 / a11y 100 / SEO 100 » n'est mesuré nulle
+part** — le mot n'apparaît que dans quatre documents. Aucun gate, aucun parcours, aucune étape de CI
+ne produit un score. C'est le défaut du seuil de 400 Mo, que P4-05 avait découvert **en s'y
+référant** : *un seuil que rien ne fait respecter n'est pas un seuil*. **Arbitrage : dette nommée,
+portée par P4-13 et P4-15**, la mesure se faisant de toute façon contre le site déployé. *Ce qui
+rouvre la question* : une mise en ligne effectuée sans que le score ait jamais été relevé.
+
+### 19.6 Ce qui n'est pas observable, et qu'aucun parcours ne prétendra tenir
+
+- **Le cas « entité non traduite »** du sélecteur de langue : `content/` est parfaitement symétrique
+  depuis P2-11, si bien que le repli vers la section n'a aucune occurrence à observer. Il est tenu
+  par les tests unitaires de `languageOptions`, sur fixtures — et c'est une réserve de sortie de la
+  Phase 3, toujours vraie.
+- **La part « état de scène cohérent » de E2E-02** : elle suppose `data-scene-focus`, livré par
+  P6-07. Poser l'attribut aujourd'hui serait une architecture cachée.
+
+### 19.7 Relevés — et un chiffre qui ne correspond plus
+
+| Relevé après P4-12 | Valeur | Seuil |
+|---|---|---|
+| Socle partagé | **126,4 Ko — inchangé** | cible 136 · bloquant 146 |
+| JS propre à chaque route | ⚠️ **8,2 Ko** sur 18 routes *(documenté : 7,3)* | cible 25 · bloquant 40 |
+| Image de production | **273 Mo — inchangée** | cible 250 · **bloquant 400** |
+| Tests | **631** verts *(627 après P4-11)* | — |
+| E2E | **144** verts sur 5 profils *(140 après P4-11)* | — |
+| Couverture globale | **100 %** sur les quatre métriques | ≥ 80 % |
+| Mutations | **8 appliquées, 7 tuées**, 1 survivante traitée (§19.3) | — |
+
+⛔⛔ **Le JS par route vaut 8,2 Ko, et cinq documents en portent 7,3.** Le chiffre a été remesuré
+parce que le prompt de reprise demande de le remesurer — et il ne correspond pas.
+
+⭐ **Ce que la mesure établit, et rien de plus.** Cette branche ne touche **aucune ligne** de `src/`,
+ni `package.json`, ni `pnpm-lock.yaml`, ni `content/`, ni le `Dockerfile` : `git diff main` sur ces
+chemins est **vide**. L'artefact mesuré est donc exactement celui de `main`. Les 8,2 Ko sont la
+valeur du site tel qu'il est déployé, pas un effet de P4-12.
+
+⚠️ **Ce qui n'est PAS établi** : d'où vient l'écart de +0,9 Ko. P4-07 a **mesuré** 7,2 Ko, P4-08 a
+**mesuré** 7,3, puis P4-09, P4-10 et P4-11 ont écrit « 7,3 — inchangé » trois fois de suite. L'une de
+ces trois « inchangé » a pu être recopiée plutôt que relevée — c'est la faute que ce journal reproche
+depuis §7 —, ou l'écart peut venir de l'environnement de mesure. Trancher demanderait de rejouer
+`make bundle` sur chacun des trois commits, ce qui est une investigation et non cette tâche.
+
+⭐⭐ **Le budget n'est pas en cause** : 8,2 Ko contre une cible de 25 et un seuil bloquant de 40. Ce
+qui est en cause est le **chiffre écrit**, et c'est exactement la leçon n°3 de la phase — *un nombre
+recopié et jamais remesuré finit par décider seul* —, payée ici sur le chiffre qui sert d'argument à
+l'arbitrage n°1 de §14.8. L'arbitrage tient, sa valeur d'appui change.
+
+Les documents portent désormais **8,2 Ko, daté et mesuré**, et cette entrée dit ce qui reste à
+établir plutôt que de l'inventer.

@@ -1,8 +1,17 @@
 import { expect, test } from '../../support/test'
 
-// Le contenu doit exister sans JavaScript : c'est ce que voit un crawler, et
-// c'est la garantie structurelle du SEO (vision.md §5.3, ADR-0003).
-// Profil `no-js` uniquement — filtré par `testMatch` dans playwright.config.ts.
+/**
+ * Le contenu doit exister sans JavaScript : c'est ce que voit un crawler, et
+ * c'est la garantie structurelle du SEO (vision.md §5.3, ADR-0003).
+ *
+ * @covers E2E-10 — Sans JavaScript : contenu présent (le formulaire CV est P10-10)
+ *
+ * Profil `no-js` uniquement — filtré par `testMatch` dans playwright.config.ts.
+ *
+ * ⚠️ Le scénario dit « contenu présent, **formulaire CV fonctionnel** ». Sa
+ * seconde moitié n'a pas d'objet avant la Phase 10 : il n'y a pas de formulaire.
+ * P10-06 le livre « fonctionnant sans JavaScript » et P10-10 l'exerce ici même.
+ */
 test.describe('sans JavaScript', () => {
   test('le contenu et les repères sont présents dans le HTML servi', async ({ page }) => {
     await page.goto('/fr')

@@ -61,6 +61,39 @@ export async function sitemapPaths(request: APIRequestContext): Promise<string[]
 }
 
 /**
+ * Une entité de **détail** traduite dans les deux langues, déduite du sitemap.
+ *
+ * Surtout pas un slug codé en dur : `content/` appartient à l'auteur du site, et
+ * P2-11 a justement déplacé Augure des projets vers les expériences — ce qui a
+ * cassé la première version de ces tests. Un E2E qui nomme une entité teste le
+ * contenu du jour ; celui-ci teste la **propriété** qui doit rester vraie quel
+ * que soit le contenu.
+ *
+ * ⭐ Extraite ici au **deuxième exemplaire** (P4-12) : la bascule de langue sur
+ * une fiche en a besoin comme les métadonnées de la Phase 3, et c'est la règle du
+ * dépôt — une déduction recopiée est une déduction qui divergera.
+ *
+ * ⚠️ **Elle ne rend que le cas traduit, et c'est tout ce que `content/` porte**
+ * aujourd'hui : les deux locales sont parfaitement symétriques, si bien que le cas
+ * « entité absente d'une langue » n'existe que dans les fixtures unitaires
+ * (`phase-3-log.md`, réserves de sortie). Un parcours ne peut pas l'observer.
+ */
+export async function translatedPair(
+  request: APIRequestContext,
+): Promise<{ fr: string; en: string }> {
+  const paths = await sitemapPaths(request)
+  const pair = paths
+    .filter((path) => path.startsWith('/fr/') && path.split('/').length === 4)
+    .map((path) => ({ fr: path, en: path.replace(/^\/fr\//, '/en/') }))
+    .find(({ en }) => paths.includes(en))
+
+  // Sans entité traduite, les tests qui l'emploient ne vérifieraient rien :
+  // mieux vaut échouer que passer sur une collection vide.
+  expect(pair, 'aucune entité présente dans les deux langues au sitemap').toBeDefined()
+  return pair as { fr: string; en: string }
+}
+
+/**
  * Un chemin de page de **détail** dans la locale demandée, déduit du sitemap.
  *
  * Une page de détail a quatre segments (`/fr/projects/portfolio`), là où une

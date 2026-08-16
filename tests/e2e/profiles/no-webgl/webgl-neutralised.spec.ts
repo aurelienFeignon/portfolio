@@ -3,6 +3,8 @@ import { expect, test } from '../../support/test'
 /**
  * Le script de neutralisation est lui-même vérifié (P1-08).
  *
+ * @covers E2E-09 — Sans WebGL : tout le contenu est présent et navigable
+ *
  * Profil `no-webgl` uniquement — filtré par `testMatch` dans playwright.config.ts.
  *
  * Sans ce test, le profil `no-webgl` pourrait passer au vert simplement parce
