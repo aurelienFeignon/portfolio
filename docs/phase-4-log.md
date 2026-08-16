@@ -2192,3 +2192,37 @@ adresse Hetzner de Nuremberg. Elle a l'air périmée, et c'est peut-être toute 
 P4-13 **reste ouverte**. Prononcer la mise en production sans ce relevé serait une affirmation sur le
 monde que rien ne confronte au monde — la faute que cette phase entière traque, commise sur la tâche
 qui la clôt.
+
+### 20.7 Ce que la revue a changé — dont un gate qui n'a jamais pu échouer
+
+⛔⛔⛔ **`| tee` avalait le code de sortie : l'étape Lighthouse ne pouvait pas faire échouer la CI —
+et le gate de taille d'image non plus, depuis P4-05.** Le shell par défaut d'Actions est
+`bash -e {0}`, **sans `pipefail`** : l'étape sort avec le statut de `tee`, toujours 0. Vérifié à la
+main :
+
+```text
+bash -e            -c 'false | tee /dev/null; echo $?'   →  0
+bash -eo pipefail  -c 'false | tee /dev/null; echo $?'   →  1
+```
+
+⭐⭐⭐ **P4-05 avait rendu le seuil d'image bloquant après avoir découvert qu'il n'était appliqué nulle
+part. Il ne l'était toujours pas *dans la CI*** — seulement dans `make ci`, qui n'a pas de tuyau. Un
+seuil peut donc être appliqué **à un endroit sur deux**, et c'est le tuyau d'affichage qui décide.
+Les deux étapes portent désormais `shell: bash` (qui sélectionne `-eo pipefail`) et `2>&1`, sans quoi
+le détail de l'échec partait sur stderr et n'atteignait jamais le résumé de la CI.
+
+⛔ **Un audit tombé en erreur se lisait comme un succès.** Le filtre écartait `score === null`, ce qui
+couvre les audits informatifs **et** ceux dont `scoreDisplayMode` vaut `error`. « Bonnes pratiques »
+étant jugée sur cette liste et jamais sur son score, un audit planté n'apparaissait nulle part : un
+gate qui verdit sur une panne de son propre instrument.
+
+⚠️ **`process.exit(1)` tronquait l'explication.** Quand la sortie standard est un tuyau — ce qu'elle
+est en CI —, Node écrit de façon asynchrone et `process.exit()` abandonne la file. C'est
+`process.exitCode` qui laisse le processus se terminer une fois les écritures vidées. Vérifié en
+rejouant une mutation à travers `| cat` : les quatre lignes de détail arrivent entières.
+
+⚠️ **Et un accès de propriété qui ne compilait que par accident** : `threshold.minimum` était lu après
+avoir déstructuré `verdict`, ce qui ne discrimine pas l'union. Personne ne l'a vu parce que **les
+`.mts` de `scripts/` ne sont pas dans le périmètre de `tsconfig.json`** — une exposition antérieure à
+cette tâche, valable pour les six scripts. Le test porte maintenant sur `threshold.verdict`, et le
+fichier a été typecheck explicitement en mode strict.

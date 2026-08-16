@@ -138,10 +138,19 @@ jobs:
       # comparaison écrite ici : sans cela `make ci` resterait vert là où la CI
       # est rouge, et le seuil existerait en deux exemplaires. Le tag est aligné
       # sur celui que la cible attend.
+      # ⛔⛔ **`| tee` avalait le code de sortie, donc ce gate n'a JAMAIS pu faire
+      # échouer la CI.** Le shell par défaut d'Actions est `bash -e {0}` — **sans
+      # `pipefail`** —, si bien que l'étape sortait avec le statut de `tee`,
+      # toujours 0. P4-05 avait rendu ce seuil bloquant après avoir découvert
+      # qu'il n'était appliqué nulle part ; il ne l'était toujours pas *ici*.
+      # `shell: bash` sélectionne `bash --noprofile --norc -eo pipefail {0}`, et
+      # `2>&1` fait entrer le détail de l'échec dans le résumé plutôt que de le
+      # laisser sur stderr. Relevé en revue de P4-13.
       - name: Budget de taille de l'image de production
+        shell: bash
         run: |
           docker image tag portfolio:ci portfolio:local
-          make check-image-size | tee -a "$GITHUB_STEP_SUMMARY"
+          make check-image-size 2>&1 | tee -a "$GITHUB_STEP_SUMMARY"
 
       - uses: pnpm/action-setup@v4
         with:
@@ -178,8 +187,13 @@ jobs:
       # décide lui-même de ce qui bloque : accessibilité et SEO à 100 (structurel),
       # « bonnes pratiques » sur ses audits — son score est plafonné par le HTTP nu
       # du banc —, performance relevée sans être bloquante sur un runner partagé.
+      #
+      # ⚠️ `shell: bash` et `2>&1` pour la raison écrite au-dessus : sans eux,
+      # l'audit serait un gate incapable d'échouer, et son détail n'arriverait
+      # pas au résumé.
       - name: Audit Lighthouse de l'image de production
-        run: node scripts/check-lighthouse.mts | tee -a "$GITHUB_STEP_SUMMARY"
+        shell: bash
+        run: node scripts/check-lighthouse.mts 2>&1 | tee -a "$GITHUB_STEP_SUMMARY"
         env:
           PLAYWRIGHT_BASE_URL: http://localhost:3000
 

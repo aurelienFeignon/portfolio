@@ -52,7 +52,9 @@ const DEBUG_PORT = 9222
 const THRESHOLDS = [
   { category: 'accessibility', label: 'accessibilité', minimum: 100, verdict: 'score' },
   { category: 'seo', label: 'SEO', minimum: 100, verdict: 'score' },
-  { category: 'best-practices', label: 'bonnes pratiques', minimum: 95, verdict: 'audits' },
+  // Pas de `minimum` : cette catégorie est jugée sur ses audits, et afficher
+  // un seuil de 95 à côté d'un 78 accepté n'aurait fait qu'égarer le lecteur.
+  { category: 'best-practices', label: 'bonnes pratiques', verdict: 'audits' },
   { category: 'performance', label: 'performance', minimum: 85, verdict: 'relevé' },
 ] as const
 
@@ -77,6 +79,13 @@ const LAB_ONLY_FAILURES = new Set(['is-on-https', 'redirects-http'])
  * Les deux pages que `performance-budget.md` §2 désigne comme profil de
  * référence : l'accueil et une page de détail.
  *
+ * ⚠️ **La lecture du sitemap est refaite ici plutôt que partagée avec
+ * `tests/e2e/support/sitemap.ts`, et c'est délibéré** : ce script vit dans
+ * `scripts/`, l'autre dans `tests/`, et le second lit par l'`APIRequestContext`
+ * de Playwright là où celui-ci n'a que `fetch`. Les mettre en commun demanderait
+ * un troisième emplacement et une abstraction sur le client HTTP, pour six
+ * lignes. Le déclencheur d'extraction est un **troisième** lecteur.
+ *
  * ⚠️ **La fiche est déduite du sitemap**, jamais nommée : `content/` appartient à
  * l'auteur du site et change. C'est la règle que les parcours E2E appliquent
  * depuis P2-11, et la raison en est la même — un audit qui nomme une entité
@@ -98,7 +107,10 @@ async function pagesToAudit(): Promise<string[]> {
 
 /** Le profil mobile de `performance-budget.md` §2, et le profil desktop. */
 const FORM_FACTORS = [
-  { name: 'mobile', settings: { formFactor: 'mobile' as const, screenEmulation: undefined } },
+  // Rien d'autre que le facteur de forme : le profil mobile de Lighthouse porte
+  // déjà son émulation d'écran et son bridage. Passer `screenEmulation:
+  // undefined` revenait à écrire explicitement ce que l'absence de clé dit mieux.
+  { name: 'mobile', settings: { formFactor: 'mobile' as const } },
   {
     name: 'desktop',
     settings: {
@@ -142,10 +154,21 @@ try {
       if (result === undefined) throw new Error(`Lighthouse n'a rien rendu pour ${path}`)
 
       for (const { category } of THRESHOLDS) {
+        /*
+         * ⛔ **Un audit que Lighthouse n'a pas pu exécuter n'est pas un audit
+         * réussi.** La première rédaction filtrait sur `score !== null`, ce qui
+         * écarte aussi bien les audits informatifs que ceux **tombés en
+         * erreur** (`scoreDisplayMode: 'error'`). Comme « bonnes pratiques » est
+         * jugée sur cette liste et jamais sur son score, un audit planté s'y
+         * lisait comme un succès — un gate qui verdit sur une panne de son
+         * propre instrument. Relevé en revue.
+         */
         const failing = (result.lhr.categories[category]?.auditRefs ?? [])
           .filter((ref) => {
             const audit = result.lhr.audits[ref.id]
-            return audit !== undefined && audit.score !== null && audit.score < 1
+            if (audit === undefined) return false
+            if (audit.scoreDisplayMode === 'error') return true
+            return audit.score !== null && audit.score < 1
           })
           .map((ref) => ref.id)
           .filter((id) => !LAB_ONLY_FAILURES.has(id))
@@ -175,21 +198,39 @@ console.log('\n  Lighthouse, contre l’image de production :\n')
 
 const failures: string[] = []
 
-for (const { category, label, minimum, verdict } of THRESHOLDS) {
+for (const threshold of THRESHOLDS) {
+  const { category, label } = threshold
+
   for (const reading of readings.filter((entry) => entry.category === category)) {
-    const held = verdict === 'score' ? reading.score >= minimum : reading.failing.length === 0
-    const mark = verdict === 'relevé' ? '·' : held ? '✓' : '✗'
     const where = `${reading.page} (${reading.factor})`
 
+    /*
+     * ⚠️ Le test porte sur `threshold.verdict` et non sur une variable
+     * déstructurée : c'est ce qui fait discriminer l'union par le compilateur, et
+     * donc ce qui rend `threshold.minimum` légitime là où il est lu. Déstructurer
+     * `verdict` compilait ici par accident — les `.mts` de `scripts/` ne sont pas
+     * dans le périmètre de `tsconfig.json`, une exposition antérieure à cette
+     * tâche et signalée en revue.
+     */
+    const verdict =
+      threshold.verdict === 'relevé'
+        ? { blocking: false as const }
+        : threshold.verdict === 'score'
+          ? {
+              blocking: true as const,
+              held: reading.score >= threshold.minimum,
+              why: `${label} : ${reading.score} sur ${where}, exigé ${threshold.minimum}`,
+            }
+          : {
+              blocking: true as const,
+              held: reading.failing.length === 0,
+              why: `${label} : ${reading.failing.join(', ')} en échec sur ${where}`,
+            }
+
+    const mark = !verdict.blocking ? '·' : verdict.held ? '✓' : '✗'
     console.log(`    ${mark}  ${String(reading.score).padStart(3)}  ${label} — ${where}`)
 
-    if (verdict === 'relevé' || held) continue
-
-    failures.push(
-      verdict === 'score'
-        ? `${label} : ${reading.score} sur ${where}, exigé ${minimum}`
-        : `${label} : ${reading.failing.join(', ')} en échec sur ${where}`,
-    )
+    if (verdict.blocking && !verdict.held) failures.push(verdict.why)
   }
 }
 
@@ -211,7 +252,15 @@ console.log(
 if (failures.length > 0) {
   console.error('\n  ✗ Ce qui n’est pas tenu :')
   for (const failure of failures) console.error(`      ${failure}`)
-  process.exit(1)
+  /*
+   * ⚠️ `process.exitCode`, jamais `process.exit()`. Quand la sortie standard est
+   * un **tuyau** — ce qu'elle est en CI, où l'étape passe par `tee` —, Node
+   * écrit de façon asynchrone : `process.exit()` abandonne ce qui reste en file
+   * et tronque le message qui explique l'échec, voire le tableau entier. Le
+   * processus se termine tout seul, avec ce code, une fois les écritures
+   * vidées. Relevé en revue.
+   */
+  process.exitCode = 1
+} else {
+  console.log('\n  ✓ Accessibilité et SEO à 100, et aucun autre audit en échec.\n')
 }
-
-console.log('\n  ✓ Accessibilité et SEO à 100, et aucun autre audit en échec.\n')
