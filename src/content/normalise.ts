@@ -7,6 +7,7 @@
  * production sous forme de page qui change sans que le contenu ait bougé.
  */
 import type { Locale } from '../i18n/locales.ts'
+import { compareAtCommonPrecision } from './schemas/common.ts'
 
 import type { SkillCategory } from './types.ts'
 
@@ -42,8 +43,27 @@ export function byMostRecent<T extends Period & { readonly slug: string }>(a: T,
   const endedA = a.endedAt ?? STILL_RUNNING
   const endedB = b.endedAt ?? STILL_RUNNING
 
-  if (endedA !== endedB) return endedB.localeCompare(endedA)
-  if (a.startedAt !== b.startedAt) return b.startedAt.localeCompare(a.startedAt)
+  /*
+   * ⚠️ `compareAtCommonPrecision` et non `localeCompare`, pour deux raisons qui
+   * se cumulent depuis que les dates portent leur précision.
+   *
+   * `localeCompare` d'abord : les chaînes n'ont plus la même longueur, le tiret
+   * devient porteur, et il est traité comme de la ponctuation — un poids qui
+   * dépend d'une collation qu'aucun test ici ne contrôle.
+   *
+   * La comparaison brute ensuite : elle lit une valeur grossière comme le
+   * **début** de sa période, ce qui est juste pour une date de début et faux
+   * pour une date de fin. Deux fins qui n'affirment pas la même chose sont donc
+   * déclarées **égales**, et le départage passe explicitement à la date de
+   * début, puis au slug — plutôt qu'à une convention que le contenu ne porte pas.
+   */
+  const byEnd = compareAtCommonPrecision(endedB, endedA)
+  if (byEnd !== 0) return byEnd
+
+  const byStart = compareAtCommonPrecision(b.startedAt, a.startedAt)
+  if (byStart !== 0) return byStart
+
+  // Le slug départage des égalités parfaites, et son ordre est pour des humains.
   return a.slug.localeCompare(b.slug)
 }
 

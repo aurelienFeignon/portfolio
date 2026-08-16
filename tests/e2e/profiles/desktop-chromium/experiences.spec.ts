@@ -28,9 +28,9 @@ test.describe('expériences', () => {
     const entries = main.getByRole('heading', { level: 2 })
     await expect(entries).not.toHaveCount(0)
 
-    // La période est affichée **à l'année** : c'est la précision tranchée en
-    // P4-04, et la seule que le contenu connaisse réellement (décision D1). Un
-    // `datetime` plus précis affirmerait à une machine un jour inventé.
+    // `datetime` porte la précision **stockée**, ni plus ni moins : le contenu
+    // écrit `2021` quand seule l'année est connue, et un jour exact quand il
+    // l'est. Le domaine du schéma est exactement celui de `<time datetime>`.
     const stamps = await main
       .locator('time')
       .evaluateAll((nodes) => nodes.map((node) => node.getAttribute('datetime')))
@@ -39,7 +39,7 @@ test.describe('expériences', () => {
     // aussi le jour où les `<time>` disparaîtraient.
     expect(stamps.length).toBeGreaterThan(0)
     for (const value of stamps) {
-      expect(value).toMatch(/^\d{4}$/)
+      expect(value).toMatch(/^\d{4}(-\d{2}){0,2}$/)
     }
 
     await entries.first().getByRole('link').click()
