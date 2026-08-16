@@ -593,3 +593,91 @@ inscrite dans `content/` : le contenu dit maintenant exactement ce qu'on sait. L
 | Tests | **484** verts, couverture 100 % | — |
 | E2E | 86 verts sur 5 profils | — |
 | Contenu validé | 86 fichiers | — |
+
+## 11. P4-06 — les compétences
+
+### 11.1 Ce qui n'est pas affiché, et pourquoi c'est le point de la tâche
+
+⛔ **Les niveaux (1 à 5) ne sont pas publiés.** `content/README.md` les qualifie de « proposition,
+déduite de la place que chaque technologie occupe dans les expériences. C'est un jugement sur
+toi-même : relis-les » — décision **D2, toujours ouverte**. Les afficher publierait comme un fait une
+auto-évaluation que personne n'a validée.
+
+⭐⭐ **C'est exactement la même faute que la troncature des dates**, une tâche plus tôt : afficher une
+valeur d'attente comme si elle était établie. La différence est qu'ici elle a été vue **avant** de
+livrer, et non par une revue après coup. Les niveaux **ordonnent** la liste — un signal doux, interne
+au tri — mais ne l'**affirment** pas.
+
+Un parcours E2E garde la décision : elle serait sinon annulée par un simple ajout de champ dans la
+vue, sans que rien ne le signale.
+
+### 11.2 Le groupement appartient à la couche, pas à la vue
+
+`groupByCategory` vit dans `src/content/normalise.ts`, avec les autres dérivations. Il **rétablit**
+l'ordre des cinq catégories depuis `CATEGORY_ORDER` au lieu de regrouper les suites consécutives
+d'une liste supposée triée : sans cela, un `bySkillOrder` modifié demain réordonnerait la page en
+silence, et une liste reçue autrement produirait des groupes en double.
+
+Une catégorie que rien ne remplit n'apparaît pas — le cas est réel (R-07), et un titre suivi du vide
+est un défaut visible.
+
+### 11.3 Une exception de traduction, et la règle qui la borne
+
+`skills.categories.infrastructure` vaut « Infrastructure » dans les deux langues : c'est la **seconde**
+exception du test de non-régression des dictionnaires, après le nom propre `site.name`.
+
+⭐ La règle posée en P4-04 tient : chercher **d'abord** la formulation idiomatique. Elle a servi deux
+fois de plus ici — « Frameworks » seul aurait été identique, et « Frameworks et bibliothèques » /
+« Frameworks & libraries » décrit mieux une catégorie qui contient Zustand, React Flow et Mercure.
+L'exception n'est prise que lorsque dégrader le libellé serait le seul moyen de satisfaire le test.
+
+### 11.4 Ce que la revue a changé
+
+Trois constats méritent d'être retenus au-delà de leur correctif.
+
+⛔⛔ **Un garde de décision produit ne peut observer que des symptômes.** Le parcours E2E qui interdit
+les niveaux visait « 3/5 » et « ★ » ; il laissait passer la régression la plus simple,
+`TypeScript 5`. Élargi, il attrape les chiffres et perd les étoiles — c'est un **déplacement d'angle
+mort**, pas une montée en niveau. Ce qui ferme réellement la classe est le **contrat** : `SkillGroup`
+ne porte que `{ slug, name }`, et la route retire `level` à la composition. Le test reste, requalifié
+en **filet de dernier recours** pour ce qu'on ajouterait *hors* du composant — son en-tête le dit
+maintenant, au lieu d'affirmer qu'il « garde la décision ».
+
+⛔⛔ **La route contournait la façade que le dépôt déclare exclusive.** `groupByCategory` était appelé
+directement depuis `skills/page.tsx` — le premier appelant de `normalise.ts` hors de la couche
+Content. Le cloisonnement ESLint l'autorise (`app → content` en bloc) : rien n'aurait protesté, et la
+phrase « c'est la seule surface que connaissent les couches au-dessus » serait devenue fausse **sans
+être amendée**. C'est le troisième cas de cette phase où une prose survit au code qu'elle décrit.
+⭐ Le premier contournement d'une façade est gratuit et invisible ; c'est le second qui coûte, parce
+qu'il n'a plus de raison de se retenir. `getSkillsByCategory` remet la clause en vigueur.
+
+⭐⭐⭐ **L'ordre des catégories est lu depuis l'énumération du schéma, plus recopié.** Trois formes se
+sont succédé : un tableau typé `readonly SkillCategory[]` — qui ne vérifie que ses éléments, si bien
+qu'une catégorie oubliée compilait et **disparaissait de la page** ; un `Record<SkillCategory, …>` en
+`satisfies`, qui ferme le trou par le compilateur mais écrit la décision **deux fois**, dans l'ordre
+des clés et dans les valeurs ; et enfin `skillFrontmatterSchema.shape.category.options`, qui rend la
+liste **exhaustive par construction**. Les deux premières *détectent* le problème ; la troisième le
+**supprime**. L'ordre du `z.enum` devient porteur de sens, et `schemas/skill.ts` le dit à sa source.
+
+⭐ Quatre extractions au seuil du dépôt : `chip` et son contenant `chip-row`, `bare-list` — dont
+l'en-tête porte désormais **la seule** énonciation de la règle `list-style: none` ⇒ `role="list"`,
+recopiée jusque-là dans quatre composants dont un cinquième l'avait déjà perdue — et `EmptyNotice`,
+où ce qui était dupliqué n'était pas la ligne de JSX mais le **raisonnement** sur R-07, réécrit à la
+main dans trois fichiers.
+
+⛔ `site-nav` porte les mêmes six déclarations que `chip-row` et **ne la compose pas** : la
+ressemblance y est fortuite. Factoriser sur une identité de valeurs, et non de nature, coûte le jour
+où l'une des deux doit bouger.
+
+### 11.5 Relevés
+
+| Relevé après P4-06 | Valeur | Seuil |
+|---|---|---|
+| JS propre à chaque route | **0,0 Ko** sur 16 routes | cible 25 · bloquant 40 Ko |
+| Socle partagé | **129,5 Ko — inchangé** | cible 136 · bloquant 146 |
+| Tests | **492** verts, couverture 100 % | — |
+| E2E | 89 verts sur 5 profils | — |
+| Violations axe serious/critical | **0** sur `/fr`, `/fr/experiences`, une fiche, `/fr/skills` | 0 |
+
+⭐ `chip.module.css` extrait au deuxième exemplaire — la pile technique d'une fiche et les compétences
+groupées disent la même chose, un terme court tiré du même référentiel.

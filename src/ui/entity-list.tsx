@@ -10,7 +10,7 @@
  * la page doit rester valide plutôt que d'afficher une liste sans éléments.
  */
 import { type Locale } from '../i18n/locales.ts'
-import { getMessages } from '../i18n/messages/index.ts'
+import { EmptyNotice } from './empty-notice'
 
 export interface EntityLink {
   readonly href: string
@@ -26,10 +26,8 @@ export function EntityList({
   readonly locale: Locale
   readonly items: readonly EntityLink[]
 }) {
-  const messages = getMessages(locale)
-
   if (items.length === 0) {
-    return <p>{messages.empty}</p>
+    return <EmptyNotice locale={locale} />
   }
 
   return (

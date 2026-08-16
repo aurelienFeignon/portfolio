@@ -127,4 +127,20 @@ describe('dérivations exposées par le dépôt', () => {
 
     expect(featured.map((skill) => skill.slug)).toEqual(['typescript'])
   })
+
+  it('rend les compétences groupées par catégorie, sans catégorie vide', async () => {
+    // Le dépôt est la **seule** surface que connaissent les couches au-dessus :
+    // le groupement passe par lui, et non par un appel direct à `normalise.ts`
+    // depuis une route. Sans cette méthode, la clause d'exclusivité écrite en
+    // tête de `repository.ts` aurait été fausse dès le premier contournement.
+    const groups = await repository().getSkillsByCategory('fr')
+
+    expect(groups.length).toBeGreaterThan(0)
+    for (const group of groups) {
+      expect(group.skills.length).toBeGreaterThan(0)
+      for (const skill of group.skills) {
+        expect(skill.category).toBe(group.category)
+      }
+    }
+  })
 })

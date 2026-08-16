@@ -62,9 +62,10 @@ export function SiteNav({
 }) {
   const messages = getMessages(locale)
 
+  /* `role="list"` : voir `bare-list.module.css`, la raison y vit une fois. */
   return (
     <nav aria-label={messages.nav.label}>
-      <ul className={styles.list}>
+      <ul className={styles.list} role="list">
         {links.map(({ section, href }) => (
           <li key={section}>
             {/*

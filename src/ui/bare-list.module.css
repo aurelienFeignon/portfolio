@@ -1,0 +1,23 @@
+/*
+ * Une liste débarrassée de sa présentation par défaut (P4-06).
+ *
+ * Cinquième exemplaire du même triplet — navigation, cartes d'accueil,
+ * expériences, compétences, pile technique. C'est la réinitialisation la plus
+ * répétée du dépôt, et elle porte un piège que sa banalité fait oublier.
+ *
+ * ⚠️⚠️ **`list-style: none` retire la sémantique de liste à VoiceOver sous
+ * Safari.** Le lecteur d'écran cesse d'annoncer « liste de 5 éléments » : ce
+ * n'est pas un détail de style, c'est la structure qui disparaît. Le correctif
+ * est `role="list"` sur le `<ul>` — redondant en HTML, nécessaire en pratique.
+ *
+ * ⭐ La raison vit **ici** et non chez les appelants : elle est une conséquence
+ * de cette règle CSS, pas une propriété d'un composant. Recopiée dans chaque
+ * composant, elle avait déjà commencé à dériver — un site portait l'attribut
+ * sans l'explication.
+ */
+
+.bareList {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}

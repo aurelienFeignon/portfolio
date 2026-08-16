@@ -711,7 +711,7 @@ reste et le filet de sécurité permanent du projet. Journal de phase :
 | P4-03 | Accueil : présentation et accès aux trois sections | **DONE** *(2026-08-15)* | P4-02 |
 | P4-04 | Liste et détail des expériences | **DONE** *(2026-08-16)* | P4-02 |
 | P4-05 | Liste et détail des projets — **première page qui rend un corps MDX** | TODO | P4-02 |
-| P4-06 | Compétences (groupées par catégorie) | TODO | P4-02 |
+| P4-06 | Compétences (groupées par catégorie) | **DONE** *(2026-08-16)* | P4-02 |
 | P4-07 | Pages 404 et erreur, localisées | TODO | P4-02 |
 | P4-08 | Métadonnées OpenGraph et images de partage | TODO | P3-06 |
 | P4-09 | JSON-LD : `Person`, `WebSite`, `CreativeWork`, `BreadcrumbList` | TODO | P4-05 |
@@ -810,6 +810,21 @@ comparent maintenant par unités de code, comme le faisait déjà `isPeriodOrder
 croisant les trois précisions le gardent.
 ⭐ En YAML, `2021` nu est un **entier** : les valeurs à l'année sont donc quotées dans `content/`.
 · Depends on: P4-04
+
+**P4-06 — Compétences groupées par catégorie**
+Status: **DONE** (2026-08-16) — cinq groupes titrés, chacun rattaché à sa liste par `aria-labelledby`,
+dans l'**ordre du domaine** (du plus concret au plus transversal). Le groupement est une dérivation et
+vit donc dans la couche Content (`groupByCategory`) : il **rétablit** l'ordre au lieu de supposer
+l'entrée triée, et n'ouvre pas une catégorie que rien ne remplit.
+⛔ **Les niveaux (1 à 5) ne sont pas affichés**, et c'est délibéré : `content/README.md` les donne pour
+« une proposition […] un jugement sur toi-même : relis-les » — décision **D2, ouverte**. Les publier
+afficherait comme un fait une auto-évaluation que personne n'a validée, c'est-à-dire exactement
+l'erreur que la précision des dates a coûté une tâche entière à réparer. Ils **ordonnent** la liste ;
+ils ne l'**affirment** pas. Un parcours E2E garde la décision.
+⭐ Seconde exception au test de non-régression des dictionnaires : `skills.categories.infrastructure`
+est le mot juste dans les deux langues. La règle reste de chercher **d'abord** la formulation
+idiomatique — « Frameworks » est devenu « Frameworks et bibliothèques » / « Frameworks & libraries »,
+qui décrit mieux une catégorie contenant aussi des bibliothèques. · Depends on: P4-02
 
 **Critères de sortie** — Toutes les exigences de la §20 de la mission satisfaites ; Lighthouse
 mobile ≥ 85 / a11y 100 / SEO 100 ; 0 violation axe serious/critical ; le projet `no-js` passe ;

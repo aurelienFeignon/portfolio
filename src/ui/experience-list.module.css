@@ -7,12 +7,11 @@
  */
 
 .list {
+  composes: bareList from './bare-list.module.css';
+
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
-  margin: 0;
-  padding: 0;
-  list-style: none;
 }
 
 .item {

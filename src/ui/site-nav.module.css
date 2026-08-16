@@ -12,12 +12,11 @@
  */
 
 .list {
+  composes: bareList from './bare-list.module.css';
+
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-1);
-  margin: 0;
-  padding: 0;
-  list-style: none;
 }
 
 .link {
