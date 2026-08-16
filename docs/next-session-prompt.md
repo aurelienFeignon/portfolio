@@ -40,9 +40,8 @@ Les Phases 0, 1, 2 et 3 sont TERMINÉES et validées. Ne les refais pas, ne les 
 ## État
 
 Phases 0 à 3 : **DONE**. **Phase 4 (Portfolio HTML) : en cours**, 13 tâches sur 17 closes.
-**P4-01 à P4-11 sont fusionnées sur `main` et déployées**, CI verte à chaque fois. ⚠️ **P4-12 attend
-sa fusion** (PR #28, CI verte) : tant qu'elle n'est pas fusionnée, le site déployé ne porte pas son
-garde d'inventaire — et cette ligne est à corriger le jour de la fusion.
+**Tout ce qui suit est fusionné sur `main` et déployé**, les cinq jobs verts à chaque fois —
+publication GHCR et déploiement VPS compris. P4-12 l'est depuis le 2026-08-16 (PR #28, `749044c`).
 
 | Tâche | Ce qu'elle a livré |
 |---|---|
