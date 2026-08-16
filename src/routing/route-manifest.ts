@@ -39,6 +39,9 @@ export const SERVED_PATHS: readonly string[] = [
  */
 export const PASSTHROUGH_PATHS: readonly string[] = [
   '/README.md',
+  '/en/opengraph-image',
+  '/fr/opengraph-image',
+  '/icon',
   '/resume/cv-en.pdf',
   '/resume/cv-fr.pdf',
   '/robots.txt',

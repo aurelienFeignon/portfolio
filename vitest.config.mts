@@ -75,6 +75,18 @@ export default defineConfig({
         // donc d'introduire le mock comme pratique du dépôt — pour deux lignes.
         'src/app/**/error.tsx',
         'src/app/global-error.tsx',
+        // Routes de **métadonnée** de l'App Router (P4-08) : `icon.tsx` et
+        // `opengraph-image.tsx` ne rendent pas du HTML mais une image, et leur
+        // corps est de la composition — une seule décision les habitait, les
+        // initiales d'un nom, et elle en a été **sortie** (`src/ui/initials.ts`,
+        // couverte à 100 %). C'est la même règle que pour les pages, appliquée
+        // telle qu'elle est écrite.
+        //
+        // Elles sont exercées par les parcours E2E contre l'image de production,
+        // qui vérifient que l'adresse annoncée répond réellement une image — ce
+        // qu'un rendu jsdom ne ferait pas.
+        'src/app/**/opengraph-image.tsx',
+        'src/app/icon.tsx',
         // Types purs et déclarations : rien à exécuter.
         'src/**/*.d.ts',
         'src/**/types.ts',

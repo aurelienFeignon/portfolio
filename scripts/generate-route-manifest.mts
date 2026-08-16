@@ -29,7 +29,7 @@ import { writeFile } from 'node:fs/promises'
 
 import { contentRepository } from '../src/content/repository.ts'
 import { LOCALES, type Locale } from '../src/i18n/locales.ts'
-import { entityPath, homePath, sectionPath } from '../src/routing/paths.ts'
+import { entityPath, homePath, sectionPath, shareImagePath } from '../src/routing/paths.ts'
 import { SECTIONS, SECTIONS_WITH_DETAIL, type SectionWithDetail } from '../src/routing/sections.ts'
 
 import { publicUrlPaths } from './public-paths.mts'
@@ -65,11 +65,30 @@ async function servedPaths(): Promise<readonly string[]> {
  * des pages et n'ont donc rien à faire dans `SERVED_PATHS`.
  *
  * ⚠️ Cette liste est écrite à la main, et c'est admissible **parce qu'un gate la
- * confronte** : `check-static-rendering.mts` exige que chaque route non-page du
- * build y figure. Une liste manuelle que rien ne vérifie est exactement ce qui a
- * fait disparaître les deux CV.
+ * confronte dans les deux sens** : `check-static-rendering.mts` exige que chaque
+ * route non-page du build y figure, et que chaque entrée corresponde à quelque
+ * chose que le build sert. Une liste manuelle que rien ne vérifie est exactement
+ * ce qui a fait disparaître les deux CV.
+ *
+ * ⭐ **La dériver des conventions de Next a été envisagé, et écarté sur place.**
+ * Le journal de P4-07 annonçait que P4-08 rendrait la dérivation rentable en
+ * ajoutant `opengraph-image` ; arrivé là, l'ajout tient en une ligne, tandis que
+ * dériver demanderait de réimplémenter la table des fichiers de métadonnées de
+ * l'App Router *et* l'expansion des segments dynamiques. Une prédiction faite
+ * avant de voir le cas ne vaut pas la mesure du cas — et le gate rend cette
+ * liste **vérifiée** plutôt que crue.
  */
-const ROUTE_HANDLERS = ['/robots.txt', '/sitemap.xml']
+const ROUTE_HANDLERS = [
+  '/robots.txt',
+  '/sitemap.xml',
+  // L'icône du site (P4-08). Unique, sans segment de locale : `site.name` est un
+  // nom propre, identique dans les deux langues.
+  '/icon',
+  // Une image de partage par langue (P4-08), prégénérée comme le reste. Le
+  // chemin vient de `shareImagePath`, que les métadonnées appellent aussi : les
+  // deux ne peuvent donc pas désigner des adresses différentes.
+  ...LOCALES.map(shareImagePath),
+]
 
 /**
  * La destination est un **argument**, comme la racine des deux gates.

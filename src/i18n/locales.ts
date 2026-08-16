@@ -66,3 +66,22 @@ export const LOCALE_NAMES = {
   fr: 'Français',
   en: 'English',
 } as const satisfies Record<Locale, string>
+
+/**
+ * La même langue, au format qu'**OpenGraph impose** — `langue_TERRITOIRE`
+ * (P4-08).
+ *
+ * ⚠️ **Ce format affirme un territoire que le site ne porte pas.** Nos locales
+ * sont des langues : `fr` ne dit pas « France ». La spécification OpenGraph,
+ * elle, n'accepte pas la langue seule, et un consommateur qui ne trouve rien
+ * suppose `en_US` — c'est-à-dire qu'omettre le champ affirmerait l'anglais
+ * américain sur la page française. Des deux approximations, celle-ci est la
+ * moins fausse, et elle est écrite ici plutôt que devinée dans `src/seo`.
+ *
+ * C'est la seule entorse au principe de P4-17 (« l'incertitude voyage avec la
+ * donnée ») de tout le dépôt, et elle est imposée par un format tiers.
+ */
+export const LOCALE_OPENGRAPH = {
+  fr: 'fr_FR',
+  en: 'en_US',
+} as const satisfies Record<Locale, string>

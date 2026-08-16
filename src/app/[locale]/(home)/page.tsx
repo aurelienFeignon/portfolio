@@ -46,6 +46,7 @@ export async function generateMetadata({ params }: LocaleParams): Promise<Metada
     // L'accueil existe dans toutes les langues : on le dit, plutôt que de
     // compter sur un défaut qui serait faux pour toute page de détail (R-07).
     availableLocales: LOCALES,
+    site: messages.site,
   })
 }
 

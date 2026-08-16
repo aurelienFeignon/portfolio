@@ -54,6 +54,16 @@ export const fr = {
     name: 'Aurélien Feignon',
     description:
       'Portfolio de développeur Full-Stack : expériences professionnelles, projets et compétences.',
+    /**
+     * Gabarit de titre (P4-08). `%s` est l'emplacement que Next remplit avec le
+     * titre de la page — la convention vient de lui, pas de nous.
+     *
+     * Il est **dans le dictionnaire** et non écrit en dur parce que le
+     * séparateur est une décision typographique par langue : le tiret cadratin
+     * entouré d'espaces est français, un anglophone écrit souvent un tiret demi
+     * ou une barre verticale. Le nom, lui, est un nom propre et ne bouge pas.
+     */
+    titleTemplate: '%s — Aurélien Feignon',
   },
 
   sections: {

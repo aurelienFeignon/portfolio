@@ -1112,3 +1112,105 @@ mesure est ici pour qu'elle n'y soit pas redécouverte.
 | `ROUTE_HANDLERS` reste écrit à la main | Deux entrées, confrontées au build **dans les deux sens** (§13.10) |
 | Pas de favicon | Mesuré, reporté en P4-08 (§13.10) |
 | Les quatre constats d'altitude écartés | Chacun avec sa raison et sa tâche de reprise (§13.10) |
+
+## 14. P4-08 — le gabarit de titre, le partage, et une image que rien ne référençait
+
+### 14.1 Le gabarit vit au layout, et l'accueil y échappe **par déduction**
+
+`%s — Aurélien Feignon` est déclaré une fois, dans le layout racine : chaque page dit ce qu'elle
+est — « Projets » —, et Next ajoute le suffixe. Le poser dans chaque `generateMetadata` aurait été
+autant d'occasions de le voir diverger.
+
+⭐ **L'accueil est le seul titre absolu, et ce n'est pas la page qui le déclare.** Son titre **est**
+le nom du site : le laisser traverser le gabarit donnerait « Aurélien Feignon — Aurélien Feignon ».
+Le faire déclarer par la page aurait été une occasion de l'oublier, pour un oubli qui ne casse rien
+de visible — juste un titre qui bégaie. `buildPageMetadata` le déduit de l'**emplacement**, qui le
+dit déjà.
+
+⭐ **Le séparateur est une clé de dictionnaire, et les deux langues diffèrent réellement** : tiret
+cadratin entouré d'espaces en français, barre verticale en anglais. Ce n'est pas une différence
+inventée pour satisfaire le test de non-régression — c'est la formulation idiomatique de chaque
+langue, cherchée **d'abord**, comme la règle de P4-04 §9.3 le demande.
+
+### 14.2 ⛔⛔ L'image de partage était générée, prégénérée — et invisible
+
+Le premier build produisait bien `/fr/opengraph-image` et `/en/opengraph-image`, servies en PNG.
+**Aucune page ne les référençait.**
+
+Next attache l'image du fichier `opengraph-image.tsx` aux métadonnées du segment… **tant que la page
+ne déclare pas d'`openGraph` elle-même**. Dès qu'elle en déclare un — ce que fait chaque page ici,
+via `buildPageMetadata` —, il **remplace** celui du parent, image comprise. Le résultat est une
+image parfaitement produite que personne ne voit.
+
+⭐⭐ **Le mode de panne est de ceux que ce dépôt traque** : rien n'échoue, rien n'est journalisé, et
+personne ne regarde une carte de partage à chaque déploiement. Un parcours E2E suit désormais
+l'`og:image` **jusqu'à la réponse** : statut, type et taille. Annoncer une adresse ne prouve pas
+qu'elle répond.
+
+`shareImagePath(locale)` rejoint `notFoundPath(locale)` dans `src/routing/paths.ts` : trois endroits
+doivent s'accorder au caractère près — le fichier qui produit l'image, les métadonnées qui
+l'annoncent, et le manifeste qui autorise le proxy à la laisser passer.
+
+### 14.3 ⭐⭐⭐ Le gate de P4-07 a travaillé pour P4-08, sans qu'on le lui demande
+
+Le journal de P4-07 annonçait : *« il travaillera pour P4-08 sans qu'on le lui demande — une
+`opengraph-image` est une route non-page, donc il la réclamera »*. C'est arrivé **deux fois**, et
+chaque fois avant qu'un humain ne voie le défaut :
+
+| Ce que le gate a refusé | Ce que ç'aurait coûté |
+|---|---|
+| `/[locale]/opengraph-image` **non prégénérée** | Un PNG de 1200×630 **calculé à chaque requête** sur un VPS à 2 vCPU, pour une image qui ne change qu'au déploiement. Une route de métadonnée n'hérite pas du `generateStaticParams` de son parent |
+| `/fr/opengraph-image` et `/icon` **absentes des laissez-passer** | Le proxy les réécrivait en 404 : partage sans vignette, onglet sans icône |
+
+⭐ **La liste écrite à la main reste écrite à la main, et le journal de P4-07 se trompait sur ce
+point.** Il annonçait que P4-08 rendrait la dérivation rentable. Arrivé là, l'ajout tient en une
+ligne, tandis que dériver demanderait de réimplémenter la table des fichiers de métadonnées de l'App
+Router *et* l'expansion des segments dynamiques. **Une prédiction faite avant de voir le cas ne vaut
+pas la mesure du cas** — et les deux sens du contrôle rendent cette liste vérifiée plutôt que crue.
+
+### 14.4 L'icône : une raison mesurée, et une valeur d'attente assumée
+
+Elle existe d'abord parce que son absence coûtait **14,5 Ko** : la requête d'icône que fait tout
+navigateur recevait la page 404 complète (§13.10).
+
+⚠️ **C'est un monogramme d'attente, et il est écrit comme tel.** Un logo est une décision de marque,
+et elle appartient à l'auteur du site — c'est la règle qui garde les niveaux de compétence non
+publiés (D2) et qui a coûté une tâche entière sur la précision des dates. Ce qui est rendu n'en est
+pas un : ce sont les **initiales de `site.name`**, dérivées et non écrites, dans la couleur d'accent.
+Le jour où un vrai logo existe, il remplace ce fichier et rien d'autre ne bouge.
+
+⚠️ **Et l'effet est partiel, mesuré comme tel** : le `<link rel="icon">` est émis et pointe vers un
+PNG de **473 octets**, donc tout navigateur qui lit le HTML l'emploie. Une requête **nue** sur
+`/favicon.ico` — signet, certains robots — reçoit toujours la page 404. La fermer demanderait un
+`public/favicon.ico` statique, c'est-à-dire une **copie figée** de l'icône générée, qui ne suivrait
+pas un changement de `site.name`. C'est exactement la divergence que cette phase passe son temps à
+supprimer : le cas résiduel est donc laissé ouvert plutôt que payé de cette monnaie-là.
+
+### 14.5 Ce qui a été sorti des routes pour que l'exclusion reste honnête
+
+`icon.tsx` portait une décision à branches — les initiales d'un nom : un seul mot, des espaces en
+trop, une casse quelconque. Elle est dans `src/ui/initials.ts`, couverte à 100 %, et les deux routes
+de métadonnée rejoignent les pages et les layouts dans les exclusions. C'est la règle de
+`testing-strategy.md` §6 appliquée telle qu'elle est écrite, et non élargie pour l'occasion.
+
+⚠️ **Les couleurs de l'image de partage sont recopiées de `globals.css`, et ne peuvent pas ne pas
+l'être** : `ImageResponse` rend hors du navigateur, sans variables CSS. C'est la seule duplication du
+palette dans le dépôt, et elle est **gardée** — un test refuse une couleur qui ne serait plus dans
+les tokens, et il a été vu rouge. Le mode de panne, sinon, est purement visuel et silencieux.
+
+### 14.6 Relevés
+
+| Relevé après P4-08 | Valeur | Seuil |
+|---|---|---|
+| Socle partagé | **126,4 Ko** *(126,0 après P4-07)* | cible 136 · bloquant 146 |
+| JS propre à chaque route | **7,3 Ko** sur 18 routes | cible 25 · bloquant 40 |
+| Image de production | **272 Mo** *(268 après P4-07)* — **+4 Mo**, le coût de `next/og` | cible 250 · **bloquant 400** |
+| Image de partage servie | 34,1 Ko (fr) · 31,4 Ko (en), 1200×630 | — |
+| Icône servie | **473 octets** | — |
+| Tests | **569** verts *(548 après P4-07)* | — |
+| E2E | **116** verts sur 5 profils *(108 après P4-07)* | — |
+| Couverture globale | **98,8 %** | ≥ 80 % |
+
+⭐ **`next/og` n'ajoute aucune dépendance au verrou** — il est fourni par Next. Son coût est de
+**+4 Mo dans l'image de production**, mesuré avant/après sur la même cible, et il est **entièrement
+de build** : les deux images et l'icône sont gravées, le conteneur n'en calcule aucune.

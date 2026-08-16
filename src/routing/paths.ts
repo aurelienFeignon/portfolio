@@ -76,6 +76,19 @@ export function notFoundPath(locale: Locale): string {
 }
 
 /**
+ * `/fr/opengraph-image` — l'image de partage de la langue (P4-08).
+ *
+ * Trois endroits doivent s'accorder au caractère près : le fichier
+ * `app/[locale]/opengraph-image.tsx` qui la produit, les métadonnées qui
+ * l'annoncent en `og:image`, et le manifeste qui autorise le proxy à la laisser
+ * passer. Un `og:image` qui désigne une adresse réécrite en 404 est un partage
+ * sans vignette — et rien ne le dirait.
+ */
+export function shareImagePath(locale: Locale): string {
+  return `${homePath(locale)}/opengraph-image`
+}
+
+/**
  * `/fr/projects/augure`
  *
  * Le slug est **encodé**. Le schéma de contenu ne laisse aujourd'hui passer que

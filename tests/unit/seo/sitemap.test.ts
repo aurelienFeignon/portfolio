@@ -76,6 +76,7 @@ describe('sitemap', () => {
         title: 'x',
         description: 'y',
         availableLocales,
+        site: { name: 'Aurélien Feignon', titleTemplate: '%s — Aurélien Feignon' },
       }).alternates?.languages
 
       // Une entité absente partout ne produit aucune entrée de sitemap : il n'y

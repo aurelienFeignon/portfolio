@@ -10,6 +10,7 @@
  * `/` n'est donc plus une page mais une **redirection**, faite par
  * `src/middleware.ts` (P3-03) — ce que `architecture.md` §4.2 prévoyait déjà.
  */
+import type { Metadata } from 'next'
 import type { ReactNode } from 'react'
 
 import { LOCALES } from '@/i18n/locales'
@@ -34,6 +35,28 @@ export const dynamicParams = false
 
 export function generateStaticParams() {
   return LOCALES.map((locale) => ({ locale }))
+}
+
+/**
+ * Le **gabarit de titre** du site (P4-08).
+ *
+ * Il vit ici, et nulle part ailleurs : Next l'applique à toute page descendante
+ * qui rend un titre sous forme de chaîne. Chaque page dit donc ce qu'elle est
+ * — « Projets » —, et le suffixe est ajouté à un seul endroit. Le poser dans
+ * chaque `generateMetadata` aurait été autant d'occasions de le voir diverger.
+ *
+ * ⚠️ `default` n'est pas décoratif : c'est le titre servi à une page descendante
+ * qui n'en déclarerait aucun. Sans lui, Next rendrait le gabarit **avec son
+ * `%s` littéral**.
+ *
+ * L'accueil échappe au gabarit — son titre **est** le nom du site —, et c'est
+ * `buildPageMetadata` qui en décide d'après l'emplacement, pour que la page n'ait
+ * pas à y penser.
+ */
+export async function generateMetadata({ params }: LocaleParams): Promise<Metadata> {
+  const { site } = getMessages(await readLocale(params))
+
+  return { title: { template: site.titleTemplate, default: site.name } }
 }
 
 export default async function LocaleLayout({

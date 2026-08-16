@@ -24,6 +24,14 @@ export const en: Messages = {
     /** Nom propre : identique au français, et c'est voulu (P4-02). */
     name: 'Aurélien Feignon',
     description: 'Full-Stack developer portfolio: professional experience, projects and skills.',
+    /**
+     * La barre verticale est le séparateur usuel d'un titre de page en anglais,
+     * là où le français emploie le tiret cadratin entouré d'espaces. Ce n'est
+     * pas une différence inventée pour satisfaire le test de non-régression :
+     * c'est la formulation idiomatique de chaque langue, cherchée **d'abord**,
+     * comme la règle de P4-04 §9.3 le demande.
+     */
+    titleTemplate: '%s | Aurélien Feignon',
   },
 
   sections: {
