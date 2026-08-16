@@ -982,7 +982,7 @@ qu'on lui donne*.
 aucun test — une apostrophe typographique — et Playwright sort en 1 sur « No tests found », ce que le
 harnais a lu comme une mutation tuée. Il vérifie désormais que le filtre **sélectionne** quelque
 chose avant de muter. Panne de P4-10 reproduite dans l'outillage qui existe pour la traquer.
-📏 140 → **144** E2E ; 627 → **631** tests ; couverture inchangée. Aucune ligne de `src/` modifiée.
+📏 140 → **144** E2E ; 627 → **632** tests ; couverture inchangée (100 %). Aucune ligne de `src/` modifiée.
 · Depends on: P4-11
 
 **Critères de sortie** — Toutes les exigences de la §20 de la mission satisfaites ; Lighthouse

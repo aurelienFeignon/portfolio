@@ -49,6 +49,39 @@ import { expect, test } from '../../support/test'
  */
 const AUDIT_TIMEOUT_MS = 120_000
 
+/**
+ * Tabule jusqu'à ce que `stop` soit satisfait, et rend les `href` rencontrés.
+ *
+ * ⚠️ **La borne n'est pas un nombre de tabulations attendu**, c'est un garde
+ * anti-boucle : compter les `Tab` encoderait le DOM du jour, et un lien ajouté à
+ * l'en-tête ferait rougir un site parfaitement navigable. La sortie normale est
+ * `stop`, ou le moment où le focus quitte le document.
+ */
+async function tabThrough(
+  page: import('@playwright/test').Page,
+  stop: (reached: readonly string[]) => boolean,
+): Promise<string[]> {
+  const reached: string[] = []
+
+  for (let step = 0; step < 40; step += 1) {
+    await page.keyboard.press('Tab')
+
+    const href = await page.evaluate(() => {
+      const node = document.activeElement
+      // `body` est ce que rend le navigateur quand le focus quitte le document :
+      // continuer à tabuler y ferait tourner la boucle à vide.
+      if (node === null || node === document.body) return undefined
+      return node.getAttribute('href') ?? ''
+    })
+
+    if (href === undefined) break
+    if (href !== '') reached.push(href)
+    if (stop(reached)) break
+  }
+
+  return reached
+}
+
 /** Les pages du **site** : le sitemap, plus les deux introuvables localisées. */
 async function everySitePage(request: import('@playwright/test').APIRequestContext) {
   return [...(await sitemapPaths(request)), '/fr/404', '/en/404']
@@ -336,23 +369,9 @@ test.describe('accessibilité — le parcours au clavier', () => {
 
     for (const path of ['/fr', '/fr/projects']) {
       await page.goto(path)
-      const reached: string[] = []
-
-      for (let step = 0; step < 40; step += 1) {
-        await page.keyboard.press('Tab')
-
-        const focused = await page.evaluate(() => {
-          const node = document.activeElement
-          // `body` est ce que rend le navigateur quand le focus quitte le
-          // document : continuer à tabuler y ferait tourner la boucle à vide.
-          if (node === null || node === document.body) return null
-          return { href: node.getAttribute('href') }
-        })
-
-        if (focused === null) break
-        if (focused.href !== null) reached.push(focused.href)
-        if (sections.every((href) => reached.includes(href))) break
-      }
+      const reached = await tabThrough(page, (seen) =>
+        sections.every((href) => seen.includes(href)),
+      )
 
       expect(reached, `${path} — des sections restent hors de l’ordre de tabulation`).toEqual(
         expect.arrayContaining(sections),
@@ -360,20 +379,13 @@ test.describe('accessibilité — le parcours au clavier', () => {
     }
 
     /*
-     * Puis l'activation. On repart d'une page neuve — la boucle ci-dessus a
+     * Puis l'activation. On repart d'une page neuve — le balayage ci-dessus a
      * laissé le focus quelque part — et on s'arrête sur la cible avant d'appuyer
      * sur Entrée : c'est le geste réel, et ce qu'il prouve est qu'un `<a href>`
      * l'honore là où un gestionnaire de clic seul ne l'honorerait pas.
      */
     await page.goto('/fr')
-
-    for (let step = 0; step < 40; step += 1) {
-      await page.keyboard.press('Tab')
-      const onTarget = await page.evaluate(
-        () => document.activeElement?.getAttribute('href') === '/fr/skills',
-      )
-      if (onTarget) break
-    }
+    await tabThrough(page, (seen) => seen.includes('/fr/skills'))
 
     await expect(page.locator(':focus')).toHaveAttribute('href', '/fr/skills')
     await page.keyboard.press('Enter')

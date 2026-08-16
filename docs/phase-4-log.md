@@ -2002,10 +2002,10 @@ rouvre la question* : une mise en ligne effectuée sans que le score ait jamais 
 | Socle partagé | **126,4 Ko — inchangé** | cible 136 · bloquant 146 |
 | JS propre à chaque route | ⚠️ **8,2 Ko** sur 18 routes *(documenté : 7,3)* | cible 25 · bloquant 40 |
 | Image de production | **273 Mo — inchangée** | cible 250 · **bloquant 400** |
-| Tests | **631** verts *(627 après P4-11)* | — |
+| Tests | **632** verts *(627 après P4-11)* | — |
 | E2E | **144** verts sur 5 profils *(140 après P4-11)* | — |
 | Couverture globale | **100 %** sur les quatre métriques | ≥ 80 % |
-| Mutations | **8 appliquées, 7 tuées**, 1 survivante traitée (§19.3) | — |
+| Mutations | **12 appliquées, 11 tuées**, 1 survivante traitée (§19.3) | — |
 
 ⛔⛔ **Le JS par route vaut 8,2 Ko, et cinq documents en portent 7,3.** Le chiffre a été remesuré
 parce que le prompt de reprise demande de le remesurer — et il ne correspond pas.
@@ -2028,3 +2028,51 @@ l'arbitrage n°1 de §14.8. L'arbitrage tient, sa valeur d'appui change.
 
 Les documents portent désormais **8,2 Ko, daté et mesuré**, et cette entrée dit ce qui reste à
 établir plutôt que de l'inventer.
+
+### 19.8 Ce que la revue a changé — trois constats, tous dans le garde et les parcours neufs
+
+Aucun défaut dans `src/` : cette branche n'en touche pas une ligne. Les trois portent sur ce que la
+tâche ajoute, et **deux sont la thèse de la tâche retournée contre elle**.
+
+⛔⛔ **La couverture partielle était écrite en prose, dans l'en-tête des parcours.** Deux scénarios
+décrivent une chose qui n'existe pas encore — l'état de scène pour E2E-02, le formulaire de CV pour
+E2E-10 —, et la table du garde ne savait dire que « couvert » ou « reporté ». La réserve vivait donc
+dans un commentaire : *une chose écrite quelque part que rien ne confronte au moment où elle compte*,
+c'est-à-dire exactement ce que cette tâche reproche à la mission qu'elle a démentie. Le statut porte
+désormais `completedBy` et `missing`, et la tâche nommée est vérifiée comme les autres.
+
+⛔⛔ **`@covers` était accepté d'un fichier qu'aucun profil ne joue.** `playwright.config.ts` ne
+sélectionne que `shared/**` et `profiles/<profil>/**` : un parcours posé à la racine de `tests/e2e`,
+ou sous un dossier de profil mal orthographié, **ne s'exécute jamais** — et rendait pourtant son
+scénario vert dans l'inventaire. Un garde qui déclare couvert ce que rien ne mesure, dans le fichier
+écrit pour fermer cette classe. La configuration est désormais **importée** — lire un fichier n'est
+pas l'exécuter (P4-10) — et les dossiers joués sont dérivés de ses `testMatch` réels.
+
+⚠️ **Et un durcissement, pas un défaut vivant** : les chemins déduits du sitemap étaient interpolés
+dans un `new RegExp`. Un slug portant un `.` affaiblirait l'assertion, un `+` la ferait lever. Cela
+ne peut pas arriver aujourd'hui — `slugSchema` restreint le domaine à `[a-z0-9-]` et le gate de
+contenu le fait respecter —, mais faire dépendre le sens d'une assertion d'un invariant écrit
+ailleurs et jamais cité est précisément ce que ces parcours reprochent au reste. Les chemins sont
+comparés tels quels.
+
+### 19.9 Ce que la passe de simplification a changé
+
+⭐ **Le balayage au clavier était écrit deux fois** dans le même test — une fois pour collecter,
+une fois pour s'arrêter sur une cible. Un seul `tabThrough(page, stop)`, et la borne anti-boucle
+n'existe plus qu'à un endroit.
+
+⭐ **Deux structures portaient plus que ce que quiconque lisait** : les scénarios extraits de §4.7
+rendaient `id → libellé` alors que seuls les identifiants servent, et les revendications rendaient
+`id → fichiers` alors que seule l'appartenance sert. Une richesse morte est une invitation à
+diverger ; le libellé reste **exigé** par le motif — un identifiant seul n'est pas une ligne de
+scénario — sans être capturé.
+
+⭐ **Les seize parcours étaient relus trois fois**, une par contrôle. C'est la **promesse** qui est
+mémoïsée, pas son résultat — le motif que `support/sitemap.ts` applique depuis P4-09, après la même
+mesure. `everySpecFile` est extraite au deuxième exemplaire, entre les revendications et le contrôle
+des orphelins.
+
+⚠️ **Un point non traité, avec sa raison** : le parcours de E2E-01 asserte `aria-current` sur les
+sections qu'il traverse, ce que `site-chrome.spec.ts` asserte déjà pour deux d'entre elles. Le
+doublon est conservé — il porte la **troisième**, que ce fichier-là ne visite pas, et un parcours
+doit rester lisible seul (la raison écrite en P4-10 §17.7 pour les audits axe en double).

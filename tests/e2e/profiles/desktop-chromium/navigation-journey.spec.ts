@@ -55,9 +55,15 @@ test.describe('parcours de navigation', () => {
     // 2. La liste mène à la fiche que le sitemap annonce. Le lien est visé par son
     //    `href` — donc sans nommer d'entité, et en prouvant au passage que la
     //    liste contient bien l'adresse que le sitemap publie.
+    //    ⚠️ Le chemin est comparé **tel quel**, jamais interpolé dans une
+    //    expression régulière : un slug est une valeur du contenu, et
+    //    `slugSchema` est la seule chose qui garantisse aujourd'hui qu'il ne
+    //    porte pas de métacaractère. Dépendre d'un invariant écrit ailleurs
+    //    pour qu'une assertion veuille dire quelque chose est précisément ce
+    //    que ce fichier reproche au reste. Relevé en revue.
     const fiche = await detailPath(page.request, 'fr', 'projects')
     await main.locator(`a[href="${fiche}"]`).click()
-    await expect(page).toHaveURL(new RegExp(`${fiche}$`))
+    await expect(page).toHaveURL(fiche)
     const titreDeLaFiche = await main.getByRole('heading', { level: 1 }).textContent()
     expect(titreDeLaFiche?.trim()).not.toBe('')
 
@@ -108,7 +114,7 @@ test.describe('parcours de navigation', () => {
       response?.request().redirectedFrom(),
       'la fiche a été atteinte par une redirection',
     ).toBeNull()
-    await expect(page).toHaveURL(new RegExp(`${fiche}$`))
+    await expect(page).toHaveURL(fiche)
     await expect(page.getByRole('main').getByRole('heading', { level: 1 })).not.toBeEmpty()
   })
 
@@ -133,7 +139,7 @@ test.describe('parcours de navigation', () => {
     await page.goto(fr)
     await page.getByRole('link', { name: 'English' }).click()
 
-    await expect(page).toHaveURL(new RegExp(`${en}$`))
+    await expect(page).toHaveURL(en)
     await expect(page.locator('html')).toHaveAttribute('lang', 'en')
     await expect(page.getByRole('main').getByRole('heading', { level: 1 })).not.toBeEmpty()
 
@@ -141,7 +147,7 @@ test.describe('parcours de navigation', () => {
     // un seul sens donnerait un aller juste et un retour vers l'accueil.
     await page.getByRole('link', { name: 'Français' }).click()
 
-    await expect(page).toHaveURL(new RegExp(`${fr}$`))
+    await expect(page).toHaveURL(fr)
     await expect(page.locator('html')).toHaveAttribute('lang', 'fr')
   })
 })

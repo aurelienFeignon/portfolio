@@ -82,7 +82,7 @@ fait partie de la mise en ligne réelle. Détail : `deploy/README.md` §4.2.
 | JS propre à chaque route | **8,2 Ko** — le seul JavaScript applicatif du site | cible 25 · bloquant 40 |
 | Socle partagé | **126,4 Ko** | cible 136 · bloquant 146 |
 | Image de production | **273 Mo** | cible 250 · bloquant 400 |
-| Tests | **631** verts, couverture **100 %** | ≥ 80 % |
+| Tests | **632** verts, couverture **100 %** | ≥ 80 % |
 | E2E | **144** verts sur 5 profils, 0 violation axe sur les **16 pages servies** | — |
 
 ⛔ **Le profil `no-js` n'est plus vrai *par construction*** : il l'est **par vérification**. Les
