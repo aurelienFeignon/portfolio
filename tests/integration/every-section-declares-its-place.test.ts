@@ -42,6 +42,13 @@ const LAYOUTS: Record<CurrentPlace, () => Promise<{ default: LayoutComponent }>>
   experiences: () => import('@/app/[locale]/experiences/layout'),
   projects: () => import('@/app/[locale]/projects/layout'),
   skills: () => import('@/app/[locale]/skills/layout'),
+  // ⛔ Le cinquième endroit a d'abord été livré **sans layout**, donc servi sans
+  // en-tête (P4-07) : c'est la panne que décrit l'en-tête de ce fichier, arrivée
+  // par un chemin qu'il ne surveillait pas — la page introuvable n'est pas une
+  // section. Un parcours E2E l'a trouvée. Elle est couverte ici depuis qu'elle
+  // est un `CurrentPlace` : c'est l'élargissement du **type** qui a rendu cette
+  // ligne obligatoire, avant même que la suite ne démarre.
+  notFound: () => import('@/app/[locale]/404/layout'),
 }
 
 type LayoutComponent = (props: {
@@ -67,6 +74,6 @@ describe('déclaration de l’endroit courant', () => {
     // Sans cette ligne, un `LAYOUTS` vidé par mégarde rendrait `it.each` muet :
     // zéro cas exécuté, suite verte. C'est la panne classique d'un test piloté
     // par une collection.
-    expect(PLACES.length).toBeGreaterThanOrEqual(4)
+    expect(PLACES.length).toBeGreaterThanOrEqual(5)
   })
 })

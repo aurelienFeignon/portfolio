@@ -38,4 +38,20 @@ test.describe('sans JavaScript', () => {
     await page.goto('/')
     await expect(page).toHaveURL(/\/(fr|en)$/)
   })
+
+  test('une adresse inconnue rend la page introuvable localisée', async ({ page }) => {
+    // La 404 de P4-07 est servie par une **réécriture du proxy** vers une page
+    // prérendue : rien n'y dépend du navigateur. Ce parcours le prouve plutôt
+    // que de le supposer — et c'est la page que voit un robot d'indexation, qui
+    // n'exécute pas toujours de JavaScript.
+    const response = await page.goto('/fr/rien')
+
+    expect(response?.status()).toBe(404)
+    await expect(page.locator('html')).toHaveAttribute('lang', 'fr')
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Page introuvable')
+    await expect(page.getByRole('link', { name: 'Retour à l’accueil' })).toHaveAttribute(
+      'href',
+      '/fr',
+    )
+  })
 })

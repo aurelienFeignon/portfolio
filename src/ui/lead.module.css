@@ -1,0 +1,23 @@
+/*
+ * Le paragraphe d'attaque, sous le titre d'une page (P4-07).
+ *
+ * ⛔ **Il était le troisième exemplaire, pas le second.** L'accueil portait déjà
+ * les trois mêmes déclarations sous le nom `.lede` depuis P4-03 ; l'en-tête de
+ * ce fichier annonçait « deuxième exemplaire » et laissait le premier en place —
+ * relevé en revue. Les deux ne différaient que par leur mesure, 50ch contre
+ * 60ch, sans qu'aucune raison soit écrite nulle part.
+ *
+ * ⭐ La valeur retenue est **celle qui était déjà servie** (50ch). Choisir
+ * l'autre aurait modifié une page déjà revue pour rien : quand deux copies
+ * divergent sans raison, la copie en production fait foi.
+ *
+ * `max-width` en `ch` et non en `rem` : la mesure qui compte pour la lisibilité
+ * est un nombre de caractères, et elle doit suivre la taille de police si le
+ * visiteur l'augmente.
+ */
+
+.lead {
+  margin: 0;
+  max-width: 50ch;
+  color: var(--color-text-muted);
+}

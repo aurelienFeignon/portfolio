@@ -3,10 +3,11 @@
 > Statut global : **Phases 0, 1, 2 et 3 terminées et validées.** **Phase 4 ouverte le 2026-08-15**,
 > dernière phase de la tranche T1. **P2-11 (rédaction du contenu réel) est DONE (2026-08-15)** : le
 > contenu d'amorçage est entièrement remplacé, et le chemin critique de T1 est donc levé.
+> **P4-07 et P4-08 closes le 2026-08-16** : 9 tâches de la Phase 4 sur 17.
 > Journal de la Phase 4 : [`phase-4-log.md`](./phase-4-log.md) — phases précédentes :
 > [`phase-3-log.md`](./phase-3-log.md), [`phase-2-log.md`](./phase-2-log.md),
 > [`phase-1-log.md`](./phase-1-log.md)
-> Dernière mise à jour : 2026-08-15
+> Dernière mise à jour : 2026-08-16
 
 Ce document est la **source de vérité unique des tâches**. Les identifiants sont stables et ne
 sont jamais réutilisés, même si une tâche est abandonnée.
@@ -712,10 +713,10 @@ reste et le filet de sécurité permanent du projet. Journal de phase :
 | P4-04 | Liste et détail des expériences | **DONE** *(2026-08-16)* | P4-02 |
 | P4-05 | Liste et détail des projets — **première page qui rend un corps MDX** | **DONE** *(2026-08-16)* | P4-02 |
 | P4-06 | Compétences (groupées par catégorie) | **DONE** *(2026-08-16)* | P4-02 |
-| P4-07 | Pages 404 et erreur, localisées | TODO | P4-02 |
-| P4-08 | Métadonnées OpenGraph et images de partage | TODO | P3-06 |
+| P4-07 | Pages 404 et erreur, localisées | **DONE** *(2026-08-16)* | P4-02 |
+| P4-08 | Métadonnées OpenGraph, gabarit de titre, images de partage et icône | **DONE** *(2026-08-16)* | P3-06 |
 | P4-09 | JSON-LD : `Person`, `WebSite`, `CreativeWork`, `BreadcrumbList` | TODO | P4-05 |
-| P4-10 | Passe accessibilité : titres, focus, contrastes, points de repère | TODO | P4-06 |
+| P4-10 | Passe accessibilité : titres, focus, contrastes, points de repère — **plus les trois tests de composant manquants** (`phase-4-log.md` §13.8), le garde des endroits à piloter par l'arborescence, et l'instruction de `experimental.globalNotFound` comme plancher (§13.10) | TODO | P4-06 |
 | P4-11 | Responsive documentaire : mobile, tablette, desktop | TODO | P4-06 |
 | P4-12 | E2E : navigation complète, deep links, bascule de langue, clavier | TODO | P4-11 |
 | P4-13 | **Mise en production du portfolio documentaire** *(jalon T1)* | TODO | P4-12, P1-15, P2-11 |
@@ -825,6 +826,54 @@ ils ne l'**affirment** pas. Un parcours E2E garde la décision.
 est le mot juste dans les deux langues. La règle reste de chercher **d'abord** la formulation
 idiomatique — « Frameworks » est devenu « Frameworks et bibliothèques » / « Frameworks & libraries »,
 qui décrit mieux une catégorie contenant aussi des bibliothèques. · Depends on: P4-02
+
+**P4-07 — Pages 404 et erreur, localisées**
+Status: **DONE** (2026-08-16) — toute URL inconnue est **réécrite** par le proxy vers une vraie page
+prérendue et localisée, avec le statut porté par la réécriture (une réécriture rend 200 par défaut).
+Trois sondes ont établi qu'aucune voie ordinaire n'existe : le layout racine vivant sous `[locale]`,
+la 404 interne de Next est servie **hors de tout layout**, donc sans `<html lang>` — une violation
+WCAG 3.1.1 que le gate axe n'avait jamais vue, faute d'un parcours sur une 404.
+⭐⭐ Le proxy a besoin de la liste des chemins servis **avant** `next build`, alors que les pages en
+sont le produit : deux énumérations impossibles à fusionner. `check-static-rendering.mts` les
+confronte après coup **aux pages réellement prégénérées** — et non au sitemap, qui est une seconde
+dérivée : comparer deux dérivées accuse celle qui n'a pas tort. Les deux sens sont vus échouer.
+⛔⛔⛔ **Le matcher a été faux deux fois.** Il énumérait d'abord ses exceptions à la main et ignorait
+`resume/` : **les deux CV répondaient 404** alors qu'ils sont en ligne depuis la Phase 2 (trouvé par
+le parcours E2E). Le premier correctif — « un chemin de page ne contient jamais de point » — était
+faux dans l'autre sens : `/wp-login.php` et `/cv.pdf`, qui n'existent pas, recevaient la 404 interne
+de Next, **sans `lang`** (trouvé par `/code-review`, confirmé par la mesure). Les deux versions ont
+la même racine : décider d'après la **forme** d'une URL ce que seul le disque sait. La décision
+quitte le matcher pour la fonction, sur des listes **générées** — dont celle de `public/`, lue sur
+le disque — et deux gates de plus les confrontent au build.
+⛔⛔ **Et la page introuvable était servie sans en-tête**, étant un cinquième « endroit » qu'aucun
+layout ne déclarait ; élargir `CurrentPlace` a rendu la ligne du garde obligatoire à la compilation.
+⛔ **Les frontières d'erreur coûtent le premier JavaScript applicatif du site** : 0,0 → **7,2 Ko par
+route**, socle 129,5 → 126,0, soit **133,2 Ko** à la première visite pour une cible de 136. Mesuré
+avant d'être décidé, y compris les variantes écartées (`phase-4-log.md` §13.5). Le profil `no-js`
+reste vert — vrai par vérification, non plus par construction. · Depends on: P4-02
+
+**P4-08 — Gabarit de titre, OpenGraph, image de partage et icône**
+Status: **DONE** (2026-08-16) — `%s — Aurélien Feignon` déclaré **une fois**, au layout racine ;
+l'accueil y échappe par **déduction de l'emplacement**, et non par une déclaration que chaque page
+pourrait oublier. Le séparateur est une clé de dictionnaire, et les deux langues diffèrent
+réellement (tiret cadratin / barre verticale) — formulation idiomatique cherchée avant l'exception.
+⛔⛔ **L'image de partage était générée, prégénérée et invisible** : Next ne l'attache que tant que
+la page ne déclare pas d'`openGraph`, et chaque page en déclare un — il remplace alors celui du
+parent, image comprise. Un parcours suit désormais l'`og:image` **jusqu'à la réponse** : annoncer
+une adresse ne prouve pas qu'elle répond.
+⭐⭐⭐ **Le gate de P4-07 a travaillé pour cette tâche sans qu'on le lui demande**, deux fois : il a
+refusé l'image tant qu'elle se rendait **à la demande** (un PNG de 1200×630 par requête sur un VPS à
+2 vCPU), puis tant que le proxy l'aurait réécrite en 404.
+⚠️ L'icône est un **monogramme d'attente**, dérivé des initiales de `site.name` et dit comme tel :
+un logo est une décision de marque. Elle existe pour une raison mesurée — 14,5 Ko de page 404 à
+chaque requête d'icône. L'effet est **partiel** : une requête nue sur `/favicon.ico` reste une 404,
+et la fermer demanderait une copie figée de l'icône (`phase-4-log.md` §14.4).
+⛔⛔⛔ **La revue a trouvé une URL `localhost` gravée dans les pages 404** : faute de
+`metadataBase`, Next résolvait les URL de métadonnée contre son hôte de développement, et il
+**l'écrivait au build** sans que personne ne lise sa sortie — la leçon de la Phase 3, repayée. Un
+parcours refuse désormais toute origine étrangère sur **toutes** les pages servies.
+📏 Image de production **272 Mo** (+4 Mo, le coût de `next/og`, entièrement de build, aucune
+dépendance ajoutée au verrou) ; socle 126,4 Ko ; 569 tests, 117 E2E. · Depends on: P3-06
 
 **P4-05 — Liste et détail des projets, corps MDX rendu**
 Status: **DONE** (2026-08-16) — la fiche d'un projet compile et rend son corps MDX dans un conteneur

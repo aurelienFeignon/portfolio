@@ -1,0 +1,35 @@
+/*
+ * Les deux gestes offerts après une erreur (P4-07).
+ */
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-4);
+  margin: 0;
+}
+
+/*
+ * Réessayer est une **action**, pas une destination : c'est un `<button>`, et il
+ * en a l'allure. Un lien déguisé priverait un lecteur d'écran de l'information
+ * qu'il annonce (« bouton » contre « lien »), et le clavier de son `Espace`.
+ *
+ * `font` hérite explicitement : un `<button>` ne suit pas la police du document
+ * dans tous les moteurs, et il rendrait la page en Arial sans le dire.
+ */
+.retry {
+  composes: tapTarget from './tap-target.module.css';
+
+  padding-inline: var(--space-4);
+  border: 1px solid var(--color-accent);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-accent);
+  font: inherit;
+  cursor: pointer;
+}
+
+.retry:hover {
+  background: var(--color-surface);
+}

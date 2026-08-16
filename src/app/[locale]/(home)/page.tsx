@@ -29,9 +29,8 @@ import { languageOptions } from '../language-options'
 import { readLocale, type LocaleParams } from '../locale-param'
 import { sectionLinks } from '../section-links'
 
+import lead from '@/ui/lead.module.css'
 import page from '@/ui/page.module.css'
-
-import styles from './page.module.css'
 
 const LOCATION: PageLocation = { kind: 'home' }
 
@@ -47,6 +46,7 @@ export async function generateMetadata({ params }: LocaleParams): Promise<Metada
     // L'accueil existe dans toutes les langues : on le dit, plutôt que de
     // compter sur un défaut qui serait faux pour toute page de détail (R-07).
     availableLocales: LOCALES,
+    site: messages.site,
   })
 }
 
@@ -57,7 +57,7 @@ export default async function HomePage({ params }: LocaleParams) {
   return (
     <main id="main" className={page.page}>
       <h1 className={page.title}>{messages.site.name}</h1>
-      <p className={styles.lede}>{messages.site.description}</p>
+      <p className={lead.lead}>{messages.site.description}</p>
 
       <SectionGuide locale={locale} links={sectionLinks(locale)} />
 

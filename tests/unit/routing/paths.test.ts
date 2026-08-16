@@ -3,8 +3,16 @@
  */
 import { describe, expect, it } from 'vitest'
 
-import { LOCALES } from '@/i18n/locales'
-import { entityPath, fallbackLocation, homePath, pathFor, sectionPath } from '@/routing/paths'
+import { DEFAULT_LOCALE, LOCALES } from '@/i18n/locales'
+import {
+  displayedLocale,
+  entityPath,
+  fallbackLocation,
+  homePath,
+  localeFromPathname,
+  pathFor,
+  sectionPath,
+} from '@/routing/paths'
 import { SECTIONS } from '@/routing/sections'
 
 describe('chemins', () => {
@@ -65,6 +73,63 @@ describe('chemins', () => {
       // Le motif de slug (P2-02) n'autorise que minuscules, chiffres et traits
       // d'union : l'encodage y est l'identité, et doit le rester.
       expect(entityPath('fr', 'projects', 'mon-projet-2')).toBe('/fr/projects/mon-projet-2')
+    })
+  })
+})
+
+/**
+ * L'opération inverse de `homePath` (P4-07). Trois appelants la posent — le
+ * proxy et les deux frontières d'erreur —, et chacun décide **seul** de ce qu'il
+ * fait quand il n'y a pas de locale : c'est la lecture qui est partagée, pas le
+ * repli.
+ */
+describe('locale portée par un chemin', () => {
+  it.each([
+    ['/fr', 'fr'],
+    ['/en', 'en'],
+    ['/fr/projects', 'fr'],
+    ['/en/projects/portfolio', 'en'],
+    ['/fr/', 'fr'],
+  ])('lit « %s » comme %s', (pathname, expected) => {
+    expect(localeFromPathname(pathname)).toBe(expected)
+  })
+
+  it.each([
+    ['une locale inconnue', '/de/projects'],
+    ['aucune locale', '/rien'],
+    ['la racine', '/'],
+    ['la casse inverse — une locale est un segment exact', '/FR/projects'],
+    ['un préfixe qui ressemble', '/french/projects'],
+    ['la chaîne vide', ''],
+  ])('ne trouve pas de locale dans %s', (_label, pathname) => {
+    // `null` et non la locale par défaut : rendre un repli ici priverait le
+    // proxy de la négociation `Accept-Language`, qui est son travail.
+    expect(localeFromPathname(pathname)).toBeNull()
+  })
+
+  it('rend une locale pour tout chemin que le site construit', () => {
+    // La propriété d'aller-retour : ce que `homePath` écrit, ceci le relit.
+    for (const locale of LOCALES) {
+      expect(localeFromPathname(homePath(locale))).toBe(locale)
+      for (const section of SECTIONS) {
+        expect(localeFromPathname(sectionPath(locale, section))).toBe(locale)
+      }
+    }
+  })
+
+  describe('langue à afficher quand on n’a que l’URL', () => {
+    it('suit l’URL quand elle porte une locale', () => {
+      expect(displayedLocale('/en/projects')).toBe('en')
+      expect(displayedLocale('/fr')).toBe('fr')
+    })
+
+    it('retombe sur la locale par défaut, plutôt que sur rien', () => {
+      // Les frontières d'erreur n'ont pas d'`Accept-Language` à négocier : sans
+      // ce repli, `<html lang>` serait absent au moment précis où la page est
+      // déjà dégradée.
+      expect(displayedLocale('/de/projects')).toBe(DEFAULT_LOCALE)
+      expect(displayedLocale('/rien')).toBe(DEFAULT_LOCALE)
+      expect(displayedLocale('/')).toBe(DEFAULT_LOCALE)
     })
   })
 })

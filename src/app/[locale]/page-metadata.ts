@@ -34,7 +34,8 @@ import { readLocale, type LocaleParams } from './locale-param'
 export function sectionMetadata(section: Section) {
   return async ({ params }: LocaleParams): Promise<Metadata> => {
     const locale = await readLocale(params)
-    const { name, description } = getMessages(locale).sections[section]
+    const messages = getMessages(locale)
+    const { name, description } = messages.sections[section]
 
     return pageMetadata({
       locale,
@@ -42,6 +43,7 @@ export function sectionMetadata(section: Section) {
       title: name,
       description,
       availableLocales: LOCALES,
+      site: messages.site,
     })
   }
 }
@@ -73,5 +75,8 @@ export async function entityMetadata(
     // La liste des locales où l'entité existe **réellement** : c'est ce qui
     // interdit un `hreflang` vers une traduction absente (R-07).
     availableLocales: await repository.getContentLocales(section, slug),
+    // Le nom du site et son gabarit : `src/seo` ne lit pas le dictionnaire
+    // (`architecture.md` §1.2), et `og:title` a besoin du titre complété.
+    site: getMessages(locale).site,
   })
 }

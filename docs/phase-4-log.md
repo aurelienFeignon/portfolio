@@ -786,3 +786,516 @@ L'entrée chargée publie désormais son `file`.
 fiches **sans que rien ne relie les deux chaînes** : une faute de frappe rendait la liste anonyme pour
 un lecteur d'écran, sans qu'aucun test n'échoue. `TechnologySection` produit l'`id` avec le titre qu'il
 désigne — et la fiche d'un *projet* cesse au passage de lire `messages.experience.technologies`.
+
+## 13. P4-07 — la page introuvable, et deux défauts que seul un parcours pouvait voir
+
+### 13.1 Trois sondes pour établir qu'aucune voie ordinaire n'existe
+
+La 404 de Next est servie **hors de tout layout racine**, et c'est structurel ici : le nôtre vit sous
+`[locale]` (P3-02, c'est ce qui permet à `<html lang>` d'être vrai). Trois sondes, avant d'écrire
+quoi que ce soit :
+
+| Voie | Ce qui a été observé | Verdict |
+|---|---|---|
+| `[locale]/not-found.tsx` | **Jamais atteinte.** `dynamicParams = false` fait d'un slug inconnu un échec de *routage*, pas un `notFound()` | fermée |
+| `app/not-found.tsx` | Rendue, mais **hors du layout racine** : pas de `<html lang>`, aucun paramètre reçu | fermée |
+| Idem + enveloppe rendue par le composant | **Deux `<html>`** dans le document | fermée |
+| Groupe de routes avec son propre layout racine | Écarterait le segment `[locale]` de la 404, donc sa langue | non retenue |
+
+⛔ **L'absence de `lang` est une violation WCAG 3.1.1, et le gate axe ne l'avait jamais vue** — non
+parce qu'il était mal réglé, mais parce qu'aucun parcours ne visitait de 404. Un audit
+d'accessibilité ne couvre que les pages qu'on lui donne.
+
+D'où la voie retenue avec l'utilisateur : **le proxy réécrit toute URL inconnue vers une vraie page
+prérendue et localisée**, `[locale]/404`.
+
+⚠️ **Le statut est porté par la réécriture** (`{ status: 404 }`). Une réécriture rend **200** par
+défaut : servir le bon contenu avec le mauvais statut dirait à un moteur de recherche que la page
+existe — l'inverse exact du but.
+
+### 13.2 Deux énumérations qu'on ne peut pas fusionner, donc qu'il faut confronter
+
+Le proxy a besoin de la liste des chemins servis **pour être compilé**, c'est-à-dire *avant*
+`next build` ; le sitemap et les pages prégénérées en sont le *produit*. Elles n'existent pas au
+même instant : `scripts/generate-route-manifest.mts` écrit donc `SERVED_PATHS`, et c'est une
+**seconde énumération** — la forme même de R-07.
+
+⭐⭐ **Elle est confrontée aux pages réellement prégénérées, et non au sitemap.** Le prompt de
+reprise demandait « manifeste ↔ sitemap » ; l'écart est délibéré. Il y a **trois** énumérations : ce
+que Next a prégénéré (le fait), ce que le sitemap annonce, et ce que le proxy laisse passer. Les
+deux dernières sont dérivées. Comparer deux dérivées l'une à l'autre produit un message qui accuse
+celle qui n'a pas tort — chacune est donc comparée au **fait**. Le contrôle 3 y gagne au passage son
+sens manquant : il ne vérifiait que `pages → sitemap`, il vérifie maintenant les deux sens.
+
+⛔⛔ **Les deux sens du contrôle 4 sont des pannes silencieuses, et elles ne se ressemblent pas.**
+
+| Écart | Conséquence |
+|---|---|
+| Un chemin **en trop** dans le manifeste | Le proxy laisse passer, Next sert sa 404 interne — sans `lang`. Le défaut que la tâche supprime, réintroduit par la porte de derrière |
+| Un chemin **manquant** | Le proxy réécrit une **page réelle** vers la 404, en 404. Elle disparaît du site et de l'index, en répondant proprement |
+
+Les trois cas ont été **vus échouer** sur le build réel, pas sur des fixtures seules : manifeste
+augmenté d'un chemin, amputé d'une page, et absent.
+
+### 13.3 ⛔⛔⛔ Le matcher a été faux **deux fois**, et la seconde a été trouvée en revue
+
+Le parcours E2E de cette tâche a trouvé une régression que le commit de travail avait introduite et
+que rien ne signalait : **`/resume/cv-fr.pdf` et `cv-en.pdf` répondaient 404**. Ils sont en ligne
+depuis la Phase 2.
+
+Cause : le matcher, élargi de `/` à tout le site, énumérait ses exceptions **à la main** —
+`favicon.ico|robots.txt|sitemap.xml|images/`. Liste écrite d'imagination, jamais confrontée à
+`public/` : elle citait `images/`, qui n'existe pas, et ignorait `resume/`, qui existe.
+
+**Premier correctif, et il était encore faux.** La liste a été remplacée par un critère qu'on croyait
+ne pas avoir à entretenir : *un chemin de page ne contient jamais de point*. Il traitait bien les
+fichiers réels — et laissait l'inverse passer. `/code-review` l'a relevé, et la mesure sur l'image de
+production l'a confirmé :
+
+```text
+/wp-login.php                 404 | <html>            ← sans lang
+/cv.pdf                       404 | <html>            ← sans lang
+/fr/projects/portfolio.html   404 | <html>            ← sans lang
+/fr/rien                      404 | <html lang="fr">
+```
+
+Une adresse **inexistante portant un point** échappait à la réécriture et recevait la 404 interne de
+Next, hors du layout racine, donc sans `lang` — c'est-à-dire **le défaut WCAG 3.1.1 que cette tâche
+supprime, réintroduit par la porte de derrière**, sur la classe d'URL que les scanners visitent le
+plus.
+
+⭐⭐⭐ **Les deux versions ont la même racine : décider d'après la *forme* d'une URL ce que seul le
+disque sait.** Une liste écrite à la main est fausse dès qu'on ajoute un fichier ; un motif est faux
+dans l'autre sens, parce qu'une URL inventée peut prendre la forme d'un fichier. Aucun motif ne peut
+trancher.
+
+**Correctif retenu : la décision quitte le matcher pour la fonction, sur une liste générée.**
+`generate-route-manifest.mts` émet un second export, `PASSTHROUGH_PATHS` — les fichiers de `public/`
+**lus sur le disque**, plus les routes-poignées (`robots.txt`, `sitemap.xml`). Le proxy laisse passer
+ce qui est dans l'une des deux listes et réécrit tout le reste. Le matcher ne borne plus que le
+coût : `_next/` seul en est exclu.
+
+Deux gates neufs ferment ce qui restait de manuel :
+
+| Contrôle | Ce qu'il confronte | Vu échouer |
+|---|---|---|
+| 5 — *Destination* | `notFoundPath(locale)` **est prégénérée** | destination changée en `/410` → « toute URL inconnue serait réécrite vers une route qui n'existe pas » |
+| 6 — *Laissez-passer* | chaque route non-page du build figure dans `PASSTHROUGH_PATHS` | `/robots.txt` retiré → le gate le nomme et donne le fichier à corriger |
+
+⭐ Le contrôle 6 est ce qui rend admissible la seule liste encore écrite à la main (`ROUTE_HANDLERS`,
+deux entrées) : elle est **confrontée au build**. Et il travaillera pour P4-08 sans qu'on le lui
+demande — une `opengraph-image` est une route non-page, donc il la réclamera.
+
+Mesure après correctif, même commande :
+
+```text
+/wp-login.php                 404 | <html lang="fr">
+/cv.pdf                       404 | <html lang="fr">
+/fr/projects/portfolio.html   404 | <html lang="fr">
+/resume/cv-fr.pdf             200 | (pas de <html>)
+/robots.txt                   200 | (pas de <html>)
+```
+
+⭐⭐ **La revue a trouvé ce qu'un parcours vert cachait.** Les 14 parcours de la tâche étaient tous
+verts : aucun ne visitait d'URL pointée, parce qu'aucun n'avait de raison d'en visiter une. Un test
+ne couvre que la classe qu'on a pensé à lui donner — le motif du dépôt depuis P4-04.
+
+### 13.4 ⛔⛔ La page introuvable n'avait pas d'en-tête, et le garde ne pouvait pas le voir
+
+Second constat du même parcours : `/fr/rien` était servie **sans bannière et sans navigation**.
+
+`[locale]/404/page.tsx` vit directement sous `[locale]`, où **aucun layout d'endroit** ne la
+couvrait — l'en-tête est posé par les layouts d'endroit depuis P4-02, jamais par le layout racine
+(§7.1). C'est mot pour mot la panne que `every-section-declares-its-place.test.ts` décrit dans son
+propre en-tête… pour une quatrième *section*. La page introuvable n'en est pas une : elle est passée
+à travers.
+
+⭐⭐ **Un garde exhaustif l'est sur la dimension qu'il connaît.** Celui-ci était tenu par
+`Record<CurrentPlace, …>`, et `CurrentPlace` valait `SectionName | 'home'` — le type disait « les
+endroits du site sont les sections plus l'accueil », ce qui a cessé d'être vrai le jour où une
+cinquième page a rendu du chrome. Élargir le **type** (`| 'notFound'`) a rendu la ligne du garde
+obligatoire avant même que la suite ne démarre, et la mutation le confirme.
+
+⚠️ `current="notFound"` ne marque **rien** — ni la marque, ni un lien de section. Lui donner
+`'home'` aurait été plus court et faux : `aria-current="page"` sur un lien qui mène ailleurs, la
+faute exacte relevée en revue de P4-02 sur les pages de détail.
+
+### 13.5 Les frontières d'erreur, et ce qu'elles coûtent réellement
+
+Next en impose deux, et elles ne couvrent pas la même chose : `[locale]/error.tsx` rattrape l'échec
+d'une page, `global-error.tsx` celui du layout racine — qui doit donc **rendre son propre `<html>`**,
+seule exception du framework. Elles ne diffèrent que par cette enveloppe : le reste est
+`src/ui/error-notice.tsx`, écrit une fois.
+
+⚠️ **La langue vient de l'URL.** Une frontière d'erreur est un composant client : ni `params`, ni
+en-tête de requête. `usePathname` est la seule source, et `localeFromPathname` — l'inverse de
+`homePath` — est désormais partagée avec le proxy. Le **repli**, lui, n'est pas partagé : le proxy
+négocie `Accept-Language`, les frontières retombent sur la locale par défaut.
+
+⛔⛔ **Le coût est réel, il est mesuré, et c'est la première fois que ce site embarque du JavaScript
+applicatif.**
+
+| Relevé | Avant P4-07 | Après | Seuil |
+|---|---|---|---|
+| Socle partagé | 129,5 Ko | **126,0 Ko** | cible 136 · bloquant 146 |
+| JS propre à chaque route | **0,0 Ko** sur 18 | **7,2 Ko** sur 18 | cible 25 · bloquant 40 |
+| Première visite (socle + route) | 129,5 Ko | **133,2 Ko** | — |
+
+Trois mesures ont servi à trancher plutôt qu'à constater :
+
+- `global-error.tsx` **seul** coûte déjà 5,3 Ko sur chaque route : le supprimer ne rendrait pas les
+  0,0 Ko, et la frontière de page ne pèse que **+2,0 Ko** de plus. Le choix n'était donc pas « l'une
+  ou l'autre » mais « les deux, ou aucune » ;
+- remplacer `usePathname` par `window.location` n'économise que **0,5 Ko de socle et rien par
+  route** — écarté : `window` est absent au prérendu, et la fragilité ne s'achète pas à ce prix ;
+- l'image de production reste à **268 Mo**, inchangée.
+
+⭐ **Ce qui est perdu est la formule, pas la propriété.** « Le profil `no-js` est vrai *par
+construction* » devient « vrai *par vérification* » : les pages restent du HTML servi, sans
+interactivité, et le parcours `no-js` le prouve — il visite maintenant une 404. L'arbitrage est
+celui du projet, écrit avant d'être invoqué : **accessibilité > indexabilité > performance du
+contenu**. Une page d'erreur sans `lang` est le même défaut WCAG 3.1.1 que la 404 corrigée ici.
+
+⚠️ **Réserve consignée** : une erreur de rendu est presque impossible sur un site entièrement
+prérendu sans logique client — et ces frontières sont désormais le principal code client qui
+pourrait en produire une. Le déclencheur de réexamen est chiffré : si la Phase 5 fait entrer un
+composant client, ces 7,3 Ko cessent d'être le seul JavaScript applicatif et la question ne se
+repose pas ; si au contraire P4-13 mesure un LCP sous pression, ce sont les premiers 7,2 Ko à
+rouvrir.
+
+### 13.6 Ce qui est testé, et à quel niveau
+
+⭐ **La page d'erreur n'a pas de parcours E2E, et c'est une décision.** Aucune erreur de rendu ne
+peut être provoquée honnêtement contre l'image de production : un parcours qui prétendrait le faire
+**fabriquerait la panne** au lieu de l'observer — la faute que §12.5 a nommée. `ErrorNotice` est
+donc vérifié en test de composant (langue, bouton et non lien, `#main` présent, aucun détail
+technique), et la lecture de locale en unitaire.
+
+La 404, elle, ne se prouve **que** par un parcours : ni le proxy seul ni la page seule ne disent que
+la réécriture atteint une page prérendue **en portant un 404**. Treize parcours l'établissent, dont
+l'audit axe — le premier du dépôt sur une 404 — et un quatorzième sous `no-js`.
+
+⚠️ **Deux de ces parcours ont d'abord échoué pour la mauvaise raison, et le dire est le point.**
+Ils attendaient du français sur `/de/projects` et `/rien` ; le profil `desktop-chromium` annonce
+`en-US`, et le proxy servait donc l'anglais — correctement. Un test qui n'énonce pas la langue du
+visiteur ne teste pas la négociation, il teste le hasard du profil. Ils déclarent maintenant leur
+contexte, dans les deux langues.
+
+⭐ Un troisième test passait, lui aussi, pour la mauvaise raison : « refuse de conclure sans
+manifeste de routes » fabriquait un build **sans sitemap**, si bien que le gate sortait en 1 avant
+même d'arriver au contrôle nommé. Il aurait été vert quoi qu'on écrive. Le build fabriqué est
+désormais entièrement sain, et l'échec porte le message attendu.
+
+### 13.7 Relevés
+
+| Relevé après P4-07 | Valeur | Seuil |
+|---|---|---|
+| Socle partagé | **126,0 Ko** | cible 136 · bloquant 146 |
+| JS propre à chaque route | **7,2 Ko** sur 18 routes | cible 25 · bloquant 40 |
+| Image de production | **268 Mo** — inchangée | cible 250 · **bloquant 400** |
+| Tests | **548** verts *(503 avant la tâche)* | — |
+| E2E | **108** verts sur 5 profils *(92 avant)* | — |
+| Couverture globale | **98,8 %** — voir §13.8 | ≥ 80 % |
+| Violations axe serious/critical | **0**, dont **la 404 pour la première fois** | 0 |
+| Pages prégénérées | 18, dont 2 pages introuvables hors sitemap | — |
+
+### 13.8 ⛔ « Couverture 100 % » n'était plus vrai, et depuis deux tâches
+
+Le chiffre a été **remesuré** au lieu d'être recopié, et il ne tient pas : la couverture globale est
+de **98,8 %**. Trois fichiers ne sont pas couverts, et aucun n'appartient à cette tâche — `git log`
+les rattache à P4-02 et P4-05 :
+
+| Fichier | Couverture | Pourquoi |
+|---|---|---|
+| `src/app/[locale]/place-layout.tsx` | 0 % | Le garde des endroits **appelle** les layouts sans les rendre : il lit l'élément `PlaceLayout` retourné, si bien que le corps de celui-ci ne s'exécute jamais |
+| `src/ui/technology-section.tsx` | 0 % | Extrait en revue de P4-05, sans test de composant |
+| `src/ui/company-line.tsx` | 75 % de branches | Une branche jamais exercée |
+
+⭐⭐ **C'est la leçon de §12.2 rejouée sur ce journal lui-même.** §11.5 annonce « 492 verts,
+couverture 100 % » pour P4-06, et ce chiffre a survécu à P4-05, qui l'a rendu faux. Il n'a rien
+décidé — parce qu'il a été remesuré ici —, mais **rien ne le remesurait**.
+
+Le gate reste **vert** : les seuils sont à 80 % au global et à 95 % sur les modules critiques, tous
+tenus (`src/content`, `src/i18n`, `src/routing`, `src/seo` sont à 100 %). Ce n'est donc pas une
+régression de qualité, c'est une **affirmation périmée**. Traitement : trois tests de composant
+manquants, inscrits en **P4-10** — la passe d'accessibilité relit de toute façon ces fichiers.
+Nommés ici plutôt que corrigés : ce sont des composants d'autres tâches, et les mêler à ce diff le
+rendrait illisible.
+
+### 13.9 Ce que la revue a changé
+
+Le rituel — `/code-review` puis `/simplify` — a trouvé **huit défauts réels** sur un travail dont
+tous les gates étaient verts, dont deux que la mesure a confirmés en production. Cinq méritent
+d'être retenus au-delà de leur correctif.
+
+⛔⛔⛔ **Le matcher était encore faux après son premier correctif** (§13.3). C'est le constat le plus
+coûteux de la tâche, et il n'a pas été trouvé par un test : les quatorze parcours étaient verts,
+aucun ne visitant d'URL pointée. Il l'est maintenant — la mesure qui l'a établi est **rejouable**,
+deux lignes de la table du parcours.
+
+⛔⛔ **Deux copies d'un même parcours de disque n'étaient pas équivalentes.** Le générateur lisait
+`URL.pathname`, qui est **percent-encodé** ; sa jumelle dans le test partait de `process.cwd()`, qui
+ne l'est pas. Elles s'accordaient parce que `/opt/portfolio` n'a ni espace ni accent. Un fichier
+nommé `cv fr.pdf` aurait mis `/resume/cv%20fr.pdf` au manifeste et `/resume/cv fr.pdf` au test : le
+test aurait réclamé une régénération que la régénération n'aurait pas réparée, et le proxy aurait
+réécrit le fichier réel en 404. ⭐⭐ **Deux implémentations d'une même lecture divergent d'abord en
+silence** — c'est la thèse de toute cette tâche, appliquée à son propre outillage. Il n'y a plus
+qu'un parcours (`scripts/public-paths.mts`).
+
+⛔⛔ **Le contrôle 6 ne vérifiait qu'un sens** — celui-là même que le contrôle 4 a été doublé pour
+éviter. Une entrée **périmée** dans les chemins laissés passer (un CV supprimé, une route-poignée
+retirée) rouvrait exactement le trou de la tâche : le proxy laisse passer, Next sert sa 404 interne,
+sans `lang`. ⭐ Le raisonnement était écrit en toutes lettres dans l'en-tête du fichier, et n'avait
+pas été reporté au contrôle suivant.
+
+⛔ **`Vary: Accept-Language` était déclaré sur toutes les réécritures**, y compris celles où la
+langue vient de l'URL et où l'en-tête n'est jamais lu. Ce n'est pas une faute de correction mais une
+**dépendance déclarée qui n'existe pas** : elle demande au cache partagé une entrée par valeur d'un
+en-tête à très forte cardinalité, pour des réponses identiques — et les 404 sont le trafic le plus
+volumineux d'un site public.
+
+⛔⛔ **L'invariant central de la tâche n'était vérifié qu'à moitié.** Le site a deux émetteurs de
+`<html>` : le layout de locale, que les parcours lisent, et `global-error.tsx`, qui rend sa propre
+enveloppe — exclu de la couverture, hors de portée d'un parcours (§13.6), et dont le test de
+composant ne voit jamais de `<html>`. Un garde structurel les compte et exige `lang` sur chacun.
+
+⭐⭐⭐ **Et ce garde a payé, à sa toute première exécution, le piège que ce journal documente
+depuis §7.1** : il comptait quatre enveloppes pour deux, parce qu'il lisait les `<html>` **cités
+dans les commentaires** — ceux-là mêmes qui expliquent pourquoi l'enveloppe existe. *Un garde qui
+lit du texte source lit tout le texte source.* Les commentaires sont retirés avant lecture, la
+limite restante est écrite dans le fichier, et le compte des enveloppes est ce qui signalerait une
+troisième forme.
+
+Le reste est de la réutilisation, et le dépôt le disait à chaque fois :
+
+- **`lead.module.css` était le troisième exemplaire, pas le second** — son propre en-tête annonçait
+  « deuxième » et laissait le premier (`.lede` de l'accueil, P4-03) en place. Les deux ne
+  différaient que par leur mesure, 50ch contre 60ch, sans raison écrite. ⭐ La valeur retenue est
+  **celle qui était déjà servie** : quand deux copies divergent sans raison, la copie en production
+  fait foi — choisir l'autre aurait modifié une page déjà revue pour rien.
+- **La page introuvable réimplémentait `SectionGuide`**, en allant chercher elle-même
+  `sections[x].name` et `sections[x].description`. Elle donnait au passage un **troisième** lecteur
+  à des clés dont la double vie est une décision ouverte (D7).
+- **La moitié « pages » du manifeste n'avait aucun garde de fraîcheur**, alors que la moitié
+  `public/` venait d'en recevoir un. Le générateur prend maintenant sa destination en argument, et
+  un test compare octet à octet ce qu'il produit aujourd'hui au fichier committé — ce qui vérifie
+  aussi, gratuitement, son idempotence de forme.
+- Trois tables de test mesuraient un cas plusieurs fois (colonne constante, corps recopiés), et un
+  cas du gate **restait vert quoi qu'on écrive** en attendant `code === 0` sur l'entrée saine du
+  premier test.
+
+### 13.10 Constats de revue **écartés**, avec leur raison
+
+| Constat | Raison de l'écart |
+|---|---|
+| Adopter `experimental.globalNotFound` comme **plancher** sous le manifeste | L'idée est juste — le framework garantirait `<html lang>` même si le manifeste se trompait. Mais c'est un drapeau **expérimental**, non vérifié sur 16.3.0, et un second mécanisme de 404 introduit à la fin d'une tâche. À instruire pour de bon en **P4-10**, avec la sonde qui va avec |
+| **Dériver** `ROUTE_HANDLERS` des conventions de l'App Router au lieu de l'écrire | Deux entrées aujourd'hui, et les **deux sens** du contrôle 6 les confrontent désormais au build. La dérivation devient rentable quand P4-08 ajoutera `opengraph-image` — c'est là qu'il faudra la faire, pas avant |
+| Rendre le garde des endroits **piloté par l'arborescence** plutôt que par `CurrentPlace` | Constat le plus fin de la revue : si le layout de la 404 avait déclaré `current="home"`, le type ne se serait jamais élargi et rien n'aurait rougi. Vrai, et c'est une refonte d'un garde de P4-02 — **P4-10** |
+| `marking(place)` par `switch` exhaustif plutôt qu'une énumération négative | Deux termes aujourd'hui (`home`, `notFound`). Le compilateur ferme déjà le trou : un sixième endroit oublié dans la condition ne compile pas |
+| Fusionner `LIST_BY_SECTION`, dupliqué entre le générateur et `app/sitemap.ts` | **Le graphe de dépendances l'interdit** : la table a besoin de `content` *et* de `routing`, et aucune couche ne peut importer les deux — seules les racines de composition le peuvent, et elles sont deux. L'écart échoue **bruyamment** (contrôle 4), pas en silence |
+| Quatre optimisations du proxy | Mesurées **sous le bruit** : ~140 ns au total sur une requête qui en coûte 10⁵–10⁶. Conformément à ce que la Phase 2 a établi, on ne fait rien |
+
+⚠️ **Un effet de bord mesuré, et non corrigé ici** : le dépôt n'a **aucune icône**, et tout
+navigateur demande `/favicon.ico` à la première visite. Cette requête reçoit désormais la page 404
+complète — **14,5 Ko** au lieu de la 404 interne de Next. Ce n'est pas un défaut du mécanisme, c'est
+une icône manquante ; sa place est **P4-08**, la tâche des métadonnées et des images de partage. La
+mesure est ici pour qu'elle n'y soit pas redécouverte.
+
+### 13.11 Ce que P4-07 laisse ouvert
+
+| Sujet | État |
+|---|---|
+| Les 7,2 Ko de JavaScript par route | Budgets tenus, déclencheur de réexamen écrit (§13.5) |
+| Trois fichiers non couverts | Dette nommée, reprise en P4-10 (§13.8) |
+| `messages` et `TONES` inutilisés | Deux avertissements de lint **antérieurs** à cette tâche (P4-05), laissés hors de ce diff |
+| Aucun parcours n'exerce une frontière d'erreur | Assumé : la panne n'est pas provocable honnêtement (§13.6) |
+| `ROUTE_HANDLERS` reste écrit à la main | Deux entrées, confrontées au build **dans les deux sens** (§13.10) |
+| Pas de favicon | Mesuré, reporté en P4-08 (§13.10) |
+| Les quatre constats d'altitude écartés | Chacun avec sa raison et sa tâche de reprise (§13.10) |
+
+## 14. P4-08 — le gabarit de titre, le partage, et une image que rien ne référençait
+
+### 14.1 Le gabarit vit au layout, et l'accueil y échappe **par déduction**
+
+`%s — Aurélien Feignon` est déclaré une fois, dans le layout racine : chaque page dit ce qu'elle
+est — « Projets » —, et Next ajoute le suffixe. Le poser dans chaque `generateMetadata` aurait été
+autant d'occasions de le voir diverger.
+
+⭐ **L'accueil est le seul titre absolu, et ce n'est pas la page qui le déclare.** Son titre **est**
+le nom du site : le laisser traverser le gabarit donnerait « Aurélien Feignon — Aurélien Feignon ».
+Le faire déclarer par la page aurait été une occasion de l'oublier, pour un oubli qui ne casse rien
+de visible — juste un titre qui bégaie. `buildPageMetadata` le déduit de l'**emplacement**, qui le
+dit déjà.
+
+⭐ **Le séparateur est une clé de dictionnaire, et les deux langues diffèrent réellement** : tiret
+cadratin entouré d'espaces en français, barre verticale en anglais. Ce n'est pas une différence
+inventée pour satisfaire le test de non-régression — c'est la formulation idiomatique de chaque
+langue, cherchée **d'abord**, comme la règle de P4-04 §9.3 le demande.
+
+### 14.2 ⛔⛔ L'image de partage était générée, prégénérée — et invisible
+
+Le premier build produisait bien `/fr/opengraph-image` et `/en/opengraph-image`, servies en PNG.
+**Aucune page ne les référençait.**
+
+Next attache l'image du fichier `opengraph-image.tsx` aux métadonnées du segment… **tant que la page
+ne déclare pas d'`openGraph` elle-même**. Dès qu'elle en déclare un — ce que fait chaque page ici,
+via `buildPageMetadata` —, il **remplace** celui du parent, image comprise. Le résultat est une
+image parfaitement produite que personne ne voit.
+
+⭐⭐ **Le mode de panne est de ceux que ce dépôt traque** : rien n'échoue, rien n'est journalisé, et
+personne ne regarde une carte de partage à chaque déploiement. Un parcours E2E suit désormais
+l'`og:image` **jusqu'à la réponse** : statut, type et taille. Annoncer une adresse ne prouve pas
+qu'elle répond.
+
+`shareImagePath(locale)` rejoint `notFoundPath(locale)` dans `src/routing/paths.ts` : trois endroits
+doivent s'accorder au caractère près — le fichier qui produit l'image, les métadonnées qui
+l'annoncent, et le manifeste qui autorise le proxy à la laisser passer.
+
+### 14.3 ⭐⭐⭐ Le gate de P4-07 a travaillé pour P4-08, sans qu'on le lui demande
+
+Le journal de P4-07 annonçait : *« il travaillera pour P4-08 sans qu'on le lui demande — une
+`opengraph-image` est une route non-page, donc il la réclamera »*. C'est arrivé **deux fois**, et
+chaque fois avant qu'un humain ne voie le défaut :
+
+| Ce que le gate a refusé | Ce que ç'aurait coûté |
+|---|---|
+| `/[locale]/opengraph-image` **non prégénérée** | Un PNG de 1200×630 **calculé à chaque requête** sur un VPS à 2 vCPU, pour une image qui ne change qu'au déploiement. Une route de métadonnée n'hérite pas du `generateStaticParams` de son parent |
+| `/fr/opengraph-image` et `/icon` **absentes des laissez-passer** | Le proxy les réécrivait en 404 : partage sans vignette, onglet sans icône |
+
+⭐ **La liste écrite à la main reste écrite à la main, et le journal de P4-07 se trompait sur ce
+point.** Il annonçait que P4-08 rendrait la dérivation rentable. Arrivé là, l'ajout tient en une
+ligne, tandis que dériver demanderait de réimplémenter la table des fichiers de métadonnées de l'App
+Router *et* l'expansion des segments dynamiques. **Une prédiction faite avant de voir le cas ne vaut
+pas la mesure du cas** — et les deux sens du contrôle rendent cette liste vérifiée plutôt que crue.
+
+### 14.4 L'icône : une raison mesurée, et une valeur d'attente assumée
+
+Elle existe d'abord parce que son absence coûtait **14,5 Ko** : la requête d'icône que fait tout
+navigateur recevait la page 404 complète (§13.10).
+
+⚠️ **C'est un monogramme d'attente, et il est écrit comme tel.** Un logo est une décision de marque,
+et elle appartient à l'auteur du site — c'est la règle qui garde les niveaux de compétence non
+publiés (D2) et qui a coûté une tâche entière sur la précision des dates. Ce qui est rendu n'en est
+pas un : ce sont les **initiales de `site.name`**, dérivées et non écrites, dans la couleur d'accent.
+Le jour où un vrai logo existe, il remplace ce fichier et rien d'autre ne bouge.
+
+⚠️ **Et l'effet est partiel, mesuré comme tel** : le `<link rel="icon">` est émis et pointe vers un
+PNG de **473 octets**, donc tout navigateur qui lit le HTML l'emploie. Une requête **nue** sur
+`/favicon.ico` — signet, certains robots — reçoit toujours la page 404. La fermer demanderait un
+`public/favicon.ico` statique, c'est-à-dire une **copie figée** de l'icône générée, qui ne suivrait
+pas un changement de `site.name`. C'est exactement la divergence que cette phase passe son temps à
+supprimer : le cas résiduel est donc laissé ouvert plutôt que payé de cette monnaie-là.
+
+### 14.5 Ce qui a été sorti des routes pour que l'exclusion reste honnête
+
+`icon.tsx` portait une décision à branches — les initiales d'un nom : un seul mot, des espaces en
+trop, une casse quelconque. Elle est dans `src/ui/initials.ts`, couverte à 100 %, et les deux routes
+de métadonnée rejoignent les pages et les layouts dans les exclusions. C'est la règle de
+`testing-strategy.md` §6 appliquée telle qu'elle est écrite, et non élargie pour l'occasion.
+
+⚠️ **Les couleurs de l'image de partage sont recopiées de `globals.css`, et ne peuvent pas ne pas
+l'être** : `ImageResponse` rend hors du navigateur, sans variables CSS. C'est la seule duplication du
+palette dans le dépôt, et elle est **gardée** — un test refuse une couleur qui ne serait plus dans
+les tokens, et il a été vu rouge. Le mode de panne, sinon, est purement visuel et silencieux.
+
+### 14.6 Ce que la revue a changé
+
+⛔⛔⛔ **Le défaut le plus grave a été livré, et Next l'avait écrit au build.** Faute de
+`metadataBase`, Next résolvait lui-même les URL de métadonnée contre `http://localhost:3000` — son
+défaut de développement. Les **deux pages introuvables**, seules à ne déclarer aucun `openGraph`,
+recevaient donc l'image par convention de fichier… avec une adresse `localhost` **gravée dans du
+HTML statique**, prête à partir en production.
+
+```text
+⚠ metadataBase property in metadata export is not set for resolving social open
+  graph or twitter images, using "http://localhost:3000".
+```
+
+⭐⭐⭐ **L'avertissement était dans la sortie du build, en toutes lettres, et personne ne la
+lisait.** C'est mot pour mot la leçon de la Phase 3 — *« les trois défauts réels de cette phase ont
+été trouvés en lisant la sortie d'un outil, pas en relisant du code »* — et elle a été repayée ici.
+Le correctif est une ligne ; le garde qui la protège porte sur **toutes** les pages servies, et non
+sur celle qui a échoué : un parcours refuse désormais toute URL absolue dont l'origine n'est pas
+celle de construction. **Vu rouge** en retirant `metadataBase`.
+
+Trois autres constats, plus petits :
+
+- ⛔ **L'`alt` de l'image décrivait la page, pas l'image.** Il reprenait `input.description` — la
+  description de la *page* — alors que le PNG rend toujours celle du **site**. Sur toute page sauf
+  l'accueil, il annonçait donc un contenu que l'image ne montre pas : une description d'image
+  fausse, c'est-à-dire pire qu'absente.
+- ⛔ **Le commentaire d'`icon.tsx` affirmait être gardé par un test qui ne le lisait pas.** La
+  sonde de palette ne parcourait que `opengraph-image.tsx`. Elle lit maintenant **tout `src/app`** —
+  la prochaine route de métadonnée qui recopiera une valeur sera couverte sans qu'on y pense.
+- ⚠️ **L'`og:image` que nous construisons n'a pas de condensat**, là où celle que Next attache en
+  porte un (`?628ff604…`). Une image redessinée garderait donc la même URL, et un cache social
+  servirait l'ancienne vignette. Non corrigé : le condensat de Next n'est pas exposé, et le
+  fabriquer supposerait de recalculer le contenu de l'image au moment des métadonnées. **Déclencheur
+  écrit** : le jour où l'image de partage est redessinée, changer son adresse — un segment de
+  version dans `shareImagePath` suffit.
+
+### 14.7 Relevés
+
+| Relevé après P4-08 | Valeur | Seuil |
+|---|---|---|
+| Socle partagé | **126,4 Ko** *(126,0 après P4-07)* | cible 136 · bloquant 146 |
+| JS propre à chaque route | **7,3 Ko** sur 18 routes | cible 25 · bloquant 40 |
+| Image de production | **272 Mo** *(268 après P4-07)* — **+4 Mo**, le coût de `next/og` | cible 250 · **bloquant 400** |
+| Image de partage servie | 34,1 Ko (fr) · 31,4 Ko (en), 1200×630 | — |
+| Icône servie | **473 octets** | — |
+| Tests | **569** verts *(548 après P4-07)* | — |
+| E2E | **117** verts sur 5 profils *(108 après P4-07)* | — |
+| Couverture globale | **98,8 %** | ≥ 80 % |
+
+⭐ **`next/og` n'ajoute aucune dépendance au verrou** — il est fourni par Next. Son coût est de
+**+4 Mo dans l'image de production**, mesuré avant/après sur la même cible, et il est **entièrement
+de build** : les deux images et l'icône sont gravées, le conteneur n'en calcule aucune.
+
+### 14.7 bis Ce que `/simplify` a changé
+
+⛔⛔ **La sonde de palette ne pouvait pas voir la duplication qu'elle était censée garder.** Elle
+vérifie que chaque littéral **est** un token — jamais que deux fichiers désignent le **même**.
+L'accent était écrit dans les deux images : en changer un et laisser l'autre gardait la suite verte
+pendant que les deux se contredisaient sur la marque.
+
+⭐⭐ **La bonne réponse n'était pas de mieux surveiller, mais de supprimer la copie.**
+`src/ui/brand-palette.ts` porte les quatre valeurs **une fois**, les deux routes l'importent, et la
+sonde lit désormais tout `src/`. Une duplication qu'un garde ne peut pas voir n'est pas gardée.
+
+⛔ **Un commentaire de test affirmait un fait faux.** Il justifiait un filtre par « sinon le rendu
+afficherait `undefined` » — or `Array.join` rend une valeur absente comme une chaîne vide, vérifié à
+l'exécution. Le filtre ne protégeait rien, et sa justification demandait de couvrir une branche pour
+un danger inexistant. `trim()` dit ce que le code fait vraiment.
+
+Le reste est de la simplification, et la première trouvaille est la plus intéressante :
+
+- **Un seul fait était écrit deux fois, à cinquante lignes d'écart** : « le titre de l'accueil *est*
+  le nom du site » gouvernait la balise `<title>` d'un côté et l'`og:title` de l'autre. Les deux ne
+  peuvent pas légitimement diverger — si elles le faisaient, l'accueil s'annoncerait autrement qu'il
+  ne s'intitule. `isHome` le nomme une fois.
+- `sharedTitle()` était **appelée deux fois** dans le même objet de retour, là où `images` était
+  hoistée : une asymétrie sans raison, et un site de plus où un futur correctif désynchroniserait
+  `og:title` de `twitter:title`.
+- `shareImage()` n'avait qu'un appelant, qui l'enveloppait aussitôt dans un tableau.
+
+⭐ **`LOCALE_OPENGRAPH` descend de `i18n` vers `seo`.** `fr_FR` est le vocabulaire d'**OpenGraph**,
+pas celui du site : `i18n` est la couche qui ne dépend de rien et qui nomme les langues du *produit*.
+Lui faire porter un protocole tiers dont elle n'a aucun usage était le mauvais étage. Le garde est
+le même où qu'elle vive — ajouter une locale sans sa forme OpenGraph ne compile pas.
+
+**Constats écartés**, avec leur raison :
+
+| Constat | Raison de l'écart |
+|---|---|
+| Extraire une enveloppe commune aux deux `ImageResponse` | La ressemblance est **superficielle** : trois propriétés CSS partagées, tout le reste diverge (1200×630 contre 32×32, colonne contre ligne, trois enfants contre un). La vraie duplication était une **valeur**, pas une forme — et elle est supprimée |
+| Dériver `title` et `description` de l'accueil, désormais redondants avec le `site` passé au même appel | Ferait de l'accueil le seul emplacement dont le titre est implicite, et `title` cesserait d'être une entrée uniformément obligatoire. La redondance est le côté le moins cher |
+| Deux relectures du disque par la sonde de palette | Sous le bruit : une poignée de fichiers, deux fois par exécution |
+
+### 14.8 Ce que P4-08 laisse ouvert
+
+| Sujet | État |
+|---|---|
+| L'icône est un **monogramme d'attente** | Dérivé de `site.name`, dit comme tel ; un logo est une décision de marque (§14.4) |
+| `/favicon.ico` nu reste une 404 | Fermer ce cas demanderait une copie **figée** de l'icône générée (§14.4) |
+| L'`og:image` n'a pas de condensat | Déclencheur écrit : versionner l'adresse le jour où l'image change (§14.6) |
+| `og:type` vaut `website` partout | Une fiche est un `article` au sens d'OpenGraph, mais l'annoncer inviterait à chercher un `article:published_time` que nos dates à précision variable ne peuvent pas former. La sémantique d'entité passe par le JSON-LD — **P4-09** |
