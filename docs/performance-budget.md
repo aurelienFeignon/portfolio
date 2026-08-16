@@ -65,7 +65,7 @@ de juger, parce que les catégories ne se mesurent pas de la même façon** :
 | Catégorie | Décide | Pourquoi |
 |---|---|---|
 | accessibilité, SEO | le **score**, à 100 | contrôles structurels : l'attribut est là ou il n'y est pas. Bloquants |
-| bonnes pratiques | *aucun audit en échec* hors `is-on-https` et `redirects-http` | ⭐⭐ le score plafonne à **78** parce que ce banc sert du **HTTP nu** — la production est en HTTPS avec HSTS et un 308. Juger sur le score mesurerait le banc, resterait rouge en permanence, et finirait supprimé |
+| bonnes pratiques | *aucun audit en échec* hors `is-on-https` et `redirects-http` | ⭐⭐ ces deux-là dépendent de l'**adresse d'interrogation** : le score vaut **78 en local** (`http://web:3000`, réseau Docker) et **100 en CI** (`http://localhost:3000`, contexte sûr aux yeux de Chrome). Juger sur le score ferait donc dépendre le verdict de l'endroit où l'on mesure ; la production est en HTTPS avec HSTS et un 308 |
 | performance | rien : la valeur est **relevée** | dépend de la charge de la machine — mesurée à 100 puis 99 sur la même page à deux tirs. Un seuil bloquant produirait une CI rouge sur du code conforme |
 
 ⚠️ **Ce que cet audit ne mesure pas** : le réseau, le CDN et le TTFB depuis une autre région. Il juge

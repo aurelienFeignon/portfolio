@@ -2122,12 +2122,12 @@ et la mesure l'a montré tout de suite.
 | bonnes pratiques | **aucun audit en échec**, bloquant | 78 | voir ci-dessous |
 | performance | **relevé**, jamais bloquant | 99–100 | voir ci-dessous |
 
-⭐⭐ **« Bonnes pratiques » plafonne à 78, et le chiffre ne dit rien du site.** Les deux seuls audits
-en échec sont `is-on-https` (poids 5) et `redirects-http` (poids 1) : le banc sert du **HTTP nu** sur
-un réseau Docker, là où la production est en HTTPS avec HSTS et une redirection 308 **vérifiée depuis
-l'extérieur** (`deploy/README.md` §2). Sans eux, le score est de 100. Juger la catégorie sur son score
-mesurerait donc le banc : elle est jugée sur une propriété qui parle du site — *aucun autre audit ne
-doit échouer*. Une API dépréciée, une erreur de console ou une bibliothèque vulnérable font rougir ;
+⭐⭐ **« Bonnes pratiques » plafonne à 78 en local, et le chiffre ne dit rien du site.** Les deux
+seuls audits en échec sont `is-on-https` (poids 5) et `redirects-http` (poids 1), qui échouent quand
+l'origine n'est pas un **contexte sûr** — ici `http://web:3000`, par le réseau Docker. La production
+est en HTTPS avec HSTS et une redirection 308 **vérifiée depuis l'extérieur** (`deploy/README.md`
+§2). Juger la catégorie sur son score mesurerait donc le banc : elle est jugée sur une propriété qui
+parle du site — *aucun autre audit ne doit échouer*. Une API dépréciée, une erreur de console ou une bibliothèque vulnérable font rougir ;
 un seuil à 95 serait resté rouge en permanence et aurait fini supprimé.
 
 ⛔ **Le premier message d'avertissement était faux, et c'est ce qui compte.** Il annonçait « le score
@@ -2160,7 +2160,7 @@ gagne sa place.
 |---|---|---|
 | Lighthouse **accessibilité** | **100** — accueil et fiche, mobile et desktop | 100, **bloquant** |
 | Lighthouse **SEO** | **100** — idem | 100, **bloquant** |
-| Lighthouse **bonnes pratiques** | 78, et **aucun audit en échec** hors les deux du banc | audits, **bloquant** |
+| Lighthouse **bonnes pratiques** | **78 en local, 100 en CI** — et aucun audit en échec hors les deux du banc | audits, **bloquant** |
 | Lighthouse **performance** | 99–100 selon le tir | 85, relevé — P4-16 fait foi |
 | Image de production | **273 Mo — inchangée** | cible 250 · bloquant 400 |
 | Socle partagé | **126,4 Ko — inchangé** | cible 136 · bloquant 146 |
@@ -2220,6 +2220,19 @@ gate qui verdit sur une panne de son propre instrument.
 est en CI —, Node écrit de façon asynchrone et `process.exit()` abandonne la file. C'est
 `process.exitCode` qui laisse le processus se terminer une fois les écritures vidées. Vérifié en
 rejouant une mutation à travers `| cat` : les quatre lignes de détail arrivent entières.
+
+⭐⭐⭐ **Et le chiffre « 78 » était lui-même une mesure d'un seul endroit, énoncée comme
+universelle** — la faute que ce journal reproche depuis §7, commise dans la tâche qui la corrige sur
+Lighthouse. La **première exécution en CI l'a démenti le jour même** : là-bas l'image est servie sur
+`http://localhost:3000`, que Chrome tient pour un **contexte sûr**, si bien que `is-on-https` passe
+et que « bonnes pratiques » vaut **100**. En local, le service `e2e` joint `http://web:3000` par le
+réseau Docker, et le score tombe à 78.
+
+⭐⭐ **Le mécanisme, lui, était juste, et c'est ce qui a sauvé le gate** : juger la catégorie sur ses
+**audits** rend le verdict identique des deux côtés, là où un seuil sur le score aurait été vert en
+CI et rouge en local — c'est-à-dire un gate dont la conclusion dépend de l'endroit où on l'exécute.
+La liste `LAB_ONLY_FAILURES` n'est donc pas une excuse pour un banc imparfait : c'est ce qui rend la
+mesure **portable**.
 
 ⚠️ **Et un accès de propriété qui ne compilait que par accident** : `threshold.minimum` était lu après
 avoir déstructuré `verdict`, ce qui ne discrimine pas l'union. Personne ne l'a vu parce que **les

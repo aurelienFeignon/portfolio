@@ -61,11 +61,22 @@ const THRESHOLDS = [
 /**
  * Les deux audits que **le banc** ne peut pas satisfaire, et que le site tient.
  *
- * ⭐⭐ **« Bonnes pratiques » plafonne à 78 ici, et le chiffre ne dit rien du
- * site.** Les deux seuls audits en échec sont `is-on-https` (poids 5) et
- * `redirects-http` (poids 1) : ce conteneur sert du HTTP nu sur un réseau Docker,
- * là où la production est en HTTPS avec HSTS et une redirection 308, **vérifiée
- * depuis l'extérieur** (`deploy/README.md` §2). Le score serait de 100 sans eux.
+ * ⭐⭐ **Ils dépendent de l'adresse par laquelle on interroge l'image, et le
+ * score de la catégorie avec.** `is-on-https` (poids 5) et `redirects-http`
+ * (poids 1) échouent quand l'origine n'est pas un **contexte sûr** : c'est le cas
+ * en local, où le service `e2e` joint `http://web:3000` par le réseau Docker, et
+ * « bonnes pratiques » y plafonne à **78**. Ce n'est **pas** le cas en CI, où
+ * l'image est servie sur `http://localhost:3000` — que Chrome tient pour sûr —
+ * et où la même commande rend **100**.
+ *
+ * ⭐⭐⭐ Le chiffre écrit ici a d'abord été **78 tout court**, mesuré à un seul
+ * endroit et énoncé comme s'il était universel. La première exécution en CI l'a
+ * démenti le jour même. C'est pour cela que cette liste existe : elle rend le
+ * verdict **identique des deux côtés**, au lieu de le faire dépendre de l'endroit
+ * où l'on mesure.
+ *
+ * La production, elle, est en HTTPS avec HSTS et une redirection 308, **vérifiée
+ * depuis l'extérieur** (`deploy/README.md` §2).
  *
  * ⛔ C'est pourquoi cette catégorie n'est pas jugée sur son **score** — ce serait
  * mesurer le banc — mais sur une propriété qui, elle, parle du site : *aucun
