@@ -21,6 +21,7 @@ import { contentRepository } from '@/content/repository'
 import { LOCALES } from '@/i18n/locales'
 import { getMessages } from '@/i18n/messages'
 import type { PageLocation } from '@/routing/paths'
+import { JsonLd } from '@/ui/json-ld'
 import { LanguageSwitcher } from '@/ui/language-switcher'
 import page from '@/ui/page.module.css'
 import { SkillList } from '@/ui/skill-list'
@@ -28,6 +29,7 @@ import { SkillList } from '@/ui/skill-list'
 import { languageOptions } from '../language-options'
 import { readLocale, type LocaleParams } from '../locale-param'
 import { sectionMetadata } from '../page-metadata'
+import { sectionStructuredData } from '../structured-data'
 
 const LOCATION: PageLocation = { kind: 'section', section: 'skills' }
 
@@ -40,6 +42,7 @@ export default async function SkillsPage({ params }: LocaleParams) {
 
   return (
     <main id="main" className={page.page}>
+      <JsonLd data={sectionStructuredData(locale, 'skills')} />
       <h1 className={page.title}>{messages.sections.skills.name}</h1>
       <SkillList
         locale={locale}

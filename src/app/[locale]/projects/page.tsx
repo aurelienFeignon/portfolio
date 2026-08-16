@@ -6,12 +6,14 @@ import { LOCALES } from '@/i18n/locales'
 import { getMessages } from '@/i18n/messages'
 import { entityPath, type PageLocation } from '@/routing/paths'
 import { EntityList } from '@/ui/entity-list'
+import { JsonLd } from '@/ui/json-ld'
 import { LanguageSwitcher } from '@/ui/language-switcher'
 import page from '@/ui/page.module.css'
 
 import { languageOptions } from '../language-options'
 import { readLocale, type LocaleParams } from '../locale-param'
 import { sectionMetadata } from '../page-metadata'
+import { sectionStructuredData } from '../structured-data'
 
 const LOCATION: PageLocation = { kind: 'section', section: 'projects' }
 
@@ -24,6 +26,7 @@ export default async function ProjectsPage({ params }: LocaleParams) {
 
   return (
     <main id="main" className={page.page}>
+      <JsonLd data={sectionStructuredData(locale, 'projects')} />
       <h1 className={page.title}>{messages.sections.projects.name}</h1>
       <EntityList
         locale={locale}
