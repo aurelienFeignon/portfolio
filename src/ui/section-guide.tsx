@@ -41,8 +41,9 @@ export function SectionGuide({
 }) {
   const messages = getMessages(locale)
 
+  /* `role="list"` : voir `bare-list.module.css`, la raison y vit une fois. */
   return (
-    <ul className={styles.list}>
+    <ul className={styles.list} role="list">
       {links.map(({ section, href }) => (
         <li key={section} className={styles.card}>
           <h2 className={styles.title}>

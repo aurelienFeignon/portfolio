@@ -1,0 +1,22 @@
+/*
+ * Une rangée d'étiquettes (P4-06).
+ *
+ * Le contenant de `chip.module.css`, extrait pour la même raison et au même
+ * seuil : la pile technique d'une fiche d'expérience et les compétences d'une
+ * catégorie sont la même chose — des termes courts, tirés du même référentiel,
+ * qu'on parcourt du regard.
+ *
+ * ⛔ `site-nav.module.css` porte les **mêmes six déclarations** et ne compose
+ * pas cette classe. La ressemblance y est fortuite : c'est une barre de
+ * navigation, dont les cibles ont une hauteur minimale et dont l'espacement
+ * suivra ses propres besoins. Factoriser sur une identité de valeurs, et non
+ * de nature, coûte le jour où l'une des deux doit bouger.
+ */
+
+.chipRow {
+  composes: bareList from './bare-list.module.css';
+
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+}

@@ -80,6 +80,23 @@ export const fr = {
     technologies: 'Technologies',
   },
 
+  /** Titres des groupes de la page Compétences (P4-06). */
+  skills: {
+    categories: {
+      language: 'Langages',
+      /**
+       * « et bibliothèques » n'est pas un ornement : la catégorie porte aussi
+       * Zustand, React Flow ou Mercure, qui ne sont pas des frameworks. Le
+       * libellé plus juste se trouve être aussi le libellé traduisible — «
+       * Frameworks » seul aurait été identique en anglais.
+       */
+      framework: 'Frameworks et bibliothèques',
+      tooling: 'Outillage',
+      infrastructure: 'Infrastructure',
+      practice: 'Pratiques',
+    },
+  },
+
   /** Listes vides — une locale peut ne pas encore traduire une section (R-07). */
   empty: 'Rien à afficher dans cette langue pour le moment.',
 }

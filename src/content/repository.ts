@@ -14,9 +14,9 @@ import { LOCALES } from '../i18n/locales.ts'
 
 import type { ContentType } from './content-type.ts'
 import { createContentLoader, type ContentLoader } from './loader.ts'
-import { byMostRecent, bySkillOrder, sorted, withOngoing } from './normalise.ts'
+import { byMostRecent, bySkillOrder, groupByCategory, sorted, withOngoing } from './normalise.ts'
 import { createContentSource, defaultContentRoot } from './source.ts'
-import type { Experience, Project, Skill } from './types.ts'
+import type { Experience, Project, Skill, SkillCategory } from './types.ts'
 
 export interface ContentRepository {
   /** Du plus récent au plus ancien, un projet en cours en tête. */
@@ -32,6 +32,21 @@ export interface ContentRepository {
   getAllSkills(locale: Locale): Promise<readonly Skill[]>
   getSkillBySlug(locale: Locale, slug: string): Promise<Skill | null>
   getFeaturedSkills(locale: Locale): Promise<readonly Skill[]>
+
+  /**
+   * Les compétences groupées, dans l'ordre du domaine, sans catégorie vide.
+   *
+   * ⚠️ Elle existe pour que la clause d'exclusivité de ce fichier reste **vraie**.
+   * P4-06 appelait `groupByCategory` directement depuis une route : le premier
+   * appelant de `normalise.ts` hors de cette couche. Le cloisonnement ESLint
+   * l'autorise (`app → content` en bloc), donc rien n'aurait protesté — mais la
+   * phrase « c'est la seule surface que connaissent les couches au-dessus »
+   * serait devenue fausse sans être amendée, et le second contournement n'aurait
+   * plus eu de raison de se retenir. Relevé en revue.
+   */
+  getSkillsByCategory(
+    locale: Locale,
+  ): Promise<readonly { readonly category: SkillCategory; readonly skills: readonly Skill[] }[]>
 
   /**
    * Les locales où cette entité **existe réellement**.
@@ -85,6 +100,7 @@ export function createContentRepository(loader: ContentLoader): ContentRepositor
     getAllSkills: skills,
     getSkillBySlug: (locale, slug) => bySlug(skills(locale), slug),
     getFeaturedSkills: async (locale) => (await skills(locale)).filter((skill) => skill.featured),
+    getSkillsByCategory: async (locale) => groupByCategory(await skills(locale)),
 
     async getContentLocales(type, slug) {
       const found = await Promise.all(

@@ -1,0 +1,24 @@
+/*
+ * Compétences groupées (P4-06).
+ *
+ * Les compétences sont des étiquettes et non des lignes : une catégorie de
+ * treize entrées tient alors en trois lignes au lieu de treize, et les cinq
+ * groupes se comparent d'un coup d'œil — ce que la mise en liste empêchait.
+ * Elles restent un `<ul>` : c'est bien une liste, et un lecteur d'écran en
+ * annonce le nombre d'éléments.
+ */
+
+.groups {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.title {
+  margin: 0 0 var(--space-3);
+  font-size: var(--text-lg);
+}
+
+.list {
+  composes: chipRow from './chip-row.module.css';
+}

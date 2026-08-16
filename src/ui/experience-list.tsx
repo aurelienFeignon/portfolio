@@ -18,11 +18,11 @@
  * rester valide plutôt que d'afficher une liste sans éléments.
  */
 import { type Locale } from '../i18n/locales.ts'
-import { getMessages } from '../i18n/messages/index.ts'
 
 import { CompanyLine } from './company-line'
 import { DateRange } from './date-range'
 import styles from './experience-list.module.css'
+import { EmptyNotice } from './empty-notice'
 
 export interface ExperienceSummary {
   readonly href: string
@@ -42,14 +42,13 @@ export function ExperienceList({
   readonly locale: Locale
   readonly items: readonly ExperienceSummary[]
 }) {
-  const messages = getMessages(locale)
-
   if (items.length === 0) {
-    return <p>{messages.empty}</p>
+    return <EmptyNotice locale={locale} />
   }
 
+  /* `role="list"` : voir `bare-list.module.css`, la raison y vit une fois. */
   return (
-    <ul className={styles.list}>
+    <ul className={styles.list} role="list">
       {items.map(({ href, role, company, location, startedAt, endedAt }) => (
         <li key={href} className={styles.item}>
           <h2 className={styles.role}>

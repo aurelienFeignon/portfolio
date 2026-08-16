@@ -25,6 +25,8 @@ import { entityMetadata } from '../../page-metadata'
 
 import page from '@/ui/page.module.css'
 
+import chip from '@/ui/chip.module.css'
+
 import styles from './page.module.css'
 
 export function generateStaticParams({ params }: { params: { locale: string } }) {
@@ -100,9 +102,9 @@ export default async function ExperiencePage({ params }: EntityParams) {
       <h2 className={styles.heading} id="technologies">
         {messages.experience.technologies}
       </h2>
-      <ul className={styles.technologies} aria-labelledby="technologies">
+      <ul className={styles.technologies} role="list" aria-labelledby="technologies">
         {experience.technologies.map((technology) => (
-          <li key={technology} className={styles.technology}>
+          <li key={technology} className={chip.chip}>
             {skillNames.get(technology) ?? technology}
           </li>
         ))}

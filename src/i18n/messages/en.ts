@@ -56,5 +56,21 @@ export const en: Messages = {
     technologies: 'Tech stack',
   },
 
+  skills: {
+    categories: {
+      language: 'Languages',
+      framework: 'Frameworks & libraries',
+      tooling: 'Tooling',
+      /**
+       * Identique au français, et c'est le mot juste dans les deux langues —
+       * la seconde exception du test de non-régression des dictionnaires, après
+       * le nom propre `site.name`. Le forcer à différer aurait dégradé le
+       * libellé pour satisfaire un test.
+       */
+      infrastructure: 'Infrastructure',
+      practice: 'Practices',
+    },
+  },
+
   empty: 'Nothing to show in this language yet.',
 }

@@ -1,0 +1,15 @@
+/*
+ * Une étiquette : un mot posé sur une surface (P4-06).
+ *
+ * Deuxième exemplaire — la pile technique d'une fiche d'expérience et les
+ * compétences groupées —, c'est-à-dire le seuil auquel ce dépôt extrait
+ * (`page.module.css`). Les deux disent la même chose : un terme court, tiré du
+ * même référentiel de compétences, qu'on parcourt du regard plutôt qu'on ne lit.
+ */
+
+.chip {
+  composes: surface from './surface.module.css';
+
+  padding: var(--space-1) var(--space-3);
+  font-size: var(--text-sm);
+}

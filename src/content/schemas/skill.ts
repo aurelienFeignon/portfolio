@@ -12,6 +12,13 @@ import { nonEmptyTextSchema, slugSchema } from './common.ts'
 export const skillFrontmatterSchema = z.strictObject({
   slug: slugSchema,
   name: nonEmptyTextSchema,
+  /**
+   * ⭐ **L'ordre de cette énumération est porteur de sens** : c'est l'ordre de
+   * présentation des groupes sur la page Compétences — du plus concret au plus
+   * transversal. `normalise.ts` le lit ici (`.options`) plutôt que de le
+   * recopier, ce qui rend sa liste exhaustive par construction. Réordonner
+   * cette ligne réordonne la page.
+   */
   category: z.enum(['language', 'framework', 'tooling', 'infrastructure', 'practice']),
   /**
    * Échelle fermée de 1 à 5, en littéraux plutôt qu'en `number` borné : le type

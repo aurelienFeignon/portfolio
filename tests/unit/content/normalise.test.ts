@@ -6,7 +6,13 @@
  */
 import { describe, expect, it } from 'vitest'
 
-import { byMostRecent, bySkillOrder, sorted, withOngoing } from '@/content/normalise'
+import {
+  byMostRecent,
+  bySkillOrder,
+  groupByCategory,
+  sorted,
+  withOngoing,
+} from '@/content/normalise'
 import type { SkillCategory } from '@/content/types'
 import { makeExperience, makeProject, makeSkill } from '../../fixtures/builders/entities'
 
@@ -166,5 +172,58 @@ describe('fabriques d’entités', () => {
   it('acceptent une dérogation champ par champ', () => {
     expect(makeSkill({ level: 2, featured: false })).toMatchObject({ level: 2, featured: false })
     expect(makeExperience({ company: 'Ailleurs' }).company).toBe('Ailleurs')
+  })
+})
+
+describe('groupement des compétences par catégorie', () => {
+  const skillOf = (slug: string, category: SkillCategory) => ({ slug, category })
+
+  it('rend les catégories dans l’ordre du domaine, pas dans celui des données', () => {
+    // ⚠️ L'ordre des cinq catégories est une **décision** (du plus concret au plus
+    // transversal), pas un artefact du tri d'entrée. Le groupement le rétablit
+    // lui-même : une liste reçue dans le désordre — ou triée autrement demain —
+    // ne doit pas réordonner la page.
+    const skills = [
+      skillOf('docker', 'infrastructure'),
+      skillOf('tdd', 'practice'),
+      skillOf('typescript', 'language'),
+      skillOf('react', 'framework'),
+      skillOf('git', 'tooling'),
+    ]
+
+    expect(groupByCategory(skills).map((group) => group.category)).toEqual([
+      'language',
+      'framework',
+      'tooling',
+      'infrastructure',
+      'practice',
+    ])
+  })
+
+  it('conserve l’ordre reçu à l’intérieur d’une catégorie', () => {
+    // C'est `bySkillOrder` qui décide de cet ordre-là (niveau puis nom) : le
+    // groupement ne doit pas le refaire, ni le défaire.
+    const skills = [
+      skillOf('zustand', 'framework'),
+      skillOf('react', 'framework'),
+      skillOf('next', 'framework'),
+    ]
+
+    expect(groupByCategory(skills)[0]?.skills.map((skill) => skill.slug)).toEqual([
+      'zustand',
+      'react',
+      'next',
+    ])
+  })
+
+  it('n’ouvre pas une catégorie que rien ne remplit', () => {
+    // Un titre suivi du vide est un défaut visible ; le cas est réel, une locale
+    // pouvant ne traduire qu'une partie des compétences (R-07). La liste vide en
+    // est le cas dégénéré, pas un cas à part.
+    const groups = groupByCategory([skillOf('typescript', 'language')])
+
+    expect(groups).toHaveLength(1)
+    expect(groups[0]?.category).toBe('language')
+    expect(groupByCategory([])).toEqual([])
   })
 })
