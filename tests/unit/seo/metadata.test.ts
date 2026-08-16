@@ -10,7 +10,11 @@ import type { PageLocation } from '@/routing/paths'
 const SITE = new URL('https://exemple.test')
 
 /** Ce que `src/seo` reçoit du dictionnaire, qu'il n'a pas le droit de lire. */
-const SITE_MESSAGES = { name: 'Aurélien Feignon', titleTemplate: '%s — Aurélien Feignon' }
+const SITE_MESSAGES = {
+  name: 'Aurélien Feignon',
+  description: 'Portfolio du site',
+  titleTemplate: '%s — Aurélien Feignon',
+}
 
 const HOME: PageLocation = { kind: 'home' }
 const SECTION: PageLocation = { kind: 'section', section: 'projects' }
@@ -112,7 +116,9 @@ describe('métadonnées de page', () => {
             url: 'https://exemple.test/fr/opengraph-image',
             width: 1200,
             height: 630,
-            alt: 'Aurélien Feignon — Description',
+            // La transcription de l'image : le nom du **site** et sa description,
+            // et non celle de la page — l'image ne montre jamais la seconde.
+            alt: 'Aurélien Feignon. Portfolio du site',
           },
         ])
       })

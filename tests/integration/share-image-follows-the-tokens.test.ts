@@ -12,38 +12,60 @@
  * couleurs. Personne ne regarde une vignette de partage à chaque déploiement.
  *
  * Ce test ne vérifie donc pas que l'image est belle — il vérifie que chaque
- * couleur qu'elle emploie **existe encore dans les tokens**. C'est la seule
- * moitié qui soit automatisable, et c'est celle qui casse.
+ * couleur employée **existe encore dans les tokens**. C'est la seule moitié qui
+ * soit automatisable, et c'est celle qui casse.
+ *
+ * ⛔ Il ne lisait d'abord que `opengraph-image.tsx`, alors que `icon.tsx` recopie
+ * la même couleur d'accent — et son commentaire affirmait pourtant être gardé
+ * par ce test. Il lit maintenant **tout `src/app`** : la prochaine route de
+ * métadonnée qui recopiera une valeur sera couverte sans qu'on y pense. Relevé
+ * en revue.
  */
-import { readFile } from 'node:fs/promises'
+import { readFile, readdir } from 'node:fs/promises'
 import { join } from 'node:path'
 
 import { describe, expect, it } from 'vitest'
 
-const IMAGE = join(process.cwd(), 'src', 'app', '[locale]', 'opengraph-image.tsx')
-const TOKENS = join(process.cwd(), 'src', 'app', 'globals.css')
+const APP_DIR = join(process.cwd(), 'src', 'app')
+const TOKENS = join(APP_DIR, 'globals.css')
 
 /** Les couleurs écrites en clair, quelle que soit leur casse. */
 function hexColours(source: string): string[] {
   return [...source.matchAll(/#[0-9a-fA-F]{3,8}\b/g)].map(([hex]) => hex.toLowerCase())
 }
 
-describe('palette de l’image de partage', () => {
+/** Les couleurs écrites en clair dans les routes, avec le fichier qui les porte. */
+async function colouredSources(): Promise<{ file: string; colour: string }[]> {
+  const entries = await readdir(APP_DIR, { recursive: true, withFileTypes: true })
+  const found: { file: string; colour: string }[] = []
+
+  for (const entry of entries) {
+    if (!entry.isFile() || !entry.name.endsWith('.tsx')) continue
+
+    const path = join(entry.parentPath, entry.name)
+    for (const colour of hexColours(await readFile(path, 'utf8'))) {
+      found.push({ file: path.slice(APP_DIR.length + 1), colour })
+    }
+  }
+
+  return found
+}
+
+describe('palette des routes de métadonnée', () => {
   it('en emploie, sinon ce test ne vérifie rien', async () => {
     // Un parcours qui ne trouve rien rend l'assertion suivante verte pour la
     // pire des raisons (`phase-2-log.md` §10.5).
-    expect(hexColours(await readFile(IMAGE, 'utf8')).length).toBeGreaterThan(0)
+    expect((await colouredSources()).length).toBeGreaterThan(0)
   })
 
   it('n’en emploie aucune qui ne soit un token', async () => {
-    const [image, tokens] = await Promise.all([readFile(IMAGE, 'utf8'), readFile(TOKENS, 'utf8')])
-    const declared = new Set(hexColours(tokens))
+    const declared = new Set(hexColours(await readFile(TOKENS, 'utf8')))
 
-    const invented = hexColours(image).filter((colour) => !declared.has(colour))
+    const invented = (await colouredSources()).filter(({ colour }) => !declared.has(colour))
 
     expect(
       invented,
-      'ces couleurs ne sont plus dans globals.css : l’image de partage a dérivé du site',
+      'ces couleurs ne sont plus dans globals.css : une image a dérivé du site',
     ).toEqual([])
   })
 })

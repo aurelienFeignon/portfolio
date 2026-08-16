@@ -15,6 +15,7 @@ import type { ReactNode } from 'react'
 
 import { LOCALES } from '@/i18n/locales'
 import { getMessages } from '@/i18n/messages'
+import { getSiteUrl } from '@/seo/site-url'
 import { SiteFooter } from '@/ui/site-footer'
 
 import styles from './layout.module.css'
@@ -56,7 +57,26 @@ export function generateStaticParams() {
 export async function generateMetadata({ params }: LocaleParams): Promise<Metadata> {
   const { site } = getMessages(await readLocale(params))
 
-  return { title: { template: site.titleTemplate, default: site.name } }
+  return {
+    /*
+     * ⛔⛔ **Sans elle, Next grave `http://localhost:3000` dans le HTML
+     * prérendu.** Toute URL de métadonnée que Next résout lui-même — l'image de
+     * partage attachée par convention de fichier, par exemple — est relative à
+     * cette base. Non déclarée, elle vaut l'hôte de développement, et la valeur
+     * part **en production** dans une page statique.
+     *
+     * C'est arrivé : les deux pages introuvables sont les seules à ne pas
+     * déclarer d'`openGraph`, Next leur a donc attaché l'image lui-même, et
+     * elles annonçaient une adresse `localhost`. Next l'écrivait au build, en
+     * toutes lettres — « metadataBase property in metadata export is not set » —
+     * et personne ne lisait sa sortie. Relevé en revue.
+     *
+     * Elle vaut `SITE_URL`, la même origine que les `canonical` et le sitemap :
+     * il n'y a qu'un point d'entrée pour cette valeur (P1-17).
+     */
+    metadataBase: getSiteUrl(),
+    title: { template: site.titleTemplate, default: site.name },
+  }
 }
 
 export default async function LocaleLayout({

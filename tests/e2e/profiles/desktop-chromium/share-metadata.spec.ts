@@ -1,4 +1,4 @@
-import { ORIGIN, detailPath } from '../../support/sitemap'
+import { ORIGIN, detailPath, sitemapPaths } from '../../support/sitemap'
 import { expect, test } from '../../support/test'
 
 /**
@@ -89,6 +89,37 @@ test.describe('métadonnées de partage', () => {
     await page.goto('/en/skills')
 
     expect(await metaContent(page, 'meta[property="og:image"]')).toContain('/en/opengraph-image')
+  })
+
+  test('aucune page ne grave une autre origine que celle de construction', async ({ request }) => {
+    /*
+     * ⛔⛔ **Le défaut que ce parcours ferme a été livré, et Next l'avait écrit
+     * au build.** Faute de `metadataBase`, il résolvait lui-même les URL de
+     * métadonnée contre `http://localhost:3000` — son défaut de développement —
+     * et les deux pages introuvables, seules à ne pas déclarer d'`openGraph`,
+     * annonçaient donc une adresse `localhost` **gravée dans du HTML statique**.
+     * L'avertissement était dans la sortie du build, en toutes lettres.
+     *
+     * Le contrôle porte sur **toutes** les pages, et pas sur celle qui a échoué :
+     * une origine étrangère dans une page prérendue est la même faute où qu'elle
+     * apparaisse, et elle ne se voit jamais à l'œil.
+     */
+    const suspicious = /https?:\/\/(?!\w)|https?:\/\/[^"'\s<>]+/g
+    const foreign: string[] = []
+
+    // Les pages introuvables ne sont pas au sitemap : ce sont précisément elles
+    // qui portaient le défaut, et les oublier ici serait tester à côté.
+    for (const path of [...(await sitemapPaths(request)), '/fr/404', '/en/404']) {
+      const html = await (await request.get(path)).text()
+
+      for (const [url] of html.matchAll(suspicious)) {
+        if (!url.startsWith(ORIGIN) && !url.startsWith('http://www.w3.org')) {
+          foreign.push(`${path} → ${url}`)
+        }
+      }
+    }
+
+    expect(foreign).toEqual([])
   })
 
   test('l’icône du site est déclarée et répond', async ({ page, request }) => {

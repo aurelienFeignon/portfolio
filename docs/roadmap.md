@@ -868,8 +868,12 @@ refusé l'image tant qu'elle se rendait **à la demande** (un PNG de 1200×630 p
 un logo est une décision de marque. Elle existe pour une raison mesurée — 14,5 Ko de page 404 à
 chaque requête d'icône. L'effet est **partiel** : une requête nue sur `/favicon.ico` reste une 404,
 et la fermer demanderait une copie figée de l'icône (`phase-4-log.md` §14.4).
-📏 Image de production **272 Mo** (+4 Mo, le coût de `next/og`, entièrement de build) ; socle
-126,4 Ko ; 569 tests, 116 E2E. · Depends on: P3-06
+⛔⛔⛔ **La revue a trouvé une URL `localhost` gravée dans les pages 404** : faute de
+`metadataBase`, Next résolvait les URL de métadonnée contre son hôte de développement, et il
+**l'écrivait au build** sans que personne ne lise sa sortie — la leçon de la Phase 3, repayée. Un
+parcours refuse désormais toute origine étrangère sur **toutes** les pages servies.
+📏 Image de production **272 Mo** (+4 Mo, le coût de `next/og`, entièrement de build, aucune
+dépendance ajoutée au verrou) ; socle 126,4 Ko ; 569 tests, 117 E2E. · Depends on: P3-06
 
 **P4-05 — Liste et détail des projets, corps MDX rendu**
 Status: **DONE** (2026-08-16) — la fiche d'un projet compile et rend son corps MDX dans un conteneur

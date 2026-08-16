@@ -1198,7 +1198,43 @@ l'être** : `ImageResponse` rend hors du navigateur, sans variables CSS. C'est l
 palette dans le dépôt, et elle est **gardée** — un test refuse une couleur qui ne serait plus dans
 les tokens, et il a été vu rouge. Le mode de panne, sinon, est purement visuel et silencieux.
 
-### 14.6 Relevés
+### 14.6 Ce que la revue a changé
+
+⛔⛔⛔ **Le défaut le plus grave a été livré, et Next l'avait écrit au build.** Faute de
+`metadataBase`, Next résolvait lui-même les URL de métadonnée contre `http://localhost:3000` — son
+défaut de développement. Les **deux pages introuvables**, seules à ne déclarer aucun `openGraph`,
+recevaient donc l'image par convention de fichier… avec une adresse `localhost` **gravée dans du
+HTML statique**, prête à partir en production.
+
+```text
+⚠ metadataBase property in metadata export is not set for resolving social open
+  graph or twitter images, using "http://localhost:3000".
+```
+
+⭐⭐⭐ **L'avertissement était dans la sortie du build, en toutes lettres, et personne ne la
+lisait.** C'est mot pour mot la leçon de la Phase 3 — *« les trois défauts réels de cette phase ont
+été trouvés en lisant la sortie d'un outil, pas en relisant du code »* — et elle a été repayée ici.
+Le correctif est une ligne ; le garde qui la protège porte sur **toutes** les pages servies, et non
+sur celle qui a échoué : un parcours refuse désormais toute URL absolue dont l'origine n'est pas
+celle de construction. **Vu rouge** en retirant `metadataBase`.
+
+Trois autres constats, plus petits :
+
+- ⛔ **L'`alt` de l'image décrivait la page, pas l'image.** Il reprenait `input.description` — la
+  description de la *page* — alors que le PNG rend toujours celle du **site**. Sur toute page sauf
+  l'accueil, il annonçait donc un contenu que l'image ne montre pas : une description d'image
+  fausse, c'est-à-dire pire qu'absente.
+- ⛔ **Le commentaire d'`icon.tsx` affirmait être gardé par un test qui ne le lisait pas.** La
+  sonde de palette ne parcourait que `opengraph-image.tsx`. Elle lit maintenant **tout `src/app`** —
+  la prochaine route de métadonnée qui recopiera une valeur sera couverte sans qu'on y pense.
+- ⚠️ **L'`og:image` que nous construisons n'a pas de condensat**, là où celle que Next attache en
+  porte un (`?628ff604…`). Une image redessinée garderait donc la même URL, et un cache social
+  servirait l'ancienne vignette. Non corrigé : le condensat de Next n'est pas exposé, et le
+  fabriquer supposerait de recalculer le contenu de l'image au moment des métadonnées. **Déclencheur
+  écrit** : le jour où l'image de partage est redessinée, changer son adresse — un segment de
+  version dans `shareImagePath` suffit.
+
+### 14.7 Relevés
 
 | Relevé après P4-08 | Valeur | Seuil |
 |---|---|---|
@@ -1208,9 +1244,18 @@ les tokens, et il a été vu rouge. Le mode de panne, sinon, est purement visuel
 | Image de partage servie | 34,1 Ko (fr) · 31,4 Ko (en), 1200×630 | — |
 | Icône servie | **473 octets** | — |
 | Tests | **569** verts *(548 après P4-07)* | — |
-| E2E | **116** verts sur 5 profils *(108 après P4-07)* | — |
+| E2E | **117** verts sur 5 profils *(108 après P4-07)* | — |
 | Couverture globale | **98,8 %** | ≥ 80 % |
 
 ⭐ **`next/og` n'ajoute aucune dépendance au verrou** — il est fourni par Next. Son coût est de
 **+4 Mo dans l'image de production**, mesuré avant/après sur la même cible, et il est **entièrement
 de build** : les deux images et l'icône sont gravées, le conteneur n'en calcule aucune.
+
+### 14.8 Ce que P4-08 laisse ouvert
+
+| Sujet | État |
+|---|---|
+| L'icône est un **monogramme d'attente** | Dérivé de `site.name`, dit comme tel ; un logo est une décision de marque (§14.4) |
+| `/favicon.ico` nu reste une 404 | Fermer ce cas demanderait une copie **figée** de l'icône générée (§14.4) |
+| L'`og:image` n'a pas de condensat | Déclencheur écrit : versionner l'adresse le jour où l'image change (§14.6) |
+| `og:type` vaut `website` partout | Une fiche est un `article` au sens d'OpenGraph, mais l'annoncer inviterait à chercher un `article:published_time` que nos dates à précision variable ne peuvent pas former. La sémantique d'entité passe par le JSON-LD — **P4-09** |

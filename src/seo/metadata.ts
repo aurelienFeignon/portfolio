@@ -53,7 +53,11 @@ export interface PageMetadataInput {
    * dépend que d'`i18n` et de `routing` (`architecture.md` §1.2), et le
    * dictionnaire est fourni par l'appelant, comme les locales disponibles.
    */
-  readonly site: { readonly name: string; readonly titleTemplate: string }
+  readonly site: {
+    readonly name: string
+    readonly description: string
+    readonly titleTemplate: string
+  }
 }
 
 /**
@@ -86,15 +90,23 @@ function sharedTitle(input: PageMetadataInput): string {
  * consommateurs téléchargent l'image avant de savoir s'ils peuvent l'afficher en
  * grand, et certains renoncent.
  *
- * L'`alt` est la **transcription** de ce que l'image affiche — le nom, puis la
- * description —, et non une phrase nouvelle : l'image ne contient rien d'autre.
+ * L'`alt` est la **transcription** de ce que l'image affiche, et rien d'autre.
+ *
+ * ⛔ Il décrivait d'abord la **page** (`input.description`), alors que l'image
+ * rend toujours la description du **site** : sur toute page sauf l'accueil, il
+ * annonçait donc un contenu que le PNG ne montre pas — une description d'image
+ * fausse, c'est-à-dire pire qu'absente. Relevé en revue.
+ *
+ * Le point sépare les deux textes parce que l'image les empile sur deux lignes :
+ * ce n'est pas un séparateur de titre, et il n'a donc pas à suivre la
+ * typographie par langue du gabarit.
  */
 function shareImage(siteUrl: URL, input: PageMetadataInput) {
   return {
     url: buildAbsoluteUrl(siteUrl, shareImagePath(input.locale)),
     width: 1200,
     height: 630,
-    alt: `${input.site.name} — ${input.description}`,
+    alt: `${input.site.name}. ${input.site.description}`,
   }
 }
 
