@@ -786,3 +786,203 @@ L'entrée chargée publie désormais son `file`.
 fiches **sans que rien ne relie les deux chaînes** : une faute de frappe rendait la liste anonyme pour
 un lecteur d'écran, sans qu'aucun test n'échoue. `TechnologySection` produit l'`id` avec le titre qu'il
 désigne — et la fiche d'un *projet* cesse au passage de lire `messages.experience.technologies`.
+
+## 13. P4-07 — la page introuvable, et deux défauts que seul un parcours pouvait voir
+
+### 13.1 Trois sondes pour établir qu'aucune voie ordinaire n'existe
+
+La 404 de Next est servie **hors de tout layout racine**, et c'est structurel ici : le nôtre vit sous
+`[locale]` (P3-02, c'est ce qui permet à `<html lang>` d'être vrai). Trois sondes, avant d'écrire
+quoi que ce soit :
+
+| Voie | Ce qui a été observé | Verdict |
+|---|---|---|
+| `[locale]/not-found.tsx` | **Jamais atteinte.** `dynamicParams = false` fait d'un slug inconnu un échec de *routage*, pas un `notFound()` | fermée |
+| `app/not-found.tsx` | Rendue, mais **hors du layout racine** : pas de `<html lang>`, aucun paramètre reçu | fermée |
+| Idem + enveloppe rendue par le composant | **Deux `<html>`** dans le document | fermée |
+| Groupe de routes avec son propre layout racine | Écarterait le segment `[locale]` de la 404, donc sa langue | non retenue |
+
+⛔ **L'absence de `lang` est une violation WCAG 3.1.1, et le gate axe ne l'avait jamais vue** — non
+parce qu'il était mal réglé, mais parce qu'aucun parcours ne visitait de 404. Un audit
+d'accessibilité ne couvre que les pages qu'on lui donne.
+
+D'où la voie retenue avec l'utilisateur : **le proxy réécrit toute URL inconnue vers une vraie page
+prérendue et localisée**, `[locale]/404`.
+
+⚠️ **Le statut est porté par la réécriture** (`{ status: 404 }`). Une réécriture rend **200** par
+défaut : servir le bon contenu avec le mauvais statut dirait à un moteur de recherche que la page
+existe — l'inverse exact du but.
+
+### 13.2 Deux énumérations qu'on ne peut pas fusionner, donc qu'il faut confronter
+
+Le proxy a besoin de la liste des chemins servis **pour être compilé**, c'est-à-dire *avant*
+`next build` ; le sitemap et les pages prégénérées en sont le *produit*. Elles n'existent pas au
+même instant : `scripts/generate-route-manifest.mts` écrit donc `SERVED_PATHS`, et c'est une
+**seconde énumération** — la forme même de R-07.
+
+⭐⭐ **Elle est confrontée aux pages réellement prégénérées, et non au sitemap.** Le prompt de
+reprise demandait « manifeste ↔ sitemap » ; l'écart est délibéré. Il y a **trois** énumérations : ce
+que Next a prégénéré (le fait), ce que le sitemap annonce, et ce que le proxy laisse passer. Les
+deux dernières sont dérivées. Comparer deux dérivées l'une à l'autre produit un message qui accuse
+celle qui n'a pas tort — chacune est donc comparée au **fait**. Le contrôle 3 y gagne au passage son
+sens manquant : il ne vérifiait que `pages → sitemap`, il vérifie maintenant les deux sens.
+
+⛔⛔ **Les deux sens du contrôle 4 sont des pannes silencieuses, et elles ne se ressemblent pas.**
+
+| Écart | Conséquence |
+|---|---|
+| Un chemin **en trop** dans le manifeste | Le proxy laisse passer, Next sert sa 404 interne — sans `lang`. Le défaut que la tâche supprime, réintroduit par la porte de derrière |
+| Un chemin **manquant** | Le proxy réécrit une **page réelle** vers la 404, en 404. Elle disparaît du site et de l'index, en répondant proprement |
+
+Les trois cas ont été **vus échouer** sur le build réel, pas sur des fixtures seules : manifeste
+augmenté d'un chemin, amputé d'une page, et absent.
+
+### 13.3 ⛔⛔ Le matcher élargi a fait disparaître les deux CV
+
+Le parcours E2E de cette tâche a trouvé une régression que le commit de travail avait introduite et
+que rien ne signalait : **`/resume/cv-fr.pdf` et `cv-en.pdf` répondaient 404**. Ils sont en ligne
+depuis la Phase 2.
+
+Cause : le matcher, élargi de `/` à tout le site, énumérait ses exceptions **à la main** —
+`favicon.ico|robots.txt|sitemap.xml|images/`. Cette liste était fausse dans les deux sens : elle
+excluait `images/`, qui n'existe pas, et ignorait `resume/`, qui existe. Écrite d'imagination, jamais
+confrontée à `public/`.
+
+⭐⭐⭐ **Une liste d'exceptions écrite à la main est fausse le jour où quelqu'un ajoute un fichier —
+et elle échoue en servant une page correcte.** Le correctif ne rallonge pas la liste, il la
+supprime : **un chemin de page ne contient jamais de point.** Les locales, les segments de section
+et les slugs sont minuscules, chiffres et traits d'union (P2-02) ; tout ce qui porte une extension
+est un fichier. `tests/integration/public-assets-reach-the-visitor.test.ts` confronte désormais le
+motif au contenu réel de `public/`, sans nommer un seul fichier — **vu rouge** en rétablissant
+l'ancienne liste.
+
+### 13.4 ⛔⛔ La page introuvable n'avait pas d'en-tête, et le garde ne pouvait pas le voir
+
+Second constat du même parcours : `/fr/rien` était servie **sans bannière et sans navigation**.
+
+`[locale]/404/page.tsx` vit directement sous `[locale]`, où **aucun layout d'endroit** ne la
+couvrait — l'en-tête est posé par les layouts d'endroit depuis P4-02, jamais par le layout racine
+(§7.1). C'est mot pour mot la panne que `every-section-declares-its-place.test.ts` décrit dans son
+propre en-tête… pour une quatrième *section*. La page introuvable n'en est pas une : elle est passée
+à travers.
+
+⭐⭐ **Un garde exhaustif l'est sur la dimension qu'il connaît.** Celui-ci était tenu par
+`Record<CurrentPlace, …>`, et `CurrentPlace` valait `SectionName | 'home'` — le type disait « les
+endroits du site sont les sections plus l'accueil », ce qui a cessé d'être vrai le jour où une
+cinquième page a rendu du chrome. Élargir le **type** (`| 'notFound'`) a rendu la ligne du garde
+obligatoire avant même que la suite ne démarre, et la mutation le confirme.
+
+⚠️ `current="notFound"` ne marque **rien** — ni la marque, ni un lien de section. Lui donner
+`'home'` aurait été plus court et faux : `aria-current="page"` sur un lien qui mène ailleurs, la
+faute exacte relevée en revue de P4-02 sur les pages de détail.
+
+### 13.5 Les frontières d'erreur, et ce qu'elles coûtent réellement
+
+Next en impose deux, et elles ne couvrent pas la même chose : `[locale]/error.tsx` rattrape l'échec
+d'une page, `global-error.tsx` celui du layout racine — qui doit donc **rendre son propre `<html>`**,
+seule exception du framework. Elles ne diffèrent que par cette enveloppe : le reste est
+`src/ui/error-notice.tsx`, écrit une fois.
+
+⚠️ **La langue vient de l'URL.** Une frontière d'erreur est un composant client : ni `params`, ni
+en-tête de requête. `usePathname` est la seule source, et `localeFromPathname` — l'inverse de
+`homePath` — est désormais partagée avec le proxy. Le **repli**, lui, n'est pas partagé : le proxy
+négocie `Accept-Language`, les frontières retombent sur la locale par défaut.
+
+⛔⛔ **Le coût est réel, il est mesuré, et c'est la première fois que ce site embarque du JavaScript
+applicatif.**
+
+| Relevé | Avant P4-07 | Après | Seuil |
+|---|---|---|---|
+| Socle partagé | 129,5 Ko | **126,0 Ko** | cible 136 · bloquant 146 |
+| JS propre à chaque route | **0,0 Ko** sur 18 | **7,2 Ko** sur 18 | cible 25 · bloquant 40 |
+| Première visite (socle + route) | 129,5 Ko | **133,2 Ko** | — |
+
+Trois mesures ont servi à trancher plutôt qu'à constater :
+
+- `global-error.tsx` **seul** coûte déjà 5,3 Ko sur chaque route : le supprimer ne rendrait pas les
+  0,0 Ko, et la frontière de page ne pèse que **+2,0 Ko** de plus. Le choix n'était donc pas « l'une
+  ou l'autre » mais « les deux, ou aucune » ;
+- remplacer `usePathname` par `window.location` n'économise que **0,5 Ko de socle et rien par
+  route** — écarté : `window` est absent au prérendu, et la fragilité ne s'achète pas à ce prix ;
+- l'image de production reste à **268 Mo**, inchangée.
+
+⭐ **Ce qui est perdu est la formule, pas la propriété.** « Le profil `no-js` est vrai *par
+construction* » devient « vrai *par vérification* » : les pages restent du HTML servi, sans
+interactivité, et le parcours `no-js` le prouve — il visite maintenant une 404. L'arbitrage est
+celui du projet, écrit avant d'être invoqué : **accessibilité > indexabilité > performance du
+contenu**. Une page d'erreur sans `lang` est le même défaut WCAG 3.1.1 que la 404 corrigée ici.
+
+⚠️ **Réserve consignée** : une erreur de rendu est presque impossible sur un site entièrement
+prérendu sans logique client — et ces frontières sont désormais le principal code client qui
+pourrait en produire une. Le déclencheur de réexamen est chiffré : si la Phase 5 fait entrer un
+composant client, ces 7,3 Ko cessent d'être le seul JavaScript applicatif et la question ne se
+repose pas ; si au contraire P4-13 mesure un LCP sous pression, ce sont les premiers 7,2 Ko à
+rouvrir.
+
+### 13.6 Ce qui est testé, et à quel niveau
+
+⭐ **La page d'erreur n'a pas de parcours E2E, et c'est une décision.** Aucune erreur de rendu ne
+peut être provoquée honnêtement contre l'image de production : un parcours qui prétendrait le faire
+**fabriquerait la panne** au lieu de l'observer — la faute que §12.5 a nommée. `ErrorNotice` est
+donc vérifié en test de composant (langue, bouton et non lien, `#main` présent, aucun détail
+technique), et la lecture de locale en unitaire.
+
+La 404, elle, ne se prouve **que** par un parcours : ni le proxy seul ni la page seule ne disent que
+la réécriture atteint une page prérendue **en portant un 404**. Treize parcours l'établissent, dont
+l'audit axe — le premier du dépôt sur une 404 — et un quatorzième sous `no-js`.
+
+⚠️ **Deux de ces parcours ont d'abord échoué pour la mauvaise raison, et le dire est le point.**
+Ils attendaient du français sur `/de/projects` et `/rien` ; le profil `desktop-chromium` annonce
+`en-US`, et le proxy servait donc l'anglais — correctement. Un test qui n'énonce pas la langue du
+visiteur ne teste pas la négociation, il teste le hasard du profil. Ils déclarent maintenant leur
+contexte, dans les deux langues.
+
+⭐ Un troisième test passait, lui aussi, pour la mauvaise raison : « refuse de conclure sans
+manifeste de routes » fabriquait un build **sans sitemap**, si bien que le gate sortait en 1 avant
+même d'arriver au contrôle nommé. Il aurait été vert quoi qu'on écrive. Le build fabriqué est
+désormais entièrement sain, et l'échec porte le message attendu.
+
+### 13.7 Relevés
+
+| Relevé après P4-07 | Valeur | Seuil |
+|---|---|---|
+| Socle partagé | **126,0 Ko** | cible 136 · bloquant 146 |
+| JS propre à chaque route | **7,2 Ko** sur 18 routes | cible 25 · bloquant 40 |
+| Image de production | **268 Mo** — inchangée | cible 250 · **bloquant 400** |
+| Tests | **532** verts *(503 avant la tâche)* | — |
+| E2E | **106** verts sur 5 profils *(92 avant)* | — |
+| Couverture globale | **98,8 %** — voir §13.8 | ≥ 80 % |
+| Violations axe serious/critical | **0**, dont **la 404 pour la première fois** | 0 |
+| Pages prégénérées | 18, dont 2 pages introuvables hors sitemap | — |
+
+### 13.8 ⛔ « Couverture 100 % » n'était plus vrai, et depuis deux tâches
+
+Le chiffre a été **remesuré** au lieu d'être recopié, et il ne tient pas : la couverture globale est
+de **98,8 %**. Trois fichiers ne sont pas couverts, et aucun n'appartient à cette tâche — `git log`
+les rattache à P4-02 et P4-05 :
+
+| Fichier | Couverture | Pourquoi |
+|---|---|---|
+| `src/app/[locale]/place-layout.tsx` | 0 % | Le garde des endroits **appelle** les layouts sans les rendre : il lit l'élément `PlaceLayout` retourné, si bien que le corps de celui-ci ne s'exécute jamais |
+| `src/ui/technology-section.tsx` | 0 % | Extrait en revue de P4-05, sans test de composant |
+| `src/ui/company-line.tsx` | 75 % de branches | Une branche jamais exercée |
+
+⭐⭐ **C'est la leçon de §12.2 rejouée sur ce journal lui-même.** §11.5 annonce « 492 verts,
+couverture 100 % » pour P4-06, et ce chiffre a survécu à P4-05, qui l'a rendu faux. Il n'a rien
+décidé — parce qu'il a été remesuré ici —, mais **rien ne le remesurait**.
+
+Le gate reste **vert** : les seuils sont à 80 % au global et à 95 % sur les modules critiques, tous
+tenus (`src/content`, `src/i18n`, `src/routing`, `src/seo` sont à 100 %). Ce n'est donc pas une
+régression de qualité, c'est une **affirmation périmée**. Traitement : trois tests de composant
+manquants, inscrits en **P4-10** — la passe d'accessibilité relit de toute façon ces fichiers.
+Nommés ici plutôt que corrigés : ce sont des composants d'autres tâches, et les mêler à ce diff le
+rendrait illisible.
+
+### 13.9 Ce que P4-07 laisse ouvert
+
+| Sujet | État |
+|---|---|
+| Les 7,2 Ko de JavaScript par route | Budgets tenus, déclencheur de réexamen écrit (§13.5) |
+| Trois fichiers non couverts | Dette nommée, reprise en P4-10 (§13.8) |
+| `messages` et `TONES` inutilisés | Deux avertissements de lint **antérieurs** à cette tâche (P4-05), laissés hors de ce diff |
+| Aucun parcours n'exerce une frontière d'erreur | Assumé : la panne n'est pas provocable honnêtement (§13.6) |

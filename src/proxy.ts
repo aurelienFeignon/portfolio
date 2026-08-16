@@ -35,25 +35,30 @@
  * ## Pourquoi une liste gravée
  *
  * Le proxy ne peut pas demander au Content Layer quels slugs existent : `content/`
- * n'est pas dans l'image. `SERVED_PATHS` est donc produit **avant** le build et
- * confronté au sitemap **après** — deux énumérations qui divergent sont la panne
- * que décrit R-07, et c'est le gate de rendu statique qui l'empêche.
+ * n'est pas dans l'image. `SERVED_PATHS` est donc produit **avant** le build,
+ * alors que les pages en sont le produit : deux énumérations qui n'existent pas
+ * au même instant, donc impossibles à fusionner. `check-static-rendering.mts`
+ * les confronte **après**, aux pages réellement prégénérées et dans les deux
+ * sens — un chemin de trop fait servir la 404 interne de Next, un chemin
+ * manquant fait réécrire une page réelle en 404.
  */
 import { NextResponse, type NextRequest } from 'next/server'
 
-import { isLocale, type Locale } from '@/i18n/locales'
+import { type Locale } from '@/i18n/locales'
 import { negotiateLocale } from '@/i18n/negotiate'
-import { homePath } from '@/routing/paths'
+import { homePath, localeFromPathname } from '@/routing/paths'
 import { SERVED_PATHS } from '@/routing/route-manifest'
 
 const served = new Set(SERVED_PATHS)
 
-/** `/fr/rien` → `fr` ; `/de/x` et `/rien` → la langue négociée. */
+/**
+ * `/fr/rien` → `fr` ; `/de/x` et `/rien` → la langue négociée.
+ *
+ * L'URL l'emporte sur l'en-tête : un visiteur qui tape `/en/...` a demandé
+ * l'anglais, quelle que soit la langue de son navigateur.
+ */
 function localeOf(pathname: string, acceptLanguage: string | null): Locale {
-  const candidate = pathname.split('/')[1]
-  return candidate !== undefined && isLocale(candidate)
-    ? candidate
-    : negotiateLocale(acceptLanguage)
+  return localeFromPathname(pathname) ?? negotiateLocale(acceptLanguage)
 }
 
 export default function proxy(request: NextRequest) {
@@ -72,8 +77,10 @@ export default function proxy(request: NextRequest) {
   }
 
   // Une barre finale désigne la même page : `/fr/projects/` est `/fr/projects`.
-  const normalised = pathname.length > 1 ? pathname.replace(/\/$/, '') : pathname
-  if (served.has(normalised)) return NextResponse.next()
+  // Aucune garde sur `/` ici : il est traité au-dessus et n'arrive jamais
+  // jusqu'à cette ligne. La première version en portait une, et c'était une
+  // branche que rien ne pouvait exécuter — la couverture le disait.
+  if (served.has(pathname.replace(/\/$/, ''))) return NextResponse.next()
 
   // ⚠️ Le statut est porté par la réécriture. Une réécriture rend 200 par défaut :
   // servir le bon contenu avec le mauvais statut dirait à un moteur de recherche
@@ -88,9 +95,26 @@ export default function proxy(request: NextRequest) {
 
 export const config = {
   /*
-   * Tout, sauf ce que Next sert lui-même et les ressources qui n'ont pas de
-   * page : les faire traverser cette fonction coûterait à chaque requête pour
-   * ne rien décider — la raison qui bornait autrefois le matcher à `/`.
+   * Tout ce qui peut être une **page**, et rien d'autre.
+   *
+   * ⛔ La première version énumérait les exceptions à la main
+   * (`favicon.ico|robots.txt|sitemap.xml|images/`). Cette liste était fausse
+   * dans les deux sens : elle excluait `images/`, qui n'existe pas, et elle
+   * ignorait `resume/`, qui existe — si bien que **les deux CV répondaient
+   * 404**, alors qu'ils sont en ligne depuis la Phase 2. Trouvé par le parcours
+   * E2E de cette tâche, pas par la relecture.
+   *
+   * Une liste d'exceptions écrite à la main est fausse le jour où quelqu'un
+   * ajoute un fichier à `public/` — et elle échoue **en silence**, en servant
+   * une 404 sur un fichier réel. Le critère retenu ne s'entretient pas : un
+   * chemin de page ne contient jamais de point. Les locales, les segments de
+   * section et les slugs sont des minuscules, des chiffres et des traits
+   * d'union (P2-02) ; tout ce qui porte une extension est un fichier, servi par
+   * Next ou par `public/`, et n'a rien à faire ici.
+   *
+   * `tests/integration/public-assets-reach-the-visitor.test.ts` confronte ce
+   * motif au contenu réel de `public/`, pour que la prochaine ressource ajoutée
+   * le vérifie au lieu d'en dépendre.
    */
-  matcher: ['/((?!_next/|favicon\\.ico|robots\\.txt|sitemap\\.xml|images/).*)'],
+  matcher: ['/((?!_next/|.*\\.).*)'],
 }

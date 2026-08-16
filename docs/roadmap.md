@@ -3,10 +3,11 @@
 > Statut global : **Phases 0, 1, 2 et 3 terminées et validées.** **Phase 4 ouverte le 2026-08-15**,
 > dernière phase de la tranche T1. **P2-11 (rédaction du contenu réel) est DONE (2026-08-15)** : le
 > contenu d'amorçage est entièrement remplacé, et le chemin critique de T1 est donc levé.
+> **P4-07 close le 2026-08-16** : 8 tâches de la Phase 4 sur 17.
 > Journal de la Phase 4 : [`phase-4-log.md`](./phase-4-log.md) — phases précédentes :
 > [`phase-3-log.md`](./phase-3-log.md), [`phase-2-log.md`](./phase-2-log.md),
 > [`phase-1-log.md`](./phase-1-log.md)
-> Dernière mise à jour : 2026-08-15
+> Dernière mise à jour : 2026-08-16
 
 Ce document est la **source de vérité unique des tâches**. Les identifiants sont stables et ne
 sont jamais réutilisés, même si une tâche est abandonnée.
@@ -712,10 +713,10 @@ reste et le filet de sécurité permanent du projet. Journal de phase :
 | P4-04 | Liste et détail des expériences | **DONE** *(2026-08-16)* | P4-02 |
 | P4-05 | Liste et détail des projets — **première page qui rend un corps MDX** | **DONE** *(2026-08-16)* | P4-02 |
 | P4-06 | Compétences (groupées par catégorie) | **DONE** *(2026-08-16)* | P4-02 |
-| P4-07 | Pages 404 et erreur, localisées | TODO | P4-02 |
+| P4-07 | Pages 404 et erreur, localisées | **DONE** *(2026-08-16)* | P4-02 |
 | P4-08 | Métadonnées OpenGraph et images de partage | TODO | P3-06 |
 | P4-09 | JSON-LD : `Person`, `WebSite`, `CreativeWork`, `BreadcrumbList` | TODO | P4-05 |
-| P4-10 | Passe accessibilité : titres, focus, contrastes, points de repère | TODO | P4-06 |
+| P4-10 | Passe accessibilité : titres, focus, contrastes, points de repère — **plus les trois tests de composant manquants** relevés en P4-07 (`phase-4-log.md` §13.8) | TODO | P4-06 |
 | P4-11 | Responsive documentaire : mobile, tablette, desktop | TODO | P4-06 |
 | P4-12 | E2E : navigation complète, deep links, bascule de langue, clavier | TODO | P4-11 |
 | P4-13 | **Mise en production du portfolio documentaire** *(jalon T1)* | TODO | P4-12, P1-15, P2-11 |
@@ -825,6 +826,27 @@ ils ne l'**affirment** pas. Un parcours E2E garde la décision.
 est le mot juste dans les deux langues. La règle reste de chercher **d'abord** la formulation
 idiomatique — « Frameworks » est devenu « Frameworks et bibliothèques » / « Frameworks & libraries »,
 qui décrit mieux une catégorie contenant aussi des bibliothèques. · Depends on: P4-02
+
+**P4-07 — Pages 404 et erreur, localisées**
+Status: **DONE** (2026-08-16) — toute URL inconnue est **réécrite** par le proxy vers une vraie page
+prérendue et localisée, avec le statut porté par la réécriture (une réécriture rend 200 par défaut).
+Trois sondes ont établi qu'aucune voie ordinaire n'existe : le layout racine vivant sous `[locale]`,
+la 404 interne de Next est servie **hors de tout layout**, donc sans `<html lang>` — une violation
+WCAG 3.1.1 que le gate axe n'avait jamais vue, faute d'un parcours sur une 404.
+⭐⭐ Le proxy a besoin de la liste des chemins servis **avant** `next build`, alors que les pages en
+sont le produit : deux énumérations impossibles à fusionner. `check-static-rendering.mts` les
+confronte après coup **aux pages réellement prégénérées** — et non au sitemap, qui est une seconde
+dérivée : comparer deux dérivées accuse celle qui n'a pas tort. Les deux sens sont vus échouer.
+⛔⛔ **Le parcours E2E a trouvé deux défauts que rien d'autre ne pouvait voir.** Le matcher élargi
+énumérait ses exceptions à la main et ignorait `resume/` : **les deux CV répondaient 404**, alors
+qu'ils sont en ligne depuis la Phase 2. La liste est supprimée plutôt qu'allongée — un chemin de
+page ne contient jamais de point. Et la page introuvable était servie **sans en-tête**, étant un
+cinquième « endroit » qu'aucun layout ne déclarait ; élargir `CurrentPlace` a rendu la ligne du
+garde obligatoire à la compilation.
+⛔ **Les frontières d'erreur coûtent le premier JavaScript applicatif du site** : 0,0 → **7,2 Ko par
+route**, socle 129,5 → 126,0, soit **133,2 Ko** à la première visite pour une cible de 136. Mesuré
+avant d'être décidé, y compris les variantes écartées (`phase-4-log.md` §13.5). Le profil `no-js`
+reste vert — vrai par vérification, non plus par construction. · Depends on: P4-02
 
 **P4-05 — Liste et détail des projets, corps MDX rendu**
 Status: **DONE** (2026-08-16) — la fiche d'un projet compile et rend son corps MDX dans un conteneur

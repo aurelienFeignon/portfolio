@@ -56,6 +56,32 @@ const DESTINATION = new URL('../src/routing/route-manifest.ts', import.meta.url)
 
 const paths = await servedPaths()
 
+/**
+ * Le fichier écrit doit être **déjà** au format du dépôt.
+ *
+ * `JSON.stringify` produit des guillemets doubles, que Prettier réécrit en
+ * simples : le fichier oscillait donc entre deux formes, chaque `pnpm build`
+ * salissait l'arbre de travail, et `prettier --check` échouait sur un fichier
+ * que personne n'avait édité. Un générateur qui ne rend pas la forme finale
+ * n'est pas idempotent.
+ *
+ * Un chemin ne peut pas contenir de guillemet — les slugs sont encodés par
+ * `entityPath`, et les locales comme les segments de section sont des littéraux
+ * du code. On le **vérifie** plutôt que de l'espérer : le jour où ce n'est plus
+ * vrai, il vaut mieux un build cassé qu'un fichier généré syntaxiquement faux.
+ */
+function asTypeScriptLiteral(values: readonly string[]): string {
+  const unsafe = values.filter((value) => /['\\\n]/.test(value))
+  if (unsafe.length > 0) {
+    throw new Error(
+      `Chemin inattendu, non représentable tel quel : ${unsafe.join(', ')}. ` +
+        `Les slugs sont pourtant encodés (src/routing/paths.ts).`,
+    )
+  }
+
+  return `[\n${values.map((value) => `  '${value}',\n`).join('')}]`
+}
+
 const content = `/**
  * **Fichier généré — ne pas éditer à la main.**
  *
@@ -66,7 +92,7 @@ const content = `/**
  * Il existe pour que \`src/proxy.ts\` reconnaisse une URL inconnue sans lire
  * \`content/\`, absent de l'image de production.
  */
-export const SERVED_PATHS: readonly string[] = ${JSON.stringify(paths, null, 2)}
+export const SERVED_PATHS: readonly string[] = ${asTypeScriptLiteral(paths)}
 `
 
 await writeFile(DESTINATION, content, 'utf8')

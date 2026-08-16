@@ -32,10 +32,16 @@ interface Manifests {
   readonly routes: Record<string, { compute?: string; routeType?: string }>
   readonly dynamicRoutes?: Record<string, { fallback: unknown }>
   readonly sitemap?: readonly string[]
+  /**
+   * Ce que `SERVED_PATHS` annonce au proxy. Écrit dans un module à part, comme
+   * dans le dépôt : le gate le charge par son chemin, ce qui est précisément ce
+   * qui rend cette confrontation exécutable contre des cas fabriqués.
+   */
+  readonly served?: readonly string[]
 }
 
-/** Écrit une arborescence `.next` minimale, puis exécute le gate contre elle. */
-async function checkRendering(manifests: Manifests): Promise<{ code: number; output: string }> {
+/** Écrit une arborescence `.next` minimale, plus le module que lit le proxy. */
+async function writeBuild(manifests: Manifests): Promise<{ root: string; servedPath: string }> {
   const root = await mkdtemp(join(tmpdir(), 'next-manifests-'))
   await mkdir(join(root, 'server', 'app'), { recursive: true })
 
@@ -51,8 +57,21 @@ async function checkRendering(manifests: Manifests): Promise<{ code: number; out
     await writeFile(join(root, 'server', 'app', 'sitemap.xml.body'), `<urlset>${urls}</urlset>`)
   }
 
+  const servedPath = join(root, 'route-manifest.ts')
+  await writeFile(
+    servedPath,
+    `export const SERVED_PATHS: readonly string[] = ${JSON.stringify(manifests.served ?? [])}\n`,
+  )
+
+  return { root, servedPath }
+}
+
+async function runGate(
+  root: string,
+  servedPath: string,
+): Promise<{ code: number; output: string }> {
   try {
-    const { stdout, stderr } = await run('node', [SCRIPT, root])
+    const { stdout, stderr } = await run('node', [SCRIPT, root, servedPath])
     return { code: 0, output: stdout + stderr }
   } catch (error) {
     const failure = error as { code?: number; stdout?: string; stderr?: string }
@@ -60,7 +79,13 @@ async function checkRendering(manifests: Manifests): Promise<{ code: number; out
   }
 }
 
-/** Un site minuscule mais complet : une page, prégénérée, close, et au sitemap. */
+/** Écrit le build fabriqué, puis exécute le gate contre lui. */
+async function checkRendering(manifests: Manifests): Promise<{ code: number; output: string }> {
+  const { root, servedPath } = await writeBuild(manifests)
+  return runGate(root, servedPath)
+}
+
+/** Un site minuscule mais complet : une page, prégénérée, close, au sitemap et servie. */
 const HEALTHY: Manifests = {
   appRoutes: { '/[locale]/page': '/[locale]', '/sitemap.xml/route': '/sitemap.xml' },
   routes: {
@@ -69,6 +94,7 @@ const HEALTHY: Manifests = {
   },
   dynamicRoutes: { '/[locale]': { fallback: false } },
   sitemap: ['/fr'],
+  served: ['/fr'],
 }
 
 describe('gate de rendu statique', () => {
@@ -76,7 +102,7 @@ describe('gate de rendu statique', () => {
     const { code, output } = await checkRendering(HEALTHY)
 
     expect(code).toBe(0)
-    expect(output).toContain('aucune à la demande, toutes au sitemap')
+    expect(output).toContain('au sitemap comme au manifeste du proxy')
   })
 
   it('refuse une route qui se rendrait à la demande', async () => {
@@ -140,6 +166,7 @@ describe('gate de rendu statique', () => {
       appRoutes: { '/[locale]/page': '/[locale]' },
       routes: { '/fr': { compute: 'static', routeType: 'page' } },
       dynamicRoutes: { '/[locale]': { fallback: false } },
+      served: ['/fr'],
     })
 
     expect(code).toBe(0)
@@ -157,6 +184,16 @@ describe('gate de rendu statique', () => {
     expect(code).toBe(0)
   })
 
+  it('refuse une URL annoncée au sitemap sans page derrière', async () => {
+    // L'autre sens du contrôle 3. Sans lui, le sitemap peut promettre à un
+    // moteur de recherche une adresse qui répond 404 — et seul un parcours E2E,
+    // exécuté bien plus tard, le verrait.
+    const { code, output } = await checkRendering({ ...HEALTHY, sitemap: ['/fr', '/fr/fantome'] })
+
+    expect(code).toBe(1)
+    expect(output).toContain('/fr/fantome — annoncée au sitemap')
+  })
+
   it('refuse un build qui ne déclare aucune route applicative', async () => {
     // Un contrôle qui ne trouve rien ne vérifie rien (`phase-2-log.md` §10.5).
     const { code, output } = await checkRendering({ appRoutes: {}, routes: {} })
@@ -165,9 +202,72 @@ describe('gate de rendu statique', () => {
     expect(output).toContain('Aucune route applicative')
   })
 
-  it('refuse de conclure sans manifeste', async () => {
+  it('refuse de conclure sans les manifestes de `next build`', async () => {
     const root = await mkdtemp(join(tmpdir(), 'next-empty-'))
 
     await expect(run('node', [SCRIPT, root])).rejects.toMatchObject({ code: 1 })
+  })
+})
+
+/**
+ * Le manifeste que lit le proxy (P4-07) : `SERVED_PATHS` est produit **avant**
+ * `next build`, alors que les pages prégénérées en sont le produit. Ce sont deux
+ * énumérations, et elles ne peuvent pas être fusionnées — le proxy a besoin de la
+ * liste pour être compilé.
+ *
+ * ⚠️ **Les deux sens sont des pannes silencieuses, et elles ne se ressemblent
+ * pas.** Un chemin annoncé en trop laisse passer une URL sans page : Next sert
+ * alors sa 404 interne, hors du layout racine, donc sans `lang` — exactement le
+ * défaut que P4-07 existe pour supprimer. Un chemin manquant fait réécrire une
+ * **page réelle** en 404 : elle disparaît de l'index et du site, en répondant
+ * proprement.
+ */
+describe('manifeste du proxy', () => {
+  it('refuse un chemin annoncé servi sans page derrière', async () => {
+    const { code, output } = await checkRendering({ ...HEALTHY, served: ['/fr', '/fr/fantome'] })
+
+    expect(code).toBe(1)
+    expect(output).toContain('/fr/fantome — annoncé servi par le proxy')
+  })
+
+  it('refuse une page servie que le proxy ne connaît pas', async () => {
+    const { code, output } = await checkRendering({
+      ...HEALTHY,
+      routes: { ...HEALTHY.routes, '/en': { compute: 'static', routeType: 'page' } },
+      sitemap: ['/fr', '/en'],
+      served: ['/fr'],
+    })
+
+    expect(code).toBe(1)
+    expect(output).toContain('/en — prégénérée mais absente du manifeste du proxy')
+  })
+
+  it('n’exige pas la page introuvable dans le manifeste', async () => {
+    // Elle est prégénérée comme les autres, et le proxy ne doit surtout pas la
+    // laisser passer : elle est une **destination de réécriture**, pas une page
+    // du site. L'annoncer servie la rendrait accessible en 200.
+    const { code } = await checkRendering({
+      ...HEALTHY,
+      routes: { ...HEALTHY.routes, '/fr/404': { compute: 'static', routeType: 'page' } },
+    })
+
+    expect(code).toBe(0)
+  })
+
+  it('refuse de conclure sans manifeste de routes', async () => {
+    // Le proxy ne peut pas exister sans cette liste : son absence n'est pas
+    // « rien à vérifier », c'est un build cassé.
+    //
+    // ⚠️ Le build fabriqué ici est **entièrement sain** — sitemap compris. Sans
+    // cette précaution le test passait déjà, avant que le contrôle n'existe :
+    // le gate sortait en 1 sur un `sitemap.xml.body` absent, et l'assertion
+    // aurait été verte quoi qu'on écrive. Un test doit échouer pour la raison
+    // qu'il nomme.
+    const { root } = await writeBuild(HEALTHY)
+
+    const { code, output } = await runGate(root, join(root, 'inexistant.ts'))
+
+    expect(code).toBe(1)
+    expect(output).toContain('manifeste de routes')
   })
 })

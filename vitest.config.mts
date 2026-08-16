@@ -61,6 +61,20 @@ export default defineConfig({
         'src/app/**/page.tsx',
         'src/app/sitemap.ts',
         'src/app/robots.ts',
+        // Frontières d'erreur (P4-07) : même nature que les layouts ci-dessus —
+        // une ligne de composition chacune, plus l'enveloppe `<html>` que Next
+        // impose à `global-error`. Elles sont admissibles ici **parce que** la
+        // seule décision qu'elles portaient en a été sortie : la langue à
+        // afficher quand on n'a que l'URL est `displayedLocale`, dans
+        // `src/routing`, couverte à 100 %. C'est la règle de §6 appliquée telle
+        // qu'elle est écrite — « le jour où une route se remet à décider quelque
+        // chose, la décision se sort de la route ».
+        //
+        // Ce qu'elles rendent est vérifié ailleurs : `ErrorNotice` a ses tests
+        // de composant. Les couvrir ici demanderait de simuler `usePathname`,
+        // donc d'introduire le mock comme pratique du dépôt — pour deux lignes.
+        'src/app/**/error.tsx',
+        'src/app/global-error.tsx',
         // Types purs et déclarations : rien à exécuter.
         'src/**/*.d.ts',
         'src/**/types.ts',

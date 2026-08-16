@@ -1,0 +1,18 @@
+/*
+ * Le paragraphe d'attaque d'une page nue (P4-07).
+ *
+ * Deuxième exemplaire à l'identique — la page introuvable et les frontières
+ * d'erreur —, c'est-à-dire le seuil auquel `container`, `tapTarget` et `chip`
+ * ont été extraits. Ces trois pages n'ont pas de contenu à afficher : elles
+ * n'ont qu'un titre et une phrase, et cette phrase se lit comme un chapô.
+ *
+ * `max-width` en `ch` et non en `rem` : la mesure qui compte pour la lisibilité
+ * est un nombre de caractères, et elle doit suivre la taille de police si le
+ * visiteur l'augmente.
+ */
+
+.lead {
+  margin: 0;
+  max-width: 60ch;
+  color: var(--color-text-muted);
+}

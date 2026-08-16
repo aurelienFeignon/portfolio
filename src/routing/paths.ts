@@ -12,13 +12,48 @@
  * exigence de P1-17). `src/seo` compose les deux, `src/routing` ne connaît pas le
  * domaine.
  */
-import type { Locale } from '../i18n/locales.ts'
+import { DEFAULT_LOCALE, isLocale, type Locale } from '../i18n/locales.ts'
 
 import { segmentFor, type Section } from './sections.ts'
 
 /** `/fr` — jamais `/fr/`, sans quoi le `canonical` désignerait une autre URL. */
 export function homePath(locale: Locale): string {
   return `/${locale}`
+}
+
+/**
+ * L'opération **inverse** de `homePath` : la locale que porte un chemin, ou
+ * `null` s'il n'en porte pas (`/de/x`, `/rien`, `/`).
+ *
+ * Elle est ici, contre la construction, parce que trois appelants posent la même
+ * question — le proxy, pour choisir la langue d'une 404 (P4-07), et les deux
+ * frontières d'erreur, qui sont des composants **client** et n'ont que l'URL pour
+ * savoir dans quelle langue s'exprimer.
+ *
+ * Ce qu'ils font du `null` diffère : le proxy négocie l'en-tête `Accept-Language`,
+ * qu'un composant client n'a pas, et les frontières retombent sur la locale par
+ * défaut. C'est la **lecture** qui est commune, pas le repli — seule elle est
+ * partagée, sans quoi l'un des deux comportements serait faux quelque part.
+ */
+export function localeFromPathname(pathname: string): Locale | null {
+  const candidate = pathname.split('/')[1]
+  return candidate !== undefined && isLocale(candidate) ? candidate : null
+}
+
+/**
+ * La langue dans laquelle s'exprimer quand on n'a **que** l'URL.
+ *
+ * C'est le cas des deux frontières d'erreur (P4-07) : composants client, sans
+ * `params` ni en-tête de requête. Toutes deux retombent sur la locale par
+ * défaut, et cette expression était écrite deux fois — la voici une fois, ce qui
+ * laisse les deux fichiers en composition pure.
+ *
+ * ⚠️ Le proxy **n'appelle pas** ceci, et ce n'est pas un oubli : lui dispose de
+ * `Accept-Language` et doit négocier plutôt que de retomber sur `fr`. Les deux
+ * replis sont différents parce que les deux situations le sont.
+ */
+export function displayedLocale(pathname: string): Locale {
+  return localeFromPathname(pathname) ?? DEFAULT_LOCALE
 }
 
 /** `/fr/projects` */

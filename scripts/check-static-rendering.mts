@@ -9,28 +9,46 @@
  * d'une URL non prégénérée, jamais au build. C'est la dette tracée en Phase 2
  * (`phase-2-log.md` §9.4), et la Phase 3 est le moment où elle devient réelle.
  *
- * **Trois contrôles, et aucun ne se contente de « j'ai vu au moins une chose ».**
+ * **Quatre contrôles, et aucun ne se contente de « j'ai vu au moins une chose ».**
  *
  * 1. *Rendu* — chaque route applicative est prégénérée, ou close par
  *    `dynamicParams = false`.
  * 2. *Régime* — chaque page prégénérée l'est en `static`. Un régime **inconnu**
  *    est refusé, pas ignoré : c'est ainsi qu'un ISR ou un PPR introduit par une
  *    montée de version se signale au lieu de passer.
- * 3. *Sitemap* — chaque page publique prégénérée figure au sitemap. Sans lui, le
- *    jour où une section gagne des pages de détail sans entrer dans
- *    `SECTIONS_WITH_DETAIL`, elles sont absentes de l'index **et** invisibles au
- *    test E2E de R-07, qui ne parcourt que les URL du sitemap. Les deux trous se
- *    composent, et la panne est celle que R-07 décrit.
+ * 3. *Sitemap* — le sitemap et les pages prégénérées se recouvrent **exactement**.
+ *    Une page absente de l'index ne sera pas indexée et échappe au contrôle E2E
+ *    de R-07, qui ne parcourt que les URL du sitemap ; une URL annoncée sans page
+ *    derrière promet à un moteur de recherche une adresse qui répond 404.
+ * 4. *Proxy* — le manifeste que lit `src/proxy.ts` décrit **exactement** les
+ *    pages servies (P4-07). Voir plus bas : c'est le contrôle dont les deux sens
+ *    sont des pannes silencieuses de nature différente.
  *
- * La racine est un **argument**, comme pour `scripts/check-content.mts` : c'est
- * ce qui rend le gate exécutable contre des manifestes de fixture, donc
- * testable. Un gate qui protège toute la production ne peut pas n'être vérifié
- * que par une observation manuelle.
+ * ## Pourquoi tout est confronté aux pages prégénérées, et jamais à un pair
+ *
+ * Trois énumérations existent : ce que Next a **réellement** prégénéré, ce que le
+ * sitemap **annonce**, et ce que le proxy **laisse passer**. Les deux dernières
+ * sont dérivées ; seule la première est le fait. Chacune est donc comparée au
+ * fait, jamais à l'autre dérivée — sinon un écart entre les deux accuse celle qui
+ * n'a pas tort, et le message envoie corriger le mauvais fichier.
+ *
+ * ⚠️ Le manifeste du proxy est produit **avant** `next build` (le proxy est
+ * compilé avec) alors que les pages en sont le produit : les deux énumérations ne
+ * peuvent pas être fusionnées, elles n'existent pas au même moment. C'est
+ * exactement la situation que décrit R-07, et ce contrôle est ce qui l'empêche
+ * de devenir une panne.
+ *
+ * La racine et le manifeste sont des **arguments**, comme pour
+ * `scripts/check-content.mts` : c'est ce qui rend le gate exécutable contre des
+ * manifestes de fixture, donc testable. Un gate qui protège toute la production
+ * ne peut pas n'être vérifié que par une observation manuelle.
  */
 import { readFileSync } from 'node:fs'
-import { join } from 'node:path'
+import { join, resolve } from 'node:path'
+import { pathToFileURL } from 'node:url'
 
 const nextDir = process.argv[2] ?? '.next'
+const routeManifestPath = process.argv[3] ?? join('src', 'routing', 'route-manifest.ts')
 
 interface PrerenderManifest {
   readonly routes: Record<string, { readonly compute?: string; readonly routeType?: string }>
@@ -69,6 +87,31 @@ function read<T>(name: string): T {
     )
     process.exit(1)
   }
+}
+
+/**
+ * La liste que le proxy embarque. Son absence n'est pas « rien à vérifier » :
+ * sans elle le proxy ne peut classer aucune URL, et le build est cassé.
+ */
+async function readServedPaths(): Promise<readonly string[]> {
+  try {
+    const manifest = (await import(pathToFileURL(resolve(routeManifestPath)).href)) as {
+      SERVED_PATHS?: readonly string[]
+    }
+    if (manifest.SERVED_PATHS === undefined) throw new Error('SERVED_PATHS n’y est pas exporté')
+    return manifest.SERVED_PATHS
+  } catch (error) {
+    console.error(
+      `✗ Le manifeste de routes ${routeManifestPath} est illisible : il est produit par\n` +
+        `  « scripts/generate-route-manifest.mts », avant « next build ».\n  ${String(error)}`,
+    )
+    process.exit(1)
+  }
+}
+
+/** Ce que le site sert vraiment : le fait auquel les deux dérivées sont comparées. */
+function difference(left: Iterable<string>, right: ReadonlySet<string>): readonly string[] {
+  return [...left].filter((value) => !right.has(value))
 }
 
 const appRoutes = Object.values(read<Record<string, string>>('app-path-routes-manifest.json'))
@@ -117,6 +160,17 @@ for (const [route, entry] of Object.entries(prerender.routes)) {
   }
 }
 
+/**
+ * Les pages **publiques** réellement servies — le fait. Les routes internes de
+ * Next n'en sont pas, et la page introuvable non plus : elle est prégénérée,
+ * mais c'est une destination de réécriture, jamais une adresse du site.
+ */
+const publicPages = new Set(
+  prerenderedPages
+    .map(([route]) => route)
+    .filter((route) => !isInternal(route) && !isNotFoundPage(route)),
+)
+
 // --- 3. Sitemap -------------------------------------------------------------
 if (appRoutes.includes('/sitemap.xml')) {
   const body = readFileSync(join(nextDir, 'server', 'app', 'sitemap.xml.body'), 'utf8')
@@ -124,14 +178,39 @@ if (appRoutes.includes('/sitemap.xml')) {
     [...body.matchAll(/<loc>([^<]+)<\/loc>/g)].map((match) => new URL(match[1] as string).pathname),
   )
 
-  for (const [route] of prerenderedPages) {
-    if (!isInternal(route) && !isNotFoundPage(route) && !inSitemap.has(route)) {
-      problems.push(
-        `${route} — prégénérée mais absente du sitemap : elle ne sera pas indexée, ` +
-          `et le contrôle E2E des « hreflang » ne la verra pas non plus.`,
-      )
-    }
+  for (const route of difference(publicPages, inSitemap)) {
+    problems.push(
+      `${route} — prégénérée mais absente du sitemap : elle ne sera pas indexée, ` +
+        `et le contrôle E2E des « hreflang » ne la verra pas non plus.`,
+    )
   }
+
+  for (const path of difference(inSitemap, publicPages)) {
+    problems.push(
+      `${path} — annoncée au sitemap, mais aucune page n'est prégénérée à cette adresse : ` +
+        `le sitemap promet à un moteur de recherche une URL qui répond 404.`,
+    )
+  }
+}
+
+// --- 4. Manifeste du proxy --------------------------------------------------
+// Les deux sens sont des pannes silencieuses, et elles ne se ressemblent pas.
+const served = new Set(await readServedPaths())
+
+for (const path of difference(served, publicPages)) {
+  problems.push(
+    `${path} — annoncé servi par le proxy, mais aucune page n'est prégénérée à cette ` +
+      `adresse : le proxy laisserait passer l'URL, et Next servirait sa 404 interne, ` +
+      `hors du layout racine — donc sans « lang » (P4-07).`,
+  )
+}
+
+for (const route of difference(publicPages, served)) {
+  problems.push(
+    `${route} — prégénérée mais absente du manifeste du proxy : celui-ci réécrirait ` +
+      `une page réelle vers la page introuvable, en 404. Régénérez « src/routing/` +
+      `route-manifest.ts » (« node scripts/generate-route-manifest.mts »).`,
+  )
 }
 
 // --- Verdict ----------------------------------------------------------------
@@ -157,5 +236,6 @@ if (problems.length > 0) {
 
 console.log(
   `✓ Rendu statique — ${pageRoutes.length} route(s) applicative(s), ` +
-    `${prerenderedPages.length} page(s) prégénérée(s), aucune à la demande, toutes au sitemap.`,
+    `${prerenderedPages.length} page(s) prégénérée(s), aucune à la demande, ` +
+    `${publicPages.size} page(s) publique(s) au sitemap comme au manifeste du proxy.`,
 )

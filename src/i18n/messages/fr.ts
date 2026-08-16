@@ -96,19 +96,40 @@ export const fr = {
     },
   },
 
-  /** Listes vides — une locale peut ne pas encore traduire une section (R-07). */
   /** Page introuvable (P4-07). Servie par réécriture du proxy, jamais liée. */
   notFound: {
     title: 'Page introuvable',
     message:
       'Cette adresse ne correspond à aucune page du site. Elle a peut-être changé, ou comporte une faute de frappe.',
-    backHome: 'Retour à l’accueil',
     elsewhere: 'Ou reprendre par une section :',
   },
+
+  /**
+   * Frontières d'erreur (P4-07).
+   *
+   * ⛔ **Aucun détail de la panne n'est affiché**, et c'est une décision, pas un
+   * oubli : le message d'une exception peut porter un chemin de fichier ou une
+   * valeur d'environnement (`vision.md` §5.4, « messages d'erreur neutres »).
+   * Ce que le visiteur peut faire tient en deux gestes, et ils sont ici.
+   */
+  error: {
+    title: 'Une erreur est survenue',
+    message:
+      'La page n’a pas pu s’afficher. Réessayer suffit parfois ; sinon, l’accueil reste accessible.',
+    retry: 'Réessayer',
+  },
+
+  /**
+   * Le retour à l'accueil — **une seule clé**, partagée par la page introuvable
+   * et par les frontières d'erreur. Deux clés de même valeur seraient deux
+   * traductions à maintenir d'accord pour la même phrase.
+   */
+  backHome: 'Retour à l’accueil',
 
   /** Titre du bloc « pile technique », commun aux deux types de fiche (P4-05). */
   technologies: 'Technologies',
 
+  /** Listes vides — une locale peut ne pas encore traduire une section (R-07). */
   empty: 'Rien à afficher dans cette langue pour le moment.',
 }
 

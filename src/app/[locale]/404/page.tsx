@@ -23,12 +23,11 @@ import type { Metadata } from 'next'
 import { getMessages } from '@/i18n/messages'
 import { homePath } from '@/routing/paths'
 import { EntityList } from '@/ui/entity-list'
+import lead from '@/ui/lead.module.css'
 import page from '@/ui/page.module.css'
 
 import { readLocale, type LocaleParams } from '../locale-param'
 import { sectionLinks } from '../section-links'
-
-import styles from './page.module.css'
 
 export async function generateMetadata({ params }: LocaleParams): Promise<Metadata> {
   const messages = getMessages(await readLocale(params))
@@ -47,10 +46,10 @@ export default async function NotFoundPage({ params }: LocaleParams) {
   return (
     <main id="main" className={page.page}>
       <h1 className={page.title}>{messages.notFound.title}</h1>
-      <p className={styles.message}>{messages.notFound.message}</p>
+      <p className={lead.lead}>{messages.notFound.message}</p>
 
       <p>
-        <a href={homePath(locale)}>{messages.notFound.backHome}</a>
+        <a href={homePath(locale)}>{messages.backHome}</a>
       </p>
 
       <h2 className={page.sectionHeading}>{messages.notFound.elsewhere}</h2>

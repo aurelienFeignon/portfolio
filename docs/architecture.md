@@ -314,6 +314,7 @@ local, même si elle est l'identité en v1.
 |---|---|---|
 | Toutes les pages de contenu | **SSG** via `generateStaticParams` | Contenu figé au build, TTFB minimal, indexation optimale |
 | `/` | Redirection (edge), par `src/proxy.ts` | Négociation de langue |
+| Toute URL inconnue | **Réécriture** vers `[locale]/404`, statut 404, par `src/proxy.ts` | Page introuvable localisée (P4-07) |
 | Server Action CV | Runtime Node | Effet de bord, secrets |
 | `sitemap.xml`, `robots.txt` | Générés au build | Dérivés du Content Layer, jamais écrits à la main |
 
@@ -332,6 +333,26 @@ Aucun ISR en v1 : le contenu ne change qu'au déploiement (H-05).
 > - **`SITE_URL` est nécessaire au build**, et pas seulement à l'exécution : les `canonical`, les
 >   `hreflang` et le sitemap sont gravés dans le HTML statique. Voir l'amendement de
 >   l'[ADR-0008](./adr/0008-self-hosted-vps-deployment.md).
+
+> **Amendé le 2026-08-16 (P4-07) : `src/proxy.ts` ne s'exécute plus seulement sur `/`.**
+>
+> Le point ci-dessus reste vrai — `/` est la seule chose qui ne peut pas être **statique** — mais il
+> ne décrit plus la portée du proxy. Celui-ci traite désormais **toute URL qui pourrait être une
+> page**, pour réécrire ce qu'il ne reconnaît pas vers `[locale]/404` en portant le statut 404. Sans
+> ce détour, une adresse inconnue est servie par la 404 interne de Next, **hors du layout racine** —
+> qui vit sous `[locale]` depuis P3-02 —, donc sans `<html lang>` : une violation WCAG 3.1.1.
+>
+> - **Le matcher exclut tout chemin contenant un point**, c'est-à-dire tout fichier — `public/`
+>   compris. Il énumérait d'abord ses exceptions à la main, et cette liste ignorait `resume/` : les
+>   deux CV répondaient 404. Un critère qui ne s'entretient pas a remplacé une liste qui devait
+>   l'être ([`phase-4-log.md`](./phase-4-log.md) §13.3).
+> - **Le proxy embarque la liste des chemins servis** (`src/routing/route-manifest.ts`, généré) : il
+>   ne peut pas interroger le Content Layer, `content/` étant absent de l'image. C'est une seconde
+>   énumération, produite **avant** le build ; `scripts/check-static-rendering.mts` la confronte
+>   après coup aux pages réellement prégénérées, dans les deux sens.
+> - **Coût assumé** : chaque requête de page traverse une fonction, et le site embarque désormais
+>   7,2 Ko de JavaScript par route pour ses deux frontières d'erreur — mesuré, budgets tenus
+>   ([`phase-4-log.md`](./phase-4-log.md) §13.5).
 
 ### 4.3 Internationalisation
 
@@ -610,7 +631,9 @@ portfolio/
 │   │   │   ├── experiences/{page,[slug]/page}.tsx
 │   │   │   ├── projects/{page,[slug]/page}.tsx
 │   │   │   └── skills/page.tsx
-│   │   ├── sitemap.ts  robots.ts  not-found.tsx  error.tsx
+│   │   ├── sitemap.ts  robots.ts  global-error.tsx
+│   │   │   [locale]/404/  page introuvable, atteinte par réécriture (P4-07)
+│   │   │   [locale]/error.tsx  frontière d'erreur d'une page
 │   ├── content/               parsing, schémas Zod, repositories   ← zéro React
 │   ├── i18n/                  locales, dictionnaires, négociation
 │   ├── routing/               construction et analyse d'URL
@@ -654,8 +677,10 @@ texte utile**. Testé en E2E, pas seulement affirmé.
 
 | Cas | Comportement |
 |---|---|
-| Slug inexistant | `notFound()` → 404 localisée, avec liens de secours |
-| Locale invalide | 404 (pas de redirection deviner-juste, qui pollue l'index) |
+| Slug inexistant | **Réécriture du proxy** → 404 localisée, avec liens de secours (P4-07). `notFound()` n'est jamais atteint : `dynamicParams = false` fait du slug inconnu un échec de *routage* |
+| Locale invalide | Idem — 404 dans la langue **négociée**, pas de redirection deviner-juste, qui pollue l'index |
+| Échec de rendu d'une page | `[locale]/error.tsx` → page localisée, avec « réessayer » et le retour à l'accueil. Aucun détail de l'erreur n'est affiché (§5.4 de `vision.md`) |
+| Échec du layout racine | `global-error.tsx` → il rend son propre `<html lang>`, seule exception de Next |
 | Frontmatter invalide | Échec du **build** (CF-10), jamais de dégradation silencieuse en production |
 | Échec de chargement d'un asset 3D | Error boundary du canvas → bascule en palier `none`, le documentaire reste intact |
 | Perte du contexte WebGL | Écoute de `webglcontextlost` → démontage propre, bascule `none` |
