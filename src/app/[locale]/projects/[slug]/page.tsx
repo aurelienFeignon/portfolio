@@ -67,12 +67,7 @@ export default async function ProjectPage({ params }: EntityParams) {
       <h1>{project.title}</h1>
       <p>{project.summary}</p>
       <LanguageSwitcher current={locale} options={languageOptions(locationOf(slug), available)} />
-      <DateRange
-        locale={locale}
-        startedAt={project.startedAt}
-        endedAt={project.endedAt}
-        isOngoing={project.isOngoing}
-      />
+      <DateRange locale={locale} startedAt={project.startedAt} endedAt={project.endedAt} />
       <h2>{messages.sections.skills.name}</h2>
       <ul>
         {project.technologies.map((technology) => (

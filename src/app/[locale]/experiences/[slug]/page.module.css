@@ -1,0 +1,42 @@
+/*
+ * Fiche d'une expérience (P4-04).
+ */
+
+.where {
+  margin: 0;
+  font-size: var(--text-lg);
+}
+
+/* Un peu plus d'air avant chaque bloc que le `gap` du gabarit n'en donne. */
+.heading {
+  margin: var(--space-4) 0 0;
+  font-size: var(--text-lg);
+}
+
+.highlights {
+  margin: 0;
+  padding-left: var(--space-4);
+  max-width: 70ch;
+}
+
+/*
+ * La pile technique se lit d'un coup d'œil : une liste en ligne, pas une liste à
+ * puces empilée. Elle reste un `<ul>` — c'est bien une liste, et un lecteur
+ * d'écran en annonce le nombre d'éléments, ce qu'une suite de `<span>` ne ferait
+ * pas.
+ */
+.technologies {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.technology {
+  composes: surface from '../../../../ui/surface.module.css';
+
+  padding: var(--space-1) var(--space-3);
+  font-size: var(--text-sm);
+}

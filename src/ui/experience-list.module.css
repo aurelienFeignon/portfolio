@@ -1,0 +1,35 @@
+/*
+ * Liste des expériences (P4-04).
+ *
+ * Une colonne, pas une grille : un parcours professionnel se lit dans l'ordre,
+ * et le dépôt le trie déjà (P2-06). Une grille inviterait à le parcourir au
+ * hasard et casserait cette lecture.
+ */
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.item {
+  composes: surface from './surface.module.css';
+
+  padding: var(--space-4);
+}
+
+.role {
+  margin: 0;
+  font-size: var(--text-lg);
+}
+
+.link {
+  composes: accentLink from './accent-link.module.css';
+}
+
+.where {
+  margin: 0 0 var(--space-1);
+}

@@ -25,10 +25,9 @@
 }
 
 .card {
+  composes: surface from './surface.module.css';
+
   padding: var(--space-4);
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
 }
 
 .title {
@@ -37,14 +36,7 @@
 }
 
 .link {
-  composes: tapTarget from './tap-target.module.css';
-
-  color: var(--color-accent);
-  text-decoration: none;
-}
-
-.link:hover {
-  text-decoration: underline;
+  composes: accentLink from './accent-link.module.css';
 }
 
 .description {

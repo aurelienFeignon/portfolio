@@ -1,19 +1,31 @@
 /**
- * Détail d'une expérience (P3-02, P3-07). Mise en forme réelle : P4-04.
+ * Détail d'une expérience (P3-02, P3-07 ; mise en forme P4-04).
  *
- * Même structure que le détail d'un projet, et pour les mêmes raisons — le corps
- * MDX arrive en Phase 4, et `getContentLocales` gouverne le `hreflang` (R-07).
+ * Le corps MDX n'est **pas** rendu ici : P4-05 est la première page à le faire,
+ * traitée seule parce qu'elle fait entrer ~7 Mo de runtime dans une image qui
+ * n'a que 15 Mo de marge. Cette page-ci reste sur le frontmatter, et c'est un
+ * choix d'ordonnancement, pas un oubli (`phase-4-log.md` §5).
+ *
+ * `getContentLocales` gouverne le `hreflang` (R-07) : une expérience non
+ * traduite n'est ni annoncée ni listée, mais le sélecteur de langue propose
+ * toujours une cible atteignable.
  */
 import { notFound } from 'next/navigation'
 
 import { contentRepository } from '@/content/repository'
+import { getMessages } from '@/i18n/messages'
 import type { PageLocation } from '@/routing/paths'
+import { CompanyLine } from '@/ui/company-line'
 import { DateRange } from '@/ui/date-range'
 import { LanguageSwitcher } from '@/ui/language-switcher'
 
 import { languageOptions } from '../../language-options'
 import { readEntityParams, staticSlugParams, type EntityParams } from '../../locale-param'
 import { entityMetadata } from '../../page-metadata'
+
+import page from '@/ui/page.module.css'
+
+import styles from './page.module.css'
 
 export function generateStaticParams({ params }: { params: { locale: string } }) {
   return staticSlugParams(params, (locale) => contentRepository.getAllExperiences(locale))
@@ -46,24 +58,57 @@ export default async function ExperiencePage({ params }: EntityParams) {
 
   if (experience === null) notFound()
 
-  const available = await contentRepository.getContentLocales('experiences', slug)
+  const [available, skills] = await Promise.all([
+    contentRepository.getContentLocales('experiences', slug),
+    contentRepository.getAllSkills(locale),
+  ])
+  const messages = getMessages(locale)
+
+  /*
+   * `technologies` porte des **slugs de compétence**, pas des libellés : c'est
+   * ce qui fait du type `Skill` le référentiel de la couche, et ce que le gate
+   * d'intégrité vérifie par locale (P2-07). L'affichage doit donc les résoudre.
+   * Le repli sur le slug ne peut pas se produire — le gate casse le build
+   * avant —, il évite seulement d'avoir à jeter une exception ici.
+   */
+  const skillNames = new Map(skills.map((skill) => [skill.slug, skill.name]))
 
   return (
-    <main id="main">
-      <h1>{experience.role}</h1>
-      <p>{experience.company}</p>
-      <LanguageSwitcher current={locale} options={languageOptions(locationOf(slug), available)} />
-      <DateRange
-        locale={locale}
-        startedAt={experience.startedAt}
-        endedAt={experience.endedAt}
-        isOngoing={experience.isOngoing}
+    <main id="main" className={page.page}>
+      <h1 className={page.title}>{experience.role}</h1>
+      <CompanyLine
+        company={experience.company}
+        location={experience.location}
+        className={styles.where}
       />
-      <ul>
+      <DateRange locale={locale} startedAt={experience.startedAt} endedAt={experience.endedAt} />
+
+      {/* `aria-labelledby` rattache chaque liste à son titre : un lecteur
+          d'écran qui parcourt les listes annonce alors « Réalisations, liste de
+          4 éléments » au lieu d'une liste anonyme. C'est aussi ce qui rend les
+          deux listes **désignables** par un test — sans nom, la seule prise est
+          leur position, qui a déjà fait passer un garde sur la mauvaise. */}
+      <h2 className={styles.heading} id="highlights">
+        {messages.experience.highlights}
+      </h2>
+      <ul className={styles.highlights} aria-labelledby="highlights">
         {experience.highlights.map((highlight) => (
           <li key={highlight}>{highlight}</li>
         ))}
       </ul>
+
+      <h2 className={styles.heading} id="technologies">
+        {messages.experience.technologies}
+      </h2>
+      <ul className={styles.technologies} aria-labelledby="technologies">
+        {experience.technologies.map((technology) => (
+          <li key={technology} className={styles.technology}>
+            {skillNames.get(technology) ?? technology}
+          </li>
+        ))}
+      </ul>
+
+      <LanguageSwitcher current={locale} options={languageOptions(locationOf(slug), available)} />
     </main>
   )
 }

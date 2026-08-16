@@ -1,0 +1,8 @@
+/*
+ * « Employeur · Lieu » (P4-04). Le rythme appartient à l'appelant, qui connaît
+ * son flux ; ce module ne pose que ce qui est propre à la ligne elle-même.
+ */
+
+.line {
+  margin: 0;
+}

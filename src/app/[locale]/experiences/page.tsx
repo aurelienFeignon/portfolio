@@ -1,16 +1,23 @@
 /**
- * Liste des expériences (P3-02). Mise en forme réelle : P4-04.
+ * Liste des expériences (P4-04).
+ *
+ * Composition pure : le dépôt trie (P2-06), `ExperienceList` met en forme, et
+ * cette route ne fait qu'aplatir l'entité en ce que la vue peut consommer —
+ * `src/ui` n'ayant pas le droit de connaître `src/content` (`architecture.md`
+ * §1.2). Aucun tri, aucun filtre ici : une vue qui trie elle-même est un défaut.
  */
 import { contentRepository } from '@/content/repository'
 import { LOCALES } from '@/i18n/locales'
 import { getMessages } from '@/i18n/messages'
 import { entityPath, type PageLocation } from '@/routing/paths'
-import { EntityList } from '@/ui/entity-list'
+import { ExperienceList } from '@/ui/experience-list'
 import { LanguageSwitcher } from '@/ui/language-switcher'
 
 import { languageOptions } from '../language-options'
 import { readLocale, type LocaleParams } from '../locale-param'
 import { sectionMetadata } from '../page-metadata'
+
+import styles from '@/ui/page.module.css'
 
 const LOCATION: PageLocation = { kind: 'section', section: 'experiences' }
 
@@ -22,17 +29,20 @@ export default async function ExperiencesPage({ params }: LocaleParams) {
   const experiences = await contentRepository.getAllExperiences(locale)
 
   return (
-    <main id="main">
-      <h1>{messages.sections.experiences.name}</h1>
-      <LanguageSwitcher current={locale} options={languageOptions(LOCATION, LOCALES)} />
-      <EntityList
+    <main id="main" className={styles.page}>
+      <h1 className={styles.title}>{messages.sections.experiences.name}</h1>
+      <ExperienceList
         locale={locale}
         items={experiences.map((experience) => ({
           href: entityPath(locale, 'experiences', experience.slug),
-          label: experience.company,
-          note: experience.role,
+          role: experience.role,
+          company: experience.company,
+          location: experience.location,
+          startedAt: experience.startedAt,
+          endedAt: experience.endedAt,
         }))}
       />
+      <LanguageSwitcher current={locale} options={languageOptions(LOCATION, LOCALES)} />
     </main>
   )
 }

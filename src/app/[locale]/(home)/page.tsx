@@ -29,6 +29,8 @@ import { languageOptions } from '../language-options'
 import { readLocale, type LocaleParams } from '../locale-param'
 import { sectionLinks } from '../section-links'
 
+import page from '@/ui/page.module.css'
+
 import styles from './page.module.css'
 
 const LOCATION: PageLocation = { kind: 'home' }
@@ -53,8 +55,8 @@ export default async function HomePage({ params }: LocaleParams) {
   const messages = getMessages(locale)
 
   return (
-    <main id="main" className={styles.main}>
-      <h1 className={styles.name}>{messages.site.name}</h1>
+    <main id="main" className={page.page}>
+      <h1 className={page.title}>{messages.site.name}</h1>
       <p className={styles.lede}>{messages.site.description}</p>
 
       <SectionGuide locale={locale} links={sectionLinks(locale)} />

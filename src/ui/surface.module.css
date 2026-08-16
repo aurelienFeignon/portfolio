@@ -1,0 +1,17 @@
+/*
+ * Une surface posée sur le fond de page (P4-04).
+ *
+ * Fond, bordure, rayon : le trio était en **trois** exemplaires — les cartes de
+ * l'accueil, celles de la liste d'expériences, et les étiquettes de pile
+ * technique. C'est le seuil que le dépôt s'est donné (`tap-target.module.css`),
+ * et P4-05 comme P4-06 auront des cartes.
+ *
+ * Elle ne porte **pas** de `padding` : une carte et une étiquette n'ont pas le
+ * même rythme intérieur, et c'est la seule chose qui les distingue vraiment.
+ */
+
+.surface {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+}

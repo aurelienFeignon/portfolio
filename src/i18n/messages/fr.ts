@@ -74,6 +74,12 @@ export const fr = {
   /** Affiché à la place d'une date de fin quand l'entité est en cours (P2-06). */
   ongoing: 'En cours',
 
+  /** Titres des blocs d'une fiche d'expérience (P4-04). */
+  experience: {
+    highlights: 'Réalisations',
+    technologies: 'Technologies',
+  },
+
   /** Listes vides — une locale peut ne pas encore traduire une section (R-07). */
   empty: 'Rien à afficher dans cette langue pour le moment.',
 }

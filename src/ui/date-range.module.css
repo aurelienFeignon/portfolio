@@ -1,0 +1,19 @@
+/*
+ * Période (P4-04).
+ *
+ * « En cours » est signalé par le **mot**, pas par une pastille colorée : c'est
+ * déjà du texte, il est traduit, et une couleur seule ne porte pas
+ * d'information (WCAG 1.4.1). La graisse ne fait que le rendre repérable au
+ * survol d'une liste.
+ */
+
+.range {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+.ongoing {
+  font-weight: 600;
+  color: var(--color-text);
+}

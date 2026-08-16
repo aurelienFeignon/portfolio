@@ -48,7 +48,7 @@ Trois chiffres à ne pas découvrir :
 | 1 | **Stratégie de style** : CSS Modules + tokens en variables CSS | P4-01 | **Tranchée** — [ADR-0010](./adr/0010-styling-strategy.md) |
 | 2 | **Identité de marque** : le site s'appelle « Aurélien Feignon » | P4-02, P4-08 | **Appliquée** en P4-02 (§3.1, §7.2) |
 | 3 | Navigation client (`next/link`) ou balises `<a>` | P4-02 | **Tranchée par la mesure** : balises `<a>` (§7.3) |
-| 4 | Précision d'affichage des dates (« mars 2022 ») | P4-04, P4-05 | À trancher au rendu, reporté de P2-02 |
+| 4 | Précision d'affichage des dates (« mars 2022 ») | P4-04, P4-05 | **Tranchée : l'année** (§9.1) |
 | 5 | Composants MDX ajoutés à la liste blanche | P4-05 | Dépend de la décision 1, donc pas avant |
 
 ### 3.1 L'identité de marque, et ce qu'elle change
@@ -365,3 +365,139 @@ en était à son troisième exemplaire : c'est `tap-target.module.css`, le seuil
 
 ⭐ Effet mesurable de ces deux extractions : le CSS produit **descend** de 4,0 à 3,6 Ko alors que la
 page a gagné du contenu.
+
+## 9. P4-04 — les expériences
+
+### 9.1 La précision d'affichage, et ce qu'on affirme à une machine
+
+P2-02 avait laissé ce choix au rendu, en citant « mars 2022 » comme forme attendue. **C'est l'année
+qui est retenue**, et la raison n'est pas esthétique : le CV source ne donne que des années, le
+schéma exige un jour, et `content/` porte donc des **1ᵉʳ janvier d'attente** (décision D1, toujours
+ouverte). Écrire « janvier 2021 » afficherait comme un fait un mois que personne ne connaît.
+
+⛔⛔ **La conséquence qui compte n'est pas l'affichage, c'est l'attribut.** `<time
+datetime="2021-01-01">` affirme ce jour-là à un moteur de recherche, et le JSON-LD de P4-09 s'y
+branchera. La règle retenue est générale et ne dépend pas de D1 : **la valeur lisible par une machine
+porte la précision de ce qui est montré**. `datetime="2021"` est une valeur `<time>` valide, et c'est
+la seule qui dise ce que l'on sait.
+
+⛔⛔⛔ **Cette règle était annoncée « générale et survivant à D1 ». C'est faux, et la revue l'a
+établi.** Ce qui est implanté est une **troncature inconditionnelle dans un composant de
+présentation**. Deux conséquences, toutes deux déjà réelles :
+
+- **Elle efface une précision réellement connue.** Le projet « portfolio » de `content/` porte un jour
+  exact, et la fiche de projet rend le même `DateRange` : elle émet donc `datetime="2026"` pour une
+  date que l'on connaît au jour près. La troncature ne ment jamais — elle dit moins — mais elle
+  détruit de l'information, parce qu'une ignorance locale à deux fichiers a été hissée en règle
+  globale d'affichage.
+- **Elle ne protège que cette vue.** `year()` n'est pas exportée. P4-09 lira `experience.startedAt`
+  sur l'entité et réémettra `2021-01-01` dans le JSON-LD : ni type, ni test, ni règle de cloisonnement
+  ne l'en empêche — `src/seo` n'a même pas le droit d'atteindre `src/ui`.
+
+⭐⭐⭐ **Le vrai point est que `datetime` et le JSON-LD ne sont pas du rendu : ce sont des émissions de
+données.** `src/content/schemas/common.ts` déclare pourtant que « la précision d'affichage est une
+décision de rendu, pas de stockage ». P4-04 est la tâche qui invalide cette prémisse — elle avait été
+pesée en P2-02, avant que ce cas n'existe.
+
+**Mécanisme général : quand une valeur porte une incertitude, l'incertitude doit voyager avec elle.**
+Sinon chaque consommateur redécide, et le premier qui oublie affirme un fait faux — silencieusement,
+puisqu'une date complète est toujours valide.
+
+### 9.2 Pourquoi un composant de liste de plus
+
+`EntityList` rend un lien et une note — ce dont la Phase 3 avait besoin pour prouver qu'une route
+résout. Une expérience porte quatre informations qu'un recruteur lit ensemble (poste, employeur,
+lieu, période), dont l'une — « en cours » — doit se voir **sans ouvrir la fiche**. Les faire entrer
+dans une `note` en aurait fait une chaîne concaténée : impossible à mettre en forme, et muette pour
+une machine.
+
+⚠️ `EntityList` reste utilisé par les projets et les compétences. P4-05 et P4-06 diront s'il survit
+ou s'il rejoint le sort de celui-ci ; le trancher maintenant, sans ces deux cas sous les yeux, aurait
+été une abstraction devinée.
+
+### 9.3 Un mot commun aux deux langues n'est pas une exception à accorder
+
+`experience.technologies` valait d'abord « Technologies » en français **et** en anglais. Le test de
+non-régression des dictionnaires refuse les valeurs égales, et son unique exception est un nom
+propre (`site.name`). L'ajouter à la liste aurait affaibli le garde pour un mot ; l'anglais dit
+**« Tech stack »**, qui est de toute façon ce qu'un lecteur anglophone attend sur un portfolio.
+
+⭐ La règle est générale : quand un libellé se trouve identique dans les deux langues, chercher
+d'abord la formulation idiomatique — l'exception est le dernier recours, pas le premier.
+
+### 9.4 Relevés
+
+| Relevé après P4-04 | Valeur | Seuil |
+|---|---|---|
+| JS propre à chaque route | **0,0 Ko** sur 16 routes | cible 25 · bloquant 40 Ko |
+| Socle partagé | **129,5 Ko — inchangé** | cible 136 · bloquant 146 |
+| Tests | 460 verts, couverture 100 % | — |
+| E2E | 86 verts sur 5 profils | — |
+| Violations axe serious/critical | **0** sur `/fr`, `/fr/experiences` **et** une fiche | 0 |
+
+⛔⛔ **Cette dernière ligne a d'abord été écrite fausse.** Le journal portait « 0 violation axe » pour
+P4-04 alors que le seul audit `AxeBuilder` du dépôt visait `/fr` : **aucune des deux pages livrées
+n'était analysée**. La passe complète reste P4-10, mais écrire un chiffre pour des pages que rien
+n'inspecte est exactement l'affirmation que ce projet refuse — l'audit couvre donc désormais la liste
+et une fiche. Relevé par la revue.
+
+### 9.5 Ce que la revue a changé — la couche de preuve, pas le code
+
+Fait notable : la revue n'a trouvé **aucun défaut dans le code de production**. Les cinq constats
+portent tous sur les tests censés prouver le nouveau comportement, et trois d'entre eux étaient des
+**gardes verts qui n'avaient rien inspecté** :
+
+⛔⛔ **Une liste désignée par sa position visait le sélecteur de langue.** `getByRole('list').last()`
+attrapait le `<ul>` du `LanguageSwitcher` — que ce même diff avait déplacé en fin de `<main>` — et le
+garde de résolution des slugs inspectait donc « Français ». Retirer la résolution laissait le test
+vert. Correctif à la bonne profondeur : les deux listes de la fiche portent un `aria-labelledby` qui
+les rattache à leur titre — un lecteur d'écran annonce « Réalisations, liste de 4 éléments » au lieu
+d'une liste anonyme, et le test désigne par le **nom**. ⭐ Vérifié par mutation : la résolution
+retirée fait maintenant rougir.
+
+⛔ **Une boucle sur une collection vide passe.** `for (const value of stamps)` ne s'exécutait pas si
+`<time>` disparaissait. Un compte précède désormais chaque boucle — c'est le motif que
+`i18n-routing.spec.ts` documentait déjà deux fichiers plus loin.
+
+⛔ **Le motif de slug exigeait un trait d'union** (`^[a-z0-9]+(-[a-z0-9]+)+$`), alors que la première
+technologie des deux expériences réelles n'en a pas. La propriété testée est maintenant
+content-agnostique : un slug est minuscule par schéma, donc une pile résolue contient **au moins une
+capitale** ; si la résolution tombait, aucun élément n'en aurait.
+
+⚠️ Et deux `href` identiques dans une fabrique de test donnaient à React **deux clés égales** — un
+enfant omis ou dupliqué, sans erreur.
+
+⭐⭐ La leçon n'est pas « mieux relire les tests ». C'est que **trois de ces quatre défauts ont la
+même forme** : une assertion qui ne peut pas échouer. Position au lieu de nom, boucle sans compte,
+motif trop étroit. Un test neuf devrait être vu rouge avant d'être cru — ce que le cycle TDD impose
+pour le code et que ces tests-là, écrits après le comportement, n'avaient pas subi.
+
+### 9.6 Dette nommée — préalable de P4-09
+
+**Ce que P4-04 livre est la troncature, pas la règle.** Elle est honnête (elle n'affirme rien de
+faux) et bornée à une vue. Elle n'est pas le bon niveau, et la suite est écrite ici pour ne pas être
+redécouverte.
+
+**Correctif au bon niveau** : `isoDateSchema` accepte `AAAA`, `AAAA-MM` **ou** `AAAA-MM-JJ` — soit
+exactement le domaine de `<time datetime>`. `content/` écrit alors `2021` pour Askor (honnête) et
+`2026-08-11` pour le portfolio (honnête) ; `DateRange` affiche ce qu'on lui donne, `year()`
+disparaît, et P4-09 émet le champ **verbatim, juste par construction**.
+
+Coût réel, à ne pas sous-estimer :
+
+- `z.iso.date()` devient une union de trois formes ;
+- `isPeriodOrdered` et `byMostRecent` comparent des chaînes de longueurs différentes. La comparaison
+  lexicographique ISO reste correcte (`'2021' < '2021-03-01'`), mais c'est une propriété **à tester,
+  pas à supposer** ;
+- l'affichage doit formater selon la précision reçue — c'est-à-dire le « mars 2022 » que P2-02
+  envisageait, mais **conditionnel** ;
+- `content/` change, et `common.ts` porte une décision de P2-02 qu'il faut amender explicitement, pas
+  contourner.
+
+⚠️ **C'est un préalable de P4-09**, pas une amélioration facultative : sans lui, le JSON-LD affirmera
+des jours inventés à un moteur de recherche, et aucun gate ne le verra. La décision d'engager ce
+chantier — il touche le schéma de contenu et les fichiers de l'auteur — **appartient à l'utilisateur**
+et lui est posée en clôture de P4-04.
+
+⭐ Effet de bord heureux : le jour où ce correctif est fait, **D1 cesse d'être une fausseté ouverte**
+pour devenir « préciser quand on saura ».

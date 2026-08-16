@@ -1,0 +1,22 @@
+/*
+ * Le lien d'un titre cliquable (P4-04).
+ *
+ * Deuxième exemplaire à l'identique — les cartes de l'accueil et la liste des
+ * expériences — et il compose lui-même `tapTarget`, ce qui rend la copie d'autant
+ * plus mécanique.
+ *
+ * Le soulignement au survol n'est pas décoratif : la couleur seule ne porte pas
+ * d'information (WCAG 1.4.1), et le titre reste un titre — c'est le survol qui
+ * doit dire qu'il est cliquable.
+ */
+
+.accentLink {
+  composes: tapTarget from './tap-target.module.css';
+
+  color: var(--color-accent);
+  text-decoration: none;
+}
+
+.accentLink:hover {
+  text-decoration: underline;
+}
