@@ -1,13 +1,18 @@
 # Prompt de reprise — session suivante
 
-> À copier-coller tel quel dans une nouvelle session Claude Code ouverte sur
-> `/home/aurel/projects/portfolio`. Mettre à jour la section « État » à chaque fin de phase.
+> À copier-coller tel quel dans une nouvelle session Claude Code ouverte **à la racine du dépôt**.
+> Mettre à jour la section « État » à chaque fin de tâche.
 
 ---
 
 ```text
 Tu reprends le développement de mon portfolio de développeur Full-Stack.
-Répertoire de travail : /home/aurel/projects/portfolio
+Répertoire de travail : **la racine de ce dépôt**, où que tu la trouves.
+
+⚠️ Ne suppose pas un chemin. Ce prompt a longtemps annoncé
+`/home/aurel/projects/portfolio` ; sur une autre machine le dépôt est ailleurs, et une session
+ouverte au mauvais endroit relit un autre projet en silence — c'est arrivé, et le rapport était
+crédible de bout en bout. Constate le chemin (`git rev-parse --show-toplevel`) au lieu de le croire.
 
 ## Avant toute chose
 
@@ -23,10 +28,10 @@ Lis, dans cet ordre, et ne me demande pas de te les résumer :
 8. docs/phase-1-log.md        ← journal de la Phase 1
 9. docs/phase-2-log.md        ← journal de la Phase 2
 10. docs/phase-3-log.md       ← journal de la Phase 3 : ce que l'exécution a renversé, dette tracée
-11. docs/phase-4-log.md       ← ⭐ journal de la phase EN COURS, et le plus important de tous :
-                                 §13 et §14 portent trois défauts déjà livrés et six arbitrages
-                                 tranchés, §15 en ajoute quatre et ce que P4-09 refuse d'affirmer.
-                                 Il manquait à cette liste jusqu'au 2026-08-16.
+11. docs/phase-4-log.md       ← ⭐⭐ journal de la phase EN COURS, et le plus important de tous.
+                                 Il est long, et c'est voulu : §13 à §18 portent SIX défauts déjà
+                                 livrés, dix arbitrages tranchés, et ce que chaque tâche refuse
+                                 d'affirmer. Le résumé ci-dessous ne le remplace pas.
 12. deploy/README.md          ← exploitation réelle du serveur : déploiement, rollback, journaux
 13. content/README.md         ← règles d'écriture du contenu, et deux réserves à corriger
 
@@ -35,72 +40,31 @@ Les Phases 0, 1, 2 et 3 sont TERMINÉES et validées. Ne les refais pas, ne les 
 ## État
 
 Phases 0 à 3 : **DONE**. **Phase 4 (Portfolio HTML) : en cours**, 12 tâches sur 17 closes.
-
-**Fusionné sur `main` et déployé** — PR #15 à #21, CI verte à chaque fois :
+**Tout ce qui est ci-dessous est fusionné sur `main` et déployé**, CI verte à chaque fois.
 
 | Tâche | Ce qu'elle a livré |
 |---|---|
 | P4-01 | ADR-0010 : CSS Modules + tokens, décidé sur une exécution |
 | P4-02 | Layout documentaire, `aria-current`, identité « Aurélien Feignon » |
 | P4-03 | Accueil : `SectionGuide` qui **dit** ce que chaque section contient |
-| P4-04 | Liste et fiche des expériences, précision d'affichage des dates |
+| P4-04 | Liste et fiche des expériences |
 | P4-17 | **Précision variable des dates** (`AAAA` / `AAAA-MM` / `AAAA-MM-JJ`) |
-| P4-06 | Compétences groupées par catégorie |
+| P4-06 | Compétences groupées par catégorie, **niveaux non publiés** (D2) |
 | P4-05 | Liste et fiche des projets, **premier corps MDX rendu** |
-
-### P4-07 et P4-08 — fusionnées et **déployées** le 2026-08-16 (PR #22, `50a3b4b`)
-
-Les cinq jobs sont verts, publication GHCR et déploiement VPS compris. C'est en ligne.
-
-| Tâche | Ce qu'elle a livré |
-|---|---|
 | P4-07 | 404 et pages d'erreur **localisées**, servies par réécriture du proxy |
 | P4-08 | Gabarit de titre, OpenGraph, image de partage, icône |
-
-### P4-09 — données structurées, **fusionnée** le 2026-08-16 (PR #24)
-
-`Person` et `WebSite` sur l'accueil, `CreativeWork` sur une fiche de projet, `BreadcrumbList` sur les
-sections **et** les fiches. Zéro octet de JavaScript client : un bloc `ld+json` est de la donnée.
-
-⭐⭐⭐ **Les quatre arbitrages ont été posés AVANT d'écrire une ligne**, comme une liste de décisions —
-c'est la leçon de §14.8 appliquée le lendemain. Continue ainsi : ne consigne jamais un arbitrage en
-prose dans un rapport de fin de tâche.
-
-⛔ **Le fond de P4-09 est ce qu'elle refuse d'affirmer** : ni les niveaux de compétence (D2), ni une
-organisation employeuse — Augure n'est pas une société constituée —, ni le dépôt d'un projet que la
-fiche ne rend pas, ni une description de la personne (D7). Ne les rouvre pas sans décision explicite.
-
-### P4-10 — passe d'accessibilité, **fusionnée** le 2026-08-16
-
-Audit axe, plan des titres, points de repère et noms accessibles sur **les 16 pages servies**,
-périmètre **dérivé du sitemap** et non énuméré.
-
-⛔⛔ **Elle a trouvé un défaut réel encore ouvert après P4-07** : le matcher du proxy exclut `_next/`,
-si bien qu'une adresse inconnue sous ce préfixe recevait la 404 **interne** de Next — `<html>` sans
-`lang`, WCAG 3.1.1. `experimental.globalNotFound` pose le plancher, mesuré avant/après.
-
-⭐⭐ **Couverture 100 %** sur les quatre métriques : la dette des cinq fichiers est soldée, et le
-chiffre que §13.8 croyait annoncer est enfin vrai.
-
-### P4-11 — responsive, **fusionné** le 2026-08-16
-
-Débordement, cibles tactiles et rognage mesurés sur **16 pages × 5 largeurs**, plus un parcours sur
-le moteur mobile réel.
-
-⛔⛔ **Deux défauts réels, en production** : le sélecteur de langue n'avait **aucun module CSS** — son
-lien faisait la hauteur d'une ligne sur les 16 pages, depuis P3-09 —, et le lien « retour à
-l'accueil » était nu dans trois fichiers. Ni l'un ni l'autre ne levait quoi que ce soit : axe ne
-rapporte pas WCAG 2.5.8, qui est une contrainte de **taille**.
-
-⭐ **Aucune media query de largeur n'a été nécessaire** : la mise en page fluide de l'ADR-0010 tenait
-déjà. La tâche apporte la **preuve**, pas du CSS.
+| P4-09 | JSON-LD : `Person`, `WebSite`, `CreativeWork`, `BreadcrumbList` |
+| P4-10 | Passe accessibilité, **périmètre dérivé du sitemap** ; plancher `globalNotFound` |
+| P4-11 | Responsive : débordement, cibles tactiles et rognage sur 16 pages × 5 largeurs |
 
 **Reste : P4-12 à P4-16.**
 
-⛔⛔ **Le site est volontairement FERMÉ au public**, derrière Cloudflare Access (OTP par e-mail),
-et le restera tant que le portfolio n'est pas terminé. **Une requête anonyme reçoit une 302 vers
-`cloudflareaccess.com` : ce n'est PAS une panne de déploiement**, et cela y ressemble beaucoup.
-Ce qui fait foi pour juger d'un déploiement est la conclusion du workflow :
+### ⛔⛔ Ce qui fait foi pour juger d'un déploiement
+
+**Le site est volontairement FERMÉ au public**, derrière Cloudflare Access (OTP par e-mail), et le
+restera tant que le portfolio n'est pas terminé. **Une requête anonyme reçoit une 302 vers
+`cloudflareaccess.com` : ce n'est PAS une panne**, et cela y ressemble beaucoup. Ce qui fait foi est
+la conclusion du workflow — les cinq jobs, publication GHCR et déploiement VPS compris :
 
 ```bash
 gh run list --branch main --limit 1
@@ -110,45 +74,44 @@ Conséquence pour **P4-16** : la vérification post-déploiement — indexation,
 `sitemap.xml` observés **depuis l'extérieur** — est impossible tant qu'Access est actif. Lever Access
 fait partie de la mise en ligne réelle. Détail : `deploy/README.md` §4.2.
 
-⭐⭐⭐ **Le journal de phase (`phase-4-log.md` §13 et §14) est ce qu'il faut lire, pas ce résumé.**
-Ces deux tâches ont trouvé **trois défauts déjà livrés**, et aucun n'était visible à la relecture :
+### Ce que la Phase 4 coûte, remesuré après P4-11
 
-| Défaut | Trouvé par |
-|---|---|
-| ⛔⛔ **Les deux CV répondaient 404** — en ligne depuis la Phase 2 | le parcours E2E |
-| ⛔⛔ `/wp-login.php`, `/cv.pdf` rendaient un `<html>` **sans `lang`** | `/code-review` + mesure |
-| ⛔⛔⛔ Une URL **`localhost`** gravée dans les pages 404 prérendues | `/code-review` + mesure |
-
-⭐⭐⭐ **Les trois ont la même forme : une affirmation sur le monde que rien ne confrontait au
-monde.** Une liste d'exceptions écrite d'imagination ; une heuristique de forme là où seul le disque
-sait ; une base d'URL non déclarée — **dont Next écrivait l'avertissement au build, en toutes
-lettres**. Ce dernier point est la leçon de la Phase 3 repayée à l'identique : *lis la sortie des
-outils*.
-
-⭐⭐ **Deux gardes que j'ai écrits ont payé le même piège que ceux qu'ils remplaçaient** : celui des
-enveloppes racines comptait les `<html>` **cités dans les commentaires**, et la sonde de palette ne
-pouvait pas voir la duplication qu'elle prétendait garder — elle vérifie qu'un littéral *est* un
-token, jamais que deux fichiers désignent *le même*. Un garde qui lit du texte source lit **tout** le
-texte source.
-
-### Ce que la Phase 4 coûte désormais, et qu'il ne faut pas redécouvrir
-
-| Relevé | Valeur (2026-08-16, **après P4-09**) | Seuil |
+| Relevé | Valeur (2026-08-16) | Seuil |
 |---|---|---|
-| JS propre à chaque route | **7,3 Ko** — le premier JavaScript applicatif du site | cible 25 · bloquant 40 |
+| JS propre à chaque route | **7,3 Ko** — le seul JavaScript applicatif du site | cible 25 · bloquant 40 |
 | Socle partagé | **126,4 Ko** | cible 136 · bloquant 146 |
 | Image de production | **273 Mo** | cible 250 · bloquant 400 |
 | Tests | **627** verts, couverture **100 %** | ≥ 80 % |
 | E2E | **140** verts sur 5 profils, 0 violation axe sur les **16 pages servies** | — |
 
-✅ **La couverture est revenue à 100 %** en P4-10, et pour la première fois depuis P4-05 le chiffre
-est vrai. La dette des cinq fichiers est soldée.
-⛔⛔ Retiens la leçon plutôt que le chiffre : la liste des non-couverts en annonçait **trois** pour
-**cinq** — le *nombre* avait été remesuré, la *liste* écrite de mémoire. Remesure, ne recopie pas,
-**la liste autant que le nombre**.
-
 ⛔ **Le profil `no-js` n'est plus vrai *par construction*** : il l'est **par vérification**. Les
-frontières d'erreur sont des composants client, et c'est le seul JavaScript applicatif du site.
+frontières d'erreur sont des composants client, et c'est tout le JavaScript applicatif du site.
+
+⚠️ **Le site dépend d'un drapeau expérimental** : `experimental.globalNotFound` (Next 16.3) pose le
+plancher qui donne un `lang` aux voies que le proxy n'atteint pas. Sa stabilisation — ou son retrait —
+est un déclencheur de réexamen ; un parcours garde l'effet, donc le retrait se verrait.
+
+### ⭐⭐⭐ Les six leçons que la Phase 4 a payées, et qui valent pour la suite
+
+Le détail est dans `phase-4-log.md` — ici, seulement ce qui se transporte.
+
+1. **Une affirmation sur le monde que rien ne confronte au monde finit fausse.** Les six défauts déjà
+   livrés qu'a trouvés cette phase ont tous cette forme : une liste d'exceptions écrite
+   d'imagination, une heuristique de forme là où seul le disque sait, une base d'URL non déclarée,
+   un composant sans style qu'aucun garde ne mesurait.
+2. **Lis la sortie des outils.** Deux des pires défauts y étaient écrits en toutes lettres — un
+   avertissement `metadataBase` au build, un rapport de couverture qui nommait ses fichiers.
+3. **Un nombre recopié et jamais remesuré finit par décider seul**, et **une liste écrite de mémoire
+   vieillit plus vite qu'un nombre**. Remesure les deux.
+4. **Un test neuf doit être vu rouge avant d'être cru** — et un harnais de mutation qui ne vérifie
+   pas que le build a réussi déclare « survivant » ce qu'il n'a jamais exécuté. ⭐ Une mutation peut
+   aussi survivre **à bon droit** : interroge la mutation avant le test.
+5. **Un garde ne couvre que la dimension qu'on lui a donnée.** Un audit d'accessibilité ne voit que
+   les pages qu'on lui nomme ; un `Record<Type, …>` ne voit pas le disque ; un garde qui lit du texte
+   source lit **tout** le texte source, commentaires compris. Dérive le périmètre, ne l'énumère pas.
+6. **`/code-review` puis `/simplify` avant chaque push, sans exception.** Sur les cinq dernières
+   tâches ils ont trouvé **plus de trente défauts réels** sur du code dont tous les gates étaient
+   verts — dont plusieurs régressions introduites par la tâche même qui les corrigeait.
 
 ## Décisions déjà prises — ne pas les rejouer
 
@@ -196,112 +159,84 @@ mets l'ADR à jour et ajoute une ligne au journal des révisions. Jamais de chan
 
 ## Ta mission cette session
 
-**Enchaîne sur P4-10** — la passe d'accessibilité, puis la suite de la Phase 4.
+**Enchaîne sur P4-12** — les parcours E2E complets (navigation, deep links, bascule de langue,
+clavier), puis le jalon **T1** : P4-13 met le site en production.
 
-Elle porte quatre choses, pas une : titres, focus, contrastes et points de repère ; **les cinq
-fichiers non couverts** (`phase-4-log.md` §13.8) ; le garde des endroits à piloter par
-l'arborescence plutôt que par `CurrentPlace` ; et l'instruction de `experimental.globalNotFound`
-comme plancher sous le manifeste de routes (§13.10). Les trois derniers sont des constats de revue
-**écartés avec leur raison** en P4-07 — ils t'attendent, ils ne sont pas à réinventer.
+⭐⭐ **P4-12 est en grande partie déjà écrite, et la première chose à faire est de le constater.**
+Les scénarios E2E-01 à E2E-03, E2E-08 et E2E-12 de `testing-strategy.md` §4.7 sont couverts par les
+parcours de P4-07 à P4-11. Le travail est un **inventaire** — confronter la liste de la stratégie à
+ce qui existe, et n'écrire que le manquant. Réécrire un parcours déjà écrit serait la duplication que
+cette phase passe son temps à supprimer.
 
 ⛔⛔ **Avant de commencer, lis `phase-4-log.md` §14.8 et §15.1 : dix arbitrages sont TRANCHÉS.** Ne
 les repose pas — chacun porte sa condition de réouverture.
 
 ⭐⭐⭐ **Une tâche qui produit des arbitrages les pose au moment où ils naissent**, comme une liste de
 choix avec un défaut recommandé — pas en fin de rapport, pas dans un journal qu'on lit après avoir
-fusionné. C'est la même faute que celles que la tâche traquait dans le code : *une chose écrite
-quelque part que rien ne confronte au moment où elle compte*. P4-09 a appliqué la règle ; tiens-la.
+fusionné. C'est la même faute que celles que ces tâches traquent dans le code : *une chose écrite
+quelque part que rien ne confronte au moment où elle compte*. P4-09 à P4-11 ont tenu la règle.
 
-⚠️ **Ce que P4-09 laisse pour toi**, écrit pour ne pas être redécouvert :
+### Ce que les tâches précédentes laissent pour toi
 
-- **`Person.description` est vide** tant que **D7** n'est pas tranchée. Le jour où l'accroche de
-  l'accueil existe, sa place est ce champ — pas une prose inventée.
 - **`links.repository` n'est rendu par aucune page.** Le contenu le porte, personne ne l'affiche, et
   le JSON-LD ne peut donc pas l'annoncer : une donnée structurée décrit ce que la page **montre**.
-- **Une CSP stricte supprimerait les blocs `ld+json` en silence** — note écrite dans
-  `src/seo/json-ld.ts` pour l'ADR-0015 (Phase 14). Il faudra un `nonce` ou un condensat.
+- **Une CSP stricte supprimerait les blocs `ld+json` en silence** — note dans `src/seo/json-ld.ts`
+  pour l'ADR-0015 (Phase 14). Il faudra un `nonce` ou un condensat.
+- **Le sélecteur de langue est rendu par chaque page, dans le `main`** — inhabituel pour une commande
+  de portée globale. Ses options dépendent de la page, donc un layout ne peut pas le rendre. Choix de
+  gabarit, toujours à trancher.
+- **Le second volet de D7 n'est pas fait** : les `sections[x].description` sont à la fois la
+  méta-description d'une section et la copie visible des cartes de l'accueil. Les séparer en six clés
+  porterait aujourd'hui trois valeurs identiques.
+
+### ⛔⛔ Ce que P4-13 exige d'avoir vérifié AVANT
+
+C'est une mise en production, et deux points l'attendent depuis la Phase 3 :
+
+- **`SITE_URL` a deux sources** — l'`ENV` de l'image et l'`env_file` de Compose, ce dernier
+  l'emportant. Si `/srv/portfolio/.env` portait une autre origine, le site servirait des canoniques
+  d'un domaine et des liens d'exécution d'un autre, **sans que rien n'échoue** (`phase-3-log.md`
+  §17.4, dette 1).
+- **`content/` n'est pas dans l'image** : aucune route ne doit pouvoir se rendre à la demande. Le
+  gate le vérifie ; la checklist de P4-15 doit le redire plutôt que de le supposer acquis.
 
 ⭐⭐ **Un gate travaillera pour toi si tu le laisses faire.** `check-static-rendering.mts` porte six
 contrôles et a refusé, sans qu'on le lui demande, une image de partage rendue à la demande puis une
 route que le proxy aurait réécrite en 404. Toute nouvelle route non-page devra entrer dans
 `ROUTE_HANDLERS` — le gate te le dira, avec le nom du fichier à éditer.
 
-Cinq points de méthode que la Phase 4 a payés cher, et qui valent pour la suite :
-
-⭐⭐⭐ **Un nombre recopié et jamais remesuré finit par décider seul.** L'image de production était
-annoncée à 385 Mo dans quatre documents ; elle en pesait **268,6**. Ce chiffre avait réordonné la
-phase. Et « couverture 100 % » a survécu deux tâches après être devenu faux. **Remesure avant de
-t'appuyer sur un chiffre.**
-
-⭐⭐⭐ **Un seuil que rien ne fait respecter n'est pas un seuil.** Celui de 400 Mo était écrit dans le
-budget et appliqué nulle part. Il est bloquant depuis P4-05. Quand tu vois un seuil documenté,
-**vérifie qui le lit**.
-
-⭐⭐⭐ **Un test neuf doit être vu rouge avant d'être cru** — et un garde qui lit du texte source lit
-**tout** le texte source, commentaires compris (P4-07). Mutation-teste tes gardes, sans exception.
-
-⭐⭐⭐ **Lis la sortie des outils.** Les défauts les plus graves de P4-07 et P4-08 y étaient écrits :
-un avertissement `metadataBase` au build, un gate qui nommait le fichier à corriger. Aucun n'a été
-trouvé en relisant du code.
-
-⭐⭐ **`/code-review` puis `/simplify` avant chaque push, sans exception.** Sur ces deux tâches, ils
-ont trouvé **douze défauts réels** sur du code dont tous les gates étaient verts — dont trois défauts
-**déjà livrés**.
-
 Avant de coder, applique la méthode de phase. À la fin de la phase, produis un bilan : fait / dérives
 / reporté.
 
 ## Décisions qui m'attendent
 
-Format des réponses : « D1 = …, défaut partout ailleurs » suffit. Aucune ne bloque la suite.
+Format des réponses : « D2 = …, défaut partout ailleurs » suffit. Aucune ne bloque la suite.
 
-**D1 🟢 — Les vrais mois de début d'Askor et d'Augure.** *Résolue autrement, et déclassée.*
-`content/` disait `2021-01-01` faute de mieux ; il dit maintenant **`'2021'`**, c'est-à-dire
-exactement ce que l'on sait. Le schéma accepte les trois précisions et le site affiche celle qu'il
-reçoit. → *Si tu retrouves les mois, écris `'2021-09'` : affichage et `datetime` suivent. Ce n'est
-plus une fausseté inscrite, c'est une précision manquante.*
+⭐ **Ce bloc ne contient QUE des questions vivantes**, et c'est ce qui lui donne sa valeur. Les
+décisions tranchées sont reportées dans `phase-0-questions.md` ; elles n'ont plus à être lues ici.
+**Closes : D1, D3, D4, D7** (le 2026-08-16 pour les deux dernières).
 
-**D2 🟠 — Relire les 40 niveaux de compétence (1 à 5).** *Toujours ouverte, et elle a un effet visible :
-les niveaux **ne sont pas affichés** tant que tu ne les as pas relus.* Les publier afficherait comme
-un fait une auto-évaluation que personne n'a validée. → *Dis-moi seulement ceux qui te paraissent
-faux. Dix compétences sont `featured` : TypeScript, Python, Node.js, React, Next.js, PostgreSQL,
-Docker, microservices, architecture événementielle, intégration de modèles de langage.*
-
-**D3 🟢 — Un seul projet publié.** *Tranchée le 2026-08-16 : **assumé**, on ne publie rien de plus.*
-Le GitHub ne contient que quatre projets scolaires ENI de 2021 (`api_sortir` PHP/Symfony,
-`ENITPEnchere` Java/JEE, `AppSortie` React Native, `appSortieAndroid` Java), zéro étoile, dernier
-push octobre 2021. ⭐⭐ **Les mettre à côté d'Augure abaisserait le signal au lieu de le monter** — un
-CTO lit le plus faible, pas le plus fort. La profondeur technique est déjà portée par les fiches
-d'expérience. → *Le levier reste d'écrire un projet qui te représente aujourd'hui, pas d'ajouter du
-volume. Ne me la repose pas sans nouveau matériau.*
-
-**D4 🟢 — Augure : expérience ou projet ?** *Close par défaut* : reste une expérience, avec
-`company: Augure`. Je ne la rouvre plus.
-
-**D7 🟢 — Le texte d'accueil.** *Tranchée le 2026-08-16 : c'est le **profil du CV**, mot pour mot.*
-⭐⭐ Le point n'est pas qu'une accroche existe enfin, c'est **d'où elle vient** : P4-03 avait refusé
-d'en écrire une, et avait raison — une prose sur ton parcours rédigée par une session est une
-affirmation sur toi que personne ne tient de toi. Celle-ci est déjà publiée par le PDF que ce site
-distribue depuis la Phase 2. Rien n'est inventé, et les deux canaux disent la même chose.
-Elle vit en clé de dictionnaire (`site.intro`) et non dans `content/` : elle ne nomme ni expérience
-ni projet, ce qui est la règle opérationnelle écrite dans `fr.ts`. **Déclencheur de réouverture** :
-le jour où ce texte doit porter du balisage — un lien, une emphase, un second paragraphe —, sa place
-devient `content/`, et le type « personne » manquant devra exister.
-⭐ `site.jobTitle` a été **aligné sur le CV** au passage : il porte « senior », que la clé omettait.
-⚠️ **Ce qui reste ouvert, et qui était le second volet de D7** : les `sections[x].description` sont
-toujours à la fois la `<meta name="description">` des pages de section **et** la copie visible des
-cartes de l'accueil. Elles n'ont pas été séparées, et c'est délibéré — six clés portant trois valeurs
-identiques seraient une duplication sans contenu derrière. → *Le jour où la copie d'une carte doit
-différer de sa méta-description, la séparation est `sections[x].summary` (visible) et
-`sections[x].description` (méta).*
+**D2 🟠 — Relire les 40 niveaux de compétence (1 à 5).** *La seule qui ait un effet visible : les
+niveaux **ne sont ni affichés ni publiés** tant que tu ne les as pas relus.* Les publier afficherait
+comme un fait une auto-évaluation que personne n'a validée, et **deux gardes le tiennent** — le
+contrat de `SkillGroup`, qui ne porte que `{ slug, name }`, et un parcours sur le JSON-LD.
+→ *Dis-moi seulement ceux qui te paraissent faux. Dix compétences sont `featured` : TypeScript,
+Python, Node.js, React, Next.js, PostgreSQL, Docker, microservices, architecture événementielle,
+intégration de modèles de langage.*
 
 **D5 🟠 — Photos de ton poste de travail ?** (Q17, Phase 8) → *Les rassembler sans urgence. C'est ce
 qui distinguera ce portfolio d'une démo Three.js.*
 
-**D6 🟢 — Rendre le paquet GHCR public ?** *(action manuelle, je n'ai pas les droits)* → *GitHub →
+**D6 🟠 — Rendre le paquet GHCR public ?** *(action manuelle, je n'ai pas les droits)* → *GitHub →
 Packages → portfolio → Change visibility → Public. Puis sur le VPS : `docker logout ghcr.io && rm
 /srv/portfolio/.ghcr-token`, et retirer le `docker login` de `deploy.sh`. Bénéfice : plus de PAT à
 renouveler, donc plus de déploiement qui s'arrête un jour sans rapport apparent avec le code.*
+
+**D8 🟠 — Un projet qui te représente aujourd'hui.** *Née de la clôture de D3.* Ton GitHub ne porte
+que des travaux scolaires de 2021, et la page Projets ne contient que ce portfolio. Le levier n'est
+pas d'ajouter du volume — c'est **un** projet récent, décrit pour lui-même.
+→ *Si tu en as un à montrer, c'est un fichier par locale dans `content/*/projects/`. Sinon, dis-le :
+la page reste à un projet, assumé, et je ne la rouvre plus.*
 
 ## Contexte de planning
 
@@ -311,19 +246,9 @@ Le chemin critique — la rédaction du contenu — est **levé** depuis le 2026
 
 ## Points encore ouverts
 
-**Chiffres à jour — ceux-ci ont été remesurés, ne les recopie pas sans les revérifier :**
-
-| Relevé | Valeur (2026-08-16, après P4-09) | Seuil |
-|---|---|---|
-| Image de production | **273 Mo** | cible 250 · **bloquant 400, appliqué** |
-| JS propre à chaque route | **7,3 Ko** sur 18 routes | cible 25 · bloquant 40 Ko |
-| Socle partagé | **126,4 Ko** | cible 136 · bloquant 146 Ko |
-| Tests | **627** verts, couverture **100 %** | ≥ 80 % |
-| E2E | **140** verts sur 5 profils | — |
-
-⛔⛔ **Les cinq valeurs de ce tableau étaient périmées** au moment de l'écrire — sous un titre qui dit
-« chiffres à jour, remesurés ». La section qui met en garde contre les nombres recopiés en portait
-elle-même cinq. Remesure : `make bundle`, `make check-image-size`, `make coverage`.
+⛔⛔ **Ce fichier a longtemps porté le tableau de mesures DEUX fois**, et les deux copies avaient
+divergé — sous un titre qui disait « chiffres à jour, remesurés ». Il n'y en a plus qu'un, en tête.
+**Remesure-le avant de t'y appuyer** : `make bundle`, `make check-image-size`, `make coverage`.
 
 ⛔ **L'image dépasse la cible de 250 Mo depuis toujours**, et rien ne le disait avant que le gate ne
 porte les deux paliers. `performance-budget.md` §7.1 tranche : ne rien changer, aucune image Node
@@ -347,7 +272,7 @@ officielle n'atteint 250 Mo.
 - ✅ **Les six arbitrages de P4-07 et P4-08 sont TRANCHÉS** (2026-08-16, `phase-4-log.md` §14.8) :
   garder les deux frontières d'erreur, garder le monogramme d'attente, laisser `og:type` à
   `website`, laisser l'`og:image` sans condensat, laisser `/favicon.ico` nu en 404, ne rien changer
-  aux 272 Mo. **Ne les repose pas** — chacun porte sa condition de réouverture.
+  aux 273 Mo. **Ne les repose pas** — chacun porte sa condition de réouverture.
   ⚠️ Ils ont été posés **après la fusion**, parce qu'ils étaient consignés en prose au lieu d'être
   présentés comme une liste de décisions. **Une tâche qui produit des arbitrages les pose au moment
   où ils naissent.**
@@ -356,8 +281,10 @@ officielle n'atteint 250 Mo.
   rendre. Choix de gabarit, à trancher.
 - **`EntityList` ne sert plus qu'aux projets** ; les expériences et les compétences ont leur
   composant. Il reste parce qu'un projet n'a qu'un titre et un résumé, pas parce qu'il est générique.
-- **`getFeaturedProjects` / `getFeaturedSkills` n'ont aucun appelant de production.** Le drapeau
-  `featured` est porté par le contenu et lu par personne.
+- **`getFeaturedProjects` n'a aucun appelant de production.** ⚠️ `getFeaturedSkills`, lui, en a un
+  depuis **P4-09** — le `knowsAbout` du `Person`. La dette a donc **rétréci sans être réécrite**
+  pendant une tâche : le drapeau `featured` est lu pour les compétences, par personne pour les
+  projets.
 - **La liste blanche MDX n'est pas une barrière de sécurité** : à reprendre tel quel à l'audit de la
   Phase 14.
 - **Mesure CPU en régime stable** (P11-08) : le seul relevé date d'une minute après démarrage — 32 %,
@@ -377,6 +304,14 @@ officielle n'atteint 250 Mo.
   les PR visant `main`), et **elle peut se fusionner dans une branche déjà morte** : c'est arrivé à
   #18, dont le travail n'a jamais atteint `main` malgré un « merged » vert. Pousser sur `main` ou
   attendre la fusion — ne pas empiler.
+- ⛔⛔ **`composes` de CSS Modules ne se propage pas en chaîne.** `.b { composes: .a }` ne rend pas
+  le `composes: x from './x.css'` que `.a` porte : le CSS servi n'a pas la classe externe. Composer
+  explicitement. Trouvé en P4-11, dans le commit qui corrigeait le défaut que cela recréait.
+- ⛔⛔ **Un harnais de mutation qui ne vérifie pas que le build a réussi** déclare « survivant » ce
+  qu'il n'a jamais exécuté : la mutation casse la compilation, le banc tourne contre l'image
+  précédente, et passe au vert. Contrôler le code de sortie du build **avant** de conclure.
+- ⛔ **`git checkout --` ne restaure pas un fichier non suivi.** Une mutation appliquée à un fichier
+  neuf y reste après la « restauration ». Relire `git status` plutôt que supposer l'arbre propre.
 - ⚠️ Un `*/` dans un chemin écrit en commentaire **ferme le bloc JSDoc**. Deux fichiers s'en sont
   cassés.
 - ⚠️ **`pnpm build` régénère `src/routing/route-manifest.ts`** avant `next build`. Le générateur rend
@@ -395,7 +330,15 @@ Ne construis jamais une architecture cachée.
 
 ## Entretien de ce fichier
 
-À la fin de chaque phase, mettre à jour dans le bloc ci-dessus :
+⛔⛔ **À la fin de chaque TÂCHE, pas de chaque phase.** La section « Ta mission » a annoncé P4-10
+pendant que P4-10 et P4-11 étaient livrées : deux mises à jour successives étaient des
+remplacements de texte **sans vérification**, donc des no-op silencieux. Après édition, **relis** ce
+que tu as écrit — c'est la règle que ce fichier applique au code, appliquée à lui-même.
+
+⭐ Et **une seule copie de chaque chiffre** : ce fichier a porté le tableau de mesures deux fois, et
+les deux avaient divergé.
+
+Mettre à jour dans le bloc ci-dessus :
 
 - la section **État** (phase terminée, phase suivante, tâches en cours) ;
 - le bloc **Décisions qui m'attendent** : retirer celles qui ont été tranchées — en les reportant
