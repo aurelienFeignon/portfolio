@@ -721,6 +721,7 @@ reste et le filet de sécurité permanent du projet. Journal de phase :
 | P4-13 | **Mise en production du portfolio documentaire** *(jalon T1)* | TODO | P4-12, P1-15, P2-11 |
 | P4-14 | Supervision : healthcheck conteneur + sonde externe avec alerte (risque R-15) | TODO | P4-13 |
 | P4-15 | Checklist de mise en ligne + rollback vérifié en conditions réelles | TODO | P4-13 |
+| P4-17 | **Précision variable des dates** — préalable de P4-09, levé | **DONE** *(2026-08-16)* | P4-04 |
 | P4-16 | Vérification post-déploiement : indexation, canonical, hreflang, sitemap accessibles publiquement — **suppose de lever Cloudflare Access**, qui ferme le site au public depuis le 2026-08-15 (`deploy/README.md` §4.2) | TODO | P4-13 |
 
 **P4-01 — ADR-0010, stratégie de style**
@@ -791,6 +792,24 @@ voyageant **avec** la donnée — est inscrit comme **préalable de P4-09** (`ph
 touche le schéma de contenu : la décision appartient à l'utilisateur.
 ⭐ `page.module.css` extrait au **deuxième** exemplaire, avant que P4-05 et P4-06 n'en fassent un
 quatrième et un cinquième. · Depends on: P4-02
+
+**P4-17 — Précision variable des dates**
+Status: **DONE** (2026-08-16) — `isoDateSchema` accepte `AAAA`, `AAAA-MM` **ou** `AAAA-MM-JJ`, soit
+exactement le domaine de `<time datetime>` pour une date calendaire. Ce qui est stocké est donc
+**émissible verbatim, juste par construction** — la propriété que P4-09 exigeait et que la troncature
+de P4-04 ne pouvait pas tenir.
+⚠️ **Renversement assumé d'une décision de P2-02**, qui n'acceptait que le jour et qualifiait la
+précision d'affichage de « décision de rendu, pas de stockage ». La prémisse était fausse sur le point
+qui compte : `datetime` et le JSON-LD ne sont pas du rendu, ce sont des **émissions de données**.
+`content/` porte désormais `2021` pour Askor (mois inconnu) et garde `2026-08-11` pour le portfolio
+(jour connu) ; le HTML servi rend `<time dateTime="2021">2021</time>` d'un côté et
+`<time dateTime="2026-08-11">11 août 2026</time>` de l'autre.
+⛔ **Le tri comparait des chaînes de longueurs différentes par `localeCompare`**, qui traite le tiret
+comme de la ponctuation — un poids dépendant d'une collation qu'aucun test ne contrôle. Les dates se
+comparent maintenant par unités de code, comme le faisait déjà `isPeriodOrdered`, et quatre cas
+croisant les trois précisions le gardent.
+⭐ En YAML, `2021` nu est un **entier** : les valeurs à l'année sont donc quotées dans `content/`.
+· Depends on: P4-04
 
 **Critères de sortie** — Toutes les exigences de la §20 de la mission satisfaites ; Lighthouse
 mobile ≥ 85 / a11y 100 / SEO 100 ; 0 violation axe serious/critical ; le projet `no-js` passe ;

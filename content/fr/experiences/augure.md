@@ -2,7 +2,7 @@
 slug: augure
 company: Augure
 role: Fondateur, Product Owner et développeur
-startedAt: 2025-01-01
+startedAt: '2025'
 technologies:
   - typescript
   - python
