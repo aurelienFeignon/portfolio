@@ -18,16 +18,19 @@
  */
 import type { Metadata } from 'next'
 
+import { contentRepository } from '@/content/repository'
 import { LOCALES } from '@/i18n/locales'
 import { getMessages } from '@/i18n/messages'
 import type { PageLocation } from '@/routing/paths'
 import { pageMetadata } from '@/seo/metadata'
+import { JsonLd } from '@/ui/json-ld'
 import { LanguageSwitcher } from '@/ui/language-switcher'
 import { SectionGuide } from '@/ui/section-guide'
 
 import { languageOptions } from '../language-options'
 import { readLocale, type LocaleParams } from '../locale-param'
 import { sectionLinks } from '../section-links'
+import { homeStructuredData } from '../structured-data'
 
 import lead from '@/ui/lead.module.css'
 import page from '@/ui/page.module.css'
@@ -53,9 +56,14 @@ export async function generateMetadata({ params }: LocaleParams): Promise<Metada
 export default async function HomePage({ params }: LocaleParams) {
   const locale = await readLocale(params)
   const messages = getMessages(locale)
+  const structuredData = await homeStructuredData(contentRepository, locale)
 
   return (
     <main id="main" className={page.page}>
+      {/* `Person` et `WebSite` (P4-09). Dans le `main` et non dans le layout :
+          seule la page sait qu'elle est l'accueil, et c'est le seul endroit qui
+          les porte. */}
+      <JsonLd data={structuredData} />
       <h1 className={page.title}>{messages.site.name}</h1>
       <p className={lead.lead}>{messages.site.description}</p>
 

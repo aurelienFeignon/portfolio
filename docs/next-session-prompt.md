@@ -23,9 +23,10 @@ Lis, dans cet ordre, et ne me demande pas de te les résumer :
 8. docs/phase-1-log.md        ← journal de la Phase 1
 9. docs/phase-2-log.md        ← journal de la Phase 2
 10. docs/phase-3-log.md       ← journal de la Phase 3 : ce que l'exécution a renversé, dette tracée
-11. docs/phase-4-log.md       ← ⭐ journal de la phase EN COURS. Le plus important des trois :
+11. docs/phase-4-log.md       ← ⭐ journal de la phase EN COURS, et le plus important de tous :
                                  §13 et §14 portent trois défauts déjà livrés et six arbitrages
-                                 tranchés. Il manquait à cette liste jusqu'au 2026-08-16.
+                                 tranchés, §15 en ajoute quatre et ce que P4-09 refuse d'affirmer.
+                                 Il manquait à cette liste jusqu'au 2026-08-16.
 12. deploy/README.md          ← exploitation réelle du serveur : déploiement, rollback, journaux
 13. content/README.md         ← règles d'écriture du contenu, et deux réserves à corriger
 
@@ -33,7 +34,7 @@ Les Phases 0, 1, 2 et 3 sont TERMINÉES et validées. Ne les refais pas, ne les 
 
 ## État
 
-Phases 0 à 3 : **DONE**. **Phase 4 (Portfolio HTML) : en cours**, 9 tâches sur 17 closes.
+Phases 0 à 3 : **DONE**. **Phase 4 (Portfolio HTML) : en cours**, 10 tâches sur 17 closes.
 
 **Fusionné sur `main` et déployé** — PR #15 à #21, CI verte à chaque fois :
 
@@ -56,11 +57,20 @@ Les cinq jobs sont verts, publication GHCR et déploiement VPS compris. C'est en
 | P4-07 | 404 et pages d'erreur **localisées**, servies par réécriture du proxy |
 | P4-08 | Gabarit de titre, OpenGraph, image de partage, icône |
 
-**Reste : P4-09 à P4-16.**
+### P4-09 — données structurées, **fusionnée** le 2026-08-16 (PR #24)
 
-⚠️ **Une branche locale non poussée t'attend** : `docs/arbitrages-p4-07-p4-08`, **deux commits**,
-documentation seule. Elle inscrit les six arbitrages tranchés et remet ce prompt à jour. Pousse-la
-et ouvre la PR, ou dis-moi de la reprendre autrement.
+`Person` et `WebSite` sur l'accueil, `CreativeWork` sur une fiche de projet, `BreadcrumbList` sur les
+sections **et** les fiches. Zéro octet de JavaScript client : un bloc `ld+json` est de la donnée.
+
+⭐⭐⭐ **Les quatre arbitrages ont été posés AVANT d'écrire une ligne**, comme une liste de décisions —
+c'est la leçon de §14.8 appliquée le lendemain. Continue ainsi : ne consigne jamais un arbitrage en
+prose dans un rapport de fin de tâche.
+
+⛔ **Le fond de P4-09 est ce qu'elle refuse d'affirmer** : ni les niveaux de compétence (D2), ni une
+organisation employeuse — Augure n'est pas une société constituée —, ni le dépôt d'un projet que la
+fiche ne rend pas, ni une description de la personne (D7). Ne les rouvre pas sans décision explicite.
+
+**Reste : P4-10 à P4-16.**
 
 ⛔⛔ **Le site est volontairement FERMÉ au public**, derrière Cloudflare Access (OTP par e-mail),
 et le restera tant que le portfolio n'est pas terminé. **Une requête anonyme reçoit une 302 vers
@@ -98,13 +108,13 @@ texte source.
 
 ### Ce que la Phase 4 coûte désormais, et qu'il ne faut pas redécouvrir
 
-| Relevé | Valeur (2026-08-16) | Seuil |
+| Relevé | Valeur (2026-08-16, **après P4-09**) | Seuil |
 |---|---|---|
 | JS propre à chaque route | **7,3 Ko** — le premier JavaScript applicatif du site | cible 25 · bloquant 40 |
 | Socle partagé | **126,4 Ko** | cible 136 · bloquant 146 |
-| Image de production | **272 Mo** (+4 Mo : `next/og`, **entièrement de build**) | cible 250 · bloquant 400 |
-| Tests | **569** verts, couverture **98,6 %** | ≥ 80 % |
-| E2E | **117** verts sur 5 profils, 0 violation axe | — |
+| Image de production | **273 Mo** | cible 250 · bloquant 400 |
+| Tests | **606** verts, couverture **98,69 %** | ≥ 80 % |
+| E2E | **128** verts sur 5 profils, 0 violation axe | — |
 
 ⛔ **« Couverture 100 % » était faux depuis P4-05**, et le chiffre a survécu deux tâches dans ce
 journal. **Cinq** fichiers ne sont pas couverts — `place-layout.tsx`, `technology-section.tsx`,
@@ -162,27 +172,30 @@ mets l'ADR à jour et ajoute une ligne au journal des révisions. Jamais de chan
 
 ## Ta mission cette session
 
-**Enchaîne sur P4-09** (JSON-LD : `Person`, `WebSite`, `CreativeWork`, `BreadcrumbList`), puis la
-suite de la Phase 4.
+**Enchaîne sur P4-10** — la passe d'accessibilité, puis la suite de la Phase 4.
 
-⛔⛔ **Avant de commencer, lis `phase-4-log.md` §14.8 : les six arbitrages de P4-07 et P4-08 sont
-TRANCHÉS.** Ne les repose pas — chacun porte sa condition de réouverture. Et retiens **pourquoi** ils
-y sont : ils ont été posés **après la fusion**, parce qu'ils étaient consignés en prose au lieu
-d'être présentés comme une liste de décisions.
+Elle porte quatre choses, pas une : titres, focus, contrastes et points de repère ; **les cinq
+fichiers non couverts** (`phase-4-log.md` §13.8) ; le garde des endroits à piloter par
+l'arborescence plutôt que par `CurrentPlace` ; et l'instruction de `experimental.globalNotFound`
+comme plancher sous le manifeste de routes (§13.10). Les trois derniers sont des constats de revue
+**écartés avec leur raison** en P4-07 — ils t'attendent, ils ne sont pas à réinventer.
+
+⛔⛔ **Avant de commencer, lis `phase-4-log.md` §14.8 et §15.1 : dix arbitrages sont TRANCHÉS.** Ne
+les repose pas — chacun porte sa condition de réouverture.
 
 ⭐⭐⭐ **Une tâche qui produit des arbitrages les pose au moment où ils naissent**, comme une liste de
 choix avec un défaut recommandé — pas en fin de rapport, pas dans un journal qu'on lit après avoir
 fusionné. C'est la même faute que celles que la tâche traquait dans le code : *une chose écrite
-quelque part que rien ne confronte au moment où elle compte*.
+quelque part que rien ne confronte au moment où elle compte*. P4-09 a appliqué la règle ; tiens-la.
 
-⚠️ **P4-09 hérite de deux choses de P4-08**, écrites pour ne pas être redécouvertes :
+⚠️ **Ce que P4-09 laisse pour toi**, écrit pour ne pas être redécouvert :
 
-- **`og:type` vaut `website` partout**, y compris sur les fiches. Une fiche est un `article` au sens
-  d'OpenGraph, mais l'annoncer inviterait à chercher un `article:published_time` que nos dates à
-  **précision variable** ne peuvent pas former (P4-17). C'est le JSON-LD qui porte la sémantique
-  d'entité — donc toi.
-- **Le préalable de P4-09 est déjà levé** : `isoDateSchema` accepte `AAAA` / `AAAA-MM` / `AAAA-MM-JJ`,
-  et ce qui est stocké est **émissible verbatim**. Émets le champ tel quel ; ne le complète jamais.
+- **`Person.description` est vide** tant que **D7** n'est pas tranchée. Le jour où l'accroche de
+  l'accueil existe, sa place est ce champ — pas une prose inventée.
+- **`links.repository` n'est rendu par aucune page.** Le contenu le porte, personne ne l'affiche, et
+  le JSON-LD ne peut donc pas l'annoncer : une donnée structurée décrit ce que la page **montre**.
+- **Une CSP stricte supprimerait les blocs `ld+json` en silence** — note écrite dans
+  `src/seo/json-ld.ts` pour l'ADR-0015 (Phase 14). Il faudra un `nonce` ou un condensat.
 
 ⭐⭐ **Un gate travaillera pour toi si tu le laisses faire.** `check-static-rendering.mts` porte six
 contrôles et a refusé, sans qu'on le lui demande, une image de partage rendue à la demande puis une
@@ -267,13 +280,13 @@ Le chemin critique — la rédaction du contenu — est **levé** depuis le 2026
 
 **Chiffres à jour — ceux-ci ont été remesurés, ne les recopie pas sans les revérifier :**
 
-| Relevé | Valeur (2026-08-16, après P4-08) | Seuil |
+| Relevé | Valeur (2026-08-16, après P4-09) | Seuil |
 |---|---|---|
-| Image de production | **272 Mo** | cible 250 · **bloquant 400, appliqué** |
+| Image de production | **273 Mo** | cible 250 · **bloquant 400, appliqué** |
 | JS propre à chaque route | **7,3 Ko** sur 18 routes | cible 25 · bloquant 40 Ko |
 | Socle partagé | **126,4 Ko** | cible 136 · bloquant 146 Ko |
-| Tests | **569** verts, couverture **98,6 %** | ≥ 80 % |
-| E2E | **117** verts sur 5 profils | — |
+| Tests | **606** verts, couverture **98,69 %** | ≥ 80 % |
+| E2E | **128** verts sur 5 profils | — |
 
 ⛔⛔ **Les cinq valeurs de ce tableau étaient périmées** au moment de l'écrire — sous un titre qui dit
 « chiffres à jour, remesurés ». La section qui met en garde contre les nombres recopiés en portait
@@ -293,6 +306,11 @@ officielle n'atteint 250 Mo.
   `prose.tsx` (P4-05), `brand-palette.ts` (P4-08), `company-line.tsx` (P4-04, 75 % de branches).
   Tests de composant manquants, à écrire en **P4-10**. La liste en annonçait trois : elle avait été
   écrite de mémoire à côté d'un chiffre, lui, remesuré (`phase-4-log.md` §13.8).
+- ⛔ **`links.repository` n'est rendu par aucune page** (relevé en P4-09) : `content/` le porte,
+  personne ne l'affiche, et le JSON-LD ne peut donc pas l'annoncer — une donnée structurée décrit ce
+  que la page **montre**. À reprendre avec la fiche de projet.
+- ⚠️ **Une CSP stricte supprimerait les blocs `ld+json` en silence** — note dans
+  `src/seo/json-ld.ts` pour l'ADR-0015 (Phase 14) : il faudra un `nonce` ou un condensat.
 - ✅ **Les six arbitrages de P4-07 et P4-08 sont TRANCHÉS** (2026-08-16, `phase-4-log.md` §14.8) :
   garder les deux frontières d'erreur, garder le monogramme d'attente, laisser `og:type` à
   `website`, laisser l'`og:image` sans condensat, laisser `/favicon.ico` nu en 404, ne rien changer

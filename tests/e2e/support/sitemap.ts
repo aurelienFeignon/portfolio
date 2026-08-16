@@ -31,15 +31,33 @@ if (SITE_URL === undefined || SITE_URL === '') {
 /** L'origine avec laquelle l'image a été **construite**, sans barre finale. */
 export const ORIGIN = SITE_URL.replace(/\/$/, '')
 
+/**
+ * Le sitemap n'est téléchargé qu'**une fois par processus de test**.
+ *
+ * ⛔ L'en-tête de ce fichier affirmait « lu une seule fois pour tous les profils
+ * E2E » depuis son extraction, et le code le démentait : chaque appel refaisait
+ * la requête — cinq fois sur les seuls parcours de P4-09. Une prose qui survit
+ * au code qu'elle décrit, trouvée par la mesure et non par la relecture.
+ *
+ * C'est la **promesse** qui est mémoïsée, pas son résultat : deux parcours
+ * concurrents partagent le même travail au lieu de le faire deux fois — le motif
+ * que la couche Content applique depuis P2-03.
+ */
+let cached: Promise<string[]> | undefined
+
 /** Les chemins listés par le sitemap — jamais vide, la fonction s'en assure. */
 export async function sitemapPaths(request: APIRequestContext): Promise<string[]> {
-  const xml = await (await request.get('/sitemap.xml')).text()
-  const paths = [...xml.matchAll(/<loc>([^<]+)<\/loc>/g)].map((match) =>
-    (match[1] as string).slice(ORIGIN.length),
-  )
+  cached ??= (async () => {
+    const xml = await (await request.get('/sitemap.xml')).text()
+    const paths = [...xml.matchAll(/<loc>([^<]+)<\/loc>/g)].map((match) =>
+      (match[1] as string).slice(ORIGIN.length),
+    )
 
-  expect(paths.length).toBeGreaterThan(0)
-  return paths
+    expect(paths.length).toBeGreaterThan(0)
+    return paths
+  })()
+
+  return cached
 }
 
 /**

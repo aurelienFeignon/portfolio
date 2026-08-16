@@ -17,12 +17,14 @@ import { getMessages } from '@/i18n/messages'
 import type { PageLocation } from '@/routing/paths'
 import { CompanyLine } from '@/ui/company-line'
 import { DateRange } from '@/ui/date-range'
+import { JsonLd } from '@/ui/json-ld'
 import { LanguageSwitcher } from '@/ui/language-switcher'
 import { TechnologySection } from '@/ui/technology-section'
 
 import { languageOptions } from '../../language-options'
 import { readEntityParams, staticSlugParams, type EntityParams } from '../../locale-param'
 import { entityMetadata } from '../../page-metadata'
+import { breadcrumbStructuredData } from '../../structured-data'
 
 import page from '@/ui/page.module.css'
 
@@ -67,6 +69,13 @@ export default async function ExperiencePage({ params }: EntityParams) {
 
   return (
     <main id="main" className={page.page}>
+      {/* Le fil d'Ariane seul (P4-09) : il n'existe pas de type schema.org
+          honnête pour « un poste occupé ». Le nom du dernier niveau est le `h1`
+          ci-dessous — la page ne peut pas s'intituler autrement qu'elle ne se
+          nomme dans son propre fil. */}
+      <JsonLd
+        data={breadcrumbStructuredData(locale, 'experiences', { slug, name: experience.role })}
+      />
       <h1 className={page.title}>{experience.role}</h1>
       <CompanyLine
         company={experience.company}

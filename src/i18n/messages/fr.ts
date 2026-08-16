@@ -55,6 +55,19 @@ export const fr = {
     description:
       'Portfolio de développeur Full-Stack : expériences professionnelles, projets et compétences.',
     /**
+     * Intitulé de poste, émis par le `Person` des données structurées (P4-09).
+     *
+     * ⚠️ **Ce n'est pas une affirmation neuve** — et c'est ce qui autorise à
+     * l'écrire ici. « développeur Full-Stack » est déjà publié dans
+     * `description` ci-dessus, sur chaque page du site, depuis P3-06. Cette clé
+     * ne fait que le rendre **lisible par une machine** au lieu de le laisser
+     * enfoui dans une phrase.
+     *
+     * Un intitulé de poste déduit du contenu aurait été le mauvais chemin : deux
+     * expériences sont en cours, et rien ne dit laquelle décrit le métier.
+     */
+    jobTitle: 'Développeur Full-Stack',
+    /**
      * Gabarit de titre (P4-08). `%s` est l'emplacement que Next remplit avec le
      * titre de la page — la convention vient de lui, pas de nous.
      *

@@ -22,9 +22,9 @@
 import { notFound } from 'next/navigation'
 
 import { contentRepository } from '@/content/repository'
-import { getMessages } from '@/i18n/messages'
 import type { PageLocation } from '@/routing/paths'
 import { DateRange } from '@/ui/date-range'
+import { JsonLd } from '@/ui/json-ld'
 import { LanguageSwitcher } from '@/ui/language-switcher'
 import { Prose } from '@/ui/mdx/prose'
 import page from '@/ui/page.module.css'
@@ -33,6 +33,7 @@ import { TechnologySection } from '@/ui/technology-section'
 import { languageOptions } from '../../language-options'
 import { readEntityParams, staticSlugParams, type EntityParams } from '../../locale-param'
 import { entityMetadata } from '../../page-metadata'
+import { projectStructuredData } from '../../structured-data'
 
 import styles from './page.module.css'
 
@@ -68,7 +69,6 @@ export default async function ProjectPage({ params }: EntityParams) {
   // Un slug inconnu est une route inconnue, pas une erreur (`architecture.md` §10).
   if (project === null) notFound()
 
-  const messages = getMessages(locale)
   const [available, technologies] = await Promise.all([
     contentRepository.getContentLocales('projects', slug),
     contentRepository.getTechnologyLabels(locale, project),
@@ -76,6 +76,9 @@ export default async function ProjectPage({ params }: EntityParams) {
 
   return (
     <main id="main" className={page.page}>
+      {/* `CreativeWork` et `BreadcrumbList` (P4-09). Les mots-clés sont les
+          libellés **résolus** que la fiche affiche plus bas, jamais les slugs. */}
+      <JsonLd data={projectStructuredData(locale, project, technologies)} />
       <h1 className={page.title}>{project.title}</h1>
       <p className={styles.summary}>{project.summary}</p>
       <DateRange locale={locale} startedAt={project.startedAt} endedAt={project.endedAt} />

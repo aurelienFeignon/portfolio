@@ -25,6 +25,12 @@ export const en: Messages = {
     name: 'Aurélien Feignon',
     description: 'Full-Stack developer portfolio: professional experience, projects and skills.',
     /**
+     * Voir `fr.ts` : ce n'est pas une affirmation neuve — elle est déjà publiée
+     * dans `description` ci-dessus. Cette clé la rend lisible par une machine
+     * (P4-09).
+     */
+    jobTitle: 'Full-Stack Developer',
+    /**
      * La barre verticale est le séparateur usuel d'un titre de page en anglais,
      * là où le français emploie le tiret cadratin entouré d'espaces. Ce n'est
      * pas une différence inventée pour satisfaire le test de non-régression :

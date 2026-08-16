@@ -1,3 +1,6 @@
+import { SCHEMA_CONTEXT } from '@/seo/json-ld'
+import { PROFILE_URLS } from '@/seo/profiles'
+
 import { ORIGIN, detailPath, sitemapPaths } from '../../support/sitemap'
 import { expect, test } from '../../support/test'
 
@@ -103,8 +106,18 @@ test.describe('métadonnées de partage', () => {
      * Le contrôle porte sur **toutes** les pages, et pas sur celle qui a échoué :
      * une origine étrangère dans une page prérendue est la même faute où qu'elle
      * apparaisse, et elle ne se voit jamais à l'œil.
+     *
+     * ⭐⭐ **P4-09 a fait rougir ce garde, et l'assouplir aurait été la mauvaise
+     * réponse.** Les données structurées gravent légitimement trois origines
+     * étrangères : le vocabulaire schema.org et les deux profils publics. La
+     * tentation était d'écrire « toute origine externe est tolérée » — ce qui
+     * aurait rendu le `localhost` de P4-08 **réinvisible**, dans le garde même
+     * qui existe pour lui. Chaque origine admise est donc **nommée**, et elle
+     * l'est en important sa source : recopier les profils ici en ferait une
+     * seconde écriture, celle-là même que `src/seo/profiles.ts` supprime.
      */
-    const suspicious = /https?:\/\/(?!\w)|https?:\/\/[^"'\s<>]+/g
+    const declared = [ORIGIN, 'http://www.w3.org', SCHEMA_CONTEXT, ...PROFILE_URLS]
+    const suspicious = /https?:\/\/(?!\w)|https?:\/\/[^"'\s<>\\]+/g
     const foreign: string[] = []
 
     // Les pages introuvables ne sont pas au sitemap : ce sont précisément elles
@@ -113,9 +126,7 @@ test.describe('métadonnées de partage', () => {
       const html = await (await request.get(path)).text()
 
       for (const [url] of html.matchAll(suspicious)) {
-        if (!url.startsWith(ORIGIN) && !url.startsWith('http://www.w3.org')) {
-          foreign.push(`${path} → ${url}`)
-        }
+        if (!declared.some((origin) => url.startsWith(origin))) foreign.push(`${path} → ${url}`)
       }
     }
 
