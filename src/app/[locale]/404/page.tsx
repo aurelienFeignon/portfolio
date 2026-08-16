@@ -17,14 +17,21 @@
  * ⛔ Elle est **`noindex`** : c'est une page servie en 404, elle n'a rien à faire
  * dans un index. Et elle est exclue du sitemap — le gate de rendu statique porte
  * l'exception, avec sa raison.
+ *
+ * ⭐ Les trois issues sont rendues par **`SectionGuide`**, le composant de
+ * l'accueil. La première version projetait `sectionLinks` dans un `EntityList`
+ * en allant chercher elle-même `sections[x].name` et `sections[x].description` :
+ * c'était réécrire ce que ce composant fait déjà, et donner un **troisième**
+ * lecteur à des clés dont la double vie est déjà une décision ouverte (D7).
+ * Relevé en revue.
  */
 import type { Metadata } from 'next'
 
 import { getMessages } from '@/i18n/messages'
 import { homePath } from '@/routing/paths'
-import { EntityList } from '@/ui/entity-list'
 import lead from '@/ui/lead.module.css'
 import page from '@/ui/page.module.css'
+import { SectionGuide } from '@/ui/section-guide'
 
 import { readLocale, type LocaleParams } from '../locale-param'
 import { sectionLinks } from '../section-links'
@@ -52,15 +59,11 @@ export default async function NotFoundPage({ params }: LocaleParams) {
         <a href={homePath(locale)}>{messages.backHome}</a>
       </p>
 
-      <h2 className={page.sectionHeading}>{messages.notFound.elsewhere}</h2>
-      <EntityList
-        locale={locale}
-        items={sectionLinks(locale).map(({ section, href }) => ({
-          href,
-          label: messages.sections[section].name,
-          note: messages.sections[section].description,
-        }))}
-      />
+      {/* Une phrase, et non un titre : `SectionGuide` porte le plan du document
+          par les `h2` de ses cartes, et un `h2` de plus au-dessus les
+          rangerait sous une rubrique au lieu de les introduire. */}
+      <p>{messages.notFound.elsewhere}</p>
+      <SectionGuide locale={locale} links={sectionLinks(locale)} />
     </main>
   )
 }

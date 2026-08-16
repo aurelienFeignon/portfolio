@@ -44,22 +44,15 @@
  */
 import { NextResponse, type NextRequest } from 'next/server'
 
-import { type Locale } from '@/i18n/locales'
 import { negotiateLocale } from '@/i18n/negotiate'
-import { homePath, localeFromPathname } from '@/routing/paths'
-import { SERVED_PATHS } from '@/routing/route-manifest'
-
-const served = new Set(SERVED_PATHS)
+import { homePath, localeFromPathname, notFoundPath } from '@/routing/paths'
+import { PASSTHROUGH_PATHS, SERVED_PATHS } from '@/routing/route-manifest'
 
 /**
- * `/fr/rien` → `fr` ; `/de/x` et `/rien` → la langue négociée.
- *
- * L'URL l'emporte sur l'en-tête : un visiteur qui tape `/en/...` a demandé
- * l'anglais, quelle que soit la langue de son navigateur.
+ * Ce que le serveur peut servir : les pages, plus ce qui n'en est pas une —
+ * fichiers de `public/` et routes-poignées. Tout le reste est une 404.
  */
-function localeOf(pathname: string, acceptLanguage: string | null): Locale {
-  return localeFromPathname(pathname) ?? negotiateLocale(acceptLanguage)
-}
+const servable = new Set([...SERVED_PATHS, ...PASSTHROUGH_PATHS])
 
 export default function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
@@ -80,41 +73,50 @@ export default function proxy(request: NextRequest) {
   // Aucune garde sur `/` ici : il est traité au-dessus et n'arrive jamais
   // jusqu'à cette ligne. La première version en portait une, et c'était une
   // branche que rien ne pouvait exécuter — la couverture le disait.
-  if (served.has(pathname.replace(/\/$/, ''))) return NextResponse.next()
+  if (servable.has(pathname.replace(/\/$/, ''))) return NextResponse.next()
+
+  // `/fr/rien` est en français ; `/de/x` et `/rien` prennent la langue négociée.
+  // L'URL l'emporte sur l'en-tête : un visiteur qui tape `/en/...` a demandé
+  // l'anglais, quelle que soit la langue de son navigateur.
+  const fromUrl = localeFromPathname(pathname)
+  const locale = fromUrl ?? negotiateLocale(acceptLanguage)
 
   // ⚠️ Le statut est porté par la réécriture. Une réécriture rend 200 par défaut :
   // servir le bon contenu avec le mauvais statut dirait à un moteur de recherche
   // que la page existe, ce qui est exactement l'inverse du but.
-  const response = NextResponse.rewrite(
-    new URL(`${homePath(localeOf(pathname, acceptLanguage))}/404`, request.url),
-    { status: 404 },
-  )
-  response.headers.set('Vary', 'Accept-Language')
+  const response = NextResponse.rewrite(new URL(notFoundPath(locale), request.url), {
+    status: 404,
+  })
+
+  // ⚠️ `Vary` **seulement quand la négociation a eu lieu**. Quand la locale vient
+  // de l'URL, l'en-tête n'a pas été lu : déclarer que la réponse en dépend
+  // demanderait au cache partagé une entrée par valeur d'`Accept-Language` — un
+  // en-tête à très forte cardinalité — pour des réponses identiques. Et les 404
+  // sont le trafic le plus volumineux d'un site public. Relevé en revue.
+  if (fromUrl === null) response.headers.set('Vary', 'Accept-Language')
   return response
 }
 
 export const config = {
   /*
-   * Tout ce qui peut être une **page**, et rien d'autre.
+   * Tout, sauf ce que Next sert depuis son propre build.
    *
-   * ⛔ La première version énumérait les exceptions à la main
-   * (`favicon.ico|robots.txt|sitemap.xml|images/`). Cette liste était fausse
-   * dans les deux sens : elle excluait `images/`, qui n'existe pas, et elle
-   * ignorait `resume/`, qui existe — si bien que **les deux CV répondaient
-   * 404**, alors qu'ils sont en ligne depuis la Phase 2. Trouvé par le parcours
-   * E2E de cette tâche, pas par la relecture.
+   * ⛔⛔ **Deux versions de ce motif ont été fausses, et pour la même raison.**
+   * La première énumérait des exceptions à la main
+   * (`favicon.ico|robots.txt|sitemap.xml|images/`) : elle citait `images/`, qui
+   * n'existe pas, et ignorait `resume/`, si bien que **les deux CV répondaient
+   * 404** alors qu'ils sont en ligne depuis la Phase 2. La seconde les excluait
+   * par un critère — « un chemin contenant un point est un fichier » — qui
+   * laissait passer l'inverse : `/wp-login.php` ou `/cv.pdf`, qui n'existent
+   * pas, recevaient la 404 interne de Next, hors du layout racine, donc **sans
+   * `lang`**. C'est-à-dire le défaut WCAG 3.1.1 que cette tâche supprime,
+   * réintroduit par la porte de derrière. Mesuré sur l'image de production.
    *
-   * Une liste d'exceptions écrite à la main est fausse le jour où quelqu'un
-   * ajoute un fichier à `public/` — et elle échoue **en silence**, en servant
-   * une 404 sur un fichier réel. Le critère retenu ne s'entretient pas : un
-   * chemin de page ne contient jamais de point. Les locales, les segments de
-   * section et les slugs sont des minuscules, des chiffres et des traits
-   * d'union (P2-02) ; tout ce qui porte une extension est un fichier, servi par
-   * Next ou par `public/`, et n'a rien à faire ici.
-   *
-   * `tests/integration/public-assets-reach-the-visitor.test.ts` confronte ce
-   * motif au contenu réel de `public/`, pour que la prochaine ressource ajoutée
-   * le vérifie au lieu d'en dépendre.
+   * ⭐ Aucun motif ne peut trancher : seul le disque sait quels fichiers
+   * existent. La décision est donc **dans la fonction**, sur des listes
+   * générées au build et confrontées au build (`route-manifest.ts`). Le matcher
+   * ne borne plus que le coût — `_next/` porte les fragments et les images
+   * optimisées, qu'il serait absurde de faire traverser une fonction.
    */
-  matcher: ['/((?!_next/|.*\\.).*)'],
+  matcher: ['/((?!_next/).*)'],
 }

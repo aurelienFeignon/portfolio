@@ -342,14 +342,16 @@ Aucun ISR en v1 : le contenu ne change qu'au déploiement (H-05).
 > ce détour, une adresse inconnue est servie par la 404 interne de Next, **hors du layout racine** —
 > qui vit sous `[locale]` depuis P3-02 —, donc sans `<html lang>` : une violation WCAG 3.1.1.
 >
-> - **Le matcher exclut tout chemin contenant un point**, c'est-à-dire tout fichier — `public/`
->   compris. Il énumérait d'abord ses exceptions à la main, et cette liste ignorait `resume/` : les
->   deux CV répondaient 404. Un critère qui ne s'entretient pas a remplacé une liste qui devait
->   l'être ([`phase-4-log.md`](./phase-4-log.md) §13.3).
-> - **Le proxy embarque la liste des chemins servis** (`src/routing/route-manifest.ts`, généré) : il
->   ne peut pas interroger le Content Layer, `content/` étant absent de l'image. C'est une seconde
->   énumération, produite **avant** le build ; `scripts/check-static-rendering.mts` la confronte
->   après coup aux pages réellement prégénérées, dans les deux sens.
+> - **Le proxy embarque deux listes générées** (`src/routing/route-manifest.ts`) : les **pages**
+>   servies, et ce que le serveur sert **sans que ce soit une page** — les fichiers de `public/` et
+>   les routes-poignées. Il ne peut interroger ni le Content Layer ni le disque ; `content/` n'est
+>   même pas dans l'image. Le matcher, lui, ne borne plus que le coût (`_next/` seul est exclu) :
+>   décider d'après la **forme** d'une URL ce que seul le disque sait a été faux deux fois
+>   ([`phase-4-log.md`](./phase-4-log.md) §13.3).
+> - **Ces listes sont produites avant le build et confrontées après.**
+>   `scripts/check-static-rendering.mts` porte six contrôles : les pages du manifeste sont exactement
+>   les pages prégénérées, la destination de réécriture existe, et toute route non-page du build
+>   figure dans les chemins laissés passer.
 > - **Coût assumé** : chaque requête de page traverse une fonction, et le site embarque désormais
 >   7,2 Ko de JavaScript par route pour ses deux frontières d'erreur — mesuré, budgets tenus
 >   ([`phase-4-log.md`](./phase-4-log.md) §13.5).

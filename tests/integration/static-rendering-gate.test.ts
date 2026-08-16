@@ -38,10 +38,14 @@ interface Manifests {
    * qui rend cette confrontation exécutable contre des cas fabriqués.
    */
   readonly served?: readonly string[]
+  /** Ce que le proxy laisse passer sans que ce soit une page. */
+  readonly passthrough?: readonly string[]
 }
 
 /** Écrit une arborescence `.next` minimale, plus le module que lit le proxy. */
-async function writeBuild(manifests: Manifests): Promise<{ root: string; servedPath: string }> {
+async function writeBuild(
+  manifests: Manifests,
+): Promise<{ root: string; servedPath: string; publicDir: string }> {
   const root = await mkdtemp(join(tmpdir(), 'next-manifests-'))
   await mkdir(join(root, 'server', 'app'), { recursive: true })
 
@@ -57,21 +61,30 @@ async function writeBuild(manifests: Manifests): Promise<{ root: string; servedP
     await writeFile(join(root, 'server', 'app', 'sitemap.xml.body'), `<urlset>${urls}</urlset>`)
   }
 
+  // Un `public/` vide, et déclaré : le contrôle 6 lit ce répertoire, et lui
+  // laisser celui du dépôt ferait dépendre chaque cas des fichiers réels.
+  const publicDir = join(root, 'public')
+  await mkdir(publicDir, { recursive: true })
+
   const servedPath = join(root, 'route-manifest.ts')
   await writeFile(
     servedPath,
-    `export const SERVED_PATHS: readonly string[] = ${JSON.stringify(manifests.served ?? [])}\n`,
+    `export const SERVED_PATHS: readonly string[] = ${JSON.stringify(manifests.served ?? [])}\n` +
+      `export const PASSTHROUGH_PATHS: readonly string[] = ${JSON.stringify(
+        manifests.passthrough ?? ['/sitemap.xml'],
+      )}\n`,
   )
 
-  return { root, servedPath }
+  return { root, servedPath, publicDir }
 }
 
 async function runGate(
   root: string,
   servedPath: string,
+  publicDir: string,
 ): Promise<{ code: number; output: string }> {
   try {
-    const { stdout, stderr } = await run('node', [SCRIPT, root, servedPath])
+    const { stdout, stderr } = await run('node', [SCRIPT, root, servedPath, publicDir])
     return { code: 0, output: stdout + stderr }
   } catch (error) {
     const failure = error as { code?: number; stdout?: string; stderr?: string }
@@ -81,8 +94,8 @@ async function runGate(
 
 /** Écrit le build fabriqué, puis exécute le gate contre lui. */
 async function checkRendering(manifests: Manifests): Promise<{ code: number; output: string }> {
-  const { root, servedPath } = await writeBuild(manifests)
-  return runGate(root, servedPath)
+  const { root, servedPath, publicDir } = await writeBuild(manifests)
+  return runGate(root, servedPath, publicDir)
 }
 
 /** Un site minuscule mais complet : une page, prégénérée, close, au sitemap et servie. */
@@ -90,11 +103,18 @@ const HEALTHY: Manifests = {
   appRoutes: { '/[locale]/page': '/[locale]', '/sitemap.xml/route': '/sitemap.xml' },
   routes: {
     '/fr': { compute: 'static', routeType: 'page' },
+    // Les deux destinations de réécriture : prégénérées comme les autres — le
+    // contrôle 5 l'exige — mais ni au sitemap ni au manifeste, parce qu'elles
+    // ne sont pas des adresses du site. C'est cette propriété que le premier
+    // test porte, et il n'y a rien à en dire de plus dans un test séparé.
+    '/fr/404': { compute: 'static', routeType: 'page' },
+    '/en/404': { compute: 'static', routeType: 'page' },
     '/sitemap.xml': { compute: 'static', routeType: 'route' },
   },
   dynamicRoutes: { '/[locale]': { fallback: false } },
   sitemap: ['/fr'],
   served: ['/fr'],
+  passthrough: ['/sitemap.xml'],
 }
 
 describe('gate de rendu statique', () => {
@@ -164,9 +184,16 @@ describe('gate de rendu statique', () => {
   it('ne réclame pas de sitemap à un site qui n’en publie pas', async () => {
     const { code } = await checkRendering({
       appRoutes: { '/[locale]/page': '/[locale]' },
-      routes: { '/fr': { compute: 'static', routeType: 'page' } },
+      routes: {
+        '/fr': { compute: 'static', routeType: 'page' },
+        // Les deux destinations de réécriture restent exigées : ce site n'a pas
+        // de sitemap, il a quand même un proxy.
+        '/fr/404': { compute: 'static', routeType: 'page' },
+        '/en/404': { compute: 'static', routeType: 'page' },
+      },
       dynamicRoutes: { '/[locale]': { fallback: false } },
       served: ['/fr'],
+      passthrough: [],
     })
 
     expect(code).toBe(0)
@@ -242,16 +269,56 @@ describe('manifeste du proxy', () => {
     expect(output).toContain('/en — prégénérée mais absente du manifeste du proxy')
   })
 
-  it('n’exige pas la page introuvable dans le manifeste', async () => {
-    // Elle est prégénérée comme les autres, et le proxy ne doit surtout pas la
-    // laisser passer : elle est une **destination de réécriture**, pas une page
-    // du site. L'annoncer servie la rendrait accessible en 200.
-    const { code } = await checkRendering({
+  it('n’écarte que la page introuvable, pas une entité dont le slug est « 404 »', async () => {
+    // ⚠️ `route.endsWith('/404')` aurait écarté celle-ci, et le build aurait
+    // cassé en accusant le sitemap et le manifeste — les deux fichiers qui ont
+    // raison. L'exception est exacte, locale par locale.
+    const { code, output } = await checkRendering({
       ...HEALTHY,
-      routes: { ...HEALTHY.routes, '/fr/404': { compute: 'static', routeType: 'page' } },
+      routes: { ...HEALTHY.routes, '/fr/projects/404': { compute: 'static', routeType: 'page' } },
+      sitemap: ['/fr', '/fr/projects/404'],
+      served: ['/fr', '/fr/projects/404'],
     })
 
+    expect(output).not.toContain('/fr/projects/404')
     expect(code).toBe(0)
+  })
+
+  it('refuse un build où la destination de réécriture n’existe pas', async () => {
+    // Les contrôles 3 et 4 l'excluent tous les deux : sans le contrôle 5, elle
+    // pouvait disparaître sans qu'aucun ne bouge, et toute URL inconnue serait
+    // réécrite vers une route absente.
+    const routes = Object.fromEntries(
+      Object.entries(HEALTHY.routes).filter(([route]) => route !== '/fr/404'),
+    )
+    const { code, output } = await checkRendering({ ...HEALTHY, routes })
+
+    expect(code).toBe(1)
+    expect(output).toContain('/fr/404 — destination de réécriture du proxy')
+  })
+
+  it('refuse une route servie que le proxy ne laisserait pas passer', async () => {
+    // `sitemap.xml` répond sans être une page : absent des chemins laissés
+    // passer, il serait réécrit en 404 et le site perdrait son index.
+    const { code, output } = await checkRendering({ ...HEALTHY, passthrough: [] })
+
+    expect(code).toBe(1)
+    expect(output).toContain('/sitemap.xml — servie par le build')
+  })
+
+  it('refuse un chemin laissé passer que plus rien ne sert', async () => {
+    // ⚠️ L'autre sens, et il n'y était pas. Une entrée **périmée** — un fichier
+    // supprimé de `public/`, une route-poignée retirée — laisse le proxy faire
+    // passer une URL que Next sert alors par sa 404 interne, hors du layout
+    // racine, donc sans « lang ». C'est le trou de toute la tâche, rouvert par
+    // l'autre bout. Relevé en revue.
+    const { code, output } = await checkRendering({
+      ...HEALTHY,
+      passthrough: ['/sitemap.xml', '/resume/cv-supprime.pdf'],
+    })
+
+    expect(code).toBe(1)
+    expect(output).toContain('/resume/cv-supprime.pdf — laissée passer par le proxy')
   })
 
   it('refuse de conclure sans manifeste de routes', async () => {
@@ -263,9 +330,9 @@ describe('manifeste du proxy', () => {
     // le gate sortait en 1 sur un `sitemap.xml.body` absent, et l'assertion
     // aurait été verte quoi qu'on écrive. Un test doit échouer pour la raison
     // qu'il nomme.
-    const { root } = await writeBuild(HEALTHY)
+    const { root, publicDir } = await writeBuild(HEALTHY)
 
-    const { code, output } = await runGate(root, join(root, 'inexistant.ts'))
+    const { code, output } = await runGate(root, join(root, 'inexistant.ts'), publicDir)
 
     expect(code).toBe(1)
     expect(output).toContain('manifeste de routes')

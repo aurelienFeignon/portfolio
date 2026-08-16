@@ -15,9 +15,15 @@
  * ⚠️ **Cette énumération est la seconde du dépôt**, après celle du sitemap
  * (`src/app/sitemap.ts`) — et deux énumérations qui divergent, c'est la panne que
  * R-07 décrit. Elle ne peut pas être évitée : le proxy a besoin de la liste
- * **avant** `next build`, or le sitemap est un produit de ce build. Elle est donc
- * **confrontée après coup** : `check-static-rendering.mts` compare le manifeste
- * au sitemap servi et casse le build s'ils diffèrent.
+ * **avant** `next build`, or les pages en sont le produit. Elle est donc
+ * **confrontée après coup** : `check-static-rendering.mts` la compare aux pages
+ * réellement prégénérées, dans les deux sens, et casse le build sur un écart.
+ *
+ * Le second export, `PASSTHROUGH_PATHS`, dit ce que le serveur sert **sans que ce
+ * soit une page** : les fichiers de `public/`, lus sur le disque, et les
+ * routes-poignées. Sans lui, le proxy ne pouvait distinguer un fichier réel d'une
+ * URL inventée qu'à sa forme — ce qui a été faux deux fois (`phase-4-log.md`
+ * §13.3).
  */
 import { writeFile } from 'node:fs/promises'
 
@@ -25,6 +31,8 @@ import { contentRepository } from '../src/content/repository.ts'
 import { LOCALES, type Locale } from '../src/i18n/locales.ts'
 import { entityPath, homePath, sectionPath } from '../src/routing/paths.ts'
 import { SECTIONS, SECTIONS_WITH_DETAIL, type SectionWithDetail } from '../src/routing/sections.ts'
+
+import { publicUrlPaths } from './public-paths.mts'
 
 /**
  * Table exhaustive par construction, comme celle du sitemap : une section à page
@@ -52,9 +60,30 @@ async function servedPaths(): Promise<readonly string[]> {
   ].sort()
 }
 
-const DESTINATION = new URL('../src/routing/route-manifest.ts', import.meta.url)
+/**
+ * Les **routes-poignées** de l'App Router : elles répondent, mais ne sont pas
+ * des pages et n'ont donc rien à faire dans `SERVED_PATHS`.
+ *
+ * ⚠️ Cette liste est écrite à la main, et c'est admissible **parce qu'un gate la
+ * confronte** : `check-static-rendering.mts` exige que chaque route non-page du
+ * build y figure. Une liste manuelle que rien ne vérifie est exactement ce qui a
+ * fait disparaître les deux CV.
+ */
+const ROUTE_HANDLERS = ['/robots.txt', '/sitemap.xml']
+
+/**
+ * La destination est un **argument**, comme la racine des deux gates.
+ *
+ * C'est ce qui rend le générateur exécutable ailleurs que sur le dépôt, donc
+ * vérifiable : `tests/integration/route-manifest-is-fresh.test.ts` l'écrit dans
+ * un dossier temporaire et compare au fichier committé. Sans cela, la moitié
+ * « pages » du manifeste n'avait aucun garde de fraîcheur, alors que la moitié
+ * `public/` en a un. Relevé en revue.
+ */
+const DESTINATION = process.argv[2] ?? new URL('../src/routing/route-manifest.ts', import.meta.url)
 
 const paths = await servedPaths()
+const passthrough = [...ROUTE_HANDLERS, ...(await publicUrlPaths())].sort()
 
 /**
  * Le fichier écrit doit être **déjà** au format du dépôt.
@@ -86,14 +115,30 @@ const content = `/**
  * **Fichier généré — ne pas éditer à la main.**
  *
  * Produit par \`scripts/generate-route-manifest.mts\` avant chaque \`next build\`,
- * et confronté au sitemap servi juste après par \`check-static-rendering.mts\` :
- * deux énumérations qui divergent sont la panne que décrit R-07.
+ * puis confronté au build par \`check-static-rendering.mts\` : deux énumérations
+ * qui divergent sont la panne que décrit R-07.
  *
- * Il existe pour que \`src/proxy.ts\` reconnaisse une URL inconnue sans lire
- * \`content/\`, absent de l'image de production.
+ * Il existe pour que \`src/proxy.ts\` sache ce que le serveur peut servir sans
+ * lire le disque — ni \`content/\` ni \`public/\` ne sont interrogeables depuis une
+ * fonction de proxy, et \`content/\` n'est même pas dans l'image de production.
  */
+
+/** Les **pages** du site. Toute autre URL est réécrite vers la page introuvable. */
 export const SERVED_PATHS: readonly string[] = ${asTypeScriptLiteral(paths)}
+
+/**
+ * Ce que le serveur sert **sans que ce soit une page** : les fichiers de
+ * \`public/\` et les routes-poignées de l'App Router.
+ *
+ * ⛔ Sans cette liste, le proxy ne pouvait distinguer un fichier réel d'une URL
+ * inventée qu'à l'extension — et une adresse inconnue portant un point
+ * (\`/wp-login.php\`, \`/cv.pdf\`) échappait alors à la réécriture pour recevoir la
+ * 404 interne de Next, hors du layout racine, donc **sans \`lang\`**.
+ */
+export const PASSTHROUGH_PATHS: readonly string[] = ${asTypeScriptLiteral(passthrough)}
 `
 
 await writeFile(DESTINATION, content, 'utf8')
-console.log(`✓ Manifeste de routes — ${paths.length} chemin(s) servi(s).`)
+console.log(
+  `✓ Manifeste de routes — ${paths.length} page(s), ${passthrough.length} ressource(s) servie(s).`,
+)

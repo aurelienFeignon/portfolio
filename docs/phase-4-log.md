@@ -837,24 +837,68 @@ sens manquant : il ne vérifiait que `pages → sitemap`, il vérifie maintenant
 Les trois cas ont été **vus échouer** sur le build réel, pas sur des fixtures seules : manifeste
 augmenté d'un chemin, amputé d'une page, et absent.
 
-### 13.3 ⛔⛔ Le matcher élargi a fait disparaître les deux CV
+### 13.3 ⛔⛔⛔ Le matcher a été faux **deux fois**, et la seconde a été trouvée en revue
 
 Le parcours E2E de cette tâche a trouvé une régression que le commit de travail avait introduite et
 que rien ne signalait : **`/resume/cv-fr.pdf` et `cv-en.pdf` répondaient 404**. Ils sont en ligne
 depuis la Phase 2.
 
 Cause : le matcher, élargi de `/` à tout le site, énumérait ses exceptions **à la main** —
-`favicon.ico|robots.txt|sitemap.xml|images/`. Cette liste était fausse dans les deux sens : elle
-excluait `images/`, qui n'existe pas, et ignorait `resume/`, qui existe. Écrite d'imagination, jamais
-confrontée à `public/`.
+`favicon.ico|robots.txt|sitemap.xml|images/`. Liste écrite d'imagination, jamais confrontée à
+`public/` : elle citait `images/`, qui n'existe pas, et ignorait `resume/`, qui existe.
 
-⭐⭐⭐ **Une liste d'exceptions écrite à la main est fausse le jour où quelqu'un ajoute un fichier —
-et elle échoue en servant une page correcte.** Le correctif ne rallonge pas la liste, il la
-supprime : **un chemin de page ne contient jamais de point.** Les locales, les segments de section
-et les slugs sont minuscules, chiffres et traits d'union (P2-02) ; tout ce qui porte une extension
-est un fichier. `tests/integration/public-assets-reach-the-visitor.test.ts` confronte désormais le
-motif au contenu réel de `public/`, sans nommer un seul fichier — **vu rouge** en rétablissant
-l'ancienne liste.
+**Premier correctif, et il était encore faux.** La liste a été remplacée par un critère qu'on croyait
+ne pas avoir à entretenir : *un chemin de page ne contient jamais de point*. Il traitait bien les
+fichiers réels — et laissait l'inverse passer. `/code-review` l'a relevé, et la mesure sur l'image de
+production l'a confirmé :
+
+```text
+/wp-login.php                 404 | <html>            ← sans lang
+/cv.pdf                       404 | <html>            ← sans lang
+/fr/projects/portfolio.html   404 | <html>            ← sans lang
+/fr/rien                      404 | <html lang="fr">
+```
+
+Une adresse **inexistante portant un point** échappait à la réécriture et recevait la 404 interne de
+Next, hors du layout racine, donc sans `lang` — c'est-à-dire **le défaut WCAG 3.1.1 que cette tâche
+supprime, réintroduit par la porte de derrière**, sur la classe d'URL que les scanners visitent le
+plus.
+
+⭐⭐⭐ **Les deux versions ont la même racine : décider d'après la *forme* d'une URL ce que seul le
+disque sait.** Une liste écrite à la main est fausse dès qu'on ajoute un fichier ; un motif est faux
+dans l'autre sens, parce qu'une URL inventée peut prendre la forme d'un fichier. Aucun motif ne peut
+trancher.
+
+**Correctif retenu : la décision quitte le matcher pour la fonction, sur une liste générée.**
+`generate-route-manifest.mts` émet un second export, `PASSTHROUGH_PATHS` — les fichiers de `public/`
+**lus sur le disque**, plus les routes-poignées (`robots.txt`, `sitemap.xml`). Le proxy laisse passer
+ce qui est dans l'une des deux listes et réécrit tout le reste. Le matcher ne borne plus que le
+coût : `_next/` seul en est exclu.
+
+Deux gates neufs ferment ce qui restait de manuel :
+
+| Contrôle | Ce qu'il confronte | Vu échouer |
+|---|---|---|
+| 5 — *Destination* | `notFoundPath(locale)` **est prégénérée** | destination changée en `/410` → « toute URL inconnue serait réécrite vers une route qui n'existe pas » |
+| 6 — *Laissez-passer* | chaque route non-page du build figure dans `PASSTHROUGH_PATHS` | `/robots.txt` retiré → le gate le nomme et donne le fichier à corriger |
+
+⭐ Le contrôle 6 est ce qui rend admissible la seule liste encore écrite à la main (`ROUTE_HANDLERS`,
+deux entrées) : elle est **confrontée au build**. Et il travaillera pour P4-08 sans qu'on le lui
+demande — une `opengraph-image` est une route non-page, donc il la réclamera.
+
+Mesure après correctif, même commande :
+
+```text
+/wp-login.php                 404 | <html lang="fr">
+/cv.pdf                       404 | <html lang="fr">
+/fr/projects/portfolio.html   404 | <html lang="fr">
+/resume/cv-fr.pdf             200 | (pas de <html>)
+/robots.txt                   200 | (pas de <html>)
+```
+
+⭐⭐ **La revue a trouvé ce qu'un parcours vert cachait.** Les 14 parcours de la tâche étaient tous
+verts : aucun ne visitait d'URL pointée, parce qu'aucun n'avait de raison d'en visiter une. Un test
+ne couvre que la classe qu'on a pensé à lui donner — le motif du dépôt depuis P4-04.
 
 ### 13.4 ⛔⛔ La page introuvable n'avait pas d'en-tête, et le garde ne pouvait pas le voir
 
@@ -949,8 +993,8 @@ désormais entièrement sain, et l'échec porte le message attendu.
 | Socle partagé | **126,0 Ko** | cible 136 · bloquant 146 |
 | JS propre à chaque route | **7,2 Ko** sur 18 routes | cible 25 · bloquant 40 |
 | Image de production | **268 Mo** — inchangée | cible 250 · **bloquant 400** |
-| Tests | **532** verts *(503 avant la tâche)* | — |
-| E2E | **106** verts sur 5 profils *(92 avant)* | — |
+| Tests | **548** verts *(503 avant la tâche)* | — |
+| E2E | **108** verts sur 5 profils *(92 avant)* | — |
 | Couverture globale | **98,8 %** — voir §13.8 | ≥ 80 % |
 | Violations axe serious/critical | **0**, dont **la 404 pour la première fois** | 0 |
 | Pages prégénérées | 18, dont 2 pages introuvables hors sitemap | — |
@@ -978,7 +1022,86 @@ manquants, inscrits en **P4-10** — la passe d'accessibilité relit de toute fa
 Nommés ici plutôt que corrigés : ce sont des composants d'autres tâches, et les mêler à ce diff le
 rendrait illisible.
 
-### 13.9 Ce que P4-07 laisse ouvert
+### 13.9 Ce que la revue a changé
+
+Le rituel — `/code-review` puis `/simplify` — a trouvé **huit défauts réels** sur un travail dont
+tous les gates étaient verts, dont deux que la mesure a confirmés en production. Cinq méritent
+d'être retenus au-delà de leur correctif.
+
+⛔⛔⛔ **Le matcher était encore faux après son premier correctif** (§13.3). C'est le constat le plus
+coûteux de la tâche, et il n'a pas été trouvé par un test : les quatorze parcours étaient verts,
+aucun ne visitant d'URL pointée. Il l'est maintenant — la mesure qui l'a établi est **rejouable**,
+deux lignes de la table du parcours.
+
+⛔⛔ **Deux copies d'un même parcours de disque n'étaient pas équivalentes.** Le générateur lisait
+`URL.pathname`, qui est **percent-encodé** ; sa jumelle dans le test partait de `process.cwd()`, qui
+ne l'est pas. Elles s'accordaient parce que `/opt/portfolio` n'a ni espace ni accent. Un fichier
+nommé `cv fr.pdf` aurait mis `/resume/cv%20fr.pdf` au manifeste et `/resume/cv fr.pdf` au test : le
+test aurait réclamé une régénération que la régénération n'aurait pas réparée, et le proxy aurait
+réécrit le fichier réel en 404. ⭐⭐ **Deux implémentations d'une même lecture divergent d'abord en
+silence** — c'est la thèse de toute cette tâche, appliquée à son propre outillage. Il n'y a plus
+qu'un parcours (`scripts/public-paths.mts`).
+
+⛔⛔ **Le contrôle 6 ne vérifiait qu'un sens** — celui-là même que le contrôle 4 a été doublé pour
+éviter. Une entrée **périmée** dans les chemins laissés passer (un CV supprimé, une route-poignée
+retirée) rouvrait exactement le trou de la tâche : le proxy laisse passer, Next sert sa 404 interne,
+sans `lang`. ⭐ Le raisonnement était écrit en toutes lettres dans l'en-tête du fichier, et n'avait
+pas été reporté au contrôle suivant.
+
+⛔ **`Vary: Accept-Language` était déclaré sur toutes les réécritures**, y compris celles où la
+langue vient de l'URL et où l'en-tête n'est jamais lu. Ce n'est pas une faute de correction mais une
+**dépendance déclarée qui n'existe pas** : elle demande au cache partagé une entrée par valeur d'un
+en-tête à très forte cardinalité, pour des réponses identiques — et les 404 sont le trafic le plus
+volumineux d'un site public.
+
+⛔⛔ **L'invariant central de la tâche n'était vérifié qu'à moitié.** Le site a deux émetteurs de
+`<html>` : le layout de locale, que les parcours lisent, et `global-error.tsx`, qui rend sa propre
+enveloppe — exclu de la couverture, hors de portée d'un parcours (§13.6), et dont le test de
+composant ne voit jamais de `<html>`. Un garde structurel les compte et exige `lang` sur chacun.
+
+⭐⭐⭐ **Et ce garde a payé, à sa toute première exécution, le piège que ce journal documente
+depuis §7.1** : il comptait quatre enveloppes pour deux, parce qu'il lisait les `<html>` **cités
+dans les commentaires** — ceux-là mêmes qui expliquent pourquoi l'enveloppe existe. *Un garde qui
+lit du texte source lit tout le texte source.* Les commentaires sont retirés avant lecture, la
+limite restante est écrite dans le fichier, et le compte des enveloppes est ce qui signalerait une
+troisième forme.
+
+Le reste est de la réutilisation, et le dépôt le disait à chaque fois :
+
+- **`lead.module.css` était le troisième exemplaire, pas le second** — son propre en-tête annonçait
+  « deuxième » et laissait le premier (`.lede` de l'accueil, P4-03) en place. Les deux ne
+  différaient que par leur mesure, 50ch contre 60ch, sans raison écrite. ⭐ La valeur retenue est
+  **celle qui était déjà servie** : quand deux copies divergent sans raison, la copie en production
+  fait foi — choisir l'autre aurait modifié une page déjà revue pour rien.
+- **La page introuvable réimplémentait `SectionGuide`**, en allant chercher elle-même
+  `sections[x].name` et `sections[x].description`. Elle donnait au passage un **troisième** lecteur
+  à des clés dont la double vie est une décision ouverte (D7).
+- **La moitié « pages » du manifeste n'avait aucun garde de fraîcheur**, alors que la moitié
+  `public/` venait d'en recevoir un. Le générateur prend maintenant sa destination en argument, et
+  un test compare octet à octet ce qu'il produit aujourd'hui au fichier committé — ce qui vérifie
+  aussi, gratuitement, son idempotence de forme.
+- Trois tables de test mesuraient un cas plusieurs fois (colonne constante, corps recopiés), et un
+  cas du gate **restait vert quoi qu'on écrive** en attendant `code === 0` sur l'entrée saine du
+  premier test.
+
+### 13.10 Constats de revue **écartés**, avec leur raison
+
+| Constat | Raison de l'écart |
+|---|---|
+| Adopter `experimental.globalNotFound` comme **plancher** sous le manifeste | L'idée est juste — le framework garantirait `<html lang>` même si le manifeste se trompait. Mais c'est un drapeau **expérimental**, non vérifié sur 16.3.0, et un second mécanisme de 404 introduit à la fin d'une tâche. À instruire pour de bon en **P4-10**, avec la sonde qui va avec |
+| **Dériver** `ROUTE_HANDLERS` des conventions de l'App Router au lieu de l'écrire | Deux entrées aujourd'hui, et les **deux sens** du contrôle 6 les confrontent désormais au build. La dérivation devient rentable quand P4-08 ajoutera `opengraph-image` — c'est là qu'il faudra la faire, pas avant |
+| Rendre le garde des endroits **piloté par l'arborescence** plutôt que par `CurrentPlace` | Constat le plus fin de la revue : si le layout de la 404 avait déclaré `current="home"`, le type ne se serait jamais élargi et rien n'aurait rougi. Vrai, et c'est une refonte d'un garde de P4-02 — **P4-10** |
+| `marking(place)` par `switch` exhaustif plutôt qu'une énumération négative | Deux termes aujourd'hui (`home`, `notFound`). Le compilateur ferme déjà le trou : un sixième endroit oublié dans la condition ne compile pas |
+| Fusionner `LIST_BY_SECTION`, dupliqué entre le générateur et `app/sitemap.ts` | **Le graphe de dépendances l'interdit** : la table a besoin de `content` *et* de `routing`, et aucune couche ne peut importer les deux — seules les racines de composition le peuvent, et elles sont deux. L'écart échoue **bruyamment** (contrôle 4), pas en silence |
+| Quatre optimisations du proxy | Mesurées **sous le bruit** : ~140 ns au total sur une requête qui en coûte 10⁵–10⁶. Conformément à ce que la Phase 2 a établi, on ne fait rien |
+
+⚠️ **Un effet de bord mesuré, et non corrigé ici** : le dépôt n'a **aucune icône**, et tout
+navigateur demande `/favicon.ico` à la première visite. Cette requête reçoit désormais la page 404
+complète — **14,5 Ko** au lieu de la 404 interne de Next. Ce n'est pas un défaut du mécanisme, c'est
+une icône manquante ; sa place est **P4-08**, la tâche des métadonnées et des images de partage. La
+mesure est ici pour qu'elle n'y soit pas redécouverte.
+
+### 13.11 Ce que P4-07 laisse ouvert
 
 | Sujet | État |
 |---|---|
@@ -986,3 +1109,6 @@ rendrait illisible.
 | Trois fichiers non couverts | Dette nommée, reprise en P4-10 (§13.8) |
 | `messages` et `TONES` inutilisés | Deux avertissements de lint **antérieurs** à cette tâche (P4-05), laissés hors de ce diff |
 | Aucun parcours n'exerce une frontière d'erreur | Assumé : la panne n'est pas provocable honnêtement (§13.6) |
+| `ROUTE_HANDLERS` reste écrit à la main | Deux entrées, confrontées au build **dans les deux sens** (§13.10) |
+| Pas de favicon | Mesuré, reporté en P4-08 (§13.10) |
+| Les quatre constats d'altitude écartés | Chacun avec sa raison et sa tâche de reprise (§13.10) |

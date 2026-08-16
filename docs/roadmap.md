@@ -714,9 +714,9 @@ reste et le filet de sécurité permanent du projet. Journal de phase :
 | P4-05 | Liste et détail des projets — **première page qui rend un corps MDX** | **DONE** *(2026-08-16)* | P4-02 |
 | P4-06 | Compétences (groupées par catégorie) | **DONE** *(2026-08-16)* | P4-02 |
 | P4-07 | Pages 404 et erreur, localisées | **DONE** *(2026-08-16)* | P4-02 |
-| P4-08 | Métadonnées OpenGraph et images de partage | TODO | P3-06 |
+| P4-08 | Métadonnées OpenGraph et images de partage — **plus le favicon**, dont l'absence fait servir la page 404 complète (14,5 Ko) à chaque première visite (`phase-4-log.md` §13.10) | TODO | P3-06 |
 | P4-09 | JSON-LD : `Person`, `WebSite`, `CreativeWork`, `BreadcrumbList` | TODO | P4-05 |
-| P4-10 | Passe accessibilité : titres, focus, contrastes, points de repère — **plus les trois tests de composant manquants** relevés en P4-07 (`phase-4-log.md` §13.8) | TODO | P4-06 |
+| P4-10 | Passe accessibilité : titres, focus, contrastes, points de repère — **plus les trois tests de composant manquants** (`phase-4-log.md` §13.8), le garde des endroits à piloter par l'arborescence, et l'instruction de `experimental.globalNotFound` comme plancher (§13.10) | TODO | P4-06 |
 | P4-11 | Responsive documentaire : mobile, tablette, desktop | TODO | P4-06 |
 | P4-12 | E2E : navigation complète, deep links, bascule de langue, clavier | TODO | P4-11 |
 | P4-13 | **Mise en production du portfolio documentaire** *(jalon T1)* | TODO | P4-12, P1-15, P2-11 |
@@ -837,12 +837,16 @@ WCAG 3.1.1 que le gate axe n'avait jamais vue, faute d'un parcours sur une 404.
 sont le produit : deux énumérations impossibles à fusionner. `check-static-rendering.mts` les
 confronte après coup **aux pages réellement prégénérées** — et non au sitemap, qui est une seconde
 dérivée : comparer deux dérivées accuse celle qui n'a pas tort. Les deux sens sont vus échouer.
-⛔⛔ **Le parcours E2E a trouvé deux défauts que rien d'autre ne pouvait voir.** Le matcher élargi
-énumérait ses exceptions à la main et ignorait `resume/` : **les deux CV répondaient 404**, alors
-qu'ils sont en ligne depuis la Phase 2. La liste est supprimée plutôt qu'allongée — un chemin de
-page ne contient jamais de point. Et la page introuvable était servie **sans en-tête**, étant un
-cinquième « endroit » qu'aucun layout ne déclarait ; élargir `CurrentPlace` a rendu la ligne du
-garde obligatoire à la compilation.
+⛔⛔⛔ **Le matcher a été faux deux fois.** Il énumérait d'abord ses exceptions à la main et ignorait
+`resume/` : **les deux CV répondaient 404** alors qu'ils sont en ligne depuis la Phase 2 (trouvé par
+le parcours E2E). Le premier correctif — « un chemin de page ne contient jamais de point » — était
+faux dans l'autre sens : `/wp-login.php` et `/cv.pdf`, qui n'existent pas, recevaient la 404 interne
+de Next, **sans `lang`** (trouvé par `/code-review`, confirmé par la mesure). Les deux versions ont
+la même racine : décider d'après la **forme** d'une URL ce que seul le disque sait. La décision
+quitte le matcher pour la fonction, sur des listes **générées** — dont celle de `public/`, lue sur
+le disque — et deux gates de plus les confrontent au build.
+⛔⛔ **Et la page introuvable était servie sans en-tête**, étant un cinquième « endroit » qu'aucun
+layout ne déclarait ; élargir `CurrentPlace` a rendu la ligne du garde obligatoire à la compilation.
 ⛔ **Les frontières d'erreur coûtent le premier JavaScript applicatif du site** : 0,0 → **7,2 Ko par
 route**, socle 129,5 → 126,0, soit **133,2 Ko** à la première visite pour une cible de 136. Mesuré
 avant d'être décidé, y compris les variantes écartées (`phase-4-log.md` §13.5). Le profil `no-js`

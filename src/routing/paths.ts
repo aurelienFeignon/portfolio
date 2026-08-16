@@ -62,6 +62,20 @@ export function sectionPath(locale: Locale, section: Section): string {
 }
 
 /**
+ * `/fr/404` — la page introuvable, **destination de réécriture** et non adresse
+ * du site (P4-07).
+ *
+ * Elle est ici parce que trois endroits doivent s'accorder au caractère près :
+ * le proxy qui y réécrit, le gate qui exige qu'elle soit prégénérée et qui
+ * l'exclut du sitemap, et l'arborescence `app/[locale]/404/`. Les deux premiers
+ * l'écrivaient en dur — le jour où l'un dérive, le proxy réécrit vers une route
+ * qui n'existe pas et les deux contrôles restent verts.
+ */
+export function notFoundPath(locale: Locale): string {
+  return `${homePath(locale)}/404`
+}
+
+/**
  * `/fr/projects/augure`
  *
  * Le slug est **encodé**. Le schéma de contenu ne laisse aujourd'hui passer que

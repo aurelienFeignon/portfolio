@@ -14,27 +14,28 @@ import { describe, expect, it, vi } from 'vitest'
 import { getMessages } from '@/i18n/messages'
 import { ErrorNotice } from '@/ui/error-notice'
 
+function renderNotice(locale: 'fr' | 'en' = 'fr', onRetry = vi.fn()) {
+  render(<ErrorNotice messages={getMessages(locale)} homeHref={`/${locale}`} onRetry={onRetry} />)
+}
+
 describe('avis d’erreur', () => {
-  it('annonce l’erreur dans la langue qu’on lui donne', () => {
-    render(<ErrorNotice messages={getMessages('en')} homeHref="/en" onRetry={vi.fn()} />)
+  it.each([
+    ['fr', 'Une erreur est survenue', 'Retour à l’accueil'],
+    ['en', 'Something went wrong', 'Back to the home page'],
+  ] as const)(
+    'annonce l’erreur en %s et ramène à l’accueil de cette locale',
+    (locale, title, backHome) => {
+      renderNotice(locale)
 
-    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Something went wrong')
-    expect(screen.getByRole('link', { name: 'Back to the home page' })).toHaveAttribute(
-      'href',
-      '/en',
-    )
-  })
-
-  it('ramène à l’accueil de la locale, jamais à la racine', () => {
-    render(<ErrorNotice messages={getMessages('fr')} homeHref="/fr" onRetry={vi.fn()} />)
-
-    expect(screen.getByRole('link', { name: 'Retour à l’accueil' })).toHaveAttribute('href', '/fr')
-  })
+      expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(title)
+      expect(screen.getByRole('link', { name: backHome })).toHaveAttribute('href', `/${locale}`)
+    },
+  )
 
   it('offre de réessayer par un bouton, et non par un lien', () => {
     // La distinction n'est pas cosmétique : un lecteur d'écran annonce « bouton »
     // ou « lien », et un lien déguisé ne s'active pas à la barre d'espace.
-    render(<ErrorNotice messages={getMessages('fr')} homeHref="/fr" onRetry={vi.fn()} />)
+    renderNotice()
 
     expect(screen.getByRole('button', { name: 'Réessayer' })).toBeInTheDocument()
     expect(screen.queryByRole('link', { name: 'Réessayer' })).not.toBeInTheDocument()
@@ -45,7 +46,7 @@ describe('avis d’erreur', () => {
     // (CT-08) pour un seul clic sur un bouton qui n'a ni focus à gérer ni
     // saisie à simuler.
     const retry = vi.fn()
-    render(<ErrorNotice messages={getMessages('fr')} homeHref="/fr" onRetry={retry} />)
+    renderNotice('fr', retry)
 
     fireEvent.click(screen.getByRole('button', { name: 'Réessayer' }))
 
@@ -56,7 +57,7 @@ describe('avis d’erreur', () => {
     // Le lien d'évitement du layout racine vise `#main` : une frontière d'erreur
     // qui ne le porterait pas ferait pointer ce lien dans le vide, au moment
     // précis où le visiteur en a le plus besoin.
-    render(<ErrorNotice messages={getMessages('fr')} homeHref="/fr" onRetry={vi.fn()} />)
+    renderNotice()
 
     expect(screen.getByRole('main')).toHaveAttribute('id', 'main')
   })
@@ -65,7 +66,7 @@ describe('avis d’erreur', () => {
     // `vision.md` §5.4 : messages neutres. Le composant ne reçoit même pas
     // l'erreur — c'est le contrat qui ferme la fuite, pas la vigilance de sa
     // mise en forme.
-    render(<ErrorNotice messages={getMessages('fr')} homeHref="/fr" onRetry={vi.fn()} />)
+    renderNotice()
 
     const text = screen.getByRole('main').textContent ?? ''
     for (const forbidden of ['Error', 'stack', 'digest', '/app/', 'undefined']) {

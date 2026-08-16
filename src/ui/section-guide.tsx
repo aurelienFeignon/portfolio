@@ -1,5 +1,6 @@
 /**
- * Accès aux trois sections, depuis l'accueil (P4-03).
+ * Accès aux trois sections — depuis l'accueil (P4-03), et depuis la page
+ * introuvable (P4-07), qui offre les mêmes issues pour la même raison.
  *
  * **Il double la navigation de l'en-tête, et c'est l'intention.** Un visiteur
  * qui arrive sur l'accueil n'a pas de raison d'aller lire une barre pour savoir
