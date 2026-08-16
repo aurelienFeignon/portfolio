@@ -96,6 +96,9 @@ export async function homeStructuredData(
     personNode(siteUrl, {
       name: site.name,
       jobTitle: site.jobTitle,
+      // L'accroche de l'accueil — le profil du CV (D7). Jamais
+      // `site.description`, qui décrit les rubriques du site et non quelqu'un.
+      description: site.intro,
       sameAs: PROFILE_URLS,
       /*
        * ⛔ **Le nom seul.** `level` est une auto-évaluation que personne n'a

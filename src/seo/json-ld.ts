@@ -120,6 +120,16 @@ function personReference(siteUrl: URL, name: string): JsonLdNode {
 interface PersonInput {
   readonly name: string
   readonly jobTitle: string
+  /**
+   * La description de la **personne** — l'accroche de l'accueil, c'est-à-dire le
+   * profil du CV (décision D7, tranchée le 2026-08-16).
+   *
+   * ⛔ **Ce n'est pas `site.description`**, et la distinction a coûté un constat
+   * de revue en P4-09 : celle-ci décrit les rubriques du site, pas quelqu'un.
+   * L'émettre ici affirmait sur une personne une phrase écrite pour un sommaire,
+   * et la répétait mot pour mot sur le nœud `WebSite` du même graphe.
+   */
+  readonly description: string
   /** Les profils publics — `src/seo/profiles.ts`, source unique. */
   readonly sameAs: readonly string[]
   /**
@@ -139,19 +149,17 @@ export function personNode(siteUrl: URL, input: PersonInput): JsonLdNode {
     name: input.name,
     jobTitle: input.jobTitle,
     /*
-     * ⛔ **Aucune `description`, et c'est une décision.** La première version y
-     * mettait `site.description` — « Portfolio de développeur Full-Stack :
-     * expériences, projets et compétences ». C'est la description du **site**,
-     * pas de la personne : l'émettre ici affirmait sur quelqu'un une phrase
-     * écrite pour décrire des rubriques, et la répétait mot pour mot sur le nœud
-     * `WebSite` du même graphe. C'est la faute exacte de l'`alt` d'image relevée
-     * en revue de P4-08 — décrire A avec le texte de B —, et une description
-     * fausse est pire qu'absente.
+     * ⭐ **Le champ que P4-09 avait laissé vide, rempli par D7.** La première
+     * version y mettait `site.description` — la description du **site** —, ce
+     * qu'une revue a écarté : c'est la faute de l'`alt` d'image de P4-08, décrire
+     * A avec le texte de B. Le champ est resté absent tant qu'aucune prose sur la
+     * personne n'existait, plutôt que d'être rempli avec la mauvaise.
      *
-     * Aucune prose sur Aurélien n'existe dans ce dépôt, et en écrire une est la
-     * **décision éditoriale D7**, ouverte. Le jour où elle est tranchée, sa place
-     * est ici. Relevé en revue.
+     * Il l'est depuis le 2026-08-16 : l'accroche de l'accueil est le **profil du
+     * CV**, que ce site distribue déjà en PDF. Les deux canaux disent désormais
+     * la même chose, et aucun des deux n'a été inventé.
      */
+    description: input.description,
     /*
      * L'accueil de la **locale par défaut** — une page réellement servie.
      *

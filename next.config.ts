@@ -6,6 +6,27 @@ const nextConfig: NextConfig = {
   // ni `node_modules` complet, ni gestionnaire de paquets (ADR-0008).
   output: 'standalone',
 
+  /*
+   * ⭐⭐ **Le plancher sous le mécanisme de 404** (P4-10, constat écarté de
+   * P4-07 §13.10, instruit ici).
+   *
+   * La 404 du site est `[locale]/404/page.tsx`, atteinte par réécriture du
+   * proxy. Ce drapeau ajoute `src/app/global-not-found.tsx` **sous** elle, pour
+   * les voies où le proxy n'a pas la main — son matcher exclut `_next/`.
+   *
+   * ⛔ **Mesuré avant/après, et le défaut était réel** : sans lui,
+   * `/_next/inexistant` répond `<html>` **sans `lang`** — la violation
+   * WCAG 3.1.1 que P4-07 avait supprimée par la porte principale, encore ouverte
+   * par celle-ci. Avec lui : `<html lang="fr">`.
+   *
+   * ⚠️ **Expérimental sur Next 16.3**, et vérifié tel : le build l'annonce
+   * (`Experiments (use with caution) : ✓ globalNotFound`) plutôt que de
+   * l'ignorer en silence. Le déclencheur de réexamen est sa stabilisation — ou
+   * son retrait, qui ferait réapparaître le défaut ci-dessus **sans rien casser
+   * d'autre**, d'où le parcours qui le garde.
+   */
+  experimental: { globalNotFound: true },
+
   // Le service `e2e` atteint le serveur de développement par le nom d'hôte
   // Docker `web`, et non `localhost`. Sans cette autorisation, Next 16 refuse la
   // connexion HMR en 403 — ce qui se manifeste par des erreurs console qui

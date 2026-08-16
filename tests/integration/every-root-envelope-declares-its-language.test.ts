@@ -6,12 +6,15 @@
  * défaut que P4-07 supprime : la 404 interne de Next est servie hors du layout
  * racine, donc sans langue déclarée.
  *
- * Le site a **deux** émetteurs de `<html>` : `app/[locale]/layout.tsx`, couvert
- * par les parcours E2E qui lisent l'attribut sur la page servie, et
+ * Le site a **trois** émetteurs de `<html>` : `app/[locale]/layout.tsx`, couvert
+ * par les parcours E2E qui lisent l'attribut sur la page servie ;
  * `app/global-error.tsx`, qui rend sa propre enveloppe parce que Next l'y oblige
- * — et que rien ne vérifiait. Il est exclu de la couverture (composition), aucun
- * parcours ne peut l'atteindre (`phase-4-log.md` §13.6), et son test de composant
- * ne voit jamais de `<html>`. Relevé en revue.
+ * — et que rien ne vérifiait ; et, depuis **P4-10**, `app/global-not-found.tsx`,
+ * le plancher sous le mécanisme de 404, pour la même raison structurelle.
+ *
+ * ⚠️ **Cet en-tête a annoncé « deux » pendant que l'assertion en attendait
+ * trois** — une prose qui survit au code qu'elle décrit, relevée en revue, dans
+ * le fichier même dont c'est le sujet.
  *
  * ⚠️ **Ce garde lit le texte source, et c'est un choix assumé.** Le dépôt a déjà
  * payé cette forme une fois (§7.1 : un garde par expression régulière qui
@@ -46,7 +49,7 @@ async function rootEnvelopes(): Promise<{ file: string; tag: string }[]> {
 
     const path = join(entry.parentPath, entry.name)
     // Les commentaires d'abord : ils parlent abondamment de `<html>`, et les
-    // lire ferait compter quatre enveloppes pour deux.
+    // lire ferait compter plus d’enveloppes qu’il n’en existe.
     const code = (await readFile(path, 'utf8')).replace(/\/\*[\s\S]*?\*\//g, '')
 
     for (const [tag] of code.matchAll(/<html\b[^>]*>/g)) {
@@ -58,12 +61,20 @@ async function rootEnvelopes(): Promise<{ file: string; tag: string }[]> {
 }
 
 describe('enveloppes racines', () => {
-  it('sont exactement deux — le layout de locale, et la frontière globale', async () => {
-    // Le compte est l'autre moitié du garde : une troisième enveloppe est une
-    // décision structurelle, pas un détail, et elle doit passer par ici.
+  it('sont exactement trois — le layout de locale, et les deux frontières globales', async () => {
+    /*
+     * Le compte est l'autre moitié du garde : une enveloppe de plus est une
+     * décision structurelle, pas un détail, et elle doit passer par ici.
+     *
+     * ⭐ La troisième est arrivée en **P4-10** : `global-not-found.tsx`, le
+     * plancher sous le mécanisme de 404. Next ne l'entoure d'aucun layout — même
+     * contrepartie que `global-error.tsx` —, elle rend donc sa propre enveloppe.
+     * C'est précisément pour cela qu'elle existe : sans elle, les voies que le
+     * proxy n'atteint pas recevaient un `<html>` **sans `lang`**, mesuré.
+     */
     const files = (await rootEnvelopes()).map(({ file }) => file).sort()
 
-    expect(files).toEqual(['[locale]/layout.tsx', 'global-error.tsx'])
+    expect(files).toEqual(['[locale]/layout.tsx', 'global-error.tsx', 'global-not-found.tsx'])
   })
 
   it('déclarent toutes la langue du document', async () => {

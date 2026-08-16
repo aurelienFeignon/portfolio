@@ -27,7 +27,8 @@ const ENTITY: PageLocation = { kind: 'entity', section: 'projects', slug: 'portf
 
 const PERSON = {
   name: 'Aurélien Feignon',
-  jobTitle: 'Développeur Full-Stack',
+  jobTitle: 'Développeur Full Stack senior',
+  description: 'Accroche de l’accueil, reprise du CV.',
   sameAs: ['https://github.com/exemple'],
   knowsAbout: ['TypeScript', 'PostgreSQL'],
 }
@@ -54,24 +55,13 @@ describe('Person', () => {
     expect(personId(SITE)).toBe('https://exemple.test/#person')
   })
 
-  it('annonce le nom et l’intitulé de poste reçus', () => {
+  it('annonce le nom, l’intitulé de poste et la description reçus', () => {
     const person = personNode(SITE, PERSON)
 
     expect(person['@type']).toBe('Person')
     expect(person['name']).toBe('Aurélien Feignon')
-    expect(person['jobTitle']).toBe('Développeur Full-Stack')
-  })
-
-  it('ne décrit pas la personne avec la description du site', () => {
-    /*
-     * ⛔ La première version émettait `site.description` — « Portfolio de
-     * développeur Full-Stack : expériences, projets et compétences » — comme
-     * `Person.description`. C'est la description du **site**, et elle était de
-     * surcroît répétée mot pour mot sur le `WebSite` du même graphe. Même faute
-     * que l'`alt` d'image de P4-08 : décrire A avec le texte de B. Aucune prose
-     * sur la personne n'existe dans ce dépôt — c'est la décision D7, ouverte.
-     */
-    expect(personNode(SITE, PERSON)).not.toHaveProperty('description')
+    expect(person['jobTitle']).toBe('Développeur Full Stack senior')
+    expect(person['description']).toBe('Accroche de l’accueil, reprise du CV.')
   })
 
   it('désigne une page réellement servie, et non l’origine nue', () => {

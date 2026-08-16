@@ -59,7 +59,9 @@ test.describe('données structurées', () => {
     const person = nodeOfType(graph, 'Person')
     expect(person).toBeDefined()
     expect(person?.['name']).toBe('Aurélien Feignon')
-    expect(person?.['jobTitle']).toBe('Développeur Full-Stack')
+    // Aligné sur le CV, qui porte « senior » (D7, 2026-08-16) : deux documents
+    // publiés par le même site ne peuvent pas s'intituler différemment.
+    expect(person?.['jobTitle']).toBe('Développeur Full Stack senior')
 
     const site = nodeOfType(graph, 'WebSite')
     expect(site).toBeDefined()

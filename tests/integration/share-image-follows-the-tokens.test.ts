@@ -31,6 +31,23 @@ import { join } from 'node:path'
 
 import { describe, expect, it } from 'vitest'
 
+import { BRAND } from '@/ui/brand-palette'
+
+/**
+ * Le token que chaque clé du palette désigne.
+ *
+ * ⚠️ Écrit ici et non déduit : `textMuted` s'écrit `--color-text-muted`, et une
+ * conversion camelCase → kebab-case serait une **règle** là où il n'y a que
+ * quatre correspondances. La table est exhaustive par construction — une
+ * cinquième couleur ne compile pas tant qu'on n'a pas dit quel token elle suit.
+ */
+const TOKEN_OF = {
+  accent: 'accent',
+  background: 'background',
+  text: 'text',
+  textMuted: 'text-muted',
+} as const satisfies Record<keyof typeof BRAND, string>
+
 const SOURCE_DIR = join(process.cwd(), 'src')
 const TOKENS = join(SOURCE_DIR, 'app', 'globals.css')
 
@@ -72,5 +89,28 @@ describe('palette des rendus hors navigateur', () => {
       invented,
       'ces couleurs ne sont plus dans globals.css : un rendu a dérivé du site',
     ).toEqual([])
+  })
+
+  it('la valeur **importée** est celle des tokens, et pas seulement le texte du fichier', async () => {
+    /*
+     * ⭐ **Lire un fichier n'est pas l'exécuter.** Les deux contrôles ci-dessus
+     * parcourent `src/` comme du **texte** : ils ne chargent aucun module, si
+     * bien que `brand-palette.ts` — le seul endroit où ces valeurs vivent —
+     * restait à 0 % de couverture, dette nommée en `phase-4-log.md` §13.8.
+     *
+     * Ce contrôle-ci **importe** le palette et confronte chaque valeur au token
+     * du même nom. Il est strictement plus fort : le texte du fichier peut
+     * contenir la bonne couleur dans un commentaire pendant que la constante en
+     * porte une autre, et les deux premiers le laisseraient vert.
+     */
+    const css = await readFile(TOKENS, 'utf8')
+    const tokenValue = (name: string) =>
+      new RegExp(`--color-${name}\\s*:\\s*(#[0-9a-fA-F]{3,8})`).exec(css)?.[1]?.toLowerCase()
+
+    const mismatched = Object.entries(BRAND).filter(
+      ([name, value]) => tokenValue(TOKEN_OF[name as keyof typeof BRAND]) !== value.toLowerCase(),
+    )
+
+    expect(mismatched, 'le palette importé et les tokens ne disent plus la même chose').toEqual([])
   })
 })
