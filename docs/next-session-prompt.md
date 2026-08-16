@@ -30,7 +30,7 @@ Les Phases 0, 1, 2 et 3 sont TERMINÉES et validées. Ne les refais pas, ne les 
 
 ## État
 
-Phases 0 à 3 : **DONE**. **Phase 4 (Portfolio HTML) : en cours**, 7 tâches sur 17 closes.
+Phases 0 à 3 : **DONE**. **Phase 4 (Portfolio HTML) : en cours**, 9 tâches sur 17 closes.
 
 **Fusionné sur `main` et déployé** — PR #15 à #21, CI verte à chaque fois :
 
@@ -44,54 +44,55 @@ Phases 0 à 3 : **DONE**. **Phase 4 (Portfolio HTML) : en cours**, 7 tâches sur
 | P4-06 | Compétences groupées par catégorie |
 | P4-05 | Liste et fiche des projets, **premier corps MDX rendu** |
 
-**Reste : P4-07 à P4-16.** Le journal de phase (`phase-4-log.md`) documente chacune, y compris ce que
-la revue a renversé — lis-le, il porte l'essentiel des leçons.
+### ⚠️ P4-07 et P4-08 sont CLOSES, sur une branche, **en attente de fusion**
 
-### ⚠️ P4-07 est EN COURS, sur une branche, non fusionnée
+Branche `feat/p4-07-not-found`, **PR #22**, CI verte sur `63f84d9`. La fusion attend ta décision :
+elle déclenche un déploiement en production.
 
-Branche `feat/p4-07-not-found`, commit `23f37bb`, **poussée**. C'est un commit de travail : ne pas
-fusionner en l'état.
+| Tâche | Ce qu'elle a livré |
+|---|---|
+| P4-07 | 404 et pages d'erreur **localisées**, servies par réécriture du proxy |
+| P4-08 | Gabarit de titre, OpenGraph, image de partage, icône |
 
-**Ce qui fonctionne et est mesuré sur l'image de production :**
+**Reste : P4-09 à P4-16.**
 
-    /fr/projects/inconnu  404 | lang=fr | Page introuvable
-    /fr/rien              404 | lang=fr | Page introuvable
-    /de/projects          404 | lang=fr | Page introuvable
-    /rien                 404 | lang=fr | Page introuvable
-    /en/rien (accept:fr)  404 | lang=en | Page not found     <- l'URL l'emporte sur l'en-tete
-    /fr/projects          200 | lang=fr | Projets            <- inchange
+⭐⭐⭐ **Le journal de phase (`phase-4-log.md` §13 et §14) est ce qu'il faut lire, pas ce résumé.**
+Ces deux tâches ont trouvé **trois défauts déjà livrés**, et aucun n'était visible à la relecture :
 
-**Ce qui reste à faire, dans l'ordre :**
+| Défaut | Trouvé par |
+|---|---|
+| ⛔⛔ **Les deux CV répondaient 404** — en ligne depuis la Phase 2 | le parcours E2E |
+| ⛔⛔ `/wp-login.php`, `/cv.pdf` rendaient un `<html>` **sans `lang`** | `/code-review` + mesure |
+| ⛔⛔⛔ Une URL **`localhost`** gravée dans les pages 404 prérendues | `/code-review` + mesure |
 
-1. ⛔ **La confrontation manifeste ↔ sitemap dans `scripts/check-static-rendering.mts`.** Le proxy a
-   besoin de la liste des chemins servis **avant** `next build` ; le sitemap est un produit de ce
-   build. Ce sont donc **deux énumérations**, et deux énumérations qui divergent sont exactement la
-   panne que décrit R-07. Rien ne les confronte encore. C'est le premier point, et il n'est pas
-   optionnel.
-2. La page d'erreur : `error.tsx` et `global-error.tsx`, avec le même traitement de langue. ⚠️
-   `global-error.tsx` doit rendre son propre `<html>`/`<body>` — c'est la seule exception de Next, et
-   elle est documentée.
-3. Les parcours E2E : la 404 en français avec ses liens de secours, et **un audit axe sur la 404** —
-   c'est le parcours qui manquait et qui aurait vu la violation WCAG 3.1.1.
-4. La documentation : `phase-4-log.md` §13 (les trois sondes y sont déjà résumées dans le message de
-   commit, à reprendre), `roadmap.md`, et `architecture.md` §4.2 dont le proxy contredit désormais la
-   description (« il ne s'exécute que sur `/` »).
-5. `/code-review` puis `/simplify`, puis PR.
+⭐⭐⭐ **Les trois ont la même forme : une affirmation sur le monde que rien ne confrontait au
+monde.** Une liste d'exceptions écrite d'imagination ; une heuristique de forme là où seul le disque
+sait ; une base d'URL non déclarée — **dont Next écrivait l'avertissement au build, en toutes
+lettres**. Ce dernier point est la leçon de la Phase 3 repayée à l'identique : *lis la sortie des
+outils*.
 
-**Le raisonnement à ne pas refaire** — trois sondes l'ont établi, et il est dans le commit :
-`[locale]/not-found.tsx` n'est **jamais** atteint (`dynamicParams = false` fait du slug inconnu un
-échec de *routage*, pas un `notFound()`) ; `app/not-found.tsx` est rendu mais **hors de tout layout
-racine**, le nôtre vivant sous `[locale]` — donc sans `<html lang>` ; lui faire rendre sa propre
-enveloppe produit **deux** `<html>` ; un groupe de routes avec son propre layout racine n'est pas
-retenu. La voie choisie avec l'utilisateur est donc la réécriture par le proxy vers une vraie page
-prérendue.
+⭐⭐ **Deux gardes que j'ai écrits ont payé le même piège que ceux qu'ils remplaçaient** : celui des
+enveloppes racines comptait les `<html>` **cités dans les commentaires**, et la sonde de palette ne
+pouvait pas voir la duplication qu'elle prétendait garder — elle vérifie qu'un littéral *est* un
+token, jamais que deux fichiers désignent *le même*. Un garde qui lit du texte source lit **tout** le
+texte source.
 
-⚠️ **Le statut est porté par la réécriture** (`{ status: 404 }`). Une réécriture rend 200 par défaut :
-servir le bon contenu avec le mauvais statut dirait à un moteur de recherche que la page existe.
+### Ce que la Phase 4 coûte désormais, et qu'il ne faut pas redécouvrir
 
-⚠️ **Le site est volontairement fermé au public** : Cloudflare Access, OTP par e-mail. Une requête
-anonyme reçoit une 302 vers `cloudflareaccess.com` — **ce n'est pas une panne**. Ce qui fait foi pour
-juger d'un déploiement est `gh run list --branch main --limit 1`. Détail : `deploy/README.md` §4.2.
+| Relevé | Valeur (2026-08-16) | Seuil |
+|---|---|---|
+| JS propre à chaque route | **7,3 Ko** — le premier JavaScript applicatif du site | cible 25 · bloquant 40 |
+| Socle partagé | **126,4 Ko** | cible 136 · bloquant 146 |
+| Image de production | **272 Mo** (+4 Mo : `next/og`, **entièrement de build**) | cible 250 · bloquant 400 |
+| Tests | **569** verts, couverture **98,6 %** | ≥ 80 % |
+| E2E | **117** verts sur 5 profils, 0 violation axe | — |
+
+⛔ **« Couverture 100 % » était faux depuis P4-05**, et le chiffre a survécu deux tâches dans ce
+journal. Trois fichiers ne sont pas couverts (`place-layout.tsx`, `technology-section.tsx`,
+`company-line.tsx`) — dette nommée, reprise en **P4-10**. Remesure, ne recopie pas.
+
+⛔ **Le profil `no-js` n'est plus vrai *par construction*** : il l'est **par vérification**. Les
+frontières d'erreur sont des composants client, et c'est le seul JavaScript applicatif du site.
 
 ## Décisions déjà prises — ne pas les rejouer
 
@@ -139,37 +140,44 @@ mets l'ADR à jour et ajoute une ligne au journal des révisions. Jamais de chan
 
 ## Ta mission cette session
 
-**Termine P4-07**, puis enchaîne sur P4-08 (métadonnées OpenGraph et gabarit de titre) et la suite de
-la Phase 4. La liste des cinq points restants de P4-07 est dans « État » ci-dessus, dans l'ordre.
+**Enchaîne sur P4-09** (JSON-LD : `Person`, `WebSite`, `CreativeWork`, `BreadcrumbList`), puis la
+suite de la Phase 4. La PR #22 attend une décision de fusion — demande-la, ne la prends pas.
+
+⚠️ **P4-09 hérite de deux choses de P4-08**, écrites pour ne pas être redécouvertes :
+
+- **`og:type` vaut `website` partout**, y compris sur les fiches. Une fiche est un `article` au sens
+  d'OpenGraph, mais l'annoncer inviterait à chercher un `article:published_time` que nos dates à
+  **précision variable** ne peuvent pas former (P4-17). C'est le JSON-LD qui porte la sémantique
+  d'entité — donc toi.
+- **Le préalable de P4-09 est déjà levé** : `isoDateSchema` accepte `AAAA` / `AAAA-MM` / `AAAA-MM-JJ`,
+  et ce qui est stocké est **émissible verbatim**. Émets le champ tel quel ; ne le complète jamais.
+
+⭐⭐ **Un gate travaillera pour toi si tu le laisses faire.** `check-static-rendering.mts` porte six
+contrôles et a refusé, sans qu'on le lui demande, une image de partage rendue à la demande puis une
+route que le proxy aurait réécrite en 404. Toute nouvelle route non-page devra entrer dans
+`ROUTE_HANDLERS` — le gate te le dira, avec le nom du fichier à éditer.
 
 Cinq points de méthode que la Phase 4 a payés cher, et qui valent pour la suite :
 
 ⭐⭐⭐ **Un nombre recopié et jamais remesuré finit par décider seul.** L'image de production était
-annoncée à 385 Mo dans quatre documents ; elle en pèse **268,6**. Ce chiffre avait réordonné la
-phase — P4-05 était traitée comme « le seul sujet à risque » avec 15 Mo de marge, alors qu'il y en a
-131 et que le runtime MDX coûte 0,5 Mo. **Remesure avant de t'appuyer sur un chiffre.**
+annoncée à 385 Mo dans quatre documents ; elle en pesait **268,6**. Ce chiffre avait réordonné la
+phase. Et « couverture 100 % » a survécu deux tâches après être devenu faux. **Remesure avant de
+t'appuyer sur un chiffre.**
 
 ⭐⭐⭐ **Un seuil que rien ne fait respecter n'est pas un seuil.** Celui de 400 Mo était écrit dans le
-budget et appliqué nulle part : la CI écrivait la taille dans son résumé et n'en faisait rien. Il est
-bloquant depuis P4-05 (`make check-image-size`). Quand tu vois un seuil documenté, **vérifie qui le
-lit**.
+budget et appliqué nulle part. Il est bloquant depuis P4-05. Quand tu vois un seuil documenté,
+**vérifie qui le lit**.
 
-⭐⭐⭐ **Un test neuf doit être vu rouge avant d'être cru.** La revue a trouvé, tâche après tâche, des
-gardes qui ne pouvaient pas échouer : une liste désignée par sa **position** qui visait le sélecteur
-de langue, une boucle sur une collection qui pouvait être vide, un motif de slug qui exigeait un tiret
-que les technologies réelles n'ont pas. Trois fois la même forme. **Mutation-teste tes gardes** —
-c'est devenu la pratique du dépôt, et elle a payé à chaque fois.
+⭐⭐⭐ **Un test neuf doit être vu rouge avant d'être cru** — et un garde qui lit du texte source lit
+**tout** le texte source, commentaires compris (P4-07). Mutation-teste tes gardes, sans exception.
 
-⭐⭐ **N'affiche jamais comme un fait une valeur d'attente.** Les dates portaient des 1ᵉʳ janvier
-inventés ; les 40 niveaux de compétence sont une proposition non relue et **ne sont pas affichés**
-(décision D2, ouverte). Le contrat le tient — `SkillGroup` ne porte que `{ slug, name }` — pas le
-test, qui n'est qu'un filet.
+⭐⭐⭐ **Lis la sortie des outils.** Les défauts les plus graves de P4-07 et P4-08 y étaient écrits :
+un avertissement `metadataBase` au build, un gate qui nommait le fichier à corriger. Aucun n'a été
+trouvé en relisant du code.
 
-⭐⭐ **`/code-review` puis `/simplify` avant chaque push, sans exception.** Sur les six tâches de cette
-phase, ils ont trouvé **entre 4 et 9 défauts réels à chaque fois**, sur du code dont tous les gates
-étaient déjà verts — dont trois régressions visibles qu'aucun gate ne pouvait voir : un mur de texte
-(spécificité CSS), une carte sans indicateur de focus (`:has()`), 288 px de décalage (`margin-inline`
-sur un élément flex). **Une régression purement visuelle ne se prouve que par une mesure géométrique.**
+⭐⭐ **`/code-review` puis `/simplify` avant chaque push, sans exception.** Sur ces deux tâches, ils
+ont trouvé **douze défauts réels** sur du code dont tous les gates étaient verts — dont trois défauts
+**déjà livrés**.
 
 Avant de coder, applique la méthode de phase. À la fin de la phase, produis un bilan : fait / dérives
 / reporté.
@@ -227,13 +235,17 @@ Le chemin critique — la rédaction du contenu — est **levé** depuis le 2026
 
 **Chiffres à jour — ceux-ci ont été remesurés, ne les recopie pas sans les revérifier :**
 
-| Relevé | Valeur (2026-08-16) | Seuil |
+| Relevé | Valeur (2026-08-16, après P4-08) | Seuil |
 |---|---|---|
-| Image de production | **268,6 Mo** (base 229,1 + app 38,7) | cible 250 · **bloquant 400, appliqué** |
-| JS propre à chaque route | **0,0 Ko** sur 18 routes | cible 25 · bloquant 40 Ko |
-| Socle partagé | **129,5 Ko** | cible 136 · bloquant 146 Ko |
-| Tests | **503** verts, couverture 100 % | — |
-| E2E | 93 verts sur 5 profils | — |
+| Image de production | **272 Mo** | cible 250 · **bloquant 400, appliqué** |
+| JS propre à chaque route | **7,3 Ko** sur 18 routes | cible 25 · bloquant 40 Ko |
+| Socle partagé | **126,4 Ko** | cible 136 · bloquant 146 Ko |
+| Tests | **569** verts, couverture **98,6 %** | ≥ 80 % |
+| E2E | **117** verts sur 5 profils | — |
+
+⛔⛔ **Les cinq valeurs de ce tableau étaient périmées** au moment de l'écrire — sous un titre qui dit
+« chiffres à jour, remesurés ». La section qui met en garde contre les nombres recopiés en portait
+elle-même cinq. Remesure : `make bundle`, `make check-image-size`, `make coverage`.
 
 ⛔ **L'image dépasse la cible de 250 Mo depuis toujours**, et rien ne le disait avant que le gate ne
 porte les deux paliers. `performance-budget.md` §7.1 tranche : ne rien changer, aucune image Node
@@ -241,13 +253,22 @@ officielle n'atteint 250 Mo.
 
 **Dettes nommées, par ordre d'urgence :**
 
-- ⛔ **La confrontation manifeste ↔ sitemap** (P4-07, point 1 ci-dessus). Deux énumérations sans
-  garde, c'est R-07.
+- ✅ ~~La confrontation manifeste ↔ sitemap~~ — **faite en P4-07**, et autrement que prévu : les
+  listes générées sont confrontées **aux pages réellement prégénérées**, pas au sitemap. Il y a trois
+  énumérations, dont deux dérivées ; comparer deux dérivées produit un message qui accuse celle qui
+  n'a pas tort. Le gate porte **six contrôles**, tous vus rouges.
+- ⛔ **Trois fichiers ne sont pas couverts** — `place-layout.tsx`, `technology-section.tsx`,
+  `company-line.tsx` (P4-02 et P4-05). Tests de composant manquants, à écrire en **P4-10**.
+- ⚠️ **L'icône du site est un monogramme d'attente** (P4-08), dérivé des initiales de `site.name`. Un
+  logo est **ta** décision ; le remplacer se fait par un `icon.png` dans `src/app/`, rien d'autre ne
+  bouge. Et une requête **nue** sur `/favicon.ico` reste une 404 : la fermer demanderait une copie
+  figée de l'icône générée, ce que ce dépôt passe son temps à supprimer.
+- ⚠️ **L'`og:image` n'a pas de condensat** : une image redessinée garderait la même URL, et un cache
+  social servirait l'ancienne vignette. Déclencheur écrit — versionner l'adresse le jour où l'image
+  change.
 - ⚠️ **Le sélecteur de langue est rendu par chaque page**, à l'intérieur du `main` — inhabituel pour
   une commande de portée globale. Ses options dépendent de la page, donc un layout ne peut pas le
   rendre. Choix de gabarit, à trancher.
-- ⚠️ **`architecture.md` §4.2 décrit un proxy qui « ne s'exécute que sur `/` »** — ce n'est plus vrai
-  depuis P4-07. À amender avec la tâche.
 - **`EntityList` ne sert plus qu'aux projets** ; les expériences et les compétences ont leur
   composant. Il reste parce qu'un projet n'a qu'un titre et un résumé, pas parce qu'il est générique.
 - **`getFeaturedProjects` / `getFeaturedSkills` n'ont aucun appelant de production.** Le drapeau
@@ -273,6 +294,12 @@ officielle n'atteint 250 Mo.
   attendre la fusion — ne pas empiler.
 - ⚠️ Un `*/` dans un chemin écrit en commentaire **ferme le bloc JSDoc**. Deux fichiers s'en sont
   cassés.
+- ⚠️ **`pnpm build` régénère `src/routing/route-manifest.ts`** avant `next build`. Le générateur rend
+  la forme déjà passée par Prettier — sans quoi chaque build salissait l'arbre de travail — et un
+  test compare octet à octet le fichier committé à ce que produirait le générateur aujourd'hui.
+- ⚠️ **Les types de routes générés par Next périment `tsc`** après l'ajout d'un layout : `make
+  typecheck` échoue sur `.next/dev/types` tant qu'un build n'a pas eu lieu. Reconstruire, pas
+  débugger.
 
 **Questions Q3 à Q6, Q8, Q9, Q11, Q14 à Q19** de `docs/phase-0-questions.md` : applique la
 recommandation par défaut et signale-le, ne me bloque pas dessus.
