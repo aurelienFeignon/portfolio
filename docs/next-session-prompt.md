@@ -34,7 +34,7 @@ Les Phases 0, 1, 2 et 3 sont TERMINÉES et validées. Ne les refais pas, ne les 
 
 ## État
 
-Phases 0 à 3 : **DONE**. **Phase 4 (Portfolio HTML) : en cours**, 10 tâches sur 17 closes.
+Phases 0 à 3 : **DONE**. **Phase 4 (Portfolio HTML) : en cours**, 11 tâches sur 17 closes.
 
 **Fusionné sur `main` et déployé** — PR #15 à #21, CI verte à chaque fois :
 
@@ -70,7 +70,19 @@ prose dans un rapport de fin de tâche.
 organisation employeuse — Augure n'est pas une société constituée —, ni le dépôt d'un projet que la
 fiche ne rend pas, ni une description de la personne (D7). Ne les rouvre pas sans décision explicite.
 
-**Reste : P4-10 à P4-16.**
+### P4-10 — passe d'accessibilité, **fusionnée** le 2026-08-16
+
+Audit axe, plan des titres, points de repère et noms accessibles sur **les 16 pages servies**,
+périmètre **dérivé du sitemap** et non énuméré.
+
+⛔⛔ **Elle a trouvé un défaut réel encore ouvert après P4-07** : le matcher du proxy exclut `_next/`,
+si bien qu'une adresse inconnue sous ce préfixe recevait la 404 **interne** de Next — `<html>` sans
+`lang`, WCAG 3.1.1. `experimental.globalNotFound` pose le plancher, mesuré avant/après.
+
+⭐⭐ **Couverture 100 %** sur les quatre métriques : la dette des cinq fichiers est soldée, et le
+chiffre que §13.8 croyait annoncer est enfin vrai.
+
+**Reste : P4-11 à P4-16.**
 
 ⛔⛔ **Le site est volontairement FERMÉ au public**, derrière Cloudflare Access (OTP par e-mail),
 et le restera tant que le portfolio n'est pas terminé. **Une requête anonyme reçoit une 302 vers
@@ -113,15 +125,14 @@ texte source.
 | JS propre à chaque route | **7,3 Ko** — le premier JavaScript applicatif du site | cible 25 · bloquant 40 |
 | Socle partagé | **126,4 Ko** | cible 136 · bloquant 146 |
 | Image de production | **273 Mo** | cible 250 · bloquant 400 |
-| Tests | **606** verts, couverture **98,69 %** | ≥ 80 % |
-| E2E | **128** verts sur 5 profils, 0 violation axe | — |
+| Tests | **622** verts, couverture **100 %** | ≥ 80 % |
+| E2E | **135** verts sur 5 profils, 0 violation axe sur les **16 pages servies** | — |
 
-⛔ **« Couverture 100 % » était faux depuis P4-05**, et le chiffre a survécu deux tâches dans ce
-journal. **Cinq** fichiers ne sont pas couverts — `place-layout.tsx`, `technology-section.tsx`,
-`prose.tsx`, `brand-palette.ts`, `company-line.tsx` — dette nommée, reprise en **P4-10**.
-⛔⛔ La liste en annonçait **trois** : le *chiffre* avait été remesuré, la *liste* écrite de mémoire,
-et elle oubliait l'une des deux extractions d'un même commit. Remesure, ne recopie pas — **la liste
-autant que le nombre**.
+✅ **La couverture est revenue à 100 %** en P4-10, et pour la première fois depuis P4-05 le chiffre
+est vrai. La dette des cinq fichiers est soldée.
+⛔⛔ Retiens la leçon plutôt que le chiffre : la liste des non-couverts en annonçait **trois** pour
+**cinq** — le *nombre* avait été remesuré, la *liste* écrite de mémoire. Remesure, ne recopie pas,
+**la liste autant que le nombre**.
 
 ⛔ **Le profil `no-js` n'est plus vrai *par construction*** : il l'est **par vérification**. Les
 frontières d'erreur sont des composants client, et c'est le seul JavaScript applicatif du site.
@@ -294,8 +305,8 @@ Le chemin critique — la rédaction du contenu — est **levé** depuis le 2026
 | Image de production | **273 Mo** | cible 250 · **bloquant 400, appliqué** |
 | JS propre à chaque route | **7,3 Ko** sur 18 routes | cible 25 · bloquant 40 Ko |
 | Socle partagé | **126,4 Ko** | cible 136 · bloquant 146 Ko |
-| Tests | **606** verts, couverture **98,69 %** | ≥ 80 % |
-| E2E | **128** verts sur 5 profils | — |
+| Tests | **622** verts, couverture **100 %** | ≥ 80 % |
+| E2E | **135** verts sur 5 profils | — |
 
 ⛔⛔ **Les cinq valeurs de ce tableau étaient périmées** au moment de l'écrire — sous un titre qui dit
 « chiffres à jour, remesurés ». La section qui met en garde contre les nombres recopiés en portait
@@ -311,10 +322,10 @@ officielle n'atteint 250 Mo.
   listes générées sont confrontées **aux pages réellement prégénérées**, pas au sitemap. Il y a trois
   énumérations, dont deux dérivées ; comparer deux dérivées produit un message qui accuse celle qui
   n'a pas tort. Le gate porte **six contrôles**, tous vus rouges.
-- ⛔ **Cinq fichiers ne sont pas couverts** — `place-layout.tsx` (P4-02), `technology-section.tsx` et
-  `prose.tsx` (P4-05), `brand-palette.ts` (P4-08), `company-line.tsx` (P4-04, 75 % de branches).
-  Tests de composant manquants, à écrire en **P4-10**. La liste en annonçait trois : elle avait été
-  écrite de mémoire à côté d'un chiffre, lui, remesuré (`phase-4-log.md` §13.8).
+- ✅ ~~Cinq fichiers non couverts~~ — **soldé en P4-10**, couverture 100 %.
+- ⚠️ **`experimental.globalNotFound` est un drapeau expérimental** de Next 16.3, et le site en dépend
+  depuis P4-10 pour que les voies hors du proxy déclarent leur langue. Sa stabilisation — ou son
+  retrait — est un déclencheur de réexamen ; un parcours garde l'effet, donc le retrait se verrait.
 - ⛔ **`links.repository` n'est rendu par aucune page** (relevé en P4-09) : `content/` le porte,
   personne ne l'affiche, et le JSON-LD ne peut donc pas l'annoncer — une donnée structurée décrit ce
   que la page **montre**. À reprendre avec la fiche de projet.

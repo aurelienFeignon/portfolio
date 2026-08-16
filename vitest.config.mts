@@ -75,6 +75,15 @@ export default defineConfig({
         // donc d'introduire le mock comme pratique du dépôt — pour deux lignes.
         'src/app/**/error.tsx',
         'src/app/global-error.tsx',
+        // Plancher sous le mécanisme de 404 (P4-10) : même nature que
+        // `global-error.tsx` ci-dessus — une enveloppe `<html>` que Next impose
+        // de rendre soi-même, et de la composition pure en dessous. Elle ne
+        // porte **aucune** décision à branches : la langue est `DEFAULT_LOCALE`,
+        // faute de `params` à cet endroit, et c'est précisément ce qui la
+        // distingue de la 404 localisée. Ce qu'elle garantit — un `lang` sur les
+        // voies que le proxy n'atteint pas — est vérifié par un parcours contre
+        // l'image de production, mesuré avant/après.
+        'src/app/global-not-found.tsx',
         // Routes de **métadonnée** de l'App Router (P4-08) : `icon.tsx` et
         // `opengraph-image.tsx` ne rendent pas du HTML mais une image, et leur
         // corps est de la composition — une seule décision les habitait, les

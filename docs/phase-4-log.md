@@ -1550,3 +1550,147 @@ mesure — 7,3 Ko par route, exactement comme avant la tâche.
 | Les profils vivent dans `src/seo/profiles.ts` | **Déclencheur écrit** : au troisième consommateur — un « À propos » (Phase 9), une page de contact (Phase 10) —, la question d'un type de contenu « personne » se rouvre. Deux ne la justifient pas |
 | `knowsAbout` sur l'accueil | Les dix compétences vivent sur `/skills`. `Person` décrit une personne, pas la page qui la porte ; s'il fallait resserrer, sa place serait `/skills` |
 | CSP et blocs `ld+json` | **Note écrite dans le code** pour l'ADR-0015 (Phase 14) : une `script-src` stricte les supprimerait **en silence**. La politique devra porter un `nonce` ou un condensat |
+
+## 16. D7 et D3 — l'accroche vient du CV, et on ne publie pas de volume
+
+### 16.1 ⭐⭐ Ce qui change n'est pas qu'une accroche existe, c'est **d'où elle vient**
+
+P4-03 avait refusé d'écrire un texte de présentation, et avait raison : une prose sur le parcours
+d'Aurélien rédigée par une session est une **affirmation sur quelqu'un** que personne ne tient de
+lui. L'accueil affichait donc `site.description`, une méta-description — *exact et insuffisant*,
+comme le disait §8.2.
+
+Elle affiche désormais le **profil du CV, mot pour mot**. Ce texte n'est pas neuf : le site le
+distribue déjà en PDF depuis la Phase 2. Rien n'est inventé, et les deux canaux disent la même chose.
+
+⚠️ **Clé de dictionnaire (`site.intro`), pas `content/`.** La règle opérationnelle est écrite dans
+`fr.ts` : *« si une phrase parle d'une expérience ou d'un projet en particulier, elle est du
+contenu »*. Celle-ci ne nomme ni l'un ni l'autre. Un type de contenu « personne » coûterait un
+schéma, un gate, des fixtures et une route pour un texte unique. **Déclencheur de réouverture** : le
+jour où ce texte doit porter du balisage — un lien, une emphase, un second paragraphe.
+
+⭐ `site.jobTitle` a été **aligné sur le CV** au passage : il porte « senior », que la clé omettait
+depuis P4-09. Deux documents publiés par le même site ne peuvent pas s'intituler différemment.
+
+⭐ Effet de bord : `Person.description` du JSON-LD, que P4-09 avait laissé **vide plutôt que rempli
+avec la mauvaise valeur**, a enfin la bonne. Un test vérifie qu'elle diffère de celle du `WebSite`
+du même graphe — c'est la confusion exacte qu'une revue avait écartée.
+
+⚠️ **Le second volet de D7 reste ouvert**, et ce n'est pas un oubli : les `sections[x].description`
+sont toujours à la fois la méta-description d'une page de section et la copie visible des cartes de
+l'accueil. Les séparer en six clés porterait **trois valeurs identiques** — une duplication sans
+contenu derrière. Le jour où la copie d'une carte doit différer de sa méta, la séparation est
+`sections[x].summary` / `sections[x].description`.
+
+### 16.2 D3 — close par « assumé », et l'inventaire est la raison
+
+Le GitHub ne contient que **quatre projets scolaires ENI de 2021** — `api_sortir` (PHP/Symfony),
+`ENITPEnchere` (Java/JEE), `AppSortie` (React Native), `appSortieAndroid` (Java) —, zéro étoile,
+dernier push octobre 2021, plus ce portfolio.
+
+⭐⭐ **Les publier à côté d'Augure abaisserait le signal au lieu de le monter.** Un CTO lit le plus
+faible, pas le plus fort, et le CV annonce un profil senior. La profondeur technique est déjà portée
+par les fiches d'expérience. Le levier reste d'écrire un projet représentatif d'aujourd'hui, pas
+d'ajouter du volume.
+
+## 17. P4-10 — la passe d'accessibilité, et un défaut que P4-07 avait laissé ouvert
+
+### 17.1 ⭐⭐⭐ Ce qui change n'est pas le nombre de contrôles, c'est leur **périmètre**
+
+Chaque tâche de la phase avait ajouté son audit axe sur les pages qu'elle venait d'écrire : `/fr` en
+P4-03, la liste et une fiche en P4-04, `/fr/skills` en P4-06, la 404 en P4-07. **Sept pages nommées à
+la main** — et P4-07 avait écrit la conséquence en toutes lettres : *« un audit d'accessibilité ne
+couvre que les pages qu'on lui donne »*. C'est ainsi que la 404 est restée sans `<html lang>` depuis
+P3-02 sans que le gate axe la voie.
+
+Le périmètre est désormais **dérivé du sitemap**, plus les deux pages introuvables qui n'y figurent
+pas — celles-là mêmes qui portaient le défaut. Une huitième page écrite demain est auditée sans que
+personne y pense.
+
+⚠️ **Trois contrôles ne sont pas dans axe**, et c'est pourquoi ils sont écrits à la main :
+`heading-order`, `page-has-heading-one` et `landmark-one-main` sont classés *best-practice* par
+axe-core, donc **hors** des tags WCAG audités. Les ajouter à la liste de tags ferait entrer des
+dizaines de règles de style ; les exiger explicitement dit ce que la mission demande — « titres,
+focus, contrastes, points de repère » — et rien d'autre. Le **contraste**, lui, est dans `wcag2aa` :
+il est déjà couvert, et un contrôle séparé donnerait deux mesures du même critère.
+
+### 17.2 ⛔⛔ Un défaut réel, encore ouvert après P4-07 — et mesuré
+
+Le matcher du proxy exclut `_next/`, pour ne pas faire traverser une fonction à chaque ressource
+statique. Une adresse **inconnue** sous ce préfixe ne recevait donc pas la 404 réécrite mais la 404
+**interne** de Next, servie hors de tout layout. Relevé avant/après, même commande :
+
+```text
+sans le plancher : /_next/inexistant → 404 | <html>              ← sans lang
+avec le plancher : /_next/inexistant → 404 | <html lang="fr">
+```
+
+C'est la violation WCAG 3.1.1 que P4-07 avait supprimée **par la porte principale**, restée ouverte
+par celle-ci. `experimental.globalNotFound` pose `src/app/global-not-found.tsx` **sous** le mécanisme
+de réécriture.
+
+⭐ **Le drapeau est expérimental sur Next 16.3, et c'est vérifié plutôt que cru** : le build
+l'annonce (`Experiments (use with caution) : ✓ globalNotFound`). P4-07 l'avait écarté faute d'avoir
+instruit ce point — l'instruction était le travail, et elle a trouvé un défaut.
+
+⚠️ Un parcours garde le plancher, ce qui rend le drapeau **retirable sans surprise** : son retrait ne
+casserait rien de visible, juste l'attribut que personne ne regarde.
+
+### 17.3 ⭐⭐ Le garde des endroits ne tenait qu'un sens
+
+`LAYOUTS` est un `Record<CurrentPlace, …>` : le compilateur exige qu'un endroit **du type** ait sa
+ligne. Il ne dit rien d'un `layout.tsx` posé dans l'arborescence sans que le type bouge — et P4-07
+avait nommé le cas sans le fermer : *« si le layout de la 404 avait déclaré `current="home"`, le type
+ne se serait jamais élargi et rien n'aurait rougi »*.
+
+Le garde lit désormais le **disque** et le confronte à la table. Les deux sens sont tenus : le
+compilateur pour type → table, le disque pour arborescence → table.
+
+⭐ Il a immédiatement trouvé un écart réel : le dossier s'appelle `404`, l'endroit `notFound`. Deux
+traductions existaient déjà — `(home)` est un groupe de routes, `404` un chiffre qu'un identifiant
+TypeScript ne peut pas porter. Elles sont dans une table `Record<CurrentPlace, string>`, exhaustive
+par construction : un sixième endroit ne compile pas tant qu'on n'a pas dit **où** il vit.
+
+### 17.4 La dette des cinq fichiers, soldée — et `brand-palette` a demandé mieux qu'un test
+
+Quatre fichiers ont reçu leur test de composant. Le cinquième, `brand-palette.ts`, restait à 0 % pour
+une raison différente : les deux gardes qui le surveillent parcourent `src/` comme du **texte** et ne
+chargent aucun module.
+
+⭐ **Lire un fichier n'est pas l'exécuter.** Le garde des tokens **importe** désormais le palette et
+confronte chaque valeur au token du même nom. Il est strictement plus fort : le texte d'un fichier
+peut contenir la bonne couleur dans un commentaire pendant que la constante en porte une autre, et le
+contrôle textuel le laisserait vert.
+
+⭐ `PlaceLayout` était à 0 % alors qu'un garde l'exerçait — celui-ci l'**appelle** sans le rendre,
+pour lire la valeur transmise. Les deux ne mesurent pas la même chose et aucun ne remplace l'autre :
+là-bas *quel endroit chaque layout déclare*, ici *ce que le layout en fait*.
+
+### 17.5 Ce que les mutations ont dit, et une qui a survécu à bon droit
+
+⛔⛔ **Le premier harnais de mutation était faux, et il déclarait « survivant » ce qu'il n'avait
+jamais exécuté.** Trois mutations cassaient le JSX ; `make build` échouait ; le parcours tournait
+contre l'**image précédente** et passait au vert. C'est la panne de « succès silencieux » que ce
+dépôt traque, écrite dans son propre outillage de vérification. Le harnais exige désormais un build
+vert avant de conclure.
+
+⭐⭐ **Une mutation survit, et c'est correct.** Renommer notre règle `:focus-visible` ne fait pas
+rougir le parcours du focus — l'anneau par défaut du navigateur prend le relais, et WCAG 2.4.7 est
+satisfait par lui. Ce qui doit rougir est `outline: none`, la suppression **de tout** indicateur :
+c'est le cas, vu rouge. Le test mesure le **résultat exigé**, pas le mécanisme qui le produit — la
+première mutation était fausse, pas le test.
+
+### 17.6 Relevés
+
+| Relevé après P4-10 | Valeur | Seuil |
+|---|---|---|
+| Socle partagé | **126,4 Ko — inchangé** | cible 136 · bloquant 146 |
+| JS propre à chaque route | **7,3 Ko — inchangé** | cible 25 · bloquant 40 |
+| Image de production | **273 Mo — inchangée** | cible 250 · **bloquant 400** |
+| Tests | **622** verts *(606 après P4-09)* | — |
+| E2E | **135** verts sur 5 profils *(128 après P4-09)* | — |
+| Couverture globale | **100 %** sur les quatre métriques *(98,69 après P4-09)* | ≥ 80 % |
+| Violations axe serious/critical | **0** sur **les 16 pages servies**, périmètre dérivé | 0 |
+
+⭐⭐ **La couverture revient à 100 %**, et pour la première fois depuis P4-05 le chiffre est vrai —
+c'est celui que §13.8 croyait annoncer.

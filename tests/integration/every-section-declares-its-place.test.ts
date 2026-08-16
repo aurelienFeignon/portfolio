@@ -29,6 +29,9 @@
  * un reflow de Prettier ou un `current={PLACE}` sans qu'il y ait de défaut, et
  * verdissait sur la même chaîne laissée dans un commentaire. Relevé en revue.
  */
+import { readdir } from 'node:fs/promises'
+import { join } from 'node:path'
+
 import { describe, expect, it } from 'vitest'
 
 import { PlaceLayout } from '@/app/[locale]/place-layout'
@@ -50,6 +53,25 @@ const LAYOUTS: Record<CurrentPlace, () => Promise<{ default: LayoutComponent }>>
   // ligne obligatoire, avant même que la suite ne démarre.
   notFound: () => import('@/app/[locale]/404/layout'),
 }
+
+/**
+ * Le **dossier** de chaque endroit, quand il ne porte pas son nom.
+ *
+ * ⭐ Une table et non deux ternaires : le nom d'un endroit et celui de son
+ * dossier divergent déjà **deux fois**, et pour deux raisons différentes —
+ * `(home)` est un groupe de routes, dont les parenthèses n'ajoutent aucun
+ * segment d'URL ; `404` est un chiffre, que TypeScript ne peut pas porter comme
+ * clé de `CurrentPlace`. Un `Record<CurrentPlace, …>` rend la table exhaustive
+ * par construction : un sixième endroit ne compile pas tant qu'on n'a pas dit
+ * **où** il vit.
+ */
+const DIRECTORY_OF = {
+  home: '(home)',
+  experiences: 'experiences',
+  projects: 'projects',
+  skills: 'skills',
+  notFound: '404',
+} as const satisfies Record<CurrentPlace, string>
 
 type LayoutComponent = (props: {
   readonly params: Promise<{ locale: string }>
@@ -75,5 +97,41 @@ describe('déclaration de l’endroit courant', () => {
     // zéro cas exécuté, suite verte. C'est la panne classique d'un test piloté
     // par une collection.
     expect(PLACES.length).toBeGreaterThanOrEqual(5)
+  })
+
+  it('n’oublie aucun layout réellement présent dans l’arborescence', async () => {
+    /*
+     * ⛔⛔ **Le trou que P4-07 a nommé sans le fermer, et que P4-10 ferme.**
+     * L'exhaustivité de `LAYOUTS` est tenue par `Record<CurrentPlace, …>`, donc
+     * par le compilateur — mais **seulement dans un sens** : elle exige qu'un
+     * endroit *du type* ait sa ligne. Elle ne dit rien d'un `layout.tsx` posé
+     * dans l'arborescence sans que le type bouge.
+     *
+     * Le cas n'est pas théorique, la revue de P4-07 l'a écrit : *« si le layout
+     * de la 404 avait déclaré `current="home"`, le type ne se serait jamais
+     * élargi et rien n'aurait rougi »*. La page aurait alors un en-tête, et il
+     * marquerait l'accueil — le `aria-current="page"` sur un lien qui mène
+     * ailleurs, faute relevée en revue de P4-02.
+     *
+     * ⭐ Ce contrôle lit donc le **disque**, la seule source qui sache ce qui
+     * existe vraiment, et le confronte à la table. Les deux sens sont désormais
+     * tenus : le compilateur pour type → table, celui-ci pour disque → table.
+     */
+    const root = join(process.cwd(), 'src', 'app', '[locale]')
+    const entries = await readdir(root, { recursive: true, withFileTypes: true })
+
+    const onDisk = entries
+      .filter((entry) => entry.isFile() && entry.name === 'layout.tsx')
+      // Le layout **racine** de la locale n'est pas un endroit : il porte
+      // l'enveloppe `<html>` et le pied de page, jamais l'en-tête d'un endroit.
+      .filter((entry) => entry.parentPath !== root)
+      .map((entry) => entry.parentPath.slice(root.length + 1))
+
+    expect(onDisk.length, 'aucun layout d’endroit trouvé sur le disque').toBeGreaterThanOrEqual(5)
+
+    const declared = new Set<string>(PLACES.map((place) => DIRECTORY_OF[place]))
+    const missing = onDisk.filter((directory) => !declared.has(directory))
+
+    expect(missing, 'des layouts existent sans être gardés par ce test').toEqual([])
   })
 })

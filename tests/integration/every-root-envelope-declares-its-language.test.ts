@@ -58,12 +58,20 @@ async function rootEnvelopes(): Promise<{ file: string; tag: string }[]> {
 }
 
 describe('enveloppes racines', () => {
-  it('sont exactement deux — le layout de locale, et la frontière globale', async () => {
-    // Le compte est l'autre moitié du garde : une troisième enveloppe est une
-    // décision structurelle, pas un détail, et elle doit passer par ici.
+  it('sont exactement trois — le layout de locale, et les deux frontières globales', async () => {
+    /*
+     * Le compte est l'autre moitié du garde : une enveloppe de plus est une
+     * décision structurelle, pas un détail, et elle doit passer par ici.
+     *
+     * ⭐ La troisième est arrivée en **P4-10** : `global-not-found.tsx`, le
+     * plancher sous le mécanisme de 404. Next ne l'entoure d'aucun layout — même
+     * contrepartie que `global-error.tsx` —, elle rend donc sa propre enveloppe.
+     * C'est précisément pour cela qu'elle existe : sans elle, les voies que le
+     * proxy n'atteint pas recevaient un `<html>` **sans `lang`**, mesuré.
+     */
     const files = (await rootEnvelopes()).map(({ file }) => file).sort()
 
-    expect(files).toEqual(['[locale]/layout.tsx', 'global-error.tsx'])
+    expect(files).toEqual(['[locale]/layout.tsx', 'global-error.tsx', 'global-not-found.tsx'])
   })
 
   it('déclarent toutes la langue du document', async () => {

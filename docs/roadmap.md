@@ -3,7 +3,7 @@
 > Statut global : **Phases 0, 1, 2 et 3 terminées et validées.** **Phase 4 ouverte le 2026-08-15**,
 > dernière phase de la tranche T1. **P2-11 (rédaction du contenu réel) est DONE (2026-08-15)** : le
 > contenu d'amorçage est entièrement remplacé, et le chemin critique de T1 est donc levé.
-> **P4-07, P4-08 et P4-09 closes le 2026-08-16** : 10 tâches de la Phase 4 sur 17.
+> **P4-07 à P4-10 closes le 2026-08-16** : 11 tâches de la Phase 4 sur 17.
 > Journal de la Phase 4 : [`phase-4-log.md`](./phase-4-log.md) — phases précédentes :
 > [`phase-3-log.md`](./phase-3-log.md), [`phase-2-log.md`](./phase-2-log.md),
 > [`phase-1-log.md`](./phase-1-log.md)
@@ -716,7 +716,7 @@ reste et le filet de sécurité permanent du projet. Journal de phase :
 | P4-07 | Pages 404 et erreur, localisées | **DONE** *(2026-08-16)* | P4-02 |
 | P4-08 | Métadonnées OpenGraph, gabarit de titre, images de partage et icône | **DONE** *(2026-08-16)* | P3-06 |
 | P4-09 | JSON-LD : `Person`, `WebSite`, `CreativeWork`, `BreadcrumbList` | **DONE** *(2026-08-16)* | P4-05 |
-| P4-10 | Passe accessibilité : titres, focus, contrastes, points de repère — **plus les cinq fichiers non couverts** (`phase-4-log.md` §13.8 — la liste en annonçait trois, remesurée le 2026-08-16), le garde des endroits à piloter par l'arborescence, et l'instruction de `experimental.globalNotFound` comme plancher (§13.10) | TODO | P4-06 |
+| P4-10 | Passe accessibilité : titres, focus, contrastes, points de repère, les cinq fichiers non couverts, le garde des endroits piloté par l'arborescence, et `experimental.globalNotFound` comme plancher | **DONE** *(2026-08-16)* | P4-06 |
 | P4-11 | Responsive documentaire : mobile, tablette, desktop | TODO | P4-06 |
 | P4-12 | E2E : navigation complète, deep links, bascule de langue, clavier | TODO | P4-11 |
 | P4-13 | **Mise en production du portfolio documentaire** *(jalon T1)* | TODO | P4-12, P1-15, P2-11 |
@@ -874,6 +874,27 @@ et la fermer demanderait une copie figée de l'icône (`phase-4-log.md` §14.4).
 parcours refuse désormais toute origine étrangère sur **toutes** les pages servies.
 📏 Image de production **272 Mo** (+4 Mo, le coût de `next/og`, entièrement de build, aucune
 dépendance ajoutée au verrou) ; socle 126,4 Ko ; 569 tests, 117 E2E. · Depends on: P3-06
+
+**P4-10 — Passe accessibilité**
+Status: **DONE** (2026-08-16) — audit axe, plan des titres, points de repère et noms accessibles sur
+**les 16 pages servies**, périmètre **dérivé du sitemap** et non énuméré : chaque tâche de la phase
+avait ajouté son audit sur les pages qu'elle venait d'écrire, et P4-07 avait écrit la conséquence —
+« un audit d'accessibilité ne couvre que les pages qu'on lui donne ».
+⛔⛔ **Un défaut réel encore ouvert après P4-07, trouvé en instruisant `globalNotFound`** : le matcher
+du proxy exclut `_next/`, si bien qu'une adresse inconnue sous ce préfixe recevait la 404 **interne**
+de Next — `<html>` **sans `lang`**, WCAG 3.1.1. Mesuré avant/après ; `src/app/global-not-found.tsx`
+pose le plancher, et un parcours le garde.
+⭐⭐ **Le garde des endroits ne tenait qu'un sens** : le compilateur exige qu'un endroit *du type* ait
+sa ligne, jamais qu'un `layout.tsx` du disque soit déclaré. Il lit désormais l'arborescence — et a
+immédiatement trouvé l'écart `404` / `notFound`.
+⭐ Dette des **cinq fichiers non couverts soldée**, et `brand-palette.ts` a demandé mieux qu'un test :
+les gardes qui le surveillaient lisaient `src/` comme du **texte** sans charger aucun module. Le garde
+des tokens l'**importe** maintenant — strictement plus fort.
+⭐⭐ Une mutation survit **à bon droit** : renommer notre `:focus-visible` laisse l'anneau du
+navigateur, qui satisfait WCAG 2.4.7. C'est `outline: none` qui doit rougir, et il rougit.
+📏 Socle 126,4 Ko, 7,3 Ko par route et image 273 Mo — **tous trois inchangés**. 622 tests, 135 E2E,
+**couverture 100 %** sur les quatre métriques : le chiffre que §13.8 croyait annoncer est enfin vrai.
+· Depends on: P4-06
 
 **P4-09 — JSON-LD**
 Status: **DONE** (2026-08-16) — `Person` et `WebSite` sur l'accueil, `CreativeWork` sur une fiche de
