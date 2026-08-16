@@ -1291,11 +1291,26 @@ le même où qu'elle vive — ajouter une locale sans sa forme OpenGraph ne comp
 | Dériver `title` et `description` de l'accueil, désormais redondants avec le `site` passé au même appel | Ferait de l'accueil le seul emplacement dont le titre est implicite, et `title` cesserait d'être une entrée uniformément obligatoire. La redondance est le côté le moins cher |
 | Deux relectures du disque par la sonde de palette | Sous le bruit : une poignée de fichiers, deux fois par exécution |
 
-### 14.8 Ce que P4-08 laisse ouvert
+### 14.8 Les six arbitrages, **tranchés le 2026-08-16 après la fusion**
 
-| Sujet | État |
-|---|---|
-| L'icône est un **monogramme d'attente** | Dérivé de `site.name`, dit comme tel ; un logo est une décision de marque (§14.4) |
-| `/favicon.ico` nu reste une 404 | Fermer ce cas demanderait une copie **figée** de l'icône générée (§14.4) |
-| L'`og:image` n'a pas de condensat | Déclencheur écrit : versionner l'adresse le jour où l'image change (§14.6) |
-| `og:type` vaut `website` partout | Une fiche est un `article` au sens d'OpenGraph, mais l'annoncer inviterait à chercher un `article:published_time` que nos dates à précision variable ne peuvent pas former. La sémantique d'entité passe par le JSON-LD — **P4-09** |
+⚠️ **Ils ont été posés trop tard, et c'est le défaut de méthode de ces deux tâches.** Ils étaient
+consignés — dans ce journal, dans le corps de la PR — mais noyés dans de la prose : l'utilisateur les
+a découverts **après avoir fusionné**. Un arbitrage enterré dans un rapport n'est pas un arbitrage
+posé.
+
+⭐ **Une décision qui n'est pas écrite est relitigée.** Elles le sont ici, datées, avec ce qui les
+rouvrirait — pour que la session suivante n'ait pas à les reposer.
+
+| # | Arbitrage | Décision | Ce qui la rouvre |
+|---|---|---|---|
+| 1 | **7,3 Ko de JS par route** (frontières d'erreur), là où le site était à 0,0 | **Garder les deux.** L'ordre d'arbitrage du projet met l'accessibilité avant la performance du contenu, et une page d'erreur sans `lang` est le même défaut WCAG 3.1.1 que la 404 corrigée | Un LCP sous pression mesuré en P4-13, ou l'arrivée d'un vrai composant client en Phase 5 — qui rendrait la question sans objet |
+| 2 | **L'icône est un monogramme d'attente** | **Garder en attendant.** Elle existe pour une raison mesurée : 14,5 Ko de page 404 à chaque requête d'icône sans elle | Un logo fourni par l'auteur : un `icon.png` dans `src/app/` remplace le fichier généré, rien d'autre ne bouge |
+| 3 | **`og:type` vaut `website` partout** | **Laisser.** L'annoncer `article` inviterait à chercher un `article:published_time` que nos dates à précision variable ne peuvent pas former | P4-09, qui porte la sémantique d'entité dans le JSON-LD |
+| 4 | **`og:image` sans condensat** | **Laisser.** Le condensat de Next n'est pas exposé, et le fabriquer supposerait de recalculer l'image au moment des métadonnées | Le jour où l'image est **redessinée** : versionner son adresse dans `shareImagePath` |
+| 5 | **`/favicon.ico` nu reste une 404** | **Laisser.** Le `<link rel="icon">` couvre tout navigateur qui lit le HTML ; fermer le cas nu demanderait une copie **figée** de l'icône générée | Une mesure qui montrerait un volume réel sur cette adresse |
+| 6 | **Image de production à 272 Mo** contre une cible de 250 | **Ne rien changer**, conformément à `performance-budget.md` §7.1 : aucune image Node officielle n'atteint 250 Mo | Phase 11, qui doit remplacer cette ligne de budget par « couche applicative par déploiement ≤ 60 Mo » — la quantité réellement pilotable |
+
+⭐⭐ **Ce qu'il faut retenir n'est aucune de ces six décisions**, mais le fait que cinq d'entre elles
+étaient **prêtes à être prises avant la fusion** et ne l'ont pas été. Une tâche qui produit des
+arbitrages doit les présenter **comme une liste de décisions**, au moment où ils naissent — pas les
+consigner en prose dans un journal que personne ne lit avant de fusionner.

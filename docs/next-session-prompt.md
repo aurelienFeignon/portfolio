@@ -259,13 +259,13 @@ officielle n'atteint 250 Mo.
   n'a pas tort. Le gate porte **six contrôles**, tous vus rouges.
 - ⛔ **Trois fichiers ne sont pas couverts** — `place-layout.tsx`, `technology-section.tsx`,
   `company-line.tsx` (P4-02 et P4-05). Tests de composant manquants, à écrire en **P4-10**.
-- ⚠️ **L'icône du site est un monogramme d'attente** (P4-08), dérivé des initiales de `site.name`. Un
-  logo est **ta** décision ; le remplacer se fait par un `icon.png` dans `src/app/`, rien d'autre ne
-  bouge. Et une requête **nue** sur `/favicon.ico` reste une 404 : la fermer demanderait une copie
-  figée de l'icône générée, ce que ce dépôt passe son temps à supprimer.
-- ⚠️ **L'`og:image` n'a pas de condensat** : une image redessinée garderait la même URL, et un cache
-  social servirait l'ancienne vignette. Déclencheur écrit — versionner l'adresse le jour où l'image
-  change.
+- ✅ **Les six arbitrages de P4-07 et P4-08 sont TRANCHÉS** (2026-08-16, `phase-4-log.md` §14.8) :
+  garder les deux frontières d'erreur, garder le monogramme d'attente, laisser `og:type` à
+  `website`, laisser l'`og:image` sans condensat, laisser `/favicon.ico` nu en 404, ne rien changer
+  aux 272 Mo. **Ne les repose pas** — chacun porte sa condition de réouverture.
+  ⚠️ Ils ont été posés **après la fusion**, parce qu'ils étaient consignés en prose au lieu d'être
+  présentés comme une liste de décisions. **Une tâche qui produit des arbitrages les pose au moment
+  où ils naissent.**
 - ⚠️ **Le sélecteur de langue est rendu par chaque page**, à l'intérieur du `main` — inhabituel pour
   une commande de portée globale. Ses options dépendent de la page, donc un layout ne peut pas le
   rendre. Choix de gabarit, à trancher.
