@@ -30,67 +30,68 @@ Les Phases 0, 1, 2 et 3 sont TERMINÉES et validées. Ne les refais pas, ne les 
 
 ## État
 
-Phases 0, 1, 2 et 3 : **DONE**. **P2-11 (rédaction du contenu réel) : DONE (2026-08-15)** — le
-chemin critique de la tranche T1 est levé.
+Phases 0 à 3 : **DONE**. **Phase 4 (Portfolio HTML) : en cours**, 7 tâches sur 17 closes.
 
-**Tout est sur `main` et déployé.** Quatre PR fusionnées les 14 et 15 août (#10 Phase 2, #11 Phase 3,
-#12 documentation, #13 contenu réel), les cinq jobs de la CI verts à chaque fois, image publiée sur
-GHCR et VPS à jour. **Aucune branche en attente** : la prochaine phase repart d'un `main` propre.
+**Fusionné sur `main` et déployé** — PR #15 à #21, CI verte à chaque fois :
 
-Phase 4 (Portfolio HTML) : à ouvrir, aucune tâche démarrée. **C'est la dernière phase de la tranche
-T1**, celle qui met le portfolio documentaire en ligne.
+| Tâche | Ce qu'elle a livré |
+|---|---|
+| P4-01 | ADR-0010 : CSS Modules + tokens, décidé sur une exécution |
+| P4-02 | Layout documentaire, `aria-current`, identité « Aurélien Feignon » |
+| P4-03 | Accueil : `SectionGuide` qui **dit** ce que chaque section contient |
+| P4-04 | Liste et fiche des expériences, précision d'affichage des dates |
+| P4-17 | **Précision variable des dates** (`AAAA` / `AAAA-MM` / `AAAA-MM-JJ`) |
+| P4-06 | Compétences groupées par catégorie |
+| P4-05 | Liste et fiche des projets, **premier corps MDX rendu** |
 
-⚠️ **Le site est volontairement fermé au public** : Cloudflare Access, OTP par e-mail, tant que le
-portfolio n'est pas terminé. Une requête anonyme reçoit une 302 vers `cloudflareaccess.com` — **ce
-n'est pas une panne**, et je l'ai fait diagnostiquer comme telle une fois. Ce qui fait foi pour juger
-d'un déploiement est `gh run list --branch main --limit 1`. Détail : `deploy/README.md` §4.2.
+**Reste : P4-07 à P4-16.** Le journal de phase (`phase-4-log.md`) documente chacune, y compris ce que
+la revue a renversé — lis-le, il porte l'essentiel des leçons.
 
-Ce qui existe et fonctionne, à ne pas redécouvrir :
+### ⚠️ P4-07 est EN COURS, sur une branche, non fusionnée
 
-- **Contenu réel** (`content/`), par locale : 2 expériences — Augure, et Askor chez EVEA Conseil —,
-  1 projet (ce portfolio) et 40 compétences en cinq catégories, dont dix `featured`. 86 fichiers
-  validés par `make check-content`, qui casse le build.
-- **Content Layer** (`src/content/`) : schémas Zod stricts, dépôt typé, tris et dérivations,
-  cohérence référentielle `technologies` ↔ `Skill.slug` **par locale**.
-- **Routage par locale** : `src/app/[locale]/` est le layout **racine** — il n'y a plus de
-  `app/layout.tsx`, et c'est ce qui permet à `<html lang>` de porter la langue réelle. `/` n'est pas
-  une page mais une redirection négociée (`src/proxy.ts`, 307 + `Vary` ; Next 16.3 déprécie
-  `middleware.ts`).
-- **Métadonnées et SEO** : `src/seo/` produit `title`, `description`, `canonical` et `hreflang` en un
-  seul endroit ; `src/seo/hreflang.ts` est la **seule** construction de la carte des langues, que le
-  sitemap et le sélecteur de langue lisent aussi — ils ne peuvent donc pas se contredire (R-07).
-- **`sitemap.xml` et `robots.txt`** dérivés du Content Layer. `robots.txt` n'interdit **pas**
-  `/resume/` : le bloquer empêcherait le robot de lire le `noindex` qui, lui, fait le travail.
-- **Dictionnaires d'interface** (`src/i18n/messages/`) : une clé manquante **ne compile pas**.
-- **`src/ui/`** : `SiteNav`, `LanguageSwitcher`, `EntityList`, `DateRange` — tous testés, tous **sans
-  style** (l'ADR-0010 est en P4-01).
-- **Quatre gates**, branchés sur `pnpm build` ou `make ci`, et tous **vus échouer** : contenu
-  invalide, budget de bundle, rendu statique, cloisonnement des couches par ESLint. Ils ne se gardent
-  plus du zéro mais du **sous-comptage** : chacun confronte son compte à ce que Next déclare.
-- Squelette Next.js 16 / React 19, TypeScript strict, Vitest + Playwright, environnement 100 %
-  dockerisé (`make`). CI en cinq jobs, `main` protégée, gates non contournables.
-- VPS Hetzner CX23 durci, rollback **exécuté pour de vrai** (9 s). Domaine `aurelienfeignon.com`,
-  zone Cloudflare, proxy *Full (strict)*, SPF/DKIM/DMARC publiés, origine fermée à tout ce qui ne
-  vient pas de Cloudflare.
-- **Rendu MDX** (`src/ui/mdx/`) avec liste blanche, qui refuse **avant** de rendre. Aucune page ne
-  l'appelle encore : c'est P4-05.
+Branche `feat/p4-07-not-found`, commit `23f37bb`, **poussée**. C'est un commit de travail : ne pas
+fusionner en l'état.
 
-⚠️ Contraintes héritées, à ne pas défaire par mégarde :
+**Ce qui fonctionne et est mesuré sur l'image de production :**
 
-- **`SITE_URL` est un argument de construction**, pas seulement une variable d'exécution : les
-  `canonical`, `hreflang` et le sitemap sont gravés dans le HTML statique. L'image n'est plus neutre
-  vis-à-vis du domaine (ADR-0008 amendé). `env_file` de Compose l'emporte sur l'`ENV` de l'image :
-  les deux valeurs **doivent** coïncider — point de la checklist de P4-15.
-- **Aucune route ne peut se rendre à la demande** : `content/` n'est pas dans l'image de production.
-  `scripts/check-static-rendering.mts` le vérifie **et** exige que chaque page prégénérée figure au
-  sitemap. Ne le contourne pas.
-- `pnpm build` appelé **directement** dans le conteneur de développement échoue au prérendu :
-  `NODE_ENV` y vaut `development`. `make bundle` et `make build` passent déjà `NODE_ENV=production`.
-- `package.json` porte `"type": "module"` et les imports relatifs de `src/content/**` portent leur
-  extension `.ts` — c'est ce qui rend la couche exécutable par `node` seul, donc le gate possible.
-- La liste blanche MDX n'est **pas** une barrière de sécurité (MDX exécute du JavaScript).
-- `ufw` ne gouverne PAS les ports publiés par un conteneur, et le port 22 ne peut pas être restreint
-  à une IP tant que le déploiement part des runners GitHub (`deploy/README.md` §1.1 et §6.3).
+    /fr/projects/inconnu  404 | lang=fr | Page introuvable
+    /fr/rien              404 | lang=fr | Page introuvable
+    /de/projects          404 | lang=fr | Page introuvable
+    /rien                 404 | lang=fr | Page introuvable
+    /en/rien (accept:fr)  404 | lang=en | Page not found     <- l'URL l'emporte sur l'en-tete
+    /fr/projects          200 | lang=fr | Projets            <- inchange
+
+**Ce qui reste à faire, dans l'ordre :**
+
+1. ⛔ **La confrontation manifeste ↔ sitemap dans `scripts/check-static-rendering.mts`.** Le proxy a
+   besoin de la liste des chemins servis **avant** `next build` ; le sitemap est un produit de ce
+   build. Ce sont donc **deux énumérations**, et deux énumérations qui divergent sont exactement la
+   panne que décrit R-07. Rien ne les confronte encore. C'est le premier point, et il n'est pas
+   optionnel.
+2. La page d'erreur : `error.tsx` et `global-error.tsx`, avec le même traitement de langue. ⚠️
+   `global-error.tsx` doit rendre son propre `<html>`/`<body>` — c'est la seule exception de Next, et
+   elle est documentée.
+3. Les parcours E2E : la 404 en français avec ses liens de secours, et **un audit axe sur la 404** —
+   c'est le parcours qui manquait et qui aurait vu la violation WCAG 3.1.1.
+4. La documentation : `phase-4-log.md` §13 (les trois sondes y sont déjà résumées dans le message de
+   commit, à reprendre), `roadmap.md`, et `architecture.md` §4.2 dont le proxy contredit désormais la
+   description (« il ne s'exécute que sur `/` »).
+5. `/code-review` puis `/simplify`, puis PR.
+
+**Le raisonnement à ne pas refaire** — trois sondes l'ont établi, et il est dans le commit :
+`[locale]/not-found.tsx` n'est **jamais** atteint (`dynamicParams = false` fait du slug inconnu un
+échec de *routage*, pas un `notFound()`) ; `app/not-found.tsx` est rendu mais **hors de tout layout
+racine**, le nôtre vivant sous `[locale]` — donc sans `<html lang>` ; lui faire rendre sa propre
+enveloppe produit **deux** `<html>` ; un groupe de routes avec son propre layout racine n'est pas
+retenu. La voie choisie avec l'utilisateur est donc la réécriture par le proxy vers une vraie page
+prérendue.
+
+⚠️ **Le statut est porté par la réécriture** (`{ status: 404 }`). Une réécriture rend 200 par défaut :
+servir le bon contenu avec le mauvais statut dirait à un moteur de recherche que la page existe.
+
+⚠️ **Le site est volontairement fermé au public** : Cloudflare Access, OTP par e-mail. Une requête
+anonyme reçoit une 302 vers `cloudflareaccess.com` — **ce n'est pas une panne**. Ce qui fait foi pour
+juger d'un déploiement est `gh run list --branch main --limit 1`. Détail : `deploy/README.md` §4.2.
 
 ## Décisions déjà prises — ne pas les rejouer
 
@@ -103,7 +104,7 @@ ADR-0006  CV : Server Action + Mailjet (API Send v3.1 via fetch natif, ZÉRO dé
 ADR-0007  Environnement de développement 100 % dockerisé
 ADR-0008  Auto-hébergement VPS — **amendé le 2026-08-14** : `SITE_URL` est un argument de build
 ADR-0009  Compilation MDX par @mdx-js/mdx appelé directement (next-mdx-remote = repli désigné)
-ADR-0010  À CRÉER en P4-01 : stratégie de style
+ADR-0010  CSS Modules + tokens en variables CSS (P4-01) — décidé sur une exécution
 
 Si une de ces décisions doit changer : signale-le, explique pourquoi, identifie les conséquences,
 mets l'ADR à jour et ajoute une ligne au journal des révisions. Jamais de changement silencieux.
@@ -138,76 +139,81 @@ mets l'ADR à jour et ajoute une ligne au journal des révisions. Jamais de chan
 
 ## Ta mission cette session
 
-**Ouvre la PHASE 4 — Portfolio HTML** (P4-01 à P4-16, détaillées dans roadmap.md). Pose-moi d'abord
-le bloc « Décisions » ci-dessous, groupé, avec ta recommandation — mais n'attends pas mes réponses
-pour commencer : aucune ne bloque le démarrage.
+**Termine P4-07**, puis enchaîne sur P4-08 (métadonnées OpenGraph et gabarit de titre) et la suite de
+la Phase 4. La liste des cinq points restants de P4-07 est dans « État » ci-dessus, dans l'ordre.
 
-Objectif : un portfolio **complet et utilisable sans Three.js**. C'est le socle de tout le reste, le
-filet de sécurité permanent du projet, et le jalon T1.
+Cinq points de méthode que la Phase 4 a payés cher, et qui valent pour la suite :
 
-Cinq points de méthode propres à cette phase :
+⭐⭐⭐ **Un nombre recopié et jamais remesuré finit par décider seul.** L'image de production était
+annoncée à 385 Mo dans quatre documents ; elle en pèse **268,6**. Ce chiffre avait réordonné la
+phase — P4-05 était traitée comme « le seul sujet à risque » avec 15 Mo de marge, alors qu'il y en a
+131 et que le runtime MDX coûte 0,5 Mo. **Remesure avant de t'appuyer sur un chiffre.**
 
-- **P4-01 crée l'ADR-0010** (stratégie de style) **avant** d'écrire le moindre composant stylé. Rien
-  n'est stylé aujourd'hui, délibérément.
-- **Le corps MDX n'est rendu par aucune page.** P4-05 sera la première : c'est là que les ~7 Mo de
-  runtime MDX entreront dans l'image de production, qui est à **385 Mo** pour un seuil bloquant à
-  400. La marge est de 15 Mo. Mesure avant et après, ne découvre pas.
-- **Le site n'a aujourd'hui aucun composant client** : 0,0 Ko de JS propre sur 16 routes, la
-  navigation étant faite de balises `<a>`. C'est ce qui rend le profil `no-js` vrai par construction.
-  Si P4-02 introduit `next/link`, mesure ce que ça coûte et écris-le.
-- **P4-13 n'est plus bloquée par le contenu** (P2-11 est faite). Restent les critères de sortie de la
-  phase : Lighthouse mobile ≥ 85, a11y 100, SEO 100, zéro violation axe serious/critical.
-- **P4-16 suppose de lever Cloudflare Access.** Vérifier l'indexation, les `canonical`, les
-  `hreflang` et le sitemap **depuis l'extérieur** est impossible tant qu'il protège le site. Lever
-  Access fait partie de la mise en ligne, au même titre que le déploiement. Une chose reste à
-  vérifier ce jour-là : Cloudflare sert son propre `robots.txt` managé, qui remplacerait celui de
-  l'application et sa directive `Sitemap:`.
+⭐⭐⭐ **Un seuil que rien ne fait respecter n'est pas un seuil.** Celui de 400 Mo était écrit dans le
+budget et appliqué nulle part : la CI écrivait la taille dans son résumé et n'en faisait rien. Il est
+bloquant depuis P4-05 (`make check-image-size`). Quand tu vois un seuil documenté, **vérifie qui le
+lit**.
 
-Avant de coder, applique la méthode de phase : objectif, décisions à prendre, tâches, tests
-correspondants, critères de sortie. Puis implémente par incréments.
+⭐⭐⭐ **Un test neuf doit être vu rouge avant d'être cru.** La revue a trouvé, tâche après tâche, des
+gardes qui ne pouvaient pas échouer : une liste désignée par sa **position** qui visait le sélecteur
+de langue, une boucle sur une collection qui pouvait être vide, un motif de slug qui exigeait un tiret
+que les technologies réelles n'ont pas. Trois fois la même forme. **Mutation-teste tes gardes** —
+c'est devenu la pratique du dépôt, et elle a payé à chaque fois.
 
-À la fin de la phase, produis un bilan : fait / dérives / reporté.
+⭐⭐ **N'affiche jamais comme un fait une valeur d'attente.** Les dates portaient des 1ᵉʳ janvier
+inventés ; les 40 niveaux de compétence sont une proposition non relue et **ne sont pas affichés**
+(décision D2, ouverte). Le contrat le tient — `SkillGroup` ne porte que `{ slug, name }` — pas le
+test, qui n'est qu'un filet.
 
----
+⭐⭐ **`/code-review` puis `/simplify` avant chaque push, sans exception.** Sur les six tâches de cette
+phase, ils ont trouvé **entre 4 et 9 défauts réels à chaque fois**, sur du code dont tous les gates
+étaient déjà verts — dont trois régressions visibles qu'aucun gate ne pouvait voir : un mur de texte
+(spécificité CSS), une carte sans indicateur de focus (`:has()`), 288 px de décalage (`margin-inline`
+sur un élément flex). **Une régression purement visuelle ne se prouve que par une mesure géométrique.**
+
+Avant de coder, applique la méthode de phase. À la fin de la phase, produis un bilan : fait / dérives
+/ reporté.
 
 ## Décisions qui m'attendent
 
-Aucune ne bloque le démarrage de la Phase 4. Format des réponses : « D1 = …, défaut partout
-ailleurs » suffit.
+Format des réponses : « D1 = …, défaut partout ailleurs » suffit. Aucune ne bloque la suite.
 
-**D1 🟠 — Les vrais mois de début d'Askor et d'Augure.**
-Le CV ne donne que les années (2021, 2025) et le schéma exige un jour : j'ai mis le 1ᵉʳ janvier, en
-le signalant plutôt qu'en le taisant. → *Donne-moi les deux mois, je corrige deux fichiers par
-locale. Sans réponse, je laisse tel quel — c'est faux d'au plus onze mois, et invisible tant
-qu'aucune page n'affiche les dates.*
+**D1 🟢 — Les vrais mois de début d'Askor et d'Augure.** *Résolue autrement, et déclassée.*
+`content/` disait `2021-01-01` faute de mieux ; il dit maintenant **`'2021'`**, c'est-à-dire
+exactement ce que l'on sait. Le schéma accepte les trois précisions et le site affiche celle qu'il
+reçoit. → *Si tu retrouves les mois, écris `'2021-09'` : affichage et `datetime` suivent. Ce n'est
+plus une fausseté inscrite, c'est une précision manquante.*
 
-**D2 🟠 — Relire les niveaux de compétence (1 à 5).**
-Les 40 niveaux sont une proposition, déduite de la place que chaque technologie occupe dans tes
-expériences. → *C'est un jugement sur toi-même, il ne se délègue pas — mais il se corrige vite :
-dis-moi seulement ceux qui te paraissent faux. Dix compétences sont `featured` : TypeScript, Python,
-Node.js, React, Next.js, PostgreSQL, Docker, microservices, architecture événementielle, intégration
-de modèles de langage.*
+**D2 🟠 — Relire les 40 niveaux de compétence (1 à 5).** *Toujours ouverte, et elle a un effet visible :
+les niveaux **ne sont pas affichés** tant que tu ne les as pas relus.* Les publier afficherait comme
+un fait une auto-évaluation que personne n'a validée. → *Dis-moi seulement ceux qui te paraissent
+faux. Dix compétences sont `featured` : TypeScript, Python, Node.js, React, Next.js, PostgreSQL,
+Docker, microservices, architecture événementielle, intégration de modèles de langage.*
 
-**D3 🟠 — Un seul projet publié, est-ce voulu ?**
-`content/*/projects/` ne contient que ce portfolio : ton CV ne cite aucun autre projet, Augure et
-Askor étant des expériences. → *Un portfolio à un seul projet est maigre pour un CTO venu évaluer ta
-profondeur technique sur une ou deux réalisations (persona B). Si tu as quelque chose à montrer pour
-lui-même — travail open source, side project, réalisation détachable —, c'est un fichier par locale.
-Sinon on assume, et la page Projets restera légère.*
+**D3 🟠 — Un seul projet publié, est-ce voulu ?** `content/*/projects/` ne contient que ce portfolio.
+→ *La page Projets et l'accueil sont maigres pour un CTO venu évaluer ta profondeur technique
+(persona B). Si tu as quelque chose à montrer pour lui-même, c'est un fichier par locale.*
 
-**D4 🟠 — Augure : expérience ou projet ?**
-Aujourd'hui c'est une **expérience**, avec `company: Augure` — ce qui nomme le produit dont tu es
-propriétaire, comme le fait ton CV. → *Recommandation : laisser ainsi. Je le repose une dernière fois
-parce que l'absence d'employeur rendrait le rangement en « projet » tout aussi défendable, et que
-c'est un fichier par locale à déplacer. Après quoi je ne le rouvre plus.*
+**D4 🟢 — Augure : expérience ou projet ?** *Close par défaut* : reste une expérience, avec
+`company: Augure`. Je ne la rouvre plus.
 
-**D5 🟠 — Photos de ton poste de travail ?** (question Q17, qui arrive en Phase 8)
-→ *Recommandation : les rassembler quand tu y penses, sans urgence. C'est l'élément qui distingue ce
-portfolio d'une démo Three.js, et ça ne coûte rien de le préparer tôt.*
+**D7 🟠 — Le texte d'accueil, et les descriptions de section.** *Neuve, née de P4-03.* L'accueil
+affiche `site.description`, qui est une **méta-description**, pas une accroche — exact et
+insuffisant. Aucun texte de présentation n'a été écrit : ce serait du contenu éditorial dans un
+dictionnaire d'interface, et des affirmations sur toi qu'aucune session ne tient de toi.
+⚠️ **Le même constat vaut trois fois de plus** : les `sections[x].description` sont à la fois la
+`<meta name="description">` des pages de section **et** la copie visible des cartes de l'accueil.
+Longueur SEO d'un côté, accroche lisible de l'autre — ajuster l'une changera l'autre en silence.
+→ *Deux ou trois phrases pour l'accueil. Si elles sont courtes et factuelles, c'est une clé de
+dictionnaire ; si elles relèvent du récit, c'est un fichier de `content/` — plus juste, et ça suppose
+un type de contenu qui n'existe pas encore. Le jour où tu tranches, la séparation des descriptions
+fait six clés, pas trois.*
 
-**D6 🟢 — Rendre le paquet GHCR public ?** *(action manuelle, je n'ai pas les droits)*
-Mon jeton `gh` local n'a pas la portée `read:packages`. → *GitHub → Packages → portfolio → Package
-settings → Change visibility → Public. Puis sur le VPS : `docker logout ghcr.io && rm
+**D5 🟠 — Photos de ton poste de travail ?** (Q17, Phase 8) → *Les rassembler sans urgence. C'est ce
+qui distinguera ce portfolio d'une démo Three.js.*
+
+**D6 🟢 — Rendre le paquet GHCR public ?** *(action manuelle, je n'ai pas les droits)* → *GitHub →
+Packages → portfolio → Change visibility → Public. Puis sur le VPS : `docker logout ghcr.io && rm
 /srv/portfolio/.ghcr-token`, et retirer le `docker login` de `deploy.sh`. Bénéfice : plus de PAT à
 renouveler, donc plus de déploiement qui s'arrête un jour sans rapport apparent avec le code.*
 
@@ -219,40 +225,61 @@ Le chemin critique — la rédaction du contenu — est **levé** depuis le 2026
 
 ## Points encore ouverts
 
-- **La marge sous le seuil d'image est de 15 Mo** (385 Mo pour 400), et P4-05 y ajoutera ~7 Mo de
-  runtime MDX avec la première page qui rend un corps.
-- **`SITE_URL` a deux sources en production** : l'`ENV` de l'image et l'`env_file` de Compose, ce
-  dernier l'emportant. À vérifier dans la checklist de P4-15.
-- **`content/` est parfaitement symétrique** : le cas « entité non traduite » n'existe que dans les
-  fixtures. Aucun E2E ne peut l'exercer tant qu'une entité réellement non traduite n'existe pas.
-- **`dynamicParams = false` des pages de détail est inerte**, la valeur du segment parent étant
-  héritée. Conservé pour une restructuration future, mais ce n'est pas ce qui protège aujourd'hui —
-  c'est le gate.
-- **Gabarit de titre** (`%s — <nom du site>`) reporté en P4-08 : il suppose de décider l'identité de
-  marque. Les titres sont aujourd'hui nus (« Projets », « Augure »).
-- **`aria-current` sur le lien de section actif** reporté en P4-02 : le layout ne connaît pas la
-  section affichée.
-- **Mise en forme des dates** (« mars 2022 ») reportée en P4-04 et P4-05 : elle suppose de choisir
-  une précision d'affichage, laissée au rendu par P2-02.
-- **Deux déclencheurs chiffrés**, mesurés en Phase 3 et à ne pas redécouvrir : la revalidation Zod du
-  dépôt coûte ≈ 120·N² µs et mérite un regard **vers 50 entités par section** (aujourd'hui : 40
-  compétences, 2 expériences) ; et la cascade E2E de R-07 croît linéairement avec le sitemap.
+**Chiffres à jour — ceux-ci ont été remesurés, ne les recopie pas sans les revérifier :**
+
+| Relevé | Valeur (2026-08-16) | Seuil |
+|---|---|---|
+| Image de production | **268,6 Mo** (base 229,1 + app 38,7) | cible 250 · **bloquant 400, appliqué** |
+| JS propre à chaque route | **0,0 Ko** sur 18 routes | cible 25 · bloquant 40 Ko |
+| Socle partagé | **129,5 Ko** | cible 136 · bloquant 146 Ko |
+| Tests | **503** verts, couverture 100 % | — |
+| E2E | 93 verts sur 5 profils | — |
+
+⛔ **L'image dépasse la cible de 250 Mo depuis toujours**, et rien ne le disait avant que le gate ne
+porte les deux paliers. `performance-budget.md` §7.1 tranche : ne rien changer, aucune image Node
+officielle n'atteint 250 Mo.
+
+**Dettes nommées, par ordre d'urgence :**
+
+- ⛔ **La confrontation manifeste ↔ sitemap** (P4-07, point 1 ci-dessus). Deux énumérations sans
+  garde, c'est R-07.
+- ⚠️ **Le sélecteur de langue est rendu par chaque page**, à l'intérieur du `main` — inhabituel pour
+  une commande de portée globale. Ses options dépendent de la page, donc un layout ne peut pas le
+  rendre. Choix de gabarit, à trancher.
+- ⚠️ **`architecture.md` §4.2 décrit un proxy qui « ne s'exécute que sur `/` »** — ce n'est plus vrai
+  depuis P4-07. À amender avec la tâche.
+- **`EntityList` ne sert plus qu'aux projets** ; les expériences et les compétences ont leur
+  composant. Il reste parce qu'un projet n'a qu'un titre et un résumé, pas parce qu'il est générique.
+- **`getFeaturedProjects` / `getFeaturedSkills` n'ont aucun appelant de production.** Le drapeau
+  `featured` est porté par le contenu et lu par personne.
 - **La liste blanche MDX n'est pas une barrière de sécurité** : à reprendre tel quel à l'audit de la
   Phase 14.
-- **Mesure CPU en régime stable** (P11-08) : le seul relevé date d'une minute après démarrage —
-  32 %, au-dessus du seuil d'alerte de 25 %. Ce n'est pas une mesure valide.
-- **Procédure de restauration du serveur** (risque R-23) : Hetzner restreint par intermittence la
-  création d'instances. À écrire sous cette contrainte en Phase 15.
+- **Mesure CPU en régime stable** (P11-08) : le seul relevé date d'une minute après démarrage — 32 %,
+  au-dessus du seuil d'alerte de 25 %. Ce n'est pas une mesure valide.
+- **Procédure de restauration du serveur** (R-23) : Hetzner restreint par intermittence la création
+  d'instances. À écrire sous cette contrainte en Phase 15.
 - **Plages Cloudflare** : un timer hebdomadaire les rafraîchit sur le VPS.
   `sudo /srv/edge/sync-cloudflare-origin-firewall.sh --check` sort en 1 s'il y a dérive.
-- Questions Q3 à Q6, Q8, Q9, Q11, Q14 à Q19 de docs/phase-0-questions.md : applique la
-  recommandation par défaut et signale-le, ne me bloque pas dessus.
 
-Si quelque chose est ambigu : propose une solution argumentée et marque explicitement
-l'hypothèse. Ne construis jamais une architecture cachée.
+**Pièges d'environnement rencontrés, à ne pas redécouvrir :**
+
+- ⛔ **`make e2e-prod` ne peut pas tourner sans contournement sur cette machine** : Grafana occupe
+  `127.0.0.1:3001`, que `docker-compose.prod.yml` publie en dur. Surcharger le port avec
+  `ports: !override` — une surcharge de `ports` est **fusionnée** par défaut, donc `ports: []` ne
+  libère rien.
+- ⛔ **Une PR empilée sur une autre branche ne déclenche pas la CI** (le workflow ne se lance que sur
+  les PR visant `main`), et **elle peut se fusionner dans une branche déjà morte** : c'est arrivé à
+  #18, dont le travail n'a jamais atteint `main` malgré un « merged » vert. Pousser sur `main` ou
+  attendre la fusion — ne pas empiler.
+- ⚠️ Un `*/` dans un chemin écrit en commentaire **ferme le bloc JSDoc**. Deux fichiers s'en sont
+  cassés.
+
+**Questions Q3 à Q6, Q8, Q9, Q11, Q14 à Q19** de `docs/phase-0-questions.md` : applique la
+recommandation par défaut et signale-le, ne me bloque pas dessus.
+
+Si quelque chose est ambigu : propose une solution argumentée et marque explicitement l'hypothèse.
+Ne construis jamais une architecture cachée.
 ```
-
----
 
 ## Entretien de ce fichier
 

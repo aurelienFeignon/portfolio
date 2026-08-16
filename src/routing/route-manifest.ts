@@ -9,18 +9,18 @@
  * `content/`, absent de l'image de production.
  */
 export const SERVED_PATHS: readonly string[] = [
-  "/en",
-  "/en/experiences",
-  "/en/experiences/askor",
-  "/en/experiences/augure",
-  "/en/projects",
-  "/en/projects/portfolio",
-  "/en/skills",
-  "/fr",
-  "/fr/experiences",
-  "/fr/experiences/askor",
-  "/fr/experiences/augure",
-  "/fr/projects",
-  "/fr/projects/portfolio",
-  "/fr/skills"
+  '/en',
+  '/en/experiences',
+  '/en/experiences/askor',
+  '/en/experiences/augure',
+  '/en/projects',
+  '/en/projects/portfolio',
+  '/en/skills',
+  '/fr',
+  '/fr/experiences',
+  '/fr/experiences/askor',
+  '/fr/experiences/augure',
+  '/fr/projects',
+  '/fr/projects/portfolio',
+  '/fr/skills',
 ]
