@@ -182,11 +182,38 @@ Conséquence directe de l'auto-hébergement : les ressources sont finies et à m
 | *(relevé 2026-08-11 : **51 Mo** au repos, image de production)* | | |
 | CPU en régime stable | ≤ 5 % | 25 % |
 | Temps de réponse d'une page SSG (origine) | ≤ 50 ms | 150 ms |
-| Taille de l'image Docker de production | ≤ 250 Mo | 400 Mo |
+| Taille de l'image Docker de production | ≤ 250 Mo | 400 Mo — **bloquant en CI depuis P4-05** |
 | *(relevé 2026-08-11 : **381 Mo**, dont 340 Mo d'image de base — voir §7.1)* | | |
 | *(relevé 2026-08-14, fin de Phase 3 : **385 Mo** — +4 Mo, le runtime du proxy)* | | |
+| *(⚠️ **relevé 2026-08-16, P4-05 : 268,6 Mo** — dont 229,1 Mo d'image de base et 38,7 Mo d'application. Les deux relevés ci-dessus sont **périmés de ~117 Mo**, voir §7.2)* | | |
 | Durée de démarrage à froid du conteneur | ≤ 5 s | 15 s |
 | Taux de succès du cache CDN sur `/_next/static` | ≥ 95 % | — |
+
+### 7.2 Ce que la mesure de P4-05 a corrigé — et ce qu'elle a révélé
+
+⛔⛔ **Le chiffre de 385 Mo était faux de ~117 Mo, et il gouvernait une décision de
+planification.** P4-05 était isolée et repoussée après P4-06 « parce qu'elle fait entrer ~7 Mo de
+runtime MDX dans une image qui n'a que 15 Mo de marge ». Mesure du 2026-08-16, même cible
+(`runner`), même digest de base, même architecture que la CI :
+
+| Relevé | Documenté | Mesuré |
+|---|---|---|
+| Image de production | 385 Mo | **268,6 Mo** |
+| dont image de base (digest épinglé, amd64) | 340 Mo | **229,1 Mo** |
+| dont couche applicative | 41 Mo | **38,7 Mo** |
+| Marge sous le seuil bloquant | 15 Mo | **131 Mo** |
+
+Et le coût réel du runtime MDX, mesuré avant/après sur la même machine : **+0,5 Mo** (38,2 → 38,7 Mo
+de couche applicative), non ~7.
+
+⛔⛔⛔ **Le seuil de 400 Mo n'était appliqué nulle part.** L'étape « Mesurer la taille de l'image »
+écrivait la valeur dans le résumé de la CI et n'en faisait rien. Un seuil que rien ne fait respecter
+n'est pas un seuil — et c'est la tâche censée le consommer qui l'a découvert, en s'y référant.
+Il est **bloquant depuis P4-05**, par comparaison en octets (`image inspect`, et non `image ls` qui
+rend une chaîne déjà arrondie).
+
+⭐⭐ La leçon dépasse le chiffre : **un nombre recopié dans quatre documents et jamais remesuré finit
+par décider seul.** Celui-ci a réordonné une phase.
 
 ### 7.1 Taille de l'image de production — dépassement de la cible constaté (P1-13)
 

@@ -28,7 +28,19 @@ import type { skillFrontmatterSchema } from './schemas/skill.ts'
  * une fois celui-ci retiré. Il reste une **chaîne** jusqu'au rendu — la couche
  * Content ne compile rien (ADR-0009).
  */
-type WithBody<TFrontmatter> = TFrontmatter & { readonly body: string }
+type WithBody<TFrontmatter> = TFrontmatter & {
+  readonly body: string
+  /**
+   * Chemin **relatif à la racine du dépôt**, tel que `source.ts` le fabrique.
+   *
+   * ⚠️ Il est publié parce que deux routes le reconstruisaient à la main, avec
+   * l'extension écrite en dur — or `CONTENT_EXTENSIONS` autorise `.md` **et**
+   * `.mdx` pour n'importe quel type. Le jour où un fichier change d'extension,
+   * le message d'erreur aurait nommé un fichier inexistant : la panne exacte
+   * contre laquelle `ContentError.file` existe, retournée contre lui.
+   */
+  readonly file: string
+}
 
 /** Dérivation de P2-06 : une date de fin absente signifie « toujours en cours ». */
 interface Ongoing {

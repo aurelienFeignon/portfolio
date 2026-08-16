@@ -34,6 +34,15 @@
  * l'écrasait déjà, l'autre compensait sur le paragraphe suivant. L'espacement
  * appartient au flux de la page, qui seule le connaît.
  */
+/*
+ * Titre d'un bloc à l'intérieur d'une page. Un peu plus d'air avant lui que le
+ * `gap` du gabarit n'en donne, pour que les blocs se lisent comme des blocs.
+ */
+.sectionHeading {
+  margin: var(--space-4) 0 0;
+  font-size: var(--text-lg);
+}
+
 .title {
   margin: 0;
   font-size: var(--text-2xl);

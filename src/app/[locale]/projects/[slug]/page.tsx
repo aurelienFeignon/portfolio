@@ -5,10 +5,14 @@
  * `/fr/projects/augure` et `/en/projects/augure` doivent résoudre chacune leur
  * contenu, indépendamment, sans fuite de l'une vers l'autre.
  *
- * Le **corps MDX n'est pas rendu ici** : il arrive en P4-05, avec l'ADR-0010 qui
- * décide comment ses composants sont mis en forme. C'est aussi ce qui explique
- * que l'image de production reste à 385 Mo — le runtime MDX n'y entrera qu'avec
- * la première page qui compile un corps (`phase-2-log.md` §13.3).
+ * ⭐⭐ **C'est la première page du site à rendre un corps MDX** (P4-05), donc celle
+ * qui fait entrer le compilateur dans l'image de production. Rien n'en part vers
+ * le client : `renderMdx` s'exécute au build, et le budget de bundle le mesure.
+ *
+ * Le corps est rendu dans un conteneur `prose` — le seul endroit du dépôt où des
+ * sélecteurs d'éléments sont légitimes, puisque le balisage vient du contenu et
+ * ne peut porter aucune classe (ADR-0010, règle 1 : l'exception est bornée à ce
+ * conteneur).
  *
  * Pas de `dynamicParams = false` ici : la valeur est **héritée** du segment
  * parent, et une sonde a montré que la redéclarer ne change rien (voir
@@ -22,10 +26,15 @@ import { getMessages } from '@/i18n/messages'
 import type { PageLocation } from '@/routing/paths'
 import { DateRange } from '@/ui/date-range'
 import { LanguageSwitcher } from '@/ui/language-switcher'
+import { Prose } from '@/ui/mdx/prose'
+import page from '@/ui/page.module.css'
+import { TechnologySection } from '@/ui/technology-section'
 
 import { languageOptions } from '../../language-options'
 import { readEntityParams, staticSlugParams, type EntityParams } from '../../locale-param'
 import { entityMetadata } from '../../page-metadata'
+
+import styles from './page.module.css'
 
 export function generateStaticParams({ params }: { params: { locale: string } }) {
   return staticSlugParams(params, (locale) => contentRepository.getAllProjects(locale))
@@ -60,20 +69,22 @@ export default async function ProjectPage({ params }: EntityParams) {
   if (project === null) notFound()
 
   const messages = getMessages(locale)
-  const available = await contentRepository.getContentLocales('projects', slug)
+  const [available, technologies] = await Promise.all([
+    contentRepository.getContentLocales('projects', slug),
+    contentRepository.getTechnologyLabels(locale, project),
+  ])
 
   return (
-    <main id="main">
-      <h1>{project.title}</h1>
-      <p>{project.summary}</p>
-      <LanguageSwitcher current={locale} options={languageOptions(locationOf(slug), available)} />
+    <main id="main" className={page.page}>
+      <h1 className={page.title}>{project.title}</h1>
+      <p className={styles.summary}>{project.summary}</p>
       <DateRange locale={locale} startedAt={project.startedAt} endedAt={project.endedAt} />
-      <h2>{messages.sections.skills.name}</h2>
-      <ul>
-        {project.technologies.map((technology) => (
-          <li key={technology}>{technology}</li>
-        ))}
-      </ul>
+
+      <Prose source={project.body} file={project.file} />
+
+      <TechnologySection locale={locale} labels={technologies} />
+
+      <LanguageSwitcher current={locale} options={languageOptions(locationOf(slug), available)} />
     </main>
   )
 }

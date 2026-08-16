@@ -18,14 +18,13 @@ import type { PageLocation } from '@/routing/paths'
 import { CompanyLine } from '@/ui/company-line'
 import { DateRange } from '@/ui/date-range'
 import { LanguageSwitcher } from '@/ui/language-switcher'
+import { TechnologySection } from '@/ui/technology-section'
 
 import { languageOptions } from '../../language-options'
 import { readEntityParams, staticSlugParams, type EntityParams } from '../../locale-param'
 import { entityMetadata } from '../../page-metadata'
 
 import page from '@/ui/page.module.css'
-
-import chip from '@/ui/chip.module.css'
 
 import styles from './page.module.css'
 
@@ -60,20 +59,11 @@ export default async function ExperiencePage({ params }: EntityParams) {
 
   if (experience === null) notFound()
 
-  const [available, skills] = await Promise.all([
+  const [available, technologies] = await Promise.all([
     contentRepository.getContentLocales('experiences', slug),
-    contentRepository.getAllSkills(locale),
+    contentRepository.getTechnologyLabels(locale, experience),
   ])
   const messages = getMessages(locale)
-
-  /*
-   * `technologies` porte des **slugs de compétence**, pas des libellés : c'est
-   * ce qui fait du type `Skill` le référentiel de la couche, et ce que le gate
-   * d'intégrité vérifie par locale (P2-07). L'affichage doit donc les résoudre.
-   * Le repli sur le slug ne peut pas se produire — le gate casse le build
-   * avant —, il évite seulement d'avoir à jeter une exception ici.
-   */
-  const skillNames = new Map(skills.map((skill) => [skill.slug, skill.name]))
 
   return (
     <main id="main" className={page.page}>
@@ -99,16 +89,7 @@ export default async function ExperiencePage({ params }: EntityParams) {
         ))}
       </ul>
 
-      <h2 className={styles.heading} id="technologies">
-        {messages.experience.technologies}
-      </h2>
-      <ul className={styles.technologies} role="list" aria-labelledby="technologies">
-        {experience.technologies.map((technology) => (
-          <li key={technology} className={chip.chip}>
-            {skillNames.get(technology) ?? technology}
-          </li>
-        ))}
-      </ul>
+      <TechnologySection locale={locale} labels={technologies} />
 
       <LanguageSwitcher current={locale} options={languageOptions(locationOf(slug), available)} />
     </main>

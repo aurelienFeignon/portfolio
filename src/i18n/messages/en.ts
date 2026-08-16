@@ -45,15 +45,6 @@ export const en: Messages = {
 
   experience: {
     highlights: 'Highlights',
-    /**
-     * « Tech stack » plutôt que « Technologies », qui serait le mot français à
-     * l'identique : le test de non-régression des dictionnaires refuse les
-     * valeurs égales, et son unique exception est un **nom propre**. Élargir la
-     * liste pour un mot commun aux deux langues affaiblirait le garde — et le
-     * libellé retenu est de toute façon celui qu'un lecteur anglophone attend
-     * sur un portfolio.
-     */
-    technologies: 'Tech stack',
   },
 
   skills: {
@@ -71,6 +62,9 @@ export const en: Messages = {
       practice: 'Practices',
     },
   },
+
+  /** Titre du bloc « pile technique », commun aux deux types de fiche (P4-05). */
+  technologies: 'Tech stack',
 
   empty: 'Nothing to show in this language yet.',
 }

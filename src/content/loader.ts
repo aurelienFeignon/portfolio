@@ -45,7 +45,7 @@ export function validateFile<T extends ContentType>(
     )
   }
 
-  return { ...result.data, body: file.body } as ContentEntryByType[T]
+  return { ...result.data, body: file.body, file: file.file } as ContentEntryByType[T]
 }
 
 function indent(message: string): string {

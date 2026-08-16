@@ -1,0 +1,35 @@
+/*
+ * Liste générique d'entités (P4-05).
+ *
+ * Elle ne sert plus qu'aux **projets** : les expériences ont `ExperienceList`
+ * (quatre informations lues ensemble) et les compétences `SkillList` (groupes).
+ * Elle reste parce qu'un projet n'a qu'un titre et un résumé — pas parce
+ * qu'elle est générique. Le jour où une page de projets a besoin de plus, c'est
+ * un composant propre qu'il faudra, pas une `note` qui s'allonge.
+ */
+
+.list {
+  composes: bareList from './bare-list.module.css';
+
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.item {
+  composes: surface from './surface.module.css';
+
+  padding: var(--space-4);
+}
+
+.link {
+  composes: accentLink from './accent-link.module.css';
+
+  font-size: var(--text-lg);
+}
+
+.note {
+  display: block;
+  margin-top: var(--space-1);
+  color: var(--color-text-muted);
+}

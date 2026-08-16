@@ -77,7 +77,6 @@ export const fr = {
   /** Titres des blocs d'une fiche d'expérience (P4-04). */
   experience: {
     highlights: 'Réalisations',
-    technologies: 'Technologies',
   },
 
   /** Titres des groupes de la page Compétences (P4-06). */
@@ -98,6 +97,9 @@ export const fr = {
   },
 
   /** Listes vides — une locale peut ne pas encore traduire une section (R-07). */
+  /** Titre du bloc « pile technique », commun aux deux types de fiche (P4-05). */
+  technologies: 'Technologies',
+
   empty: 'Rien à afficher dans cette langue pour le moment.',
 }
 

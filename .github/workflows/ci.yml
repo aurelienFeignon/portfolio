@@ -129,10 +129,19 @@ jobs:
           echo "Le conteneur n'est jamais devenu sain."
           exit 1
 
-      - name: Mesurer la taille de l'image
+      # Le seuil de `performance-budget.md` §7 était **documenté et appliqué nulle
+      # part** : cette étape se contentait d'écrire la taille dans le résumé.
+      # Un seuil que rien ne fait respecter n'est pas un seuil — et c'est la
+      # tâche censée consommer la marge qui l'a découvert, en s'y référant.
+      #
+      # ⭐ Le gate est une **cible du Makefile**, comme les autres, et non une
+      # comparaison écrite ici : sans cela `make ci` resterait vert là où la CI
+      # est rouge, et le seuil existerait en deux exemplaires. Le tag est aligné
+      # sur celui que la cible attend.
+      - name: Budget de taille de l'image de production
         run: |
-          size="$(docker image ls portfolio:ci --format '{{.Size}}')"
-          echo "Image de production : $size" >> "$GITHUB_STEP_SUMMARY"
+          docker image tag portfolio:ci portfolio:local
+          make check-image-size | tee -a "$GITHUB_STEP_SUMMARY"
 
       - uses: pnpm/action-setup@v4
         with:
