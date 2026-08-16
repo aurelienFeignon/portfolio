@@ -3,7 +3,8 @@
 > Statut global : **Phases 0, 1, 2 et 3 terminées et validées.** **Phase 4 ouverte le 2026-08-15**,
 > dernière phase de la tranche T1. **P2-11 (rédaction du contenu réel) est DONE (2026-08-15)** : le
 > contenu d'amorçage est entièrement remplacé, et le chemin critique de T1 est donc levé.
-> **P4-07 à P4-11 closes le 2026-08-16** : 12 tâches de la Phase 4 sur 17.
+> **P4-07 à P4-12 closes le 2026-08-16** : 13 tâches de la Phase 4 sur 17. Reste le jalon **T1**
+> (P4-13 à P4-16), c'est-à-dire la mise en production.
 > Journal de la Phase 4 : [`phase-4-log.md`](./phase-4-log.md) — phases précédentes :
 > [`phase-3-log.md`](./phase-3-log.md), [`phase-2-log.md`](./phase-2-log.md),
 > [`phase-1-log.md`](./phase-1-log.md)
@@ -718,7 +719,7 @@ reste et le filet de sécurité permanent du projet. Journal de phase :
 | P4-09 | JSON-LD : `Person`, `WebSite`, `CreativeWork`, `BreadcrumbList` | **DONE** *(2026-08-16)* | P4-05 |
 | P4-10 | Passe accessibilité : titres, focus, contrastes, points de repère, les cinq fichiers non couverts, le garde des endroits piloté par l'arborescence, et `experimental.globalNotFound` comme plancher | **DONE** *(2026-08-16)* | P4-06 |
 | P4-11 | Responsive documentaire : mobile, tablette, desktop | **DONE** *(2026-08-16)* | P4-06 |
-| P4-12 | E2E : navigation complète, deep links, bascule de langue, clavier | TODO | P4-11 |
+| P4-12 | E2E : navigation complète, deep links, bascule de langue, clavier | **DONE** *(2026-08-16)* | P4-11 |
 | P4-13 | **Mise en production du portfolio documentaire** *(jalon T1)* | TODO | P4-12, P1-15, P2-11 |
 | P4-14 | Supervision : healthcheck conteneur + sonde externe avec alerte (risque R-15) | TODO | P4-13 |
 | P4-15 | Checklist de mise en ligne + rollback vérifié en conditions réelles | TODO | P4-13 |
@@ -956,10 +957,46 @@ n'en faisait rien. Il est **bloquant depuis cette tâche** (`performance-budget.
 sur un inconnu — la fiche d'un projet affichait jusqu'ici les slugs bruts, ce qui n'était pas une
 duplication mais un défaut. · Depends on: P4-02
 
+**P4-12 — Parcours E2E complets**
+Status: **DONE** (2026-08-16) — la tâche était un **inventaire** avant d'être une écriture :
+confronter les quatorze scénarios de `testing-strategy.md` §4.7 au banc, et n'écrire que le manquant.
+⛔⛔ **L'inventaire a contredit la mission**, qui annonçait E2E-01 à E2E-03, E2E-08 et E2E-12
+« couverts par les parcours de P4-07 à P4-11 ». Trois ne l'étaient pas : le parcours **continu** de
+E2E-01 avec son retour, la bascule de langue sur une **fiche** (le seul parcours qui touchait le
+sélecteur partait d'une section, où le repli et la cible juste sont la même URL), et la moitié
+clavier de E2E-08. E2E-11 et E2E-12, eux, l'étaient — sur un périmètre **plus large** que ce que la
+stratégie exige.
+⭐⭐⭐ **L'inventaire est devenu un garde, pas un paragraphe.**
+`every-e2e-scenario-has-a-status.test.ts` lit les scénarios dans le bloc de code de §4.7 et tient
+trois sens : un quinzième scénario sans statut rougit, un statut qui nomme un scénario disparu
+rougit, et un scénario déclaré couvert qu'aucun parcours ne revendique (`@covers`) rougit — comme un
+scénario **reporté** qu'un parcours revendique déjà. Les reports ne pointent que vers des tâches qui
+existent (P6-10, P10-10).
+⭐⭐ **Une mutation a survécu, et elle avait raison** : `tabIndex={-1}` sur toute la navigation
+principale laissait le parcours clavier vert, l'accueil offrant **deux** chemins vers les sections —
+l'en-tête et le `SectionGuide`. Le défaut n'était pas la mutation mais le **périmètre** : une seule
+page visitée. Le balayage porte désormais aussi sur une page de section, où l'en-tête est la seule
+source, et la mutation est tuée. C'est le trou de P4-10 à l'identique — *un garde ne couvre que ce
+qu'on lui donne*.
+⛔ **Le harnais de mutation a menti à la première exécution** : le filtre `-g` ne correspondait à
+aucun test — une apostrophe typographique — et Playwright sort en 1 sur « No tests found », ce que le
+harnais a lu comme une mutation tuée. Il vérifie désormais que le filtre **sélectionne** quelque
+chose avant de muter. Panne de P4-10 reproduite dans l'outillage qui existe pour la traquer.
+📏 140 → **144** E2E ; 627 → **632** tests ; couverture inchangée (100 %). Aucune ligne de `src/` modifiée.
+· Depends on: P4-11
+
 **Critères de sortie** — Toutes les exigences de la §20 de la mission satisfaites ; Lighthouse
 mobile ≥ 85 / a11y 100 / SEO 100 ; 0 violation axe serious/critical ; le projet `no-js` passe ;
 **aucune dépendance Three.js dans le dépôt à ce stade** ; **site en ligne, supervisé, avec un
 rollback prouvé**.
+
+⛔⛔ **Le critère Lighthouse n'est mesuré NULLE PART**, constaté pendant l'inventaire de P4-12 : le
+mot n'apparaît que dans quatre documents, et aucun gate, aucun parcours, aucune étape de CI ne
+produit un score. C'est exactement le défaut du seuil de 400 Mo, que P4-05 a découvert en s'y
+référant — *un seuil que rien ne fait respecter n'est pas un seuil*. **Arbitrage du 2026-08-16 :
+dette nommée, portée par P4-13 et P4-15**, la mesure se faisant de toute façon contre le site
+déployé ; P4-12 porte les parcours, pas les audits de performance. Ce qui rouvre la question : une
+mise en ligne effectuée sans que le score ait jamais été relevé.
 
 > P4-13 à P4-16 constituent le jalon **T1**. Ce sont des mises en production anticipées : la
 > Phase 15 reste la release du produit complet et **réutilisera la checklist établie en P4-15**

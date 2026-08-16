@@ -1,6 +1,18 @@
 /**
  * La passe d'accessibilité de P4-10 — `roadmap.md`, critère de sortie de phase.
  *
+ * @covers E2E-08 — Clavier seul : Tab jusqu'aux trois sections, Entrée navigue, focus visible
+ * @covers E2E-11 — axe-core : 0 violation serious/critical
+ * @covers E2E-12 — Structure : un h1 unique, titres sans saut, liens avec nom accessible
+ *
+ * ⭐ Les trois scénarios sont ici **et pas ailleurs**, y compris ceux que P4-12
+ * devait écrire : E2E-11 et E2E-12 sont couverts par cette passe sur un périmètre
+ * plus large que ce que la stratégie exige — les dix-sept documents servis, et non
+ * quatre pages nommées. En réécrire une seconde mesure aurait produit la
+ * duplication que cette phase passe son temps à supprimer. Seule la moitié
+ * clavier de E2E-08 manquait, et elle a été ajoutée en bas de ce fichier plutôt
+ * que dans un fichier concurrent sur le même sujet.
+ *
  * ⭐⭐⭐ **Ce qui change ici n'est pas le nombre de contrôles, c'est leur
  * périmètre.** Chaque tâche de la Phase 4 avait ajouté son audit axe sur les
  * pages qu'elle venait d'écrire : `/fr` en P4-03, la liste et une fiche en
@@ -36,6 +48,39 @@ import { expect, test } from '../../support/test'
  * conforme, c'est-à-dire le pire signal possible. Relevé en revue.
  */
 const AUDIT_TIMEOUT_MS = 120_000
+
+/**
+ * Tabule jusqu'à ce que `stop` soit satisfait, et rend les `href` rencontrés.
+ *
+ * ⚠️ **La borne n'est pas un nombre de tabulations attendu**, c'est un garde
+ * anti-boucle : compter les `Tab` encoderait le DOM du jour, et un lien ajouté à
+ * l'en-tête ferait rougir un site parfaitement navigable. La sortie normale est
+ * `stop`, ou le moment où le focus quitte le document.
+ */
+async function tabThrough(
+  page: import('@playwright/test').Page,
+  stop: (reached: readonly string[]) => boolean,
+): Promise<string[]> {
+  const reached: string[] = []
+
+  for (let step = 0; step < 40; step += 1) {
+    await page.keyboard.press('Tab')
+
+    const href = await page.evaluate(() => {
+      const node = document.activeElement
+      // `body` est ce que rend le navigateur quand le focus quitte le document :
+      // continuer à tabuler y ferait tourner la boucle à vide.
+      if (node === null || node === document.body) return undefined
+      return node.getAttribute('href') ?? ''
+    })
+
+    if (href === undefined) break
+    if (href !== '') reached.push(href)
+    if (stop(reached)) break
+  }
+
+  return reached
+}
 
 /** Les pages du **site** : le sitemap, plus les deux introuvables localisées. */
 async function everySitePage(request: import('@playwright/test').APIRequestContext) {
@@ -294,5 +339,58 @@ test.describe('accessibilité — le parcours au clavier', () => {
     }
 
     expect(invisible).toEqual([])
+  })
+
+  test('la tabulation atteint les trois sections, et Entrée y mène (P4-12)', async ({ page }) => {
+    /*
+     * ⭐ **La moitié de E2E-08 que P4-10 n'avait pas écrite.** Cette passe
+     * vérifiait que le focus est **visible** et que le lien d'évitement est
+     * atteint ; personne ne vérifiait que les trois sections sont dans l'ordre de
+     * tabulation, ni qu'on peut les activer au clavier. Un `tabindex="-1"` posé
+     * par mégarde, ou une carte devenue cliquable par un gestionnaire plutôt que
+     * par un lien, laisserait tous les autres parcours verts — y compris
+     * l'audit axe, qui ne parcourt pas le document au clavier.
+     *
+     * ⚠️ **Aucun nombre de `Tab` n'est écrit.** Compter les tabulations
+     * encoderait le DOM du jour : un lien ajouté à l'en-tête ferait rougir un
+     * garde sur un site parfaitement navigable. On avance jusqu'à avoir vu les
+     * trois cibles, borné par une limite qui n'est là que pour ne pas boucler.
+     *
+     * ⭐⭐ **Deux pages, et c'est une mutation qui l'a exigé.** La première
+     * rédaction ne balayait que l'accueil — où les trois sections ont **deux**
+     * chemins au clavier, l'en-tête et le `SectionGuide`. Poser `tabIndex={-1}`
+     * sur toute la navigation principale la laissait donc **verte**, alors que
+     * cela rend les sections inatteignables au clavier sur les quinze autres
+     * pages. C'est le périmètre trop étroit de P4-10, à l'identique : *un garde
+     * ne couvre que ce qu'on lui donne*. Une page de section, où l'en-tête est
+     * la seule source, ferme le trou.
+     */
+    const sections = ['/fr/experiences', '/fr/projects', '/fr/skills']
+
+    for (const path of ['/fr', '/fr/projects']) {
+      await page.goto(path)
+      const reached = await tabThrough(page, (seen) =>
+        sections.every((href) => seen.includes(href)),
+      )
+
+      expect(reached, `${path} — des sections restent hors de l’ordre de tabulation`).toEqual(
+        expect.arrayContaining(sections),
+      )
+    }
+
+    /*
+     * Puis l'activation. On repart d'une page neuve — le balayage ci-dessus a
+     * laissé le focus quelque part — et on s'arrête sur la cible avant d'appuyer
+     * sur Entrée : c'est le geste réel, et ce qu'il prouve est qu'un `<a href>`
+     * l'honore là où un gestionnaire de clic seul ne l'honorerait pas.
+     */
+    await page.goto('/fr')
+    await tabThrough(page, (seen) => seen.includes('/fr/skills'))
+
+    await expect(page.locator(':focus')).toHaveAttribute('href', '/fr/skills')
+    await page.keyboard.press('Enter')
+
+    await expect(page).toHaveURL(/\/fr\/skills$/)
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Compétences')
   })
 })
