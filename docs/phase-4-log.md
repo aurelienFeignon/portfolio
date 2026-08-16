@@ -1694,3 +1694,57 @@ première mutation était fausse, pas le test.
 
 ⭐⭐ **La couverture revient à 100 %**, et pour la première fois depuis P4-05 le chiffre est vrai —
 c'est celui que §13.8 croyait annoncer.
+
+### 17.7 Ce que la revue a changé — huit constats, tous dans mes propres gardes
+
+Aucun défaut dans le code de production. Les huit portent sur les gardes neufs, et **plusieurs
+documentaient un contrat plus fort que ce qu'ils vérifiaient réellement** — la classe que cette phase
+traque, retournée contre son propre outillage.
+
+⛔⛔ **La thèse de la tâche, appliquée partout sauf à la page que la tâche ajoute.**
+`global-not-found.tsx` était le seul document servi qui n'était **ni audité par axe, ni contrôlé sur
+son plan de titres** : seul son `lang` était vérifié. Le périmètre distingue désormais les *pages du
+site* — qui portent les trois points de repère — des *documents servis*, qui incluent le plancher.
+Celui-ci n'a ni bannière ni pied de page et ne peut pas en avoir : Next ne l'entoure d'aucun layout,
+et les recopier hors du layout en ferait une seconde source.
+
+⛔ **Trois gardes promettaient plus qu'ils ne mesuraient.** Le contrôle des noms accessibles
+affirmait lire le *nom calculé* et ne lisait que le texte et `aria-label` — un lien nommé par
+`aria-labelledby`, par `title` ou par l'`alt` d'une image aurait produit un **faux échec**. Le
+contrôle du focus promettait d'accepter un fond repeint et n'échantillonnait que le contour. Et le
+lien d'évitement était déclaré « visible » sur sa seule géométrie, qu'un `opacity: 0` ou un
+`clip-path` laisse intacte. Les trois disent maintenant ce qu'ils font, et le font.
+
+⛔ **Un garde qu'on ne peut pas satisfaire se contourne, il ne se répare pas.** Le garde des endroits
+lisait tous les `layout.tsx` du sous-arbre : un `projects/[slug]/layout.tsx` — parfaitement légitime —
+l'aurait rendu rouge **sans qu'aucune déclaration ne puisse le satisfaire**, `DIRECTORY_OF` associant
+un dossier à un `CurrentPlace`. Il ne considère plus que les enfants directs de `[locale]`, et ce que
+la borne laisse passer est écrit : un layout imbriqué qui poserait un second en-tête est attrapé par
+le compte des points de repère de cette même tâche.
+
+⭐⭐ **Une exclusion de couverture avec la mauvaise raison est une exclusion non justifiée.** J'avais
+exclu `global-not-found.tsx` en recopiant le motif de `global-error.tsx` — « il faudrait simuler
+`usePathname` » —, or ce composant n'a ni hook, ni props, ni asynchronie. L'exclusion est retirée et
+le composant **testé**.
+
+⚠️ **Un audit de dix-sept documents dans un seul test, contre les 30 s par défaut de Playwright.**
+Mesuré à 9 s ici ; sur un runner chargé, la CI serait rouge sur du code conforme — le pire signal
+possible. Le délai est désormais explicite.
+
+⚠️ Et l'en-tête du garde des enveloppes annonçait **deux** émetteurs de `<html>` pendant que son
+assertion en attendait trois. Une prose qui survit au code qu'elle décrit, dans le fichier même dont
+c'est le sujet.
+
+⚠️ **Un constat non traité, avec sa raison** : les audits axe par tâche (P4-03, P4-04, P4-06, P4-07)
+n'ont pas été retirés, si bien que cinq pages sont auditées deux fois. Ils sont conservés parce que
+chaque parcours reste **lisible seul** — un lecteur de `skills.spec.ts` y voit que la page est
+auditée —, et le coût est de quelques secondes. Le déclencheur de retrait est le jour où ce doublon
+pèse sur la durée de la suite.
+
+### 17.8 Relevés définitifs
+
+| Relevé après revue | Valeur | Seuil |
+|---|---|---|
+| Tests | **625** verts | — |
+| E2E | **135** verts sur 5 profils | — |
+| Couverture globale | **100 %** sur les quatre métriques | ≥ 80 % |

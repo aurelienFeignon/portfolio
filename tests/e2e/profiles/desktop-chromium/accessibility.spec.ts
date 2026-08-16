@@ -29,19 +29,46 @@ import { expectNoBlockingAxeViolations } from '../../support/axe'
 import { sitemapPaths } from '../../support/sitemap'
 import { expect, test } from '../../support/test'
 
-/** Toutes les pages servies : le sitemap, plus les deux introuvables. */
-async function everyServedPage(request: import('@playwright/test').APIRequestContext) {
+/**
+ * ⚠️ **Playwright accorde 30 s par test, et il n'y a pas de raison qu'un audit
+ * de dix-sept documents tienne dedans sur un runner chargé.** Mesuré à 8,5 s
+ * ici ; le défaut ne serait pas un défaut du site mais une CI rouge sur du code
+ * conforme, c'est-à-dire le pire signal possible. Relevé en revue.
+ */
+const AUDIT_TIMEOUT_MS = 120_000
+
+/** Les pages du **site** : le sitemap, plus les deux introuvables localisées. */
+async function everySitePage(request: import('@playwright/test').APIRequestContext) {
   return [...(await sitemapPaths(request)), '/fr/404', '/en/404']
+}
+
+/**
+ * Tous les **documents servis** — les pages du site, plus le plancher.
+ *
+ * ⭐ La distinction n'est pas cosmétique. `global-not-found.tsx` est un document
+ * HTML complet que ce site sert, et la première version de ce fichier ne
+ * l'auditait pas : la thèse de la tâche — *un audit ne couvre que ce qu'on lui
+ * donne* — appliquée partout **sauf à la page que la tâche ajoute**. Relevé en
+ * revue.
+ *
+ * Il n'a en revanche ni bannière ni pied de page, et ne peut pas en avoir : Next
+ * ne l'entoure d'aucun layout, et les recopier hors du layout en ferait une
+ * seconde source. C'est pourquoi les points de repère se mesurent sur
+ * `everySitePage` et le reste sur celle-ci.
+ */
+async function everyServedDocument(request: import('@playwright/test').APIRequestContext) {
+  return [...(await everySitePage(request)), '/_next/inexistant']
 }
 
 test.describe('accessibilité — toutes les pages servies', () => {
   test('aucune ne présente de violation axe serious ou critical', async ({ page, request }) => {
+    test.setTimeout(AUDIT_TIMEOUT_MS)
     /*
      * Le contraste de couleurs (`color-contrast`) est dans `wcag2aa`, donc déjà
      * couvert par cet audit : il n'a pas besoin d'un contrôle séparé, et en
      * écrire un donnerait deux mesures du même critère.
      */
-    for (const path of await everyServedPage(request)) {
+    for (const path of await everyServedDocument(request)) {
       await page.goto(path)
       await expectNoBlockingAxeViolations(page, path)
     }
@@ -55,9 +82,10 @@ test.describe('accessibilité — toutes les pages servies', () => {
      * `SectionGuide` portant sa structure par des titres de niveau 2 plutôt que
      * par un second point de repère `navigation`.
      */
+    test.setTimeout(AUDIT_TIMEOUT_MS)
     const faults: string[] = []
 
-    for (const path of await everyServedPage(request)) {
+    for (const path of await everyServedDocument(request)) {
       await page.goto(path)
 
       const levels = await page
@@ -89,9 +117,12 @@ test.describe('accessibilité — toutes les pages servies', () => {
      * viennent des layouts d'endroit, dont l'accord avec l'arborescence est
      * tenu par un autre garde.
      */
+    test.setTimeout(AUDIT_TIMEOUT_MS)
     const faults: string[] = []
 
-    for (const path of await everyServedPage(request)) {
+    // `everySitePage` et non les documents : le plancher n'a ni bannière ni pied
+    // de page, et ne peut pas en avoir — voir son commentaire plus haut.
+    for (const path of await everySitePage(request)) {
       await page.goto(path)
 
       for (const role of ['banner', 'main', 'contentinfo'] as const) {
@@ -106,13 +137,19 @@ test.describe('accessibilité — toutes les pages servies', () => {
   test('aucun lien ni bouton n’est dépourvu de nom accessible', async ({ page, request }) => {
     /*
      * Un lien sans nom accessible est annoncé « lien » par un lecteur d'écran,
-     * ce qui est strictement inutilisable. Axe le voit quand la cible est vide,
-     * mais pas quand elle porte une image sans `alt` **décorative** — d'où le
-     * contrôle direct sur le nom calculé.
+     * ce qui est strictement inutilisable.
+     *
+     * ⚠️ **Ce contrôle ne calcule pas le nom accessible, et ne le prétend plus.**
+     * La première rédaction l'affirmait ; elle aurait produit un faux échec sur
+     * un lien nommé par `aria-labelledby`, par `title` ou par l'`alt` d'une
+     * image — trois formes qu'aucun lien du site n'emploie aujourd'hui, mais que
+     * rien n'interdit. Relevé en revue. Ce qui est mesuré est la régression
+     * réelle : une cible **vide de tout**, qu'aucune des quatre sources ne nomme.
      */
+    test.setTimeout(AUDIT_TIMEOUT_MS)
     const faults: string[] = []
 
-    for (const path of await everyServedPage(request)) {
+    for (const path of await everyServedDocument(request)) {
       await page.goto(path)
 
       for (const role of ['link', 'button'] as const) {
@@ -122,7 +159,11 @@ test.describe('accessibilité — toutes les pages servies', () => {
             nodes
               .filter(
                 (node) =>
-                  (node.textContent ?? '').trim() === '' && !node.getAttribute('aria-label'),
+                  (node.textContent ?? '').trim() === '' &&
+                  !node.getAttribute('aria-label') &&
+                  !node.getAttribute('aria-labelledby') &&
+                  !node.getAttribute('title') &&
+                  !node.querySelector('img[alt]:not([alt=""])'),
               )
               .map((node) => node.outerHTML.slice(0, 80)),
           )
@@ -184,6 +225,25 @@ test.describe('accessibilité — le parcours au clavier', () => {
     expect(box, 'le lien d’évitement n’a pas de boîte : il est resté hors du flux').not.toBeNull()
     expect(box!.y).toBeGreaterThanOrEqual(0)
     expect(box!.x).toBeGreaterThanOrEqual(0)
+
+    /*
+     * ⚠️ **Une position dans le cadre ne suffit pas.** Un `opacity: 0`, un
+     * `visibility: hidden` ou un `clip-path: inset(50%)` laissent la boîte
+     * exactement où elle est — et le lien invisible. Les trois formes de
+     * masquage sont donc lues, et non déduites de la géométrie. Relevé en revue.
+     */
+    const hidden = await focused.evaluate((node) => {
+      const style = getComputedStyle(node)
+      return {
+        opacity: Number(style.opacity),
+        visibility: style.visibility,
+        clipPath: style.clipPath,
+      }
+    })
+
+    expect(hidden.opacity).toBeGreaterThan(0)
+    expect(hidden.visibility).toBe('visible')
+    expect(['none', 'auto']).toContain(hidden.clipPath)
   })
 
   test('chaque élément focusable porte un indicateur de focus visible', async ({ page }) => {

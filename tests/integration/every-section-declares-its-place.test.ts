@@ -126,6 +126,22 @@ describe('déclaration de l’endroit courant', () => {
       // l'enveloppe `<html>` et le pied de page, jamais l'en-tête d'un endroit.
       .filter((entry) => entry.parentPath !== root)
       .map((entry) => entry.parentPath.slice(root.length + 1))
+      /*
+       * ⚠️ **Un endroit est un enfant direct de `[locale]`, et rien de plus
+       * profond.** Sans cette borne, un `projects/[slug]/layout.tsx` — parfaitement
+       * légitime, pour envelopper les seules fiches — rendrait ce garde rouge
+       * **sans qu'aucune déclaration ne puisse le satisfaire** : `DIRECTORY_OF`
+       * associe un dossier à un `CurrentPlace`, et une fiche n'en est pas un.
+       * Un garde qu'on ne peut pas satisfaire se contourne, il ne se répare pas.
+       * Relevé en revue.
+       *
+       * ⛔ Ce que la borne laisse passer, et qu'il faut savoir : un layout
+       * imbriqué qui rendrait `PlaceLayout` poserait un **second** en-tête sans
+       * que ce garde le voie. Le contrôle qui l'attraperait est ailleurs et
+       * existe déjà — les points de repère comptés sur chaque page servie, en
+       * P4-10 : deux `banner` sur une fiche font rougir le parcours.
+       */
+      .filter((directory) => !directory.includes('/'))
 
     expect(onDisk.length, 'aucun layout d’endroit trouvé sur le disque').toBeGreaterThanOrEqual(5)
 

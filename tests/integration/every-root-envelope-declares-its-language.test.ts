@@ -6,12 +6,15 @@
  * défaut que P4-07 supprime : la 404 interne de Next est servie hors du layout
  * racine, donc sans langue déclarée.
  *
- * Le site a **deux** émetteurs de `<html>` : `app/[locale]/layout.tsx`, couvert
- * par les parcours E2E qui lisent l'attribut sur la page servie, et
+ * Le site a **trois** émetteurs de `<html>` : `app/[locale]/layout.tsx`, couvert
+ * par les parcours E2E qui lisent l'attribut sur la page servie ;
  * `app/global-error.tsx`, qui rend sa propre enveloppe parce que Next l'y oblige
- * — et que rien ne vérifiait. Il est exclu de la couverture (composition), aucun
- * parcours ne peut l'atteindre (`phase-4-log.md` §13.6), et son test de composant
- * ne voit jamais de `<html>`. Relevé en revue.
+ * — et que rien ne vérifiait ; et, depuis **P4-10**, `app/global-not-found.tsx`,
+ * le plancher sous le mécanisme de 404, pour la même raison structurelle.
+ *
+ * ⚠️ **Cet en-tête a annoncé « deux » pendant que l'assertion en attendait
+ * trois** — une prose qui survit au code qu'elle décrit, relevée en revue, dans
+ * le fichier même dont c'est le sujet.
  *
  * ⚠️ **Ce garde lit le texte source, et c'est un choix assumé.** Le dépôt a déjà
  * payé cette forme une fois (§7.1 : un garde par expression régulière qui
@@ -46,7 +49,7 @@ async function rootEnvelopes(): Promise<{ file: string; tag: string }[]> {
 
     const path = join(entry.parentPath, entry.name)
     // Les commentaires d'abord : ils parlent abondamment de `<html>`, et les
-    // lire ferait compter quatre enveloppes pour deux.
+    // lire ferait compter plus d’enveloppes qu’il n’en existe.
     const code = (await readFile(path, 'utf8')).replace(/\/\*[\s\S]*?\*\//g, '')
 
     for (const [tag] of code.matchAll(/<html\b[^>]*>/g)) {
