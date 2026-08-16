@@ -107,8 +107,11 @@ texte source.
 | E2E | **117** verts sur 5 profils, 0 violation axe | — |
 
 ⛔ **« Couverture 100 % » était faux depuis P4-05**, et le chiffre a survécu deux tâches dans ce
-journal. Trois fichiers ne sont pas couverts (`place-layout.tsx`, `technology-section.tsx`,
-`company-line.tsx`) — dette nommée, reprise en **P4-10**. Remesure, ne recopie pas.
+journal. **Cinq** fichiers ne sont pas couverts — `place-layout.tsx`, `technology-section.tsx`,
+`prose.tsx`, `brand-palette.ts`, `company-line.tsx` — dette nommée, reprise en **P4-10**.
+⛔⛔ La liste en annonçait **trois** : le *chiffre* avait été remesuré, la *liste* écrite de mémoire,
+et elle oubliait l'une des deux extractions d'un même commit. Remesure, ne recopie pas — **la liste
+autant que le nombre**.
 
 ⛔ **Le profil `no-js` n'est plus vrai *par construction*** : il l'est **par vérification**. Les
 frontières d'erreur sont des composants client, et c'est le seul JavaScript applicatif du site.
@@ -286,8 +289,10 @@ officielle n'atteint 250 Mo.
   listes générées sont confrontées **aux pages réellement prégénérées**, pas au sitemap. Il y a trois
   énumérations, dont deux dérivées ; comparer deux dérivées produit un message qui accuse celle qui
   n'a pas tort. Le gate porte **six contrôles**, tous vus rouges.
-- ⛔ **Trois fichiers ne sont pas couverts** — `place-layout.tsx`, `technology-section.tsx`,
-  `company-line.tsx` (P4-02 et P4-05). Tests de composant manquants, à écrire en **P4-10**.
+- ⛔ **Cinq fichiers ne sont pas couverts** — `place-layout.tsx` (P4-02), `technology-section.tsx` et
+  `prose.tsx` (P4-05), `brand-palette.ts` (P4-08), `company-line.tsx` (P4-04, 75 % de branches).
+  Tests de composant manquants, à écrire en **P4-10**. La liste en annonçait trois : elle avait été
+  écrite de mémoire à côté d'un chiffre, lui, remesuré (`phase-4-log.md` §13.8).
 - ✅ **Les six arbitrages de P4-07 et P4-08 sont TRANCHÉS** (2026-08-16, `phase-4-log.md` §14.8) :
   garder les deux frontières d'erreur, garder le monogramme d'attente, laisser `og:type` à
   `website`, laisser l'`og:image` sans condensat, laisser `/favicon.ico` nu en 404, ne rien changer

@@ -1002,22 +1002,33 @@ désormais entièrement sain, et l'échec porte le message attendu.
 ### 13.8 ⛔ « Couverture 100 % » n'était plus vrai, et depuis deux tâches
 
 Le chiffre a été **remesuré** au lieu d'être recopié, et il ne tient pas : la couverture globale est
-de **98,8 %**. Trois fichiers ne sont pas couverts, et aucun n'appartient à cette tâche — `git log`
-les rattache à P4-02 et P4-05 :
+de **98,8 %**. Les fichiers non couverts n'appartiennent pas à cette tâche — `git log` les rattache
+à P4-02 et P4-05.
 
-| Fichier | Couverture | Pourquoi |
-|---|---|---|
-| `src/app/[locale]/place-layout.tsx` | 0 % | Le garde des endroits **appelle** les layouts sans les rendre : il lit l'élément `PlaceLayout` retourné, si bien que le corps de celui-ci ne s'exécute jamais |
-| `src/ui/technology-section.tsx` | 0 % | Extrait en revue de P4-05, sans test de composant |
-| `src/ui/company-line.tsx` | 75 % de branches | Une branche jamais exercée |
+⛔⛔ **Cet inventaire, écrit à la main, était faux le jour même** — remesuré le 2026-08-16 à
+l'ouverture de la session suivante, il en compte **cinq** et non trois. La table ci-dessous est
+celle que la sortie de `make coverage` donne, et non celle qu'on croyait :
+
+| Fichier | Couverture | Origine | Pourquoi |
+|---|---|---|---|
+| `src/app/[locale]/place-layout.tsx` | 0 % | P4-02 | Le garde des endroits **appelle** les layouts sans les rendre : il lit l'élément `PlaceLayout` retourné, si bien que le corps de celui-ci ne s'exécute jamais |
+| `src/ui/technology-section.tsx` | 0 % | P4-05 | Extrait en revue de P4-05, sans test de composant |
+| `src/ui/mdx/prose.tsx` | 0 % | P4-05 | **Manquait à la liste d'origine** — extrait par le *même* commit que le précédent (`dfffe9c`) |
+| `src/ui/brand-palette.ts` | 0 % | P4-08 | Postérieur à cette section : la valeur unique des deux `ImageResponse` (§14.7 bis), qu'aucun test n'importe |
+| `src/ui/company-line.tsx` | 75 % de branches | P4-04 | Une branche jamais exercée |
 
 ⭐⭐ **C'est la leçon de §12.2 rejouée sur ce journal lui-même.** §11.5 annonce « 492 verts,
 couverture 100 % » pour P4-06, et ce chiffre a survécu à P4-05, qui l'a rendu faux. Il n'a rien
 décidé — parce qu'il a été remesuré ici —, mais **rien ne le remesurait**.
 
+⭐⭐⭐ **Et la rejouer à moitié ne suffit pas : le *nombre* a été remesuré, la *liste* a été écrite
+de mémoire.** Les deux extractions de P4-05 sont sorties du même commit ; une seule a été nommée.
+Un inventaire se lit dans la sortie de l'outil, exactement comme le chiffre qu'il accompagne —
+sans quoi il vieillit à la vitesse d'une tâche, et c'est arrivé dès la suivante.
+
 Le gate reste **vert** : les seuils sont à 80 % au global et à 95 % sur les modules critiques, tous
 tenus (`src/content`, `src/i18n`, `src/routing`, `src/seo` sont à 100 %). Ce n'est donc pas une
-régression de qualité, c'est une **affirmation périmée**. Traitement : trois tests de composant
+régression de qualité, c'est une **affirmation périmée**. Traitement : les tests de composant
 manquants, inscrits en **P4-10** — la passe d'accessibilité relit de toute façon ces fichiers.
 Nommés ici plutôt que corrigés : ce sont des composants d'autres tâches, et les mêler à ce diff le
 rendrait illisible.
