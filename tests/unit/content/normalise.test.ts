@@ -54,6 +54,34 @@ describe('tri du plus récent au plus ancien', () => {
     expect(sorted(entries, byMostRecent).map((entry) => entry.slug)).toEqual(['c', 'b', 'a'])
   })
 
+  it.each([
+    ['une année contre un mois', '2020', '2021-06'],
+    ['un mois contre un jour', '2021-03', '2021-06-30'],
+    ['deux années', '2020', '2021'],
+  ])('ordonne %s, malgré des longueurs de chaîne différentes', (_label, earlier, later) => {
+    // ⚠️ Depuis que les dates portent leur précision, le tri compare des chaînes
+    // de **longueurs différentes**. `localeCompare` traite le tiret comme de la
+    // ponctuation, dont le poids dépend d'une collation qu'aucun test ne
+    // contrôle : la comparaison se fait par unités de code.
+    const entries = [period('avant', '2000', earlier), period('apres', '2000', later)]
+
+    expect(sorted(entries, byMostRecent).map((entry) => entry.slug)).toEqual(['apres', 'avant'])
+  })
+
+  it('n’invente pas d’ordre entre deux dates qui n’affirment pas la même chose', () => {
+    // « terminé en 2021 » et « terminé le 30 juin 2021 » ne sont pas
+    // comparables : le premier ne dit pas de quel mois il parle. Les départager
+    // reviendrait à choisir une convention — fin d'année, milieu d'année — que
+    // le contenu ne porte pas. Ils sont donc égaux sur la date de fin, et c'est
+    // la date de début qui tranche.
+    // Le cas est choisi pour **départager les deux règles possibles** : par
+    // comparaison brute, `2021-01-05` passe devant `2021` ; à la précision
+    // commune, les deux fins sont égales et c'est la date de début qui tranche.
+    const entries = [period('flou', '2020', '2021'), period('precis', '2019', '2021-01-05')]
+
+    expect(sorted(entries, byMostRecent).map((entry) => entry.slug)).toEqual(['flou', 'precis'])
+  })
+
   it('départage deux éléments en cours par leur date de début', () => {
     const entries = [period('ancien', '2020-01-01'), period('recent', '2024-01-01')]
 
