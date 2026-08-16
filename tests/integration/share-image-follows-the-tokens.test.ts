@@ -16,18 +16,23 @@
  * soit automatisable, et c'est celle qui casse.
  *
  * ⛔ Il ne lisait d'abord que `opengraph-image.tsx`, alors que `icon.tsx` recopie
- * la même couleur d'accent — et son commentaire affirmait pourtant être gardé
- * par ce test. Il lit maintenant **tout `src/app`** : la prochaine route de
- * métadonnée qui recopiera une valeur sera couverte sans qu'on y pense. Relevé
- * en revue.
+ * la même couleur — et son commentaire affirmait pourtant être gardé par ce
+ * test. Il lit maintenant **tout `src/`**, ce qui couvre aussi
+ * `src/ui/brand-palette.ts`, où les valeurs vivent désormais une seule fois.
+ *
+ * ⚠️ **Ce que ce test ne peut pas voir**, et qui a justifié le palette partagé :
+ * il vérifie que chaque littéral **est** un token, jamais que deux fichiers
+ * désignent le **même**. Deux images qui se contredisent sur l'accent le
+ * laisseraient vert. C'est la duplication qu'il fallait supprimer, pas
+ * surveiller. Relevé en revue.
  */
 import { readFile, readdir } from 'node:fs/promises'
 import { join } from 'node:path'
 
 import { describe, expect, it } from 'vitest'
 
-const APP_DIR = join(process.cwd(), 'src', 'app')
-const TOKENS = join(APP_DIR, 'globals.css')
+const SOURCE_DIR = join(process.cwd(), 'src')
+const TOKENS = join(SOURCE_DIR, 'app', 'globals.css')
 
 /** Les couleurs écrites en clair, quelle que soit leur casse. */
 function hexColours(source: string): string[] {
@@ -36,22 +41,22 @@ function hexColours(source: string): string[] {
 
 /** Les couleurs écrites en clair dans les routes, avec le fichier qui les porte. */
 async function colouredSources(): Promise<{ file: string; colour: string }[]> {
-  const entries = await readdir(APP_DIR, { recursive: true, withFileTypes: true })
+  const entries = await readdir(SOURCE_DIR, { recursive: true, withFileTypes: true })
   const found: { file: string; colour: string }[] = []
 
   for (const entry of entries) {
-    if (!entry.isFile() || !entry.name.endsWith('.tsx')) continue
+    if (!entry.isFile() || !/\.tsx?$/.test(entry.name)) continue
 
     const path = join(entry.parentPath, entry.name)
     for (const colour of hexColours(await readFile(path, 'utf8'))) {
-      found.push({ file: path.slice(APP_DIR.length + 1), colour })
+      found.push({ file: path.slice(SOURCE_DIR.length + 1), colour })
     }
   }
 
   return found
 }
 
-describe('palette des routes de métadonnée', () => {
+describe('palette des rendus hors navigateur', () => {
   it('en emploie, sinon ce test ne vérifie rien', async () => {
     // Un parcours qui ne trouve rien rend l'assertion suivante verte pour la
     // pire des raisons (`phase-2-log.md` §10.5).
@@ -65,7 +70,7 @@ describe('palette des routes de métadonnée', () => {
 
     expect(
       invented,
-      'ces couleurs ne sont plus dans globals.css : une image a dérivé du site',
+      'ces couleurs ne sont plus dans globals.css : un rendu a dérivé du site',
     ).toEqual([])
   })
 })

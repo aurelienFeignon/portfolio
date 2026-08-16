@@ -23,9 +23,7 @@ describe('initiales', () => {
     expect(initials('Prince')).toBe('P')
   })
 
-  it('ignore les espaces surnuméraires plutôt que d’en tirer une lettre vide', () => {
-    // `'a  b'.split(/\s+/)` rend une chaîne vide au milieu : sans le filtre,
-    // l'initiale serait `undefined` et le rendu afficherait « undefined ».
+  it('ignore les espaces surnuméraires', () => {
     expect(initials('  Aurélien   Feignon ')).toBe('AF')
   })
 

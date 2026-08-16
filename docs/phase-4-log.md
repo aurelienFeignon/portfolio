@@ -1251,6 +1251,46 @@ Trois autres constats, plus petits :
 **+4 Mo dans l'image de production**, mesuré avant/après sur la même cible, et il est **entièrement
 de build** : les deux images et l'icône sont gravées, le conteneur n'en calcule aucune.
 
+### 14.7 bis Ce que `/simplify` a changé
+
+⛔⛔ **La sonde de palette ne pouvait pas voir la duplication qu'elle était censée garder.** Elle
+vérifie que chaque littéral **est** un token — jamais que deux fichiers désignent le **même**.
+L'accent était écrit dans les deux images : en changer un et laisser l'autre gardait la suite verte
+pendant que les deux se contredisaient sur la marque.
+
+⭐⭐ **La bonne réponse n'était pas de mieux surveiller, mais de supprimer la copie.**
+`src/ui/brand-palette.ts` porte les quatre valeurs **une fois**, les deux routes l'importent, et la
+sonde lit désormais tout `src/`. Une duplication qu'un garde ne peut pas voir n'est pas gardée.
+
+⛔ **Un commentaire de test affirmait un fait faux.** Il justifiait un filtre par « sinon le rendu
+afficherait `undefined` » — or `Array.join` rend une valeur absente comme une chaîne vide, vérifié à
+l'exécution. Le filtre ne protégeait rien, et sa justification demandait de couvrir une branche pour
+un danger inexistant. `trim()` dit ce que le code fait vraiment.
+
+Le reste est de la simplification, et la première trouvaille est la plus intéressante :
+
+- **Un seul fait était écrit deux fois, à cinquante lignes d'écart** : « le titre de l'accueil *est*
+  le nom du site » gouvernait la balise `<title>` d'un côté et l'`og:title` de l'autre. Les deux ne
+  peuvent pas légitimement diverger — si elles le faisaient, l'accueil s'annoncerait autrement qu'il
+  ne s'intitule. `isHome` le nomme une fois.
+- `sharedTitle()` était **appelée deux fois** dans le même objet de retour, là où `images` était
+  hoistée : une asymétrie sans raison, et un site de plus où un futur correctif désynchroniserait
+  `og:title` de `twitter:title`.
+- `shareImage()` n'avait qu'un appelant, qui l'enveloppait aussitôt dans un tableau.
+
+⭐ **`LOCALE_OPENGRAPH` descend de `i18n` vers `seo`.** `fr_FR` est le vocabulaire d'**OpenGraph**,
+pas celui du site : `i18n` est la couche qui ne dépend de rien et qui nomme les langues du *produit*.
+Lui faire porter un protocole tiers dont elle n'a aucun usage était le mauvais étage. Le garde est
+le même où qu'elle vive — ajouter une locale sans sa forme OpenGraph ne compile pas.
+
+**Constats écartés**, avec leur raison :
+
+| Constat | Raison de l'écart |
+|---|---|
+| Extraire une enveloppe commune aux deux `ImageResponse` | La ressemblance est **superficielle** : trois propriétés CSS partagées, tout le reste diverge (1200×630 contre 32×32, colonne contre ligne, trois enfants contre un). La vraie duplication était une **valeur**, pas une forme — et elle est supprimée |
+| Dériver `title` et `description` de l'accueil, désormais redondants avec le `site` passé au même appel | Ferait de l'accueil le seul emplacement dont le titre est implicite, et `title` cesserait d'être une entrée uniformément obligatoire. La redondance est le côté le moins cher |
+| Deux relectures du disque par la sonde de palette | Sous le bruit : une poignée de fichiers, deux fois par exécution |
+
 ### 14.8 Ce que P4-08 laisse ouvert
 
 | Sujet | État |

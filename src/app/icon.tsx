@@ -26,14 +26,12 @@ import { ImageResponse } from 'next/og'
 
 import { DEFAULT_LOCALE } from '@/i18n/locales'
 import { getMessages } from '@/i18n/messages'
+import { BRAND } from '@/ui/brand-palette'
 import { initials } from '@/ui/initials'
 
 /** 32 px : la taille qu'un onglet affiche. Next décline le reste. */
 export const size = { width: 32, height: 32 }
 export const contentType = 'image/png'
-
-/** Recopié de `globals.css`, comme l'image de partage, et gardé par le même test. */
-const ACCENT = '#0b57d0'
 
 export default function Icon() {
   // Le nom est un **nom propre**, identique dans les deux langues (P4-02) :
@@ -48,8 +46,8 @@ export default function Icon() {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        background: ACCENT,
-        color: '#ffffff',
+        background: BRAND.accent,
+        color: BRAND.background,
         fontSize: 18,
       }}
     >

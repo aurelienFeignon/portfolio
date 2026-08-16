@@ -12,16 +12,16 @@
  * site — est le même partout. Le titre de la page, lui, voyage déjà dans
  * `og:title`.
  *
- * ⚠️ **Les couleurs sont recopiées de `globals.css`, et ne peuvent pas ne pas
- * l'être** : `ImageResponse` rend hors du navigateur, sans feuille de style ni
- * variables CSS. C'est la seule duplication du palette dans le dépôt, et elle
- * est **gardée** — `tests/integration/share-image-follows-the-tokens.test.ts`
- * refuse une valeur qui ne serait plus dans les tokens.
+ * ⚠️ **Les couleurs viennent de `src/ui/brand-palette.ts`**, seule copie
+ * TypeScript de `globals.css` : `ImageResponse` rend hors du navigateur, sans
+ * variables CSS. Elles y sont écrites **une fois pour les deux images**, et un
+ * test les confronte aux tokens.
  */
 import { ImageResponse } from 'next/og'
 
 import { LOCALES } from '@/i18n/locales'
 import { getMessages } from '@/i18n/messages'
+import { BRAND } from '@/ui/brand-palette'
 
 import { readLocale } from './locale-param'
 
@@ -42,14 +42,6 @@ export const dynamicParams = false
 export const size = { width: 1200, height: 630 }
 export const contentType = 'image/png'
 
-/** Recopiés de `globals.css`, faute de pouvoir les lire. Gardés par un test. */
-const COLORS = {
-  background: '#ffffff',
-  text: '#1a1a1a',
-  textMuted: '#55575c',
-  accent: '#0b57d0',
-}
-
 export default async function OpenGraphImage({ params }: { params: Promise<{ locale: string }> }) {
   const { site } = getMessages(await readLocale(params))
 
@@ -61,13 +53,13 @@ export default async function OpenGraphImage({ params }: { params: Promise<{ loc
         display: 'flex',
         flexDirection: 'column',
         justifyContent: 'center',
-        background: COLORS.background,
+        background: BRAND.background,
         padding: '80px',
       }}
     >
-      <div style={{ height: '10px', width: '160px', background: COLORS.accent }} />
-      <div style={{ marginTop: '48px', fontSize: '84px', color: COLORS.text }}>{site.name}</div>
-      <div style={{ marginTop: '32px', fontSize: '36px', color: COLORS.textMuted }}>
+      <div style={{ height: '10px', width: '160px', background: BRAND.accent }} />
+      <div style={{ marginTop: '48px', fontSize: '84px', color: BRAND.text }}>{site.name}</div>
+      <div style={{ marginTop: '32px', fontSize: '36px', color: BRAND.textMuted }}>
         {site.description}
       </div>
     </div>,

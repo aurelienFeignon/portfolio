@@ -11,14 +11,21 @@
  * données** : l'icône fait 32 px. Un nom à trois mots y rendrait trois lettres
  * illisibles.
  *
+ * ⚠️ Le `trim()` porte le cas des espaces surnuméraires. Une première version
+ * filtrait les mots vides **après** le découpage, en justifiant le filtre par un
+ * « sinon le rendu afficherait undefined » — c'est faux, `Array.join` rend une
+ * valeur absente comme une chaîne vide. Le filtre ne protégeait rien, et sa
+ * justification était une branche à couvrir pour un danger inexistant. Relevé en
+ * revue.
+ *
  * Le nom vient du dictionnaire, jamais d'ici : cette fonction ne connaît aucune
  * identité.
  */
 export function initials(name: string): string {
   return name
+    .trim()
     .split(/\s+/)
-    .filter((word) => word !== '')
-    .map((word) => word[0])
+    .map((word) => word[0] ?? '')
     .join('')
     .slice(0, 2)
     .toUpperCase()
