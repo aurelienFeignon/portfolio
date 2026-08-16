@@ -24,7 +24,7 @@ import { TechnologySection } from '@/ui/technology-section'
 import { languageOptions } from '../../language-options'
 import { readEntityParams, staticSlugParams, type EntityParams } from '../../locale-param'
 import { entityMetadata } from '../../page-metadata'
-import { experienceStructuredData } from '../../structured-data'
+import { breadcrumbStructuredData } from '../../structured-data'
 
 import page from '@/ui/page.module.css'
 
@@ -73,7 +73,9 @@ export default async function ExperiencePage({ params }: EntityParams) {
           honnête pour « un poste occupé ». Le nom du dernier niveau est le `h1`
           ci-dessous — la page ne peut pas s'intituler autrement qu'elle ne se
           nomme dans son propre fil. */}
-      <JsonLd data={experienceStructuredData(locale, { slug, name: experience.role })} />
+      <JsonLd
+        data={breadcrumbStructuredData(locale, 'experiences', { slug, name: experience.role })}
+      />
       <h1 className={page.title}>{experience.role}</h1>
       <CompanyLine
         company={experience.company}

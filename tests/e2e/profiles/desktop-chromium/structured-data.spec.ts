@@ -14,6 +14,7 @@
  * Profil `desktop-chromium` seul : ce sont des assertions sur un document servi,
  * identiques sur les quatre profils.
  */
+import { SCHEMA_CONTEXT, personId } from '@/seo/json-ld'
 import { PROFILE_URLS } from '@/seo/profiles'
 
 import { ORIGIN, detailPath, sitemapPaths } from '../../support/sitemap'
@@ -26,18 +27,27 @@ import { expect, test } from '../../support/test'
  * qu'un consommateur ne peut pas relire — parce qu'un `</script>` l'a coupé en
  * deux, par exemple — est présent, visible dans le HTML, et sans aucune valeur.
  */
-async function graphOf(request: import('@playwright/test').APIRequestContext, path: string) {
+async function pageOf(request: import('@playwright/test').APIRequestContext, path: string) {
   const html = await (await request.get(path)).text()
   const blocks = [
     ...html.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g),
   ].map((match) => JSON.parse(match[1] as string) as { '@context': string; '@graph': unknown[] })
 
   expect(blocks.length, `aucun bloc JSON-LD sur ${path}`).toBeGreaterThan(0)
-  return blocks.flatMap((block) => {
-    expect(block['@context']).toBe('https://schema.org')
+  const graph = blocks.flatMap((block) => {
+    // La chaîne vient du module qui l'émet : la recopier ici en ferait une
+    // seconde écriture, et le test cesserait de garder ce que le code décide.
+    expect(block['@context']).toBe(SCHEMA_CONTEXT)
     return block['@graph'] as Record<string, unknown>[]
   })
+
+  // Le HTML est **rendu avec** le graphe : un appelant qui en a besoin ne
+  // retélécharge pas le même document, ce que faisait le parcours des dates.
+  return { html, graph }
 }
+
+const graphOf = async (request: import('@playwright/test').APIRequestContext, path: string) =>
+  (await pageOf(request, path)).graph
 
 const nodeOfType = (graph: Record<string, unknown>[], type: string) =>
   graph.find((node) => node['@type'] === type)
@@ -84,10 +94,39 @@ test.describe('données structurées', () => {
      * précisément celui que personne ne regarde.
      */
     const person = nodeOfType(await graphOf(request, '/fr'), 'Person')
-    const known = person?.['knowsAbout'] as string[]
 
-    expect(known.length).toBeGreaterThan(0)
+    /*
+     * ⚠️ L'existence **avant** la longueur : le champ est délibérément omis quand
+     * la liste est vide, si bien qu'un `featured` perdu dans `content/` faisait
+     * échouer ce parcours sur un `TypeError` opaque — avant même d'atteindre
+     * l'assertion qui garde D2. Un test doit échouer en disant pourquoi. Relevé
+     * en revue.
+     */
+    expect(person?.['knowsAbout'], 'aucune compétence mise en avant').toBeDefined()
+    expect((person?.['knowsAbout'] as string[]).length).toBeGreaterThan(0)
     expect(JSON.stringify(person)).not.toContain('level')
+  })
+
+  test('une fiche de projet nomme son auteur, et pas seulement son identifiant', async ({
+    request,
+  }) => {
+    /*
+     * ⛔⛔ Le nœud `Person` complet ne vit que sur l'accueil. Une fiche lue seule
+     * — ce que fait tout consommateur — n'aurait trouvé qu'un renvoi vers un nœud
+     * absent de son graphe. Ce parcours lit **une page qui ne porte pas la
+     * personne**, ce qu'un test unitaire ne peut pas exprimer.
+     */
+    const path = await detailPath(request, 'fr', 'projects')
+    const graph = await graphOf(request, path)
+
+    expect(nodeOfType(graph, 'Person')).toBeUndefined()
+    expect(nodeOfType(graph, 'CreativeWork')?.['author']).toEqual({
+      // Dérivé du module, comme `SCHEMA_CONTEXT` et `PROFILE_URLS` : la
+      // convention du fragment est **la** décision du module, et la transcrire
+      // à la main ferait de ce test un second endroit où elle est écrite.
+      '@id': personId(new URL(ORIGIN)),
+      name: 'Aurélien Feignon',
+    })
   })
 
   test('une page de section porte son fil d’Ariane, dans sa langue', async ({ request }) => {
@@ -103,7 +142,8 @@ test.describe('données structurées', () => {
     request,
   }) => {
     const path = await detailPath(request, 'fr', 'projects')
-    const work = nodeOfType(await graphOf(request, path), 'CreativeWork')
+    const { html, graph } = await pageOf(request, path)
+    const work = nodeOfType(graph, 'CreativeWork')
 
     expect(work?.['url']).toBe(`${ORIGIN}${path}`)
 
@@ -114,7 +154,6 @@ test.describe('données structurées', () => {
      * la page est ce qui la rend indépendante du contenu du jour — les deux
      * canaux lisent la même valeur, et c'est cela qu'il faut garder.
      */
-    const html = await (await request.get(path)).text()
     /*
      * ⚠️ **Insensible à la casse, et ce n'est pas une précaution gratuite.** Next
      * sert l'attribut sous la forme `dateTime="…"`, en casse mixte — les noms
@@ -130,25 +169,39 @@ test.describe('données structurées', () => {
     expect(work?.['dateCreated']).toBe(displayed)
   })
 
-  test('le dernier niveau du fil d’Ariane s’appelle comme le titre de la page', async ({
-    page,
-    request,
-  }) => {
-    // Deux libellés pour la même page, c'est deux réponses à la même question
-    // envoyées au même moteur de recherche.
-    const path = await detailPath(request, 'fr', 'experiences')
-    const graph = await graphOf(request, path)
-    const items = nodeOfType(graph, 'BreadcrumbList')?.['itemListElement'] as Record<
-      string,
-      unknown
-    >[]
+  /*
+   * ⭐⭐ **Les deux sections à détail, et pas une seule.** Le nom de la feuille est
+   * choisi par des chemins différents — la route d'expérience passe
+   * `experience.role`, le composeur de projet dérive `project.title` —, si bien
+   * qu'un parcours qui n'en visitait qu'un laissait l'autre sans mécanisme.
+   * C'est ce qui autorise la décision à vivre dans une route : elle est
+   * **confrontée**, pas confiée à la discipline. Relevé en revue (angle altitude).
+   *
+   * ⚠️ Le fil nomme la page comme son `h1`, et non comme sa balise `<title>` —
+   * qui porte en plus l'employeur et le suffixe de marque. C'est délibéré : un
+   * fil d'Ariane annonce la **position** dans le site, que le `h1` désigne.
+   */
+  for (const section of ['experiences', 'projects'] as const) {
+    test(`le fil d’une fiche de ${section} s’appelle comme le titre de la page`, async ({
+      page,
+      request,
+    }) => {
+      // Deux libellés pour la même page, c'est deux réponses à la même question
+      // envoyées au même moteur de recherche.
+      const path = await detailPath(request, 'fr', section)
+      const graph = await graphOf(request, path)
+      const items = nodeOfType(graph, 'BreadcrumbList')?.['itemListElement'] as Record<
+        string,
+        unknown
+      >[]
 
-    await page.goto(path)
+      await page.goto(path)
 
-    expect(items).toHaveLength(3)
-    expect(items[2]?.['name']).toBe(await page.locator('h1').textContent())
-    expect(items[2]?.['item']).toBe(`${ORIGIN}${path}`)
-  })
+      expect(items).toHaveLength(3)
+      expect(items[2]?.['name']).toBe(await page.locator('h1').textContent())
+      expect(items[2]?.['item']).toBe(`${ORIGIN}${path}`)
+    })
+  }
 
   test('chaque page du sitemap porte des données structurées', async ({ request }) => {
     /*

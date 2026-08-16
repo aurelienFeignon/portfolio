@@ -1,11 +1,18 @@
 /**
  * Composition des données structurées d'une page (P4-09).
  *
- * **Le partage des rôles est celui de `page-metadata.ts`, et pour les mêmes
- * raisons.** `src/seo/json-ld.ts` fabrique des nœuds et ne lit rien ; ce module
- * décide **lesquels une page porte**, et va chercher ce qu'ils affirment — le
+ * **Le partage des rôles est celui de `page-metadata.ts`, à un étage près.**
+ * `src/seo/json-ld.ts` fabrique des nœuds et ne lit rien ; ce module décide
+ * **lesquels une page porte**, et va chercher ce qu'ils affirment — le
  * dictionnaire pour les libellés, le dépôt pour les compétences. La couche `seo`
  * n'a le droit d'atteindre ni l'un ni l'autre (`architecture.md` §1.2).
+ *
+ * ⚠️ **L'étage de différence, dit plutôt que passé sous silence** : `seo/metadata.ts`
+ * porte lui-même son entrée impure (`pageMetadata` lit `SITE_URL`, `buildPageMetadata`
+ * est pure), là où `json-ld.ts` n'expose que des fabriques de **nœuds** — un nœud
+ * n'est pas une page, et il n'y avait pas d'entrée par page à y mettre. La lecture
+ * de l'environnement vit donc ici, une fois par fonction de composition. Relevé en
+ * revue, où l'en-tête promettait une équivalence exacte qui n'en était pas une.
  *
  * Il est ici et non dans les six routes parce que c'est **la seule décision à
  * branches** de la tâche : quels nœuds, avec quel fil d'Ariane. Les routes sont
@@ -89,7 +96,6 @@ export async function homeStructuredData(
     personNode(siteUrl, {
       name: site.name,
       jobTitle: site.jobTitle,
-      description: site.description,
       sameAs: PROFILE_URLS,
       /*
        * ⛔ **Le nom seul.** `level` est une auto-évaluation que personne n'a
@@ -108,32 +114,33 @@ export async function homeStructuredData(
   ])
 }
 
-/** Une page de section : son fil d'Ariane, et rien d'autre. */
-export function sectionStructuredData(locale: Locale, section: Section): JsonLdDocument {
-  return jsonLdDocument([breadcrumbNode(getSiteUrl(), locale, trailTo(locale, section))])
-}
-
 /**
- * Une fiche d'expérience : **le fil d'Ariane seul**.
+ * Une page dont **tout ce qu'on peut dire de vrai est où elle se trouve** : les
+ * trois listes de section, et les fiches d'expérience.
  *
- * ⛔ Il n'existe pas de type schema.org honnête pour « un poste occupé ».
+ * ⛔ Une fiche d'expérience n'a rien de plus à déclarer, et ce n'est pas une
+ * lacune. Il n'existe pas de type schema.org honnête pour « un poste occupé » :
  * `CreativeWork` serait faux — une expérience n'est pas une œuvre —, et
- * `Person.worksFor` affirmerait une **organisation** : or l'une des deux
+ * `Person.worksFor` affirmerait une **organisation**, or l'une des deux
  * expériences est le projet propre de l'auteur, dont la société n'est pas
  * constituée (`content/README.md`). Déclarer un employeur inexistant serait la
  * faute que ce dépôt passe son temps à supprimer.
  *
- * @param name Le titre que la page affiche — son `h1`, c'est-à-dire le rôle. Un
- * fil d'Ariane qui nommerait la page autrement qu'elle ne s'intitule enverrait
- * deux libellés au même moteur de recherche.
+ * ⭐ Elle est **une** fonction et non deux. La première version en avait une par
+ * type de page, dont les corps ne différaient que par un argument que `trailTo`
+ * prenait déjà. Relevé en revue.
+ *
+ * @param leaf La feuille du chemin, pour une fiche : son slug, et le titre que
+ * la page affiche — son `h1`. Un fil d'Ariane qui nommerait la page autrement
+ * qu'elle ne s'intitule enverrait deux libellés au même moteur de recherche.
+ * Omis pour une page de section, qui **est** la feuille.
  */
-export function experienceStructuredData(
+export function breadcrumbStructuredData(
   locale: Locale,
-  entity: { readonly slug: string; readonly name: string },
+  section: Section,
+  leaf?: { readonly slug: string; readonly name: string },
 ): JsonLdDocument {
-  return jsonLdDocument([
-    breadcrumbNode(getSiteUrl(), locale, trailTo(locale, 'experiences', entity)),
-  ])
+  return jsonLdDocument([breadcrumbNode(getSiteUrl(), locale, trailTo(locale, section, leaf))])
 }
 
 /**
@@ -154,7 +161,16 @@ export function projectStructuredData(
   keywords: readonly string[],
 ): JsonLdDocument {
   const siteUrl = getSiteUrl()
-  const location: PageLocation = { kind: 'entity', section: 'projects', slug: project.slug }
+  /*
+   * ⭐ La section est nommée **une fois**. La première version l'écrivait deux
+   * fois dans cette fonction — dans l'emplacement de l'œuvre, puis dans le fil
+   * d'Ariane — sans que rien ne relie les deux : `CreativeWork.url` et le
+   * dernier niveau du fil de la **même page** auraient pu désigner deux sections
+   * différentes. C'est mot pour mot la classe d'erreur que `page-metadata.ts` dit
+   * exister pour fermer. Relevé en revue.
+   */
+  const section = 'projects' satisfies Section
+  const location: PageLocation = { kind: 'entity', section, slug: project.slug }
 
   return jsonLdDocument([
     creativeWorkNode(siteUrl, {
@@ -165,11 +181,16 @@ export function projectStructuredData(
       // Verbatim, à la précision que le contenu porte (P4-17).
       startedAt: project.startedAt,
       keywords,
+      // Le nom de la marque **est** celui de la personne (P4-02) : une fiche lue
+      // seule doit pouvoir nommer son auteur, pas seulement le désigner.
+      authorName: getMessages(locale).site.name,
     }),
+    // `{ slug, name }` et non l'entité entière : un `TrailStep` ne lit que ces
+    // deux champs, et lui en donner quatre laisse croire qu'il en lit quatre.
     breadcrumbNode(
       siteUrl,
       locale,
-      trailTo(locale, 'projects', { ...project, name: project.title }),
+      trailTo(locale, section, { slug: project.slug, name: project.title }),
     ),
   ])
 }

@@ -28,7 +28,6 @@ const ENTITY: PageLocation = { kind: 'entity', section: 'projects', slug: 'portf
 const PERSON = {
   name: 'Aurélien Feignon',
   jobTitle: 'Développeur Full-Stack',
-  description: 'Portfolio de développeur Full-Stack.',
   sameAs: ['https://github.com/exemple'],
   knowsAbout: ['TypeScript', 'PostgreSQL'],
 }
@@ -55,13 +54,34 @@ describe('Person', () => {
     expect(personId(SITE)).toBe('https://exemple.test/#person')
   })
 
-  it('annonce le nom, l’intitulé de poste et la description reçus', () => {
+  it('annonce le nom et l’intitulé de poste reçus', () => {
     const person = personNode(SITE, PERSON)
 
     expect(person['@type']).toBe('Person')
     expect(person['name']).toBe('Aurélien Feignon')
     expect(person['jobTitle']).toBe('Développeur Full-Stack')
-    expect(person['description']).toBe('Portfolio de développeur Full-Stack.')
+  })
+
+  it('ne décrit pas la personne avec la description du site', () => {
+    /*
+     * ⛔ La première version émettait `site.description` — « Portfolio de
+     * développeur Full-Stack : expériences, projets et compétences » — comme
+     * `Person.description`. C'est la description du **site**, et elle était de
+     * surcroît répétée mot pour mot sur le `WebSite` du même graphe. Même faute
+     * que l'`alt` d'image de P4-08 : décrire A avec le texte de B. Aucune prose
+     * sur la personne n'existe dans ce dépôt — c'est la décision D7, ouverte.
+     */
+    expect(personNode(SITE, PERSON)).not.toHaveProperty('description')
+  })
+
+  it('désigne une page réellement servie, et non l’origine nue', () => {
+    /*
+     * ⚠️ `/` n'est **pas une page** : c'est une redirection 307 qui négocie
+     * `Accept-Language` (P3-03), absente de tout sitemap. `Person.url` promet
+     * « une page qui parle de cette personne ». Le commentaire du code promettait
+     * déjà l'accueil de la locale par défaut ; le code émettait l'origine.
+     */
+    expect(personNode(SITE, PERSON)['url']).toBe('https://exemple.test/fr')
   })
 
   it('rattache la personne à ses profils publics', () => {
@@ -108,9 +128,11 @@ describe('WebSite', () => {
 
   it('désigne son auteur par l’identifiant de la personne, sans la redécrire', () => {
     // Redécrire la personne ici en ferait une seconde source de vérité, et la
-    // divergence serait muette.
+    // divergence serait muette. Le nom accompagne l'identifiant pour qu'une page
+    // lue seule sache **qui** — voir le test de `CreativeWork` ci-dessous.
     expect(webSiteNode(SITE, { locale: 'fr', name: 'N', description: 'D' })['author']).toEqual({
       '@id': personId(SITE),
+      name: 'N',
     })
   })
 })
@@ -123,6 +145,7 @@ describe('CreativeWork', () => {
     description: 'Un portfolio documentaire.',
     startedAt: '2026-08-11',
     keywords: ['TypeScript', 'Next.js'],
+    authorName: 'Aurélien Feignon',
   }
 
   it('désigne la page canonique du projet dans sa langue', () => {
@@ -152,8 +175,18 @@ describe('CreativeWork', () => {
     expect(creativeWorkNode(SITE, PROJECT)['keywords']).toEqual(['TypeScript', 'Next.js'])
   })
 
-  it('désigne son auteur par l’identifiant de la personne', () => {
-    expect(creativeWorkNode(SITE, PROJECT)['author']).toEqual({ '@id': personId(SITE) })
+  it('nomme son auteur, et pas seulement son identifiant', () => {
+    /*
+     * ⛔⛔ **Un `@id` seul aurait produit une œuvre sans auteur nommé.** Le nœud
+     * `Person` complet n'est émis que par l'accueil ; une fiche de projet lue
+     * seule — ce que fait tout consommateur de données structurées — n'aurait
+     * trouvé qu'une référence vers un nœud absent de son graphe, c'est-à-dire un
+     * **nœud anonyme**. Relevé en revue.
+     */
+    expect(creativeWorkNode(SITE, PROJECT)['author']).toEqual({
+      '@id': personId(SITE),
+      name: 'Aurélien Feignon',
+    })
   })
 
   it('déclare la langue de l’entité rendue', () => {

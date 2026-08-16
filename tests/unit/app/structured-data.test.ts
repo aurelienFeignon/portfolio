@@ -7,34 +7,38 @@
  * la tâche, et c'est pourquoi elle est ici plutôt que dans les six routes, qui
  * sont exclues de la couverture.
  */
-import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { describe, expect, it } from 'vitest'
 
 import {
+  breadcrumbStructuredData,
   homeStructuredData,
   projectStructuredData,
-  sectionStructuredData,
-  experienceStructuredData,
 } from '@/app/[locale]/structured-data'
 import type { ContentRepository } from '@/content/repository'
 import type { JsonLdNode } from '@/seo/json-ld'
 import { PROFILE_URLS } from '@/seo/profiles'
 
+import { makeSkill } from '../../fixtures/builders/entities'
+import { freezeSiteUrl } from '../../fixtures/site-url'
+
 const ORIGIN = 'https://exemple.test'
 
-const previousSiteUrl = process.env['SITE_URL']
-beforeAll(() => {
-  process.env['SITE_URL'] = ORIGIN
-})
-afterAll(() => {
-  if (previousSiteUrl === undefined) delete process.env['SITE_URL']
-  else process.env['SITE_URL'] = previousSiteUrl
-})
+freezeSiteUrl(ORIGIN)
 
-/** Un dépôt réduit à ce que la composition consulte. */
+/**
+ * Un dépôt réduit à ce que la composition consulte.
+ *
+ * ⭐ Les compétences viennent de `makeSkill`, la fabrique du dépôt, et non d'un
+ * objet écrit à la main : celle-ci passe par le **vrai schéma**, si bien que le
+ * garde D2 ci-dessous s'exerce sur une entité de la même forme qu'en production —
+ * `level`, `category`, `featured`, `body` et `file` compris. Un faux écrit à la
+ * main aurait continué de rendre l'ancienne forme le jour où `Skill` change,
+ * en silence. Relevé en revue.
+ */
 const repositoryWithSkills = (names: readonly string[]) =>
   ({
     getFeaturedSkills: async () =>
-      names.map((name, index) => ({ slug: `s${index}`, name, level: 5 })),
+      names.map((name, index) => makeSkill({ slug: `s${index}`, name })),
   }) as unknown as ContentRepository
 
 function nodeOfType(graph: readonly JsonLdNode[], type: string): JsonLdNode {
@@ -48,9 +52,9 @@ describe('accueil', () => {
   it('porte la personne **et** le site, dans un seul graphe', async () => {
     const document = await homeStructuredData(repositoryWithSkills(['TypeScript']), 'fr')
 
-    expect(document['@graph']).toHaveLength(2)
-    expect(nodeOfType(document['@graph'], 'Person')).toBeDefined()
-    expect(nodeOfType(document['@graph'], 'WebSite')).toBeDefined()
+    // Les types **et** leur ordre, en une assertion : `nodeOfType` affirme déjà
+    // la présence, si bien qu'un `toBeDefined()` derrière lui ne peut pas rougir.
+    expect(document['@graph'].map((node) => node['@type'])).toEqual(['Person', 'WebSite'])
   })
 
   it('lit l’intitulé de poste dans la langue de la page', async () => {
@@ -95,8 +99,13 @@ describe('accueil', () => {
      */
     const document = await homeStructuredData(repositoryWithSkills(['TypeScript']), 'fr')
 
+    /*
+     * ⚠️ Une seule assertion, et c'est délibéré : la précédente y ajoutait
+     * `not.toContain('"5"')`, qui **ne pouvait pas échouer** — la fabrique écrit
+     * `level` en nombre, donc la sérialisation ne produit jamais cette
+     * sous-chaîne, quoi que fasse le code sous test. Relevé en revue.
+     */
     expect(JSON.stringify(document)).not.toContain('level')
-    expect(JSON.stringify(document)).not.toContain('"5"')
   })
 
   it('ne porte pas de fil d’Ariane : l’accueil est la racine', async () => {
@@ -108,7 +117,7 @@ describe('accueil', () => {
 
 describe('page de section', () => {
   it('porte un fil d’Ariane de deux niveaux, dans la langue de la page', () => {
-    const trail = nodeOfType(sectionStructuredData('fr', 'projects')['@graph'], 'BreadcrumbList')
+    const trail = nodeOfType(breadcrumbStructuredData('fr', 'projects')['@graph'], 'BreadcrumbList')
 
     expect(trail['itemListElement']).toEqual([
       expect.objectContaining({ position: 1, name: 'Aurélien Feignon', item: `${ORIGIN}/fr` }),
@@ -117,7 +126,7 @@ describe('page de section', () => {
   })
 
   it('nomme la section dans sa langue', () => {
-    const trail = nodeOfType(sectionStructuredData('en', 'skills')['@graph'], 'BreadcrumbList')
+    const trail = nodeOfType(breadcrumbStructuredData('en', 'skills')['@graph'], 'BreadcrumbList')
 
     expect(trail['itemListElement']).toEqual([
       expect.objectContaining({ item: `${ORIGIN}/en` }),
@@ -134,7 +143,7 @@ describe('fiche d’expérience', () => {
    * fixe ici. Écrit d'abord dans le corps, et vu échouer pour cette raison.
    */
   const documentOf = () =>
-    experienceStructuredData('fr', { slug: 'askor', name: 'Lead développeur' })
+    breadcrumbStructuredData('fr', 'experiences', { slug: 'askor', name: 'Lead développeur' })
 
   it('porte un fil d’Ariane de trois niveaux', () => {
     const trail = nodeOfType(documentOf()['@graph'], 'BreadcrumbList')
@@ -173,9 +182,7 @@ describe('fiche de projet', () => {
   it('porte l’œuvre **et** son fil d’Ariane', () => {
     const graph = projectStructuredData('fr', project, ['TypeScript'])['@graph']
 
-    expect(graph).toHaveLength(2)
-    expect(nodeOfType(graph, 'CreativeWork')).toBeDefined()
-    expect(nodeOfType(graph, 'BreadcrumbList')).toBeDefined()
+    expect(graph.map((node) => node['@type'])).toEqual(['CreativeWork', 'BreadcrumbList'])
   })
 
   it('nomme le projet dans le fil d’Ariane comme le titre de la page', () => {

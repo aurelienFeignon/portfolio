@@ -7,22 +7,17 @@
  * `pageMetadata` est **la** décision dont R-07 dépend — et qu'elle vivait dans un
  * fichier exclu de la couverture.
  */
-import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { describe, expect, it } from 'vitest'
 
 import { entityMetadata, sectionMetadata } from '@/app/[locale]/page-metadata'
 import type { ContentRepository } from '@/content/repository'
 import type { Locale } from '@/i18n/locales'
 
+import { freezeSiteUrl } from '../../fixtures/site-url'
+
 const ORIGIN = 'https://exemple.test'
 
-const previousSiteUrl = process.env['SITE_URL']
-beforeAll(() => {
-  process.env['SITE_URL'] = ORIGIN
-})
-afterAll(() => {
-  if (previousSiteUrl === undefined) delete process.env['SITE_URL']
-  else process.env['SITE_URL'] = previousSiteUrl
-})
+freezeSiteUrl(ORIGIN)
 
 const params = (locale: string) => Promise.resolve({ locale })
 

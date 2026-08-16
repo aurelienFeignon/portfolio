@@ -11,7 +11,7 @@ import { describe, expect, it } from 'vitest'
 
 import { JsonLd } from '@/ui/json-ld'
 
-function scriptOf(data: unknown): HTMLScriptElement {
+function scriptOf(data: Readonly<Record<string, unknown>>): HTMLScriptElement {
   render(<JsonLd data={data} />)
   const script = document.querySelector('script[type="application/ld+json"]')
 
@@ -35,13 +35,12 @@ describe('JsonLd', () => {
     })
   })
 
-  it('n’est pas rendu du tout quand il n’y a rien à dire', () => {
-    // Un `<script>` vide ou porteur d'un graphe vide déclarerait des données
-    // structurées qui n'en sont pas — un moteur les lit, et n'y trouve rien.
-    render(<JsonLd data={null} />)
-
-    expect(document.querySelector('script[type="application/ld+json"]')).toBeNull()
-  })
+  /*
+   * ⚠️ Il n'y a **pas** de test « ne rend rien quand la donnée est absente » : le
+   * prop n'est pas nullable, et une page qui n'a rien à déclarer ne rend pas le
+   * composant du tout. C'est ce que vérifie le parcours sur les deux pages
+   * introuvables — au bon niveau, et sans branche à couvrir ici.
+   */
 
   describe('un texte de contenu ne peut pas fermer le bloc', () => {
     /*

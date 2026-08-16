@@ -3,7 +3,7 @@
 > Statut global : **Phases 0, 1, 2 et 3 terminées et validées.** **Phase 4 ouverte le 2026-08-15**,
 > dernière phase de la tranche T1. **P2-11 (rédaction du contenu réel) est DONE (2026-08-15)** : le
 > contenu d'amorçage est entièrement remplacé, et le chemin critique de T1 est donc levé.
-> **P4-07 et P4-08 closes le 2026-08-16** : 9 tâches de la Phase 4 sur 17.
+> **P4-07, P4-08 et P4-09 closes le 2026-08-16** : 10 tâches de la Phase 4 sur 17.
 > Journal de la Phase 4 : [`phase-4-log.md`](./phase-4-log.md) — phases précédentes :
 > [`phase-3-log.md`](./phase-3-log.md), [`phase-2-log.md`](./phase-2-log.md),
 > [`phase-1-log.md`](./phase-1-log.md)
@@ -715,7 +715,7 @@ reste et le filet de sécurité permanent du projet. Journal de phase :
 | P4-06 | Compétences (groupées par catégorie) | **DONE** *(2026-08-16)* | P4-02 |
 | P4-07 | Pages 404 et erreur, localisées | **DONE** *(2026-08-16)* | P4-02 |
 | P4-08 | Métadonnées OpenGraph, gabarit de titre, images de partage et icône | **DONE** *(2026-08-16)* | P3-06 |
-| P4-09 | JSON-LD : `Person`, `WebSite`, `CreativeWork`, `BreadcrumbList` | TODO | P4-05 |
+| P4-09 | JSON-LD : `Person`, `WebSite`, `CreativeWork`, `BreadcrumbList` | **DONE** *(2026-08-16)* | P4-05 |
 | P4-10 | Passe accessibilité : titres, focus, contrastes, points de repère — **plus les trois tests de composant manquants** (`phase-4-log.md` §13.8), le garde des endroits à piloter par l'arborescence, et l'instruction de `experimental.globalNotFound` comme plancher (§13.10) | TODO | P4-06 |
 | P4-11 | Responsive documentaire : mobile, tablette, desktop | TODO | P4-06 |
 | P4-12 | E2E : navigation complète, deep links, bascule de langue, clavier | TODO | P4-11 |
@@ -874,6 +874,31 @@ et la fermer demanderait une copie figée de l'icône (`phase-4-log.md` §14.4).
 parcours refuse désormais toute origine étrangère sur **toutes** les pages servies.
 📏 Image de production **272 Mo** (+4 Mo, le coût de `next/og`, entièrement de build, aucune
 dépendance ajoutée au verrou) ; socle 126,4 Ko ; 569 tests, 117 E2E. · Depends on: P3-06
+
+**P4-09 — JSON-LD**
+Status: **DONE** (2026-08-16) — `Person` et `WebSite` sur l'accueil, `CreativeWork` sur une fiche de
+projet, `BreadcrumbList` sur les sections **et** les fiches. Trois couches, comme les métadonnées :
+`src/seo/json-ld.ts` fabrique les nœuds et ne lit rien, `src/app/[locale]/structured-data.ts` décide
+lesquels une page porte, `src/ui/json-ld.tsx` sérialise.
+⭐⭐⭐ **Les quatre arbitrages ont été posés avant d'écrire une ligne**, comme une liste de décisions —
+c'est la leçon de §14.8 appliquée le lendemain. L'un d'eux ne pouvait pas être tranché par défaut :
+les URL de profils n'existent nulle part dans le dépôt, et **une adresse de profil ne se devine pas**.
+⛔ **Le fond de la tâche est ce qui n'est pas affirmé** : ni les niveaux de compétence (D2, ouverte),
+ni une organisation employeuse — l'une des deux expériences est le projet propre de l'auteur, société
+non constituée —, ni le dépôt d'un projet, que la fiche ne rend pas.
+⭐⭐⭐ `dateCreated` est réémis **verbatim** : c'est le dernier endroit où la précision variable de
+P4-17 pouvait se perdre, et P4-04 l'avait annoncé en toutes lettres. Un parcours le compare à
+l'attribut `datetime` réellement servi.
+⭐⭐ **Le garde d'origines de P4-08 a rougi**, et l'assouplir en « toute origine externe est tolérée »
+aurait rendu le `localhost` de P4-08 réinvisible dans le garde même qui existe pour lui. Chaque
+origine admise est nommée, et importée de sa source.
+⛔⛔ La revue a trouvé **quatre défauts** : une œuvre dont l'auteur n'avait pas de nom, une personne
+décrite avec la description du **site** — la faute de l'`alt` d'image de P4-08, à l'identique —, un
+`Person.url` désignant une redirection, et un parcours qui échouait par `TypeError` avant son
+assertion. ⭐ Et la **couverture** a nommé deux branches mortes qu'aucune relecture n'avait vues.
+📏 Socle 126,4 Ko et 7,3 Ko par route, **tous deux inchangés** : un bloc `ld+json` est de la donnée,
+pas du code. Image 273 Mo, 607 tests, 127 E2E, couverture 98,7 %, 15 mutations toutes tuées.
+· Depends on: P4-05, P4-17
 
 **P4-05 — Liste et détail des projets, corps MDX rendu**
 Status: **DONE** (2026-08-16) — la fiche d'un projet compile et rend son corps MDX dans un conteneur

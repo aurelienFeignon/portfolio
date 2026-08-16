@@ -1299,3 +1299,149 @@ le même où qu'elle vive — ajouter une locale sans sa forme OpenGraph ne comp
 | `/favicon.ico` nu reste une 404 | Fermer ce cas demanderait une copie **figée** de l'icône générée (§14.4) |
 | L'`og:image` n'a pas de condensat | Déclencheur écrit : versionner l'adresse le jour où l'image change (§14.6) |
 | `og:type` vaut `website` partout | Une fiche est un `article` au sens d'OpenGraph, mais l'annoncer inviterait à chercher un `article:published_time` que nos dates à précision variable ne peuvent pas former. La sémantique d'entité passe par le JSON-LD — **P4-09** |
+
+## 15. P4-09 — ce que la page dit à une machine, et ce qu'elle refuse de lui dire
+
+### 15.1 Les quatre arbitrages, posés **avant** d'écrire une ligne
+
+⭐⭐⭐ **C'est la leçon de §14.8 appliquée le jour suivant.** P4-07 et P4-08 avaient produit six
+arbitrages consignés en prose et découverts après la fusion. Ceux-ci ont été présentés comme une
+**liste de décisions avec un défaut recommandé**, au moment où ils sont nés — c'est-à-dire après la
+lecture du code et avant la première ligne écrite.
+
+| # | Arbitrage | Décision de l'utilisateur |
+|---|---|---|
+| 1 | `Person.sameAs` — les URL de profils n'existent **nulle part** dans le dépôt | **Fournies** : GitHub et LinkedIn, entrées dans `src/seo/profiles.ts`, source unique |
+| 2 | `Person.jobTitle` — « développeur Full-Stack » n'est écrit que dans une phrase | **Clé de dictionnaire.** Ce n'est pas une affirmation neuve : elle est déjà publiée dans `site.description` |
+| 3 | `Person.knowsAbout` dérivé des dix compétences `featured` | **Oui**, par leur nom seul |
+| 4 | Portée du `BreadcrumbList` | **Sections et fiches**, là où `architecture.md` §9 n'écrivait que « détails » |
+
+⭐ Le premier ne pouvait pas être tranché par défaut : **une URL de profil ne se devine pas.**
+L'adresse du dépôt d'un projet (`content/`) donne le nom de compte GitHub — et une inférence juste
+sur l'un aurait autorisé une inférence fausse sur l'autre, LinkedIn n'ayant aucune source.
+
+### 15.2 Ce qui n'est pas affirmé, et c'est le fond de la tâche
+
+Une donnée structurée est lue par une machine et par personne d'autre. Un champ faux n'a **aucun
+symptôme** : pas d'erreur, pas de page cassée, pas de test rouge ailleurs. C'est exactement la classe
+que P4-17 a coûté une tâche entière à fermer sur les dates, et trois champs ont été refusés pour
+cette raison.
+
+| Refusé | Pourquoi |
+|---|---|
+| Les **niveaux** de compétence (1 à 5) | Auto-évaluation que personne n'a relue — **D2, ouverte**. `/skills` ne les affiche pas depuis P4-06 ; les republier par le canal des machines serait la porte de derrière. `knowsAbout` ne porte que des noms, et deux tests l'exigent dont un parcours |
+| Une **organisation** pour les expériences | `Person.worksFor` affirmerait un employeur : or l'une des deux expériences est le projet propre de l'auteur, **société non constituée** (`content/README.md`). Une fiche d'expérience porte donc son fil d'Ariane, et rien d'autre |
+| Le **dépôt** d'un projet | `content/` porte `links.repository`, et **aucune page ne le rend**. Une donnée structurée décrit ce que la page affiche ; l'émettre publierait par les métadonnées un lien que le visiteur ne peut pas suivre |
+| Une **description** de la personne | Voir §15.5 — c'est la décision éditoriale **D7**, ouverte |
+
+⛔ **Il n'existe pas de type schema.org honnête pour « un poste occupé ».** `CreativeWork` serait
+faux. C'est ce qui laisse les fiches d'expérience au seul fil d'Ariane, et c'est écrit plutôt que
+subi.
+
+### 15.3 `dateCreated` était le dernier endroit où P4-17 pouvait se perdre
+
+P4-04 l'annonçait en toutes lettres : *« P4-09 lira `experience.startedAt` sur l'entité et réémettra
+`2021-01-01` dans le JSON-LD : ni type, ni test, ni règle de cloisonnement ne l'en empêche »*. P4-17
+a rendu la propriété vraie **par construction** en faisant voyager la précision avec la donnée — il
+restait à ne pas la retrancher ici.
+
+Le champ est réémis **verbatim** : `2021` reste `2021`. Un parcours le compare à l'attribut
+`datetime` **réellement servi** sur la même page, ce qui le rend indépendant du contenu du jour : les
+deux canaux lisent la même valeur, et c'est cela qu'il faut garder.
+
+### 15.4 ⭐⭐ Le garde d'origines de P4-08 a rougi, et l'assouplir aurait été la mauvaise réponse
+
+Le parcours « aucune page ne grave une autre origine que celle de construction » est devenu rouge dès
+le premier build : les données structurées gravent légitimement **trois** origines étrangères — le
+vocabulaire `https://schema.org` et les deux profils publics.
+
+La réponse facile était « toute origine externe est tolérée ». Elle aurait rendu le `localhost` de
+P4-08 **réinvisible, dans le garde même qui existe pour lui**. Chaque origine admise est donc
+**nommée**, et elle l'est en **important sa source** : recopier les profils dans le test en aurait
+fait une seconde écriture, celle-là même que `src/seo/profiles.ts` supprime.
+
+### 15.5 Ce que la revue a changé
+
+`/code-review` a trouvé **quatre défauts réels** sur un travail dont tous les gates étaient verts.
+Deux relèvent de classes que cette phase a déjà payées.
+
+⛔⛔ **Une œuvre dont l'auteur n'avait pas de nom.** `CreativeWork.author` désignait la personne par
+son seul `@id`, alors que le nœud `Person` complet n'est émis que par l'accueil. Pour qui ne lit
+qu'une fiche de projet — ce que fait tout consommateur de données structurées —, la référence
+résolvait vers un **nœud anonyme**. Le `@id` reste ce qui rattache les deux au même être ;
+`personReference` y ajoute le nom, qui est ce qui rend la référence lisible seule.
+
+⛔⛔ **La personne était décrite avec la description du site.** `Person.description` recevait
+`site.description` — « Portfolio de développeur Full-Stack : expériences, projets et compétences » —,
+c'est-à-dire une phrase écrite pour décrire des **rubriques**, affirmée sur quelqu'un, et répétée mot
+pour mot sur le nœud `WebSite` du même graphe.
+⭐⭐ **C'est la faute de l'`alt` d'image de P4-08, à l'identique** : décrire A avec le texte de B. Une
+description fausse est pire qu'absente. Le champ est retiré ; aucune prose sur Aurélien n'existe dans
+ce dépôt, et en écrire une est la décision **D7**. Le jour où elle est tranchée, sa place est là.
+
+⛔ **`Person.url` désignait l'origine nue**, qui n'est pas une page mais une **redirection 307**
+négociant `Accept-Language` (P3-03), absente de tout sitemap. Le commentaire juste au-dessus
+promettait déjà « l'accueil de la locale par défaut » — **quatrième fois de cette phase qu'une prose
+survit au code qu'elle décrit**. C'est désormais `/fr`. `WebSite.url` garde l'origine, et la raison
+est écrite : un `WebSite` **est** le site, là où `Person.url` promet une page qui parle de quelqu'un.
+
+⚠️ Et un parcours échouait par `TypeError` avant d'atteindre l'assertion qui garde D2 : il lisait la
+longueur d'un champ que l'émetteur **omet** délibérément quand la liste est vide. Un test doit
+échouer en disant pourquoi.
+
+### 15.6 ⭐ Deux branches mortes, trouvées par la sortie de `make coverage`
+
+`trailTo` prenait un `PageLocation` complet et traitait le cas « accueil » — qu'aucun appelant ne lui
+passe, l'accueil n'ayant pas de fil d'Ariane — plus un `entityName` optionnel qui ne pouvait jamais
+manquer. Deux lignes jamais exécutées, invisibles à la relecture, **nommées par le rapport de
+couverture**.
+
+Elles ont été **supprimées, pas couvertes** : écrire un test pour une branche inatteignable donne un
+chiffre vert et un mécanisme qui ment. La signature dit maintenant ce qui existe — une locale, une
+section, et une feuille optionnelle.
+
+### 15.7 ⚠️ Le piège de casse de la Phase 3, repayé
+
+Un parcours comparait `dateCreated` à l'attribut `datetime` servi, et échouait : Next rend l'attribut
+sous la forme **`dateTime`**, en casse mixte. Les noms d'attributs HTML étant insensibles à la casse,
+le site est correct — c'est l'extraction qui était fausse.
+
+⭐ C'est mot pour mot `phase-3-log.md` §14.1, où `hrefLang` avait rendu un test **vert sans rien
+inspecter**. Ici il a échoué, et pour la seule raison qui vaille : l'assertion de non-vide écrite
+avant de croire l'extraction.
+
+### 15.8 ⛔ `/code-review` s'ancre sur le répertoire de la **session**, pas sur le dépôt qu'on édite
+
+Le premier appel du rituel a relu un **autre dépôt** — celui d'où la session avait été ouverte — et
+rendu six constats sur du code Python sans aucun rapport. Rien ne le signalait : le rapport était
+crédible, structuré, et faux de bout en bout.
+
+⭐⭐ **Un outil qui répond à côté répond quand même.** Vérifier que le rapport nomme des fichiers du
+diff en cours est le seul contrôle qui coûte zéro. Le second appel, avec le chemin passé
+explicitement, a rendu les quatre constats de §15.5.
+
+### 15.9 Relevés
+
+| Relevé après P4-09 | Valeur | Seuil |
+|---|---|---|
+| Socle partagé | **126,4 Ko — inchangé** | cible 136 · bloquant 146 |
+| JS propre à chaque route | **7,3 Ko — inchangé** sur 18 routes | cible 25 · bloquant 40 |
+| Image de production | **273 Mo** *(272 après P4-08)* — **+0,5 Mo** | cible 250 · **bloquant 400** |
+| Tests | **607** verts *(569 après P4-08)* | — |
+| E2E | **127** verts sur 5 profils *(117 après P4-08)* | — |
+| Couverture globale | **98,7 %** *(98,6 après P4-08)* | ≥ 80 % |
+| Mutations appliquées | **15**, toutes tuées | — |
+
+⭐ **Zéro octet de JavaScript client ajouté**, et c'est vérifié plutôt que supposé : un
+`<script type="application/ld+json">` est un bloc de **données**, pas de code. Le budget de bundle le
+mesure — 7,3 Ko par route, exactement comme avant la tâche.
+
+### 15.10 Ce que P4-09 laisse ouvert
+
+| Sujet | État |
+|---|---|
+| `Person.description` | Vide tant que **D7** n'est pas tranchée. Le jour où l'accroche existe, sa place est ce champ |
+| `links.repository` n'est **rendu par aucune page** | Dette nommée ici : le contenu le porte, personne ne l'affiche, et le JSON-LD ne peut donc pas l'annoncer. À reprendre avec la fiche de projet |
+| Les profils vivent dans `src/seo/profiles.ts` | **Déclencheur écrit** : au troisième consommateur — un « À propos » (Phase 9), une page de contact (Phase 10) —, la question d'un type de contenu « personne » se rouvre. Deux ne la justifient pas |
+| `knowsAbout` sur l'accueil | Les dix compétences vivent sur `/skills`. `Person` décrit une personne, pas la page qui la porte ; s'il fallait resserrer, sa place serait `/skills` |
+| CSP et blocs `ld+json` | **Note écrite dans le code** pour l'ADR-0015 (Phase 14) : une `script-src` stricte les supprimerait **en silence**. La politique devra porter un `nonce` ou un condensat |

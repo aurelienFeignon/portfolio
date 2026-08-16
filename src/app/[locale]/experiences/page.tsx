@@ -10,6 +10,7 @@ import { contentRepository } from '@/content/repository'
 import { LOCALES } from '@/i18n/locales'
 import { getMessages } from '@/i18n/messages'
 import { entityPath, type PageLocation } from '@/routing/paths'
+import type { Section } from '@/routing/sections'
 import { ExperienceList } from '@/ui/experience-list'
 import { JsonLd } from '@/ui/json-ld'
 import { LanguageSwitcher } from '@/ui/language-switcher'
@@ -17,13 +18,21 @@ import { LanguageSwitcher } from '@/ui/language-switcher'
 import { languageOptions } from '../language-options'
 import { readLocale, type LocaleParams } from '../locale-param'
 import { sectionMetadata } from '../page-metadata'
-import { sectionStructuredData } from '../structured-data'
+import { breadcrumbStructuredData } from '../structured-data'
 
 import styles from '@/ui/page.module.css'
 
-const LOCATION: PageLocation = { kind: 'section', section: 'experiences' }
+/*
+ * ⭐ La section est nommée **une fois** par route. Elle l'était trois fois —
+ * emplacement, métadonnées, données structurées — sans que rien ne relie les
+ * trois : coller la valeur d'une autre section sur l'une d'elles compilait et
+ * passait tous les gates. C'est la classe d'erreur que `page-metadata.ts` dit
+ * exister pour fermer, et le câblage de P4-09 l'avait rouverte. Relevé en revue.
+ */
+const SECTION = 'experiences' satisfies Section
+const LOCATION: PageLocation = { kind: 'section', section: SECTION }
 
-export const generateMetadata = sectionMetadata('experiences')
+export const generateMetadata = sectionMetadata(SECTION)
 
 export default async function ExperiencesPage({ params }: LocaleParams) {
   const locale = await readLocale(params)
@@ -32,8 +41,8 @@ export default async function ExperiencesPage({ params }: LocaleParams) {
 
   return (
     <main id="main" className={styles.page}>
-      <JsonLd data={sectionStructuredData(locale, 'experiences')} />
-      <h1 className={styles.title}>{messages.sections.experiences.name}</h1>
+      <JsonLd data={breadcrumbStructuredData(locale, SECTION)} />
+      <h1 className={styles.title}>{messages.sections[SECTION].name}</h1>
       <ExperienceList
         locale={locale}
         items={experiences.map((experience) => ({

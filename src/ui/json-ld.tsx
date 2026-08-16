@@ -33,18 +33,25 @@ function serialise(data: unknown): string {
 
 export interface JsonLdProps {
   /**
-   * Le document à émettre, ou `null` quand la page n'a rien à déclarer.
+   * Le document à émettre.
    *
-   * `null` **ne rend pas de balise**. Un `<script>` vide, ou porteur d'un graphe
-   * vide, annoncerait des données structurées à un moteur qui n'y trouverait
-   * rien — le pire des deux mondes.
+   * ⭐ **Non nullable, et sans garde d'exécution.** La première version acceptait
+   * `unknown` et rendait `null` sur une donnée absente — une branche qu'aucun
+   * appelant n'atteint, couverte par un test écrit pour elle. C'est exactement
+   * ce que le commit précédent de cette même branche venait de supprimer dans
+   * `trailTo` : écrire un test pour une branche inatteignable donne un chiffre
+   * vert et un mécanisme qui ment. Relevé en revue, par deux angles sur quatre.
+   *
+   * Le type reste **structurel** (`Record<string, unknown>`) et non
+   * `JsonLdDocument` : `src/ui` n'a pas le droit d'importer `src/seo`
+   * (`architecture.md` §1.2). Une page qui n'a rien à déclarer ne rend pas le
+   * composant — c'est le cas des deux pages introuvables, et un parcours le
+   * vérifie.
    */
-  readonly data: unknown
+  readonly data: Readonly<Record<string, unknown>>
 }
 
 export function JsonLd({ data }: JsonLdProps) {
-  if (data === null || data === undefined) return null
-
   return (
     <script
       type="application/ld+json"

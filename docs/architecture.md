@@ -667,11 +667,23 @@ Vitest pur (CT-10). C'est vérifié par la règle ESLint de §1.2.
 | OpenGraph / Twitter | `opengraph-image` généré, ou image dédiée par projet | 4 |
 | `sitemap.xml` | Dérivé du Content Layer, avec `alternates` par locale | 3–4 |
 | `robots.txt` | Autorise tout, pointe le sitemap | 3 |
-| JSON-LD | `Person` + `WebSite` (accueil), `CreativeWork` (projet), `BreadcrumbList` (détails) | 4 |
+| JSON-LD | `Person` + `WebSite` (accueil), `CreativeWork` (projet), `BreadcrumbList` (sections **et** détails) | 4 |
 | Contenu indexable | Rendu serveur, **jamais** dépendant du canvas | 4 |
 
 Critère vérifiable retenu : **la page rendue avec JavaScript désactivé contient l'intégralité du
 texte utile**. Testé en E2E, pas seulement affirmé.
+
+> **Précisé le 2026-08-16 (P4-09), trois points.**
+>
+> - **Le `BreadcrumbList` couvre aussi les pages de section**, là où cette table n'écrivait que
+>   « détails ». Une section est un niveau réel du chemin, et c'est ce que Google lit pour afficher
+>   ce chemin dans un résultat. Élargissement signalé plutôt qu'appliqué en silence.
+> - **Une fiche d'expérience ne déclare aucune entité**, seulement son fil d'Ariane : il n'existe pas
+>   de type schema.org honnête pour « un poste occupé », et `Person.worksFor` affirmerait une
+>   organisation que l'une des deux expériences n'a pas (`content/README.md`).
+> - **Les blocs sont servis en `<script type="application/ld+json">` inline.** L'ADR-0015 (CSP,
+>   Phase 14) devra leur ménager un `nonce` ou un condensat : une `script-src` stricte les
+>   supprimerait **sans rien casser de visible**. La note est aussi dans `src/seo/json-ld.ts`.
 
 ---
 

@@ -22,8 +22,8 @@
  * le dit explicitement), donc rien à faire maintenant — mais c'est écrit ici
  * pour ne pas être découvert après.
  */
-import type { Locale } from '../i18n/locales.ts'
-import { pathFor, type PageLocation } from '../routing/paths.ts'
+import { DEFAULT_LOCALE, type Locale } from '../i18n/locales.ts'
+import { homePath, pathFor, type PageLocation } from '../routing/paths.ts'
 
 import { buildAbsoluteUrl } from './site-url.ts'
 
@@ -41,7 +41,14 @@ export const SCHEMA_CONTEXT = 'https://schema.org'
 /** Un nœud du graphe. Les clés sont celles de schema.org, donc hors de notre contrôle. */
 export type JsonLdNode = Readonly<Record<string, unknown>>
 
-export interface JsonLdDocument {
+/**
+ * ⚠️ Un `type` et non une `interface`, et ce n'est pas une préférence de style :
+ * TypeScript ne donne de signature d'index implicite qu'aux **alias de type**.
+ * `src/ui/json-ld.tsx` reçoit ce document sous la forme structurelle
+ * `Record<string, unknown>` — le graphe de dépendances lui interdisant d'importer
+ * `src/seo` —, et une `interface` n'y serait pas assignable.
+ */
+export type JsonLdDocument = {
   readonly '@context': typeof SCHEMA_CONTEXT
   readonly '@graph': readonly JsonLdNode[]
 }
@@ -72,15 +79,47 @@ export function personId(siteUrl: URL): string {
   return `${buildAbsoluteUrl(siteUrl, '/')}#person`
 }
 
-/** Même raisonnement : le site n'est pas sa page d'accueil française. */
-export function webSiteId(siteUrl: URL): string {
+/**
+ * Même raisonnement : le site n'est pas sa page d'accueil française.
+ *
+ * ⚠️ **Non exportée**, contrairement à `personId` — celui-ci a un appelant hors
+ * de ce module, celle-ci n'en a pas. Une fonction exportée sans appelant est du
+ * vocabulaire public à maintenir pour rien, et la symétrie apparente avec sa
+ * jumelle n'est pas une raison suffisante : c'est le motif qui a fait retirer
+ * `precisionOf()` avant son commit en P4-17.
+ */
+function webSiteId(siteUrl: URL): string {
   return `${buildAbsoluteUrl(siteUrl, '/')}#website`
 }
 
-export interface PersonInput {
+/**
+ * La personne **telle qu'une autre page la désigne** : son identifiant, et son
+ * nom.
+ *
+ * ⛔⛔ **Un `@id` seul ne suffit pas, et c'est un constat de revue.** Le nœud
+ * `Person` complet n'est émis que par l'accueil ; une fiche de projet qui
+ * référencerait `…#person` sans plus produirait, pour qui ne lit que cette
+ * page-là, un **nœud anonyme** — une œuvre dont l'auteur n'a pas de nom. Le
+ * `@id` reste ce qui rattache les deux au même être ; le nom est ce qui rend la
+ * référence lisible seule.
+ *
+ * Ce n'est pas une seconde description de la personne : c'est la même, réduite à
+ * ce qu'une machine doit pouvoir lire sans avoir visité l'accueil. Le nom vient
+ * du dictionnaire, comme partout ailleurs.
+ */
+function personReference(siteUrl: URL, name: string): JsonLdNode {
+  return { '@id': personId(siteUrl), name }
+}
+
+/*
+ * Les trois interfaces d'entrée ci-dessous ne sont **pas exportées** : elles
+ * typent la signature de leur fonction, et aucun appelant ne les nomme — tous
+ * construisent leur objet sur place. Un type exporté sans consommateur est du
+ * vocabulaire public à maintenir pour rien, au même titre qu'une fonction.
+ */
+interface PersonInput {
   readonly name: string
   readonly jobTitle: string
-  readonly description: string
   /** Les profils publics — `src/seo/profiles.ts`, source unique. */
   readonly sameAs: readonly string[]
   /**
@@ -99,14 +138,32 @@ export function personNode(siteUrl: URL, input: PersonInput): JsonLdNode {
     '@id': personId(siteUrl),
     name: input.name,
     jobTitle: input.jobTitle,
-    description: input.description,
     /*
-     * L'accueil de la locale par défaut : une personne a une page principale, et
-     * c'est celle-ci. Les traductions sont déclarées par le `hreflang`, qui est
-     * le canal prévu pour cela — les répéter ici les dirait deux fois, de deux
-     * façons qui pourraient diverger.
+     * ⛔ **Aucune `description`, et c'est une décision.** La première version y
+     * mettait `site.description` — « Portfolio de développeur Full-Stack :
+     * expériences, projets et compétences ». C'est la description du **site**,
+     * pas de la personne : l'émettre ici affirmait sur quelqu'un une phrase
+     * écrite pour décrire des rubriques, et la répétait mot pour mot sur le nœud
+     * `WebSite` du même graphe. C'est la faute exacte de l'`alt` d'image relevée
+     * en revue de P4-08 — décrire A avec le texte de B —, et une description
+     * fausse est pire qu'absente.
+     *
+     * Aucune prose sur Aurélien n'existe dans ce dépôt, et en écrire une est la
+     * **décision éditoriale D7**, ouverte. Le jour où elle est tranchée, sa place
+     * est ici. Relevé en revue.
      */
-    url: buildAbsoluteUrl(siteUrl, '/'),
+    /*
+     * L'accueil de la **locale par défaut** — une page réellement servie.
+     *
+     * ⚠️ Ce n'est pas l'origine nue : `/` n'est pas une page mais une
+     * **redirection 307** qui négocie `Accept-Language` (P3-03), et elle ne
+     * figure à aucun sitemap. Le commentaire d'origine promettait déjà l'accueil
+     * de la locale par défaut, et le code émettait `/` — une prose qui survit au
+     * code qu'elle décrit, la quatrième de cette phase. Relevé en revue.
+     *
+     * Les traductions sont déclarées par le `hreflang`, canal prévu pour cela.
+     */
+    url: buildAbsoluteUrl(siteUrl, homePath(DEFAULT_LOCALE)),
     /*
      * ⛔ **Un champ vide est omis, jamais émis vide.** `sameAs: []` affirme
      * « cette personne n'a aucun profil public », là où l'absence du champ ne dit
@@ -119,7 +176,7 @@ export function personNode(siteUrl: URL, input: PersonInput): JsonLdNode {
   }
 }
 
-export interface WebSiteInput {
+interface WebSiteInput {
   readonly locale: Locale
   readonly name: string
   readonly description: string
@@ -129,17 +186,23 @@ export function webSiteNode(siteUrl: URL, input: WebSiteInput): JsonLdNode {
   return {
     '@type': 'WebSite',
     '@id': webSiteId(siteUrl),
+    /*
+     * L'origine nue, contrairement à `Person.url` : un `WebSite` **est** le site,
+     * et son URL est sa racine. La redirection que `/` porte est un détail de
+     * service, pas une propriété de l'entité — là où `Person.url` promet « une
+     * page qui parle de cette personne » et doit donc en désigner une vraie.
+     */
     url: buildAbsoluteUrl(siteUrl, '/'),
     name: input.name,
     description: input.description,
     inLanguage: input.locale,
     // Par référence, jamais par copie : redécrire la personne ici en ferait une
     // seconde source de vérité, et sa divergence serait muette.
-    author: { '@id': personId(siteUrl) },
+    author: personReference(siteUrl, input.name),
   }
 }
 
-export interface CreativeWorkInput {
+interface CreativeWorkInput {
   readonly locale: Locale
   readonly location: PageLocation
   readonly name: string
@@ -156,6 +219,14 @@ export interface CreativeWorkInput {
   readonly startedAt: string
   /** Les libellés résolus, tels que la page les affiche — jamais les slugs. */
   readonly keywords: readonly string[]
+  /**
+   * Le nom de l'auteur.
+   *
+   * ⛔ Il est **obligatoire** : le nœud `Person` complet ne vit que sur
+   * l'accueil, et une œuvre qui ne donnerait qu'un `@id` serait, pour qui lit
+   * cette page seule, une œuvre sans auteur nommé. Voir `personReference`.
+   */
+  readonly authorName: string
 }
 
 export function creativeWorkNode(siteUrl: URL, input: CreativeWorkInput): JsonLdNode {
@@ -167,7 +238,7 @@ export function creativeWorkNode(siteUrl: URL, input: CreativeWorkInput): JsonLd
     inLanguage: input.locale,
     dateCreated: input.startedAt,
     keywords: input.keywords,
-    author: { '@id': personId(siteUrl) },
+    author: personReference(siteUrl, input.authorName),
   }
 }
 
