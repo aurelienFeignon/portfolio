@@ -35,6 +35,7 @@ import { SectionGuide } from '@/ui/section-guide'
 
 import { readLocale, type LocaleParams } from '../locale-param'
 import { sectionLinks } from '../section-links'
+import accentLink from '@/ui/accent-link.module.css'
 
 export async function generateMetadata({ params }: LocaleParams): Promise<Metadata> {
   const messages = getMessages(await readLocale(params))
@@ -56,7 +57,9 @@ export default async function NotFoundPage({ params }: LocaleParams) {
       <p className={lead.lead}>{messages.notFound.message}</p>
 
       <p>
-        <a href={homePath(locale)}>{messages.backHome}</a>
+        <a className={accentLink.textLink} href={homePath(locale)}>
+          {messages.backHome}
+        </a>
       </p>
 
       {/* Une phrase, et non un titre : `SectionGuide` porte le plan du document

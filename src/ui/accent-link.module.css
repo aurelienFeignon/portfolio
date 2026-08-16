@@ -20,3 +20,37 @@
 .accentLink:hover {
   text-decoration: underline;
 }
+
+/*
+ * Le même lien, mais **souligné au repos** (P4-11).
+ *
+ * ⚠️ `accentLink` retire le soulignement parce qu'il habille des **titres**
+ * cliquables, où le survol suffit à dire qu'ils le sont. Les trois liens de
+ * retour — page introuvable, plancher, frontières d'erreur — ne sont pas des
+ * titres : ce sont des actions au fil du texte, et ils étaient jusqu'ici des
+ * `<a>` nus, donc soulignés par le navigateur.
+ *
+ * ⛔ Leur retirer ce soulignement les aurait laissés distingués par la **seule
+ * couleur**, dont le contraste avec le texte courant est de 2,72:1 — sous les
+ * 3:1 que WCAG 1.4.1 demande quand la couleur est le seul porteur. Le cas est
+ * discutable, chacun de ces liens étant le contenu unique de son paragraphe
+ * plutôt qu'au milieu d'une phrase ; le soulignement lève la question au lieu de
+ * l'arbitrer. Relevé en revue.
+ */
+/*
+ * ⛔⛔ **`composes` ne s'est pas propagé en chaîne.** La première rédaction
+ * écrivait `composes: accentLink` seul, en comptant sur le `composes: tapTarget`
+ * que celui-ci porte. Le résultat servi n'avait **pas** la cible tactile : les
+ * trois liens de retour sont retombés sous le seuil, et le parcours de P4-11 les
+ * a nommés — dans le commit même qui les corrigeait.
+ *
+ * ⭐ La leçon dépasse le cas : **une composition transitive est une hypothèse sur
+ * l'outil**, pas une propriété du CSS. `tapTarget` est donc composé
+ * explicitement, comme partout ailleurs dans ce dépôt.
+ */
+.textLink {
+  composes: accentLink;
+  composes: tapTarget from './tap-target.module.css';
+
+  text-decoration: underline;
+}

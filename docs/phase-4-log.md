@@ -1748,3 +1748,118 @@ pèse sur la durée de la suite.
 | Tests | **625** verts | — |
 | E2E | **135** verts sur 5 profils | — |
 | Couverture globale | **100 %** sur les quatre métriques | ≥ 80 % |
+
+## 18. P4-11 — le responsive, et deux défauts que rien ne pouvait signaler
+
+### 18.1 ⭐⭐⭐ La première tâche de la phase sans garde derrière elle
+
+Un débordement horizontal ne lève rien, ne casse aucun test, et n'apparaît dans aucun rapport axe :
+la page s'affiche, elle se lit simplement de travers. Une cible tactile trop courte est du même
+ordre — ni erreur, ni violation rapportée, ni dépassement de budget.
+
+C'est la forme que P4-05 avait déjà rencontrée : un mur de texte livré avec 496 tests verts, un axe
+propre et les budgets tenus. **Une régression purement géométrique ne se prouve que par une mesure
+géométrique**, et cette tâche a donc commencé par mesurer, pas par corriger.
+
+Trois contrôles, aucun jugement esthétique : **débordement** du document, **cibles tactiles** contre
+le token, et **rognage** — parce qu'un `overflow: hidden` quelque part absorbe le dépassement, ce
+qui est pire et invisible à la première mesure.
+
+⚠️ **Les largeurs ne sont pas des appareils.** 320 / 375 / 768 / 1024 / 1440 couvrent un domaine ;
+émuler un téléphone particulier mesurerait ce téléphone-là.
+
+### 18.2 ⛔⛔ Deux défauts réels, en production, trouvés par la première exécution
+
+| Défaut | Portée |
+|---|---|
+| **Le sélecteur de langue n'avait aucun module CSS** — son lien faisait la hauteur d'une ligne | **Les 16 pages servies**, à toutes les largeurs tactiles |
+| Le lien « retour à l'accueil » était **nu dans trois fichiers** | La 404 localisée, le plancher, les frontières d'erreur |
+
+Ni l'un ni l'autre n'était visible autrement. Le sélecteur est en place depuis **P3-09** et a
+traversé cinq tâches, dont une passe d'accessibilité complète : axe ne rapporte pas WCAG 2.5.8, qui
+est une contrainte de **taille**, pas de sémantique.
+
+⭐ Les deux correctifs composent `tapTarget`, le module extrait en P4-03 « au troisième exemplaire ».
+Son en-tête annonçait déjà : *« P4-11 vérifiera les cibles sur trois largeurs. Qu'elles viennent
+toutes d'ici est ce qui rend cette vérification tenable. »* C'est exactement ce qui s'est passé —
+deux fichiers à corriger au lieu de six.
+
+⚠️ **Le seuil est lu dans le token, jamais recopié dans le test.** Écrire « 44 » dans le parcours en
+ferait une seconde source, et le jour où `--tap-target-min` change, le garde défendrait l'ancienne
+valeur en silence.
+
+### 18.3 Le profil `mobile-safari` n'avait pas de dossier propre
+
+Seul des cinq. Sans conséquence tant qu'aucun parcours n'était spécifiquement mobile — et c'est ce
+qui rendait l'exigence de P4-11, *« E2E `mobile-safari` : aucun débordement horizontal, cibles
+tactiles »*, impossible à satisfaire au bon endroit.
+
+⭐ Une largeur émulée par `setViewportSize` n'est pas un téléphone : elle ne dit rien du
+`devicePixelRatio`, ni de la façon dont WebKit calcule les métriques de police. Le balayage complet
+reste sur `desktop-chromium` ; le profil mobile vérifie que le **moteur** ne dément pas ce que la
+géométrie annonce.
+
+### 18.4 Ce que les mutations ont dit
+
+**Trois appliquées, trois tuées** : le sélecteur privé de sa cible tactile, une boîte figée à 900 px
+de large, et un conteneur qui **rogne** au lieu de déborder — cette dernière étant celle que le
+premier contrôle ne peut pas voir, et la raison d'être du troisième.
+
+⛔ **Une restauration a échoué en silence**, et il faut le dire : `git checkout --` ne rend pas un
+fichier **non suivi**, et le module neuf est resté muté après sa mutation. Constaté en relisant
+l'arbre plutôt qu'en le supposant propre — le réflexe que ce dépôt applique aux gates s'applique
+aussi à son propre outillage.
+
+### 18.5 Relevés
+
+| Relevé après P4-11 | Valeur | Seuil |
+|---|---|---|
+| Socle partagé | **126,4 Ko — inchangé** | cible 136 · bloquant 146 |
+| JS propre à chaque route | **7,3 Ko — inchangé** | cible 25 · bloquant 40 |
+| Image de production | **273 Mo — inchangée** | cible 250 · **bloquant 400** |
+| Tests | **627** verts *(625 après P4-10)* | — |
+| E2E | **140** verts sur 5 profils *(135 après P4-10)* | — |
+| Couverture globale | **100 %** sur les quatre métriques | ≥ 80 % |
+| Débordement horizontal | **0** sur 16 pages × 5 largeurs | 0 |
+
+⭐ Aucun octet de CSS de mise en page conditionnelle n'a été nécessaire : **le site n'a toujours
+aucune media query de largeur**. La mise en page fluide de l'ADR-0010 tenait déjà ; ce que P4-11
+apporte est la **preuve**, et deux cibles tactiles qui manquaient.
+
+### 18.6 Ce que la revue a changé — dont une régression que la tâche avait elle-même introduite
+
+⛔⛔ **Le sélecteur de langue a reçu un module qui compose `bareList` sans
+`role="list"`.** `bare-list.module.css` porte pourtant l'invariant en toutes lettres :
+`list-style: none` **retire la sémantique de liste à VoiceOver sous Safari** — le lecteur d'écran
+cesse d'annoncer « liste de 5 éléments ». Six consommateurs sur sept portaient l'attribut, le
+septième non, et **rien ne le disait**. La régression touchait les 16 pages servies, sur le moteur
+même que le profil mobile de cette tâche venait couvrir.
+⭐⭐ Le correctif n'est pas l'attribut, c'est le **garde** : `every-bare-list-keeps-its-role.test.ts`
+confronte les modules qui composent `bareList` aux composants qui emploient leur classe. Vu rouge
+avant d'être cru.
+
+⛔⛔ **`composes` ne s'est pas propagé en chaîne.** `.textLink` composait `.accentLink` en comptant
+sur le `composes: tapTarget` que celui-ci porte ; le CSS servi n'avait pas la cible tactile, et les
+trois liens de retour sont retombés sous le seuil — **dans le commit qui les corrigeait**, trouvés
+par le parcours de cette tâche. ⭐ Une composition transitive est une **hypothèse sur l'outil**, pas
+une propriété du CSS.
+
+⛔⛔ **Deux lecteurs du même token, divergents dans le commit qui les écrit.** Le balayage de
+`desktop-chromium` lisait `--tap-target-min` en gardant son unité, celui de `mobile-safari`
+multipliait sans condition : exprimer le token en `px` faisait calculer 704 à l'un et 44 à l'autre,
+donc rougir toutes les cibles d'une page conforme. Il n'y a plus qu'un lecteur,
+`tests/e2e/support/responsive.ts`.
+
+⛔ **Le contrôle de rognage n'inspectait que `main`** — donc tout sauf l'en-tête et le pied de page,
+qui en sont les **frères**. Or c'est exactement là qu'un rognage échappe au contrôle de débordement :
+un `overflow: hidden` sur une bannière absorbe le dépassement, la page ne glisse plus, et le texte
+est coupé. Le périmètre est le document.
+
+⚠️ **Et le lien d'évitement n'était pas exclu par ce que le commentaire prétendait** : il est replié
+par `translateY(-150%)`, ce qui laisse sa boîte intacte. Il est mesuré comme les autres et tient le
+seuil sur ses propres mérites — le prétendre exclu aurait masqué le jour où il ne le tiendrait plus.
+
+⚠️ **Un point tranché plutôt que laissé plausible** : `accentLink` retire le soulignement, ce qui
+laissait les trois liens de retour distingués par la seule couleur — 2,72:1 contre le texte courant,
+sous les 3:1 de WCAG 1.4.1. Le cas est discutable, chacun étant le contenu unique de son paragraphe ;
+`.textLink` rend le soulignement et **lève la question au lieu de l'arbitrer**.
