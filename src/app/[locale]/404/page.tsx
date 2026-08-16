@@ -57,7 +57,7 @@ export default async function NotFoundPage({ params }: LocaleParams) {
       <p className={lead.lead}>{messages.notFound.message}</p>
 
       <p>
-        <a className={accentLink.accentLink} href={homePath(locale)}>
+        <a className={accentLink.textLink} href={homePath(locale)}>
           {messages.backHome}
         </a>
       </p>

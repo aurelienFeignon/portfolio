@@ -48,7 +48,7 @@ export function ErrorNotice({
         {/* Le retour à l'accueil est une vraie navigation : si le rendu client
             est en cause, un `<a>` recharge le document et sort de l'impasse là
             où un `router.push` rejouerait le même code. */}
-        <a className={accentLink.accentLink} href={homeHref}>
+        <a className={accentLink.textLink} href={homeHref}>
           {messages.backHome}
         </a>
       </p>

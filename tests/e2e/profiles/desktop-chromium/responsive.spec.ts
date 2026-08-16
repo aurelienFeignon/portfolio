@@ -25,6 +25,12 @@
  * `mobile-safari` couvre, lui, un moteur réellement différent, et il porte ses
  * propres assertions dans les parcours partagés.
  */
+import {
+  clippedText,
+  horizontalOverflow,
+  shortTapTargets,
+  tapTargetMinimum,
+} from '../../support/responsive'
 import { sitemapPaths } from '../../support/sitemap'
 import { expect, test } from '../../support/test'
 
@@ -71,9 +77,7 @@ test.describe('responsive documentaire', () => {
         await page.setViewportSize({ width, height: 900 })
         await page.goto(path)
 
-        const overflow = await page.evaluate(
-          () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
-        )
+        const overflow = await horizontalOverflow(page)
 
         if (overflow > 1) faults.push(`${path} @ ${width}px (${label}) — déborde de ${overflow}px`)
       }
@@ -89,13 +93,11 @@ test.describe('responsive documentaire', () => {
     test.setTimeout(SWEEP_TIMEOUT_MS)
 
     /*
-     * ⚠️ **Le seuil est lu dans le token, pas recopié ici.** `--tap-target-min`
-     * vaut 2,75 rem et dépasse déjà le minimum de WCAG 2.5.8 (24 px) ; écrire
-     * « 44 » dans ce fichier en ferait une seconde source, et le jour où le token
-     * change, le test garderait l'ancienne valeur en silence — la classe exacte
-     * que cette phase traque.
+     * ⚠️ **Le seuil est lu dans le token, et par un seul lecteur** —
+     * `support/responsive.ts`. Les deux parcours en avaient d'abord chacun le
+     * sien, et ils avaient **déjà divergé** dans le commit qui les écrit.
      *
-     * Mesuré sur les deux largeurs tactiles seulement : une cible de 24 px à la
+     * Mesuré sur les trois largeurs tactiles seulement : une cible de 24 px à la
      * souris n'est pas le même problème, et WCAG 2.5.8 vise le pointeur grossier.
      */
     const faults: string[] = []
@@ -105,31 +107,7 @@ test.describe('responsive documentaire', () => {
         await page.setViewportSize({ width, height: 900 })
         await page.goto(path)
 
-        const minimum = await page.evaluate(() => {
-          const raw = getComputedStyle(document.documentElement)
-            .getPropertyValue('--tap-target-min')
-            .trim()
-          const rem = Number.parseFloat(getComputedStyle(document.documentElement).fontSize)
-          return raw.endsWith('rem') ? Number.parseFloat(raw) * rem : Number.parseFloat(raw)
-        })
-
-        expect(
-          minimum,
-          '`--tap-target-min` est introuvable : le test ne mesure rien',
-        ).toBeGreaterThan(0)
-
-        const small = await page.locator('a[href], button:not([disabled])').evaluateAll(
-          (nodes, floor) =>
-            nodes
-              .filter((node) => {
-                const box = node.getBoundingClientRect()
-                // Un élément replié — le lien d'évitement hors focus — n'a pas
-                // de surface : il n'est pas une cible tant qu'il est masqué.
-                return box.height > 0 && box.height < floor - 0.5
-              })
-              .map((node) => `${node.tagName.toLowerCase()} « ${node.textContent?.trim()} »`),
-          minimum,
-        )
+        const small = await shortTapTargets(page, await tapTargetMinimum(page))
 
         small.forEach((element) =>
           faults.push(`${path} @ ${width}px (${label}) — cible trop courte : ${element}`),
@@ -158,13 +136,7 @@ test.describe('responsive documentaire', () => {
         await page.setViewportSize({ width, height: 900 })
         await page.goto(path)
 
-        const clipped = await page
-          .locator('main p, main li, main h1, main h2, main h3')
-          .evaluateAll((nodes) =>
-            nodes
-              .filter((node) => node.scrollWidth - node.clientWidth > 1)
-              .map((node) => `${node.tagName.toLowerCase()} « ${node.textContent?.slice(0, 40)} »`),
-          )
+        const clipped = await clippedText(page)
 
         clipped.forEach((element) =>
           faults.push(`${path} @ ${width}px (${label}) — rogné : ${element}`),

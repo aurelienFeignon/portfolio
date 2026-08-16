@@ -41,7 +41,12 @@ export function LanguageSwitcher({
 
   return (
     <nav aria-label={messages.language.label}>
-      <ul className={styles.list}>
+      {/* `role="list"` : voir `bare-list.module.css`, la raison y vit une fois.
+          ⛔ Il manquait au premier jet de P4-11 — ce `<ul>` composait `bareList`
+          sans lui, donc sans sémantique de liste sous VoiceOver, sur les 16
+          pages servies et sur le moteur même que le profil mobile venait
+          couvrir. Relevé en revue, et gardé depuis. */}
+      <ul className={styles.list} role="list">
         {options.map(({ locale, href, translated }) => {
           if (locale === current) {
             return (

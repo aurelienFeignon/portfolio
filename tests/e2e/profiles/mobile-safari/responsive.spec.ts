@@ -17,6 +17,7 @@
  * dans `profiles/desktop-chromium/responsive.spec.ts`. Ce fichier vérifie que le
  * **moteur** ne dément pas ce que la géométrie annonce.
  */
+import { horizontalOverflow, shortTapTargets, tapTargetMinimum } from '../../support/responsive'
 import { sitemapPaths } from '../../support/sitemap'
 import { expect, test } from '../../support/test'
 
@@ -29,9 +30,7 @@ test.describe('responsive — moteur mobile réel', () => {
     for (const path of [...(await sitemapPaths(request)), '/fr/404']) {
       await page.goto(path)
 
-      const overflow = await page.evaluate(
-        () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
-      )
+      const overflow = await horizontalOverflow(page)
 
       if (overflow > 1) faults.push(`${path} — déborde de ${overflow}px`)
     }
@@ -49,28 +48,15 @@ test.describe('responsive — moteur mobile réel', () => {
      */
     await page.goto('/fr')
 
-    const minimum = await page.evaluate(() => {
-      const root = getComputedStyle(document.documentElement)
-      const raw = root.getPropertyValue('--tap-target-min').trim()
-      return Number.parseFloat(raw) * Number.parseFloat(root.fontSize)
-    })
-
-    expect(minimum, '`--tap-target-min` est introuvable : ce test ne mesure rien').toBeGreaterThan(
-      0,
-    )
-
-    const small = await page.locator('a[href], button:not([disabled])').evaluateAll(
-      (nodes, floor) =>
-        nodes
-          .filter((node) => {
-            const box = node.getBoundingClientRect()
-            // Le lien d'évitement est replié hors focus : sans surface, il n'est
-            // pas une cible tactile.
-            return box.height > 0 && box.height < floor - 0.5
-          })
-          .map((node) => `${node.tagName.toLowerCase()} « ${node.textContent?.trim()} »`),
-      minimum,
-    )
+    /*
+     * ⭐ Le seuil et le relevé viennent de `support/responsive.ts`, **écrits une
+     * fois**. Ce parcours en avait sa propre copie, qui multipliait le token par
+     * la taille de police sans vérifier son unité : exprimer `--tap-target-min`
+     * en `px` lui faisait calculer 704 et rougir toutes les cibles d'une page
+     * conforme. Deux lecteurs du même token, divergents dans le commit qui les
+     * écrit. Relevé en revue.
+     */
+    const small = await shortTapTargets(page, await tapTargetMinimum(page))
 
     expect(small).toEqual([])
   })

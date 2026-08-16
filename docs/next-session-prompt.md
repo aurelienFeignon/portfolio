@@ -138,7 +138,7 @@ texte source.
 | JS propre à chaque route | **7,3 Ko** — le premier JavaScript applicatif du site | cible 25 · bloquant 40 |
 | Socle partagé | **126,4 Ko** | cible 136 · bloquant 146 |
 | Image de production | **273 Mo** | cible 250 · bloquant 400 |
-| Tests | **625** verts, couverture **100 %** | ≥ 80 % |
+| Tests | **627** verts, couverture **100 %** | ≥ 80 % |
 | E2E | **140** verts sur 5 profils, 0 violation axe sur les **16 pages servies** | — |
 
 ✅ **La couverture est revenue à 100 %** en P4-10, et pour la première fois depuis P4-05 le chiffre
@@ -318,7 +318,7 @@ Le chemin critique — la rédaction du contenu — est **levé** depuis le 2026
 | Image de production | **273 Mo** | cible 250 · **bloquant 400, appliqué** |
 | JS propre à chaque route | **7,3 Ko** sur 18 routes | cible 25 · bloquant 40 Ko |
 | Socle partagé | **126,4 Ko** | cible 136 · bloquant 146 Ko |
-| Tests | **625** verts, couverture **100 %** | ≥ 80 % |
+| Tests | **627** verts, couverture **100 %** | ≥ 80 % |
 | E2E | **140** verts sur 5 profils | — |
 
 ⛔⛔ **Les cinq valeurs de ce tableau étaient périmées** au moment de l'écrire — sous un titre qui dit

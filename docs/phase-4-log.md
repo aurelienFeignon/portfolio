@@ -1817,7 +1817,7 @@ aussi à son propre outillage.
 | Socle partagé | **126,4 Ko — inchangé** | cible 136 · bloquant 146 |
 | JS propre à chaque route | **7,3 Ko — inchangé** | cible 25 · bloquant 40 |
 | Image de production | **273 Mo — inchangée** | cible 250 · **bloquant 400** |
-| Tests | **625** verts | — |
+| Tests | **627** verts *(625 après P4-10)* | — |
 | E2E | **140** verts sur 5 profils *(135 après P4-10)* | — |
 | Couverture globale | **100 %** sur les quatre métriques | ≥ 80 % |
 | Débordement horizontal | **0** sur 16 pages × 5 largeurs | 0 |
@@ -1825,3 +1825,41 @@ aussi à son propre outillage.
 ⭐ Aucun octet de CSS de mise en page conditionnelle n'a été nécessaire : **le site n'a toujours
 aucune media query de largeur**. La mise en page fluide de l'ADR-0010 tenait déjà ; ce que P4-11
 apporte est la **preuve**, et deux cibles tactiles qui manquaient.
+
+### 18.6 Ce que la revue a changé — dont une régression que la tâche avait elle-même introduite
+
+⛔⛔ **Le sélecteur de langue a reçu un module qui compose `bareList` sans
+`role="list"`.** `bare-list.module.css` porte pourtant l'invariant en toutes lettres :
+`list-style: none` **retire la sémantique de liste à VoiceOver sous Safari** — le lecteur d'écran
+cesse d'annoncer « liste de 5 éléments ». Six consommateurs sur sept portaient l'attribut, le
+septième non, et **rien ne le disait**. La régression touchait les 16 pages servies, sur le moteur
+même que le profil mobile de cette tâche venait couvrir.
+⭐⭐ Le correctif n'est pas l'attribut, c'est le **garde** : `every-bare-list-keeps-its-role.test.ts`
+confronte les modules qui composent `bareList` aux composants qui emploient leur classe. Vu rouge
+avant d'être cru.
+
+⛔⛔ **`composes` ne s'est pas propagé en chaîne.** `.textLink` composait `.accentLink` en comptant
+sur le `composes: tapTarget` que celui-ci porte ; le CSS servi n'avait pas la cible tactile, et les
+trois liens de retour sont retombés sous le seuil — **dans le commit qui les corrigeait**, trouvés
+par le parcours de cette tâche. ⭐ Une composition transitive est une **hypothèse sur l'outil**, pas
+une propriété du CSS.
+
+⛔⛔ **Deux lecteurs du même token, divergents dans le commit qui les écrit.** Le balayage de
+`desktop-chromium` lisait `--tap-target-min` en gardant son unité, celui de `mobile-safari`
+multipliait sans condition : exprimer le token en `px` faisait calculer 704 à l'un et 44 à l'autre,
+donc rougir toutes les cibles d'une page conforme. Il n'y a plus qu'un lecteur,
+`tests/e2e/support/responsive.ts`.
+
+⛔ **Le contrôle de rognage n'inspectait que `main`** — donc tout sauf l'en-tête et le pied de page,
+qui en sont les **frères**. Or c'est exactement là qu'un rognage échappe au contrôle de débordement :
+un `overflow: hidden` sur une bannière absorbe le dépassement, la page ne glisse plus, et le texte
+est coupé. Le périmètre est le document.
+
+⚠️ **Et le lien d'évitement n'était pas exclu par ce que le commentaire prétendait** : il est replié
+par `translateY(-150%)`, ce qui laisse sa boîte intacte. Il est mesuré comme les autres et tient le
+seuil sur ses propres mérites — le prétendre exclu aurait masqué le jour où il ne le tiendrait plus.
+
+⚠️ **Un point tranché plutôt que laissé plausible** : `accentLink` retire le soulignement, ce qui
+laissait les trois liens de retour distingués par la seule couleur — 2,72:1 contre le texte courant,
+sous les 3:1 de WCAG 1.4.1. Le cas est discutable, chacun étant le contenu unique de son paragraphe ;
+`.textLink` rend le soulignement et **lève la question au lieu de l'arbitrer**.

@@ -889,7 +889,7 @@ viennent toutes d'ici est ce qui rend cette vérification tenable ». Deux fichi
 de six.
 ⭐ **Aucune media query de largeur n'a été nécessaire** : la mise en page fluide de l'ADR-0010 tenait
 déjà. Ce que la tâche apporte est la **preuve**.
-📏 Socle, JS par route et image inchangés. 625 tests, 140 E2E, couverture 100 %.
+📏 Socle, JS par route et image inchangés. 627 tests, 140 E2E, couverture 100 %.
 · Depends on: P4-06
 
 **P4-10 — Passe accessibilité**
