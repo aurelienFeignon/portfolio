@@ -24,17 +24,16 @@
  * Ce fichier ne rend que l'en-tête, pas le pied de page : celui-ci n'a besoin de
  * rien savoir de la page, et vit donc au layout racine, écrit une seule fois.
  *
- * Il porte aussi la construction des liens, qu'aucun des quatre layouts n'a alors
- * à répéter. `src/ui` ne peut pas importer `src/routing` (`architecture.md`
- * §1.2) : c'est `src/app` qui compose les deux.
+ * Les liens viennent de `section-links.ts` : l'accueil en a besoin des mêmes, et
+ * l'App Router ne fait pas descendre de valeur d'un layout vers une page.
  */
 import type { ReactNode } from 'react'
 
-import { homePath, sectionPath } from '@/routing/paths'
-import { SECTIONS } from '@/routing/sections'
+import { homePath } from '@/routing/paths'
 import { SiteHeader, type CurrentPlace } from '@/ui/site-header'
 
 import { readLocale, type LocaleParams } from './locale-param'
+import { sectionLinks } from './section-links'
 
 export async function PlaceLayout({
   params,
@@ -51,7 +50,7 @@ export async function PlaceLayout({
       <SiteHeader
         locale={locale}
         homeHref={homePath(locale)}
-        links={SECTIONS.map((section) => ({ section, href: sectionPath(locale, section) }))}
+        links={sectionLinks(locale)}
         current={current}
       />
       {children}

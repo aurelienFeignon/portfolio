@@ -264,3 +264,104 @@ c'est-à-dire le seul sélecteur du fichier visant du balisage possédé par un 
 ce que la règle 3 de l'ADR-0010 exclut, et le mode de panne est silencieux — une page qui
 envelopperait son `<main>` perdrait le pied de page collé, sans erreur. Le layout style désormais la
 boîte qu'il possède.
+
+## 8. P4-03 — l'accueil
+
+### 8.1 Doubler la navigation, à une condition
+
+L'accueil donne accès aux trois sections que l'en-tête liste déjà. Ce doublon n'est pas un oubli : un
+visiteur qui arrive ne doit pas avoir à lire une barre pour savoir ce que le site contient. Mais il
+n'est défendable qu'à une condition, et c'est elle qui a décidé de la forme : **`SectionGuide` dit ce
+que chaque section contient**, là où la navigation la nomme seulement. Sans cette différence, ce
+serait une seconde barre, et les technologies d'assistance annonceraient deux fois la même chose.
+
+Deux conséquences de forme, qui ne sont pas cosmétiques :
+
+- **Ce n'est pas un point de repère `navigation`.** L'en-tête en porte déjà un pour ces trois mêmes
+  cibles. La structure est portée par des **titres de niveau 2**, c'est-à-dire par le plan du
+  document — que les lecteurs d'écran parcourent aussi, et qui est ce que P4-10 auditera.
+- **Le lien est dans le titre, pas l'inverse.** Un titre placé à l'intérieur d'un lien ferait du nom
+  accessible de celui-ci la concaténation du titre et de la description. Cette forme garde un nom de
+  lien court et un plan juste.
+
+⛔ **La carte n'est pas cliquable dans son ensemble**, et c'est un choix révisé en revue. La première
+version étendait la cible par un `::after` recouvrant la carte — le motif dit *stretched link*. Il
+coûte deux choses réelles : le texte devient **insélectionnable**, et l'indicateur de focus doit être
+reporté sur la carte, ce que cette version faisait par `:has()` **après** avoir supprimé celui du
+lien. Dans un moteur sans `:has()`, la seconde règle tombe, la première reste, et les trois liens
+n'ont plus d'indicateur du tout (WCAG 2.4.7) — sur la page même que le gate axe audite.
+
+> ⚠️ Ce paragraphe décrivait d'abord la version retirée, en invoquant WCAG 2.4.13 pour justifier ce que
+> le code avait écarté au nom de 2.4.7. **Deuxième fois dans ce journal** qu'une prose survit au code
+> qu'elle décrit (voir §7.5, point 3). La leçon n'est plus « faire attention » : un paragraphe écrit
+> *avant* la fin d'un incrément doit être relu *après*, systématiquement.
+
+### 8.2 Ce qui n'a pas été écrit, et pourquoi
+
+⛔ **Aucun texte de présentation.** La tâche s'appelle « présentation et accès aux trois sections », et
+il aurait été facile d'écrire deux phrases sur le parcours d'Aurélien. Elles auraient été du **contenu
+éditorial** — dont la place est `content/` et l'auteur son propriétaire (CF-09, ADR-0001) — logées
+dans un dictionnaire d'interface, où rien ne les distinguerait d'un libellé de bouton. Et elles
+auraient été des **affirmations sur quelqu'un**, écrites par une session qui ne les tient de personne.
+
+La page affiche donc `site.description`, qui existe, est traduite, et sert déjà de description de
+page. C'est exact et insuffisant : la phrase est une méta-description, pas une accroche.
+
+**Décision éditoriale ouverte (D7)** — un vrai texte d'accueil, en deux ou trois phrases, dans les
+deux langues. Il n'appartient pas à cette phase de l'inventer. Deux voies : une clé de dictionnaire
+si la phrase est de l'interface (courte, factuelle), un fichier de `content/` si elle est de l'ordre
+du récit. La seconde est plus juste, et suppose un type de contenu qui n'existe pas encore.
+
+⚠️ **Le même constat vaut trois fois de plus, et il est neuf.** Les `sections[x].description` sont la
+`<meta name="description">` des pages de section — et depuis P4-03, elles sont aussi la **copie
+visible** des cartes de l'accueil. Les deux usages n'ont pas les mêmes contraintes : longueur SEO d'un
+côté, accroche lisible de l'autre. Ajuster l'un changera l'autre en silence. Elles entrent donc dans
+le périmètre de D7 : le jour où il est tranché, la séparation est `sections[x].summary` (visible) et
+`sections[x].description` (méta) — six clés, pas trois.
+
+### 8.3 Relevés
+
+| Relevé après P4-03 | Valeur | Seuil |
+|---|---|---|
+| JS propre à chaque route | **0,0 Ko** sur 16 routes | cible 25 · bloquant 40 Ko |
+| Socle partagé | **129,5 Ko — inchangé** | cible 136 · bloquant 146 |
+| CSS produit | **3,6 Ko** (2,7 après P4-02) | — |
+| Tests | 455 verts, couverture 100 % | — |
+| E2E | 82 verts sur 5 profils, **0 violation axe** | 0 |
+
+⭐ `--text-2xl` est entré dans les tokens **avec son premier usage**, le `h1` de l'accueil — application
+de la règle posée en revue de P4-02 : aucun échelon n'est déclaré avant qu'une règle ne le consomme.
+
+### 8.4 Ce que la revue a changé
+
+Neuf constats à nouveau, sur un travail dont tous les gates étaient verts. Trois portent une leçon
+qui dépasse leur correctif :
+
+⛔⛔ **Le défaut le plus coûteux était invisible, et mon commentaire affirmait le contraire.**
+`container` pose `margin-inline: auto` ; sur un **élément flex**, des marges automatiques annulent
+l'étirement (Flexbox §9.4). Le `<main>` se réduisait donc à son contenu au lieu d'aller jusqu'à
+`--layout-max-width` : **288 px** entre le `h1` et la marque, alors que le fichier promettait un
+alignement « au pixel près ». Aucune erreur, aucun test rouge — et le commentaire faisait écran.
+
+⭐⭐ **La garantie est remontée dans la classe, pas rustinée dans la page.** La première correction
+posait `width: 100%` sur `.main` de l'accueil. Or le layout racine met **tout** `<main>` dans une
+colonne flex : les cinq gabarits de P4-04 à P4-06 seraient tombés dans le même piège, ou auraient
+recopié la ligne et son commentaire. `width: 100%` vit maintenant dans `container.module.css`, où il
+ne change rien pour les deux usages en flux normal. Un parcours E2E mesure l'alignement.
+
+⛔ **Une accessibilité qui dépend d'un `:has()` peut se retourner.** La carte entière était cliquable
+par un `::after`, et l'indicateur de focus reporté sur la carte par `:has()` — **après** avoir
+supprimé celui du lien. Dans un moteur sans `:has()`, la seconde règle tombe et la première reste :
+trois liens sans indicateur de focus, sur la page que le gate axe audite. Le motif a été retiré
+plutôt que rafistolé ; il rendait aussi le texte insélectionnable.
+
+Le reste est de la réutilisation, et le dépôt la signalait lui-même à chaque fois. `place-layout.tsx`
+revendiquait dans son propre en-tête de porter la construction des liens de section « qu'aucun des
+quatre layouts n'a alors à répéter » — et l'accueil la recopiait au caractère près : elle est
+maintenant dans `section-links.ts`, sur le modèle de `language-options.ts`, et la fabrique de tests
+la **délègue** au lieu d'en donner une troisième transcription à la main. Le triplet de cible tactile
+en était à son troisième exemplaire : c'est `tap-target.module.css`, le seuil exact auquel
+`container.module.css` avait été extrait en P4-02.
+
+⭐ Effet mesurable de ces deux extractions : le CSS produit **descend** de 4,0 à 3,6 Ko alors que la
+page a gagné du contenu.

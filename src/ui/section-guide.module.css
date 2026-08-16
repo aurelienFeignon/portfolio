@@ -1,0 +1,53 @@
+/*
+ * Accès aux sections depuis l'accueil (P4-03).
+ *
+ * ⛔ **La carte entière n'est pas cliquable, et c'est un choix révisé en revue.**
+ * La première version étendait la cible par un `::after` recouvrant la carte —
+ * le motif dit « stretched link ». Il coûte deux choses réelles : le texte de la
+ * carte devient **insélectionnable** (glisser dessus démarre un glisser-lien au
+ * lieu d'une sélection), et l'indicateur de focus doit être reporté sur la carte,
+ * ce que la version initiale faisait par `:has()` **après** avoir supprimé celui
+ * du lien — dans un moteur sans `:has()`, la seconde règle tombe, la première
+ * reste, et les trois liens n'ont plus d'indicateur du tout (WCAG 2.4.7), sur la
+ * page même que le gate axe audite.
+ *
+ * Le lien du titre porte donc sa propre cible, dimensionnée par `--tap-target-min`,
+ * et le focus visible global s'applique sans qu'aucune règle ne le désarme.
+ */
+
+.list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+  gap: var(--space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.card {
+  padding: var(--space-4);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+}
+
+.title {
+  margin: 0 0 var(--space-1);
+  font-size: var(--text-lg);
+}
+
+.link {
+  composes: tapTarget from './tap-target.module.css';
+
+  color: var(--color-accent);
+  text-decoration: none;
+}
+
+.link:hover {
+  text-decoration: underline;
+}
+
+.description {
+  margin: 0;
+  color: var(--color-text-muted);
+}

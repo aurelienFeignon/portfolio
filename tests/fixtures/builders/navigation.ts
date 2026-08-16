@@ -8,16 +8,17 @@
  * `SiteHeader` se testent tous deux sur les mêmes trois liens, et deux jeux
  * recopiés commencent toujours par diverger.
  *
- * `src/ui` ne pouvant pas importer `src/routing`, ces liens sont construits ici
- * comme ils le sont dans `src/app` : par le composant qui compose les deux.
+ * Ils sont **délégués** à `sectionLinks`, le module de `src/app` que la
+ * production appelle : les recopier ici en donnait une troisième transcription à
+ * la main, que rien n'aurait maintenue d'accord avec `src/routing`. Ce que les
+ * tests assèrent reste écrit chez eux, en toutes lettres (`/fr/projects`) —
+ * seule l'**entrée** est dérivée, pas l'attendu.
  */
+import type { Locale } from '@/i18n/locales'
+import { sectionLinks } from '@/app/[locale]/section-links'
 import type { SectionLink } from '@/ui/site-nav'
 
-/** Les trois sections, avec les chemins que `src/routing` produirait. */
-export function makeSectionLinks(locale: 'fr' | 'en' = 'fr'): SectionLink[] {
-  return [
-    { section: 'experiences', href: `/${locale}/experiences` },
-    { section: 'projects', href: `/${locale}/projects` },
-    { section: 'skills', href: `/${locale}/skills` },
-  ]
+/** Les trois sections, avec les chemins que le site sert réellement. */
+export function makeSectionLinks(locale: Locale = 'fr'): readonly SectionLink[] {
+  return sectionLinks(locale)
 }

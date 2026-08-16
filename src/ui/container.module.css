@@ -11,7 +11,23 @@
  * écraser la gouttière posée ici par un `padding` raccourci.
  */
 
+/*
+ * ⚠️ `width: 100%` n'est pas décoratif, et sa place est **ici** plutôt que chez
+ * l'appelant. `margin-inline: auto` sur un **élément flex** annule l'étirement
+ * (Flexbox §9.4) : la boîte se réduit alors à son contenu au lieu d'aller
+ * jusqu'à `--layout-max-width`. Or le layout racine met tout `<main>` de page
+ * dans une colonne flex — c'est la règle du dépôt, pas la particularité d'une
+ * page. Mesuré à **288 px de décalage** entre le `h1` de l'accueil et la marque
+ * de l'en-tête, c'est-à-dire l'inverse exact de ce que cette classe promet, et
+ * sans la moindre erreur pour le signaler.
+ *
+ * Sur les deux autres usages — des `<div>` de flux normal dans l'en-tête et le
+ * pied de page — `width: 100%` calcule exactement la largeur d'`auto` : aucun
+ * changement de rendu. La compenser chez l'appelant aurait fait recopier la
+ * ligne, et son commentaire, dans les cinq gabarits de P4-04 à P4-06.
+ */
 .container {
+  width: 100%;
   max-width: var(--layout-max-width);
   margin-inline: auto;
   padding-inline: var(--layout-gutter);

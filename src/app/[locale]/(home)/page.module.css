@@ -1,0 +1,29 @@
+/*
+ * Accueil (P4-03).
+ *
+ * Le cadrage horizontal vient de `container.module.css`, comme l'en-tête et le
+ * pied de page : c'est ce qui aligne le `h1` sur la marque, au pixel près, sans
+ * que la valeur soit recopiée ici.
+ */
+
+.main {
+  composes: container from '../../../ui/container.module.css';
+
+  padding-block: var(--space-6);
+}
+
+.name {
+  margin: 0;
+  font-size: var(--text-2xl);
+  line-height: 1.2;
+}
+
+/*
+ * La phrase de situation, en retrait de couleur mais pas de taille : elle est du
+ * texte courant que quelqu'un doit pouvoir lire, pas une légende.
+ */
+.lede {
+  margin: var(--space-3) 0 var(--space-6);
+  max-width: 50ch;
+  color: var(--color-text-muted);
+}
