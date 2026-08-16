@@ -1,0 +1,7 @@
+/*
+ * Bloc « pile technique » (P4-05).
+ */
+
+.heading {
+  composes: sectionHeading from './page.module.css';
+}

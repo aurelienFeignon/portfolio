@@ -681,3 +681,108 @@ où l'une des deux doit bouger.
 
 ⭐ `chip.module.css` extrait au deuxième exemplaire — la pile technique d'une fiche et les compétences
 groupées disent la même chose, un terme court tiré du même référentiel.
+
+## 12. P4-05 — le corps MDX, et un chiffre qui gouvernait la phase
+
+### 12.1 La mesure, qui était la livraison
+
+| Relevé | Avant | Après (corps MDX rendu) | Écart |
+|---|---|---|---|
+| Image de production | 268,1 Mo | **268,6 Mo** | **+0,5 Mo** |
+| dont couche applicative | 38,2 Mo | 38,7 Mo | +0,5 Mo |
+| JS propre à chaque route | 0,0 Ko | **0,0 Ko** | — |
+| Socle partagé | 129,5 Ko | **129,5 Ko** | — |
+
+⭐ Le compilateur MDX ne franchit **pas** la frontière client : `renderMdx` s'exécute au build, et le
+budget de bundle le mesure — 0,0 Ko sur les 16 routes, socle inchangé. C'est ce que l'ADR-0009
+promettait, et c'est vérifié plutôt que supposé.
+
+### 12.2 ⛔⛔ La prémisse de la tâche était fausse
+
+P4-05 a été isolée et repoussée **après** P4-06 pour une raison écrite en toutes lettres à l'ouverture
+de la phase : « elle fait entrer ~7 Mo de runtime dans une image qui n'a que 15 Mo de marge ». Les
+deux termes sont faux.
+
+| | Documenté | Mesuré le 2026-08-16 |
+|---|---|---|
+| Image de production | 385 Mo | **268,6 Mo** |
+| dont image de base | 340 Mo | **229,1 Mo** |
+| Marge sous 400 Mo | 15 Mo | **131 Mo** |
+| Coût du runtime MDX | ~7 Mo | **+0,5 Mo** |
+
+Même cible de build (`runner`), même digest de base épinglé, même architecture que la CI — la
+comparaison est valide, et c'est la première chose vérifiée.
+
+⭐⭐⭐ **Un nombre recopié dans quatre documents et jamais remesuré finit par décider seul.**
+Celui-ci a réordonné une phase : il a fait passer P4-06 devant P4-05 et fait traiter cette tâche comme
+« le seul sujet à risque ». Le coût n'a pas été grave ici — l'ordre choisi restait défendable — mais
+la décision a été prise sur une donnée périmée que personne n'avait de raison de rouvrir.
+
+### 12.3 ⛔⛔⛔ Le seuil qu'on croyait bloquant ne bloquait rien
+
+L'étape de CI qui « mesure la taille de l'image » écrivait la valeur dans le résumé de l'exécution et
+**n'en faisait rien**. Le seuil de 400 Mo de `performance-budget.md` §7 n'existait que dans un
+tableau.
+
+C'est la tâche censée le consommer qui l'a découvert, **en s'y référant** — et elle ne l'aurait pas
+découvert si la marge avait été aussi mince qu'annoncé, puisqu'elle aurait alors regardé le chiffre
+au lieu du mécanisme. Le seuil est bloquant depuis cette tâche, et la mesure se fait en **octets**
+(`image inspect`) : `image ls` rend une chaîne déjà arrondie, impossible à comparer sans la
+réanalyser.
+
+⭐⭐ Ce dépôt a déjà rencontré cette forme — « les gates ne se gardent plus du zéro mais du
+sous-comptage » (§2). Ici il ne s'agissait pas d'un sous-comptage mais d'un **non-comptage** : la
+valeur était juste, et personne ne la lisait.
+
+### 12.4 Le corps MDX, et la seule exception à l'ADR-0010
+
+Le corps est rendu dans un conteneur `.prose`, **le seul endroit du dépôt où des sélecteurs
+d'éléments sont légitimes** : le balisage vient du Markdown de l'auteur et ne peut porter aucune
+classe. L'exception est bornée à ce conteneur et vit dans un module, donc dans une portée — rien ne
+peut atteindre le balisage d'un autre composant.
+
+⭐ Dette de P4-04 payée au passage : la fiche d'un projet affichait les **slugs bruts** de ses
+technologies là où celle d'une expérience les résolvait. Ce n'était pas une duplication mais un
+défaut, et il ne se voyait qu'à l'œil. `getTechnologyLabels` remonte la résolution au dépôt et
+**lève** sur un slug inconnu — le gate d'intégrité rend le cas impossible, donc un repli silencieux
+aurait masqué la panne du gate plutôt qu'un défaut de contenu.
+
+### 12.5 Ce que la revue a changé
+
+⛔⛔ **Le rythme vertical du corps MDX ne s'appliquait à rien.** `.prose p, .prose ul, .prose ol`
+(spécificité 0,1,1) l'emportait sur `.prose > * + *` (0,1,0) : la page phare de la tâche rendait un
+**mur de texte**, avec 496 tests verts, un axe propre et des budgets tenus. Un parcours mesure
+désormais l'écart entre blocs consécutifs, et il a été vérifié par mutation.
+⭐⭐ Aucun garde du dépôt ne pouvait voir ce défaut : il n'est ni une erreur, ni une violation
+d'accessibilité, ni un dépassement de budget. **Une régression purement visuelle ne se prouve que par
+une mesure géométrique.**
+
+⛔⛔ **`.prose` était au mauvais étage, et le même commit faisait le geste inverse à côté.** Il
+remontait `.technologies` d'un module de route vers `src/ui`, et laissait `.prose` — plus le chemin
+du fichier et l'appel au compilateur — dispersés dans la route projets. L'invariant « un corps
+compilé est **toujours** rendu dans son conteneur » n'était porté par rien : un second appelant qui
+oublie l'enveloppe obtient exactement le mur de texte ci-dessus. Il y aura un second appelant — les
+expériences portent déjà des corps que leur fiche ne rend pas. C'est maintenant `<Prose source file />`.
+
+⛔ **`Callout` portait un nom de classe mort.** `className="callout"`, qu'aucune feuille du dépôt ne
+définissait : le composant n'était pas stylé, et son style « réel » avait atterri dans le module d'une
+route. ⭐ **Une exception admise pour une raison — le balisage de l'auteur ne peut porter de classe —
+avait absorbé un cas qui n'a pas cette raison** : un composant que nous écrivons peut porter la
+sienne. L'exception est rebornée, et `components.module.css` la respecte.
+
+⛔⛔ **Le gate de taille était écrit dans l'orchestrateur, pas dans l'outil.** Trois conséquences que
+la revue a nommées : `make ci` serait resté vert là où la CI est rouge — alors que le Makefile
+s'annonce comme « la SEULE interface documentée » ; le seuil de 400 aurait existé en **deux**
+exemplaires, c'est-à-dire la leçon de §12.2 rejouée dans le commit qui l'écrit ; et le palier **cible**
+(250 Mo) disparaissait, alors que l'image est déjà au-dessus. `make check-image-size` porte les deux
+paliers, la CI l'invoque, et la mutation confirme qu'il bloque.
+
+⛔ **Deux routes reconstruisaient un chemin que la couche contenu possède**, extension écrite en dur,
+alors que `.md` et `.mdx` sont l'un et l'autre autorisés pour n'importe quel type. Le message d'erreur
+aurait nommé un fichier inexistant — la panne exacte contre laquelle `ContentError.file` existe.
+L'entrée chargée publie désormais son `file`.
+
+⚠️ Et l'appariement `<h2 id="technologies">` / `labelledBy="technologies"` était recopié dans les deux
+fiches **sans que rien ne relie les deux chaînes** : une faute de frappe rendait la liste anonyme pour
+un lecteur d'écran, sans qu'aucun test n'échoue. `TechnologySection` produit l'`id` avec le titre qu'il
+désigne — et la fiche d'un *projet* cesse au passage de lire `messages.experience.technologies`.

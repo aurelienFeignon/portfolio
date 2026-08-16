@@ -13,6 +13,7 @@ import type { Locale } from '../i18n/locales.ts'
 import { LOCALES } from '../i18n/locales.ts'
 
 import type { ContentType } from './content-type.ts'
+import { ContentError } from './errors.ts'
 import { createContentLoader, type ContentLoader } from './loader.ts'
 import { byMostRecent, bySkillOrder, groupByCategory, sorted, withOngoing } from './normalise.ts'
 import { createContentSource, defaultContentRoot } from './source.ts'
@@ -47,6 +48,41 @@ export interface ContentRepository {
   getSkillsByCategory(
     locale: Locale,
   ): Promise<readonly { readonly category: SkillCategory; readonly skills: readonly Skill[] }[]>
+
+  /**
+   * Slug de compétence → libellé affichable.
+   *
+   * Les `technologies` d'un projet ou d'une expérience sont des **slugs** — c'est
+   * ce qui fait du type `Skill` le référentiel de la couche, et ce que le gate
+   * d'intégrité vérifie par locale (P2-07). Toute page qui les affiche doit donc
+   * les résoudre.
+   *
+   * ⭐ P4-04 avait construit cette table dans une route, en notant que le second
+   * appelant la ferait remonter ici. Il existe : la fiche d'un projet affichait
+   * jusqu'ici les slugs **bruts**, ce qui n'était pas une duplication mais un
+   * défaut.
+   *
+   * ⭐⭐ Elle rend les **libellés**, pas la table : une table aurait laissé chaque
+   * page redécider du manquant, et les deux auraient fini par en décider
+   * autrement. Le manquant **lève** — le gate d'intégrité (P2-07) rend le cas
+   * impossible, donc un repli silencieux aurait masqué la panne du gate plutôt
+   * qu'un défaut de contenu.
+   */
+  getTechnologyLabels(
+    locale: Locale,
+    /**
+     * L'entité qui **porte les références** : elle donne ses `technologies` et
+     * le fichier à nommer si l'une d'elles est introuvable.
+     *
+     * ⚠️ C'est l'entité et non un chemin construit par l'appelant. Les deux
+     * routes reconstruisaient `content/<locale>/<type>/<slug>.md(x)` avec
+     * l'extension en dur, alors que `CONTENT_EXTENSIONS` autorise les deux et
+     * que `source.ts` fabrique déjà ce chemin. `ContentError.file` est « ce
+     * qu'on ouvre dans l'éditeur » : le faire redire à l'appelant déplaçait la
+     * source de vérité vers lui, et la dupliquait par autant d'appelants.
+     */
+    referencedBy: { readonly technologies: readonly string[]; readonly file: string },
+  ): Promise<readonly string[]>
 
   /**
    * Les locales où cette entité **existe réellement**.
@@ -101,6 +137,20 @@ export function createContentRepository(loader: ContentLoader): ContentRepositor
     getSkillBySlug: (locale, slug) => bySlug(skills(locale), slug),
     getFeaturedSkills: async (locale) => (await skills(locale)).filter((skill) => skill.featured),
     getSkillsByCategory: async (locale) => groupByCategory(await skills(locale)),
+    async getTechnologyLabels(locale, referencedBy) {
+      const names = new Map((await skills(locale)).map((skill) => [skill.slug, skill.name]))
+
+      return referencedBy.technologies.map((slug) => {
+        const name = names.get(slug)
+        if (name === undefined) {
+          throw new ContentError(
+            referencedBy.file,
+            `cite la technologie « ${slug} », qui n'est pas une compétence de « ${locale} » — le gate d'intégrité aurait dû l'attraper (P2-07)`,
+          )
+        }
+        return name
+      })
+    },
 
     async getContentLocales(type, slug) {
       const found = await Promise.all(

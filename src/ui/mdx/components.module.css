@@ -1,0 +1,27 @@
+/*
+ * Les composants de la liste blanche MDX (P4-05).
+ *
+ * ⭐ Ils sont stylés **ici** et non dans `prose.module.css` : celui-ci est une
+ * exception assumée à l'ADR-0010, accordée parce que le balisage du Markdown
+ * ne peut porter aucune classe. `Callout`, lui, est un composant que nous
+ * écrivons — il peut porter la sienne, et l'exception n'a donc pas à le couvrir.
+ *
+ * Il portait jusqu'ici `className="callout"`, un nom qu'aucune feuille du dépôt
+ * ne définissait : le composant était donc **non stylé** et son nom de classe
+ * mort. Relevé en revue.
+ */
+
+.callout {
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-surface);
+  border-left: 4px solid var(--color-border);
+  border-radius: var(--radius-sm);
+}
+
+/*
+ * Le ton n'est pas porté par la seule couleur : l'encadré est déjà détaché du
+ * flux par sa bordure épaisse, que la nuance ne fait qu'accentuer (WCAG 1.4.1).
+ */
+.callout[data-tone='warning'] {
+  border-left-color: var(--color-accent);
+}

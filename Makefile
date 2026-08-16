@@ -36,7 +36,7 @@ $(MOUNTPOINTS):
 install up up-d sh typecheck lint format test test-watch coverage bundle: | $(MOUNTPOINTS)
 
 .PHONY: help doctor image install up up-d down sh logs ps reset typecheck lint format e2e \
-        build prod-up prod-down e2e-prod bundle ci check-dns check-content \
+        build prod-up prod-down e2e-prod bundle ci check-dns check-content check-image-size \
         test test-watch coverage
 
 help: ## Affiche cette aide
@@ -112,6 +112,30 @@ bundle: ## Mesure le JS de première visite et applique les budgets
 	$(COMPOSE) run --rm -e NODE_ENV=production web \
 		sh -c 'pnpm build && pnpm bundle'
 
+# Seuils de `performance-budget.md` §7. Ils sont **ici** et nulle part ailleurs :
+# la CI invoque cette cible plutôt que de réécrire la comparaison, faute de quoi
+# le chiffre existerait en deux exemplaires — ce que ce même budget reproche à la
+# taille d'image de 385 Mo, restée périmée dans quatre documents.
+IMAGE_SIZE_TARGET_MO := 250
+IMAGE_SIZE_LIMIT_MO  := 400
+
+check-image-size: ## Applique le budget de taille de l'image de production
+	@set -eu; \
+	 if ! docker image inspect portfolio:local >/dev/null 2>&1; then \
+	   echo "  ✗ image portfolio:local absente — lancer 'make build' d'abord."; exit 1; \
+	 fi; \
+	 bytes="$$(docker image inspect portfolio:local --format '{{.Size}}')"; \
+	 mo=$$(( bytes / 1000000 )); \
+	 if [ "$$mo" -gt "$(IMAGE_SIZE_LIMIT_MO)" ]; then \
+	   echo "  ✗ image de production : $${mo} Mo — au-delà du seuil bloquant de $(IMAGE_SIZE_LIMIT_MO) Mo."; \
+	   exit 1; \
+	 fi; \
+	 if [ "$$mo" -gt "$(IMAGE_SIZE_TARGET_MO)" ]; then \
+	   echo "  ⚠ image de production : $${mo} Mo — au-dessus de la cible de $(IMAGE_SIZE_TARGET_MO) Mo, sous le seuil bloquant de $(IMAGE_SIZE_LIMIT_MO) Mo (performance-budget.md §7.1)."; \
+	 else \
+	   echo "  ✓ image de production : $${mo} Mo, sous la cible de $(IMAGE_SIZE_TARGET_MO) Mo."; \
+	 fi
+
 ci: ## Enchaîne tous les gates, dans l'ordre de testing-strategy.md §8
 	@set -e; \
 	 $(MAKE) image; \
@@ -121,6 +145,7 @@ ci: ## Enchaîne tous les gates, dans l'ordre de testing-strategy.md §8
 	 $(MAKE) coverage; \
 	 $(MAKE) bundle; \
 	 $(MAKE) build; \
+	 $(MAKE) check-image-size; \
 	 $(MAKE) e2e-prod; \
 	 $(MAKE) prod-down; \
 	 echo; echo "  ✓ Tous les gates sont verts."

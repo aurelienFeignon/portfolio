@@ -7,6 +7,7 @@ import { getMessages } from '@/i18n/messages'
 import { entityPath, type PageLocation } from '@/routing/paths'
 import { EntityList } from '@/ui/entity-list'
 import { LanguageSwitcher } from '@/ui/language-switcher'
+import page from '@/ui/page.module.css'
 
 import { languageOptions } from '../language-options'
 import { readLocale, type LocaleParams } from '../locale-param'
@@ -22,9 +23,8 @@ export default async function ProjectsPage({ params }: LocaleParams) {
   const projects = await contentRepository.getAllProjects(locale)
 
   return (
-    <main id="main">
-      <h1>{messages.sections.projects.name}</h1>
-      <LanguageSwitcher current={locale} options={languageOptions(LOCATION, LOCALES)} />
+    <main id="main" className={page.page}>
+      <h1 className={page.title}>{messages.sections.projects.name}</h1>
       <EntityList
         locale={locale}
         items={projects.map((project) => ({
@@ -33,6 +33,7 @@ export default async function ProjectsPage({ params }: LocaleParams) {
           note: project.summary,
         }))}
       />
+      <LanguageSwitcher current={locale} options={languageOptions(LOCATION, LOCALES)} />
     </main>
   )
 }

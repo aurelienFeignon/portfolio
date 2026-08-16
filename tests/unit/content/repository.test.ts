@@ -128,6 +128,38 @@ describe('dérivations exposées par le dépôt', () => {
     expect(featured.map((skill) => skill.slug)).toEqual(['typescript'])
   })
 
+  it('résout les slugs de compétence en libellés, dans l’ordre reçu', async () => {
+    // Les `technologies` d'un projet ou d'une expérience sont des **slugs** :
+    // c'est ce qui fait du type `Skill` le référentiel de la couche. Les deux
+    // pages de détail doivent les afficher, et P4-04 avait construit la table
+    // dans une route — le second appelant existant, elle remonte ici.
+    // ⚠️ **Deux** slugs, dans l'ordre inverse de celui que `bySkillOrder` rendrait :
+    // avec un seul, un `filter(...).map(...)` rendrait l'ordre du dépôt et ce
+    // test resterait vert. L'ordre reçu est celui du frontmatter, qui est la
+    // décision de l'auteur.
+    const labels = await repository().getTechnologyLabels('fr', {
+      technologies: ['postgresql', 'typescript'],
+      file: 'content/fr/projects/exemple.mdx',
+    })
+
+    expect(labels).toEqual(['PostgreSQL', 'TypeScript'])
+  })
+
+  it('lève sur un slug de compétence inconnu, plutôt que de se replier dessus', async () => {
+    // ⭐ Le gate d'intégrité (P2-07) rend ce cas impossible : il casse le build
+    // avant. Un repli silencieux sur le slug aurait donc masqué la panne du
+    // gate, pas celle du contenu — et c'est le genre de repli qui vieillit sans
+    // jamais être exercé. La décision se prend **une fois**, ici.
+    // L'erreur nomme le fichier qui **porte la référence** : `skills/inconnu.md`
+    // n'existe pas, par construction — c'est la référence qui est fautive.
+    await expect(
+      repository().getTechnologyLabels('fr', {
+        technologies: ['inconnu'],
+        file: 'content/fr/projects/exemple.mdx',
+      }),
+    ).rejects.toThrow(/content\/fr\/projects\/exemple\.mdx.*inconnu/s)
+  })
+
   it('rend les compétences groupées par catégorie, sans catégorie vide', async () => {
     // Le dépôt est la **seule** surface que connaissent les couches au-dessus :
     // le groupement passe par lui, et non par un appel direct à `normalise.ts`

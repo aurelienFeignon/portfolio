@@ -1,0 +1,10 @@
+/*
+ * Fiche d'un projet (P4-05).
+ */
+
+.summary {
+  margin: 0;
+  max-width: 60ch;
+  font-size: var(--text-lg);
+  color: var(--color-text-muted);
+}

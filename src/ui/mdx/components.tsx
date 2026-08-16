@@ -14,6 +14,7 @@
  */
 import type { ComponentType, ReactNode } from 'react'
 
+import styles from './components.module.css'
 import type { MdxComponentName } from './whitelist'
 
 const TONES = ['info', 'warning'] as const
@@ -32,7 +33,7 @@ interface CalloutProps {
  */
 export function Callout({ tone = 'info', children }: CalloutProps) {
   return (
-    <aside className="callout" data-tone={tone}>
+    <aside className={styles.callout} data-tone={tone}>
       {children}
     </aside>
   )

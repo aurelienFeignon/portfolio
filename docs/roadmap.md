@@ -710,7 +710,7 @@ reste et le filet de sécurité permanent du projet. Journal de phase :
 | P4-02 | Layout documentaire : en-tête, navigation, pied de page, lien d'évitement | **DONE** *(2026-08-15)* | P4-01 |
 | P4-03 | Accueil : présentation et accès aux trois sections | **DONE** *(2026-08-15)* | P4-02 |
 | P4-04 | Liste et détail des expériences | **DONE** *(2026-08-16)* | P4-02 |
-| P4-05 | Liste et détail des projets — **première page qui rend un corps MDX** | TODO | P4-02 |
+| P4-05 | Liste et détail des projets — **première page qui rend un corps MDX** | **DONE** *(2026-08-16)* | P4-02 |
 | P4-06 | Compétences (groupées par catégorie) | **DONE** *(2026-08-16)* | P4-02 |
 | P4-07 | Pages 404 et erreur, localisées | TODO | P4-02 |
 | P4-08 | Métadonnées OpenGraph et images de partage | TODO | P3-06 |
@@ -825,6 +825,21 @@ ils ne l'**affirment** pas. Un parcours E2E garde la décision.
 est le mot juste dans les deux langues. La règle reste de chercher **d'abord** la formulation
 idiomatique — « Frameworks » est devenu « Frameworks et bibliothèques » / « Frameworks & libraries »,
 qui décrit mieux une catégorie contenant aussi des bibliothèques. · Depends on: P4-02
+
+**P4-05 — Liste et détail des projets, corps MDX rendu**
+Status: **DONE** (2026-08-16) — la fiche d'un projet compile et rend son corps MDX dans un conteneur
+`prose`, **le seul endroit du dépôt où des sélecteurs d'éléments sont légitimes** : le balisage vient
+du contenu et ne peut porter aucune classe (exception à l'ADR-0010 bornée à ce conteneur).
+⛔⛔ **La prémisse de la tâche était fausse.** Elle était isolée et repoussée après P4-06 « parce
+qu'elle fait entrer ~7 Mo dans une image qui n'a que 15 Mo de marge ». Mesuré : l'image pèse
+**268,6 Mo** et non 385, la marge est de **131 Mo** et non 15, et le runtime MDX coûte **+0,5 Mo** et
+non 7. Le chiffre de 385 Mo était recopié dans quatre documents sans avoir été remesuré depuis la
+Phase 1 — et il a réordonné une phase.
+⛔⛔⛔ **Le seuil de 400 Mo n'était appliqué nulle part** : la CI écrivait la taille dans son résumé et
+n'en faisait rien. Il est **bloquant depuis cette tâche** (`performance-budget.md` §7.2).
+⭐ Dette de P4-04 payée : `getTechnologyLabels` remonte la résolution des slugs au dépôt, et **lève**
+sur un inconnu — la fiche d'un projet affichait jusqu'ici les slugs bruts, ce qui n'était pas une
+duplication mais un défaut. · Depends on: P4-02
 
 **Critères de sortie** — Toutes les exigences de la §20 de la mission satisfaites ; Lighthouse
 mobile ≥ 85 / a11y 100 / SEO 100 ; 0 violation axe serious/critical ; le projet `no-js` passe ;

@@ -11,6 +11,7 @@
  */
 import { type Locale } from '../i18n/locales.ts'
 import { EmptyNotice } from './empty-notice'
+import styles from './entity-list.module.css'
 
 export interface EntityLink {
   readonly href: string
@@ -30,12 +31,15 @@ export function EntityList({
     return <EmptyNotice locale={locale} />
   }
 
+  /* `role="list"` : voir `bare-list.module.css`, la raison y vit une fois. */
   return (
-    <ul>
+    <ul className={styles.list} role="list">
       {items.map(({ href, label, note }) => (
-        <li key={href}>
-          <a href={href}>{label}</a>
-          {note === undefined ? null : <span> — {note}</span>}
+        <li key={href} className={styles.item}>
+          <a className={styles.link} href={href}>
+            {label}
+          </a>
+          {note === undefined ? null : <span className={styles.note}>{note}</span>}
         </li>
       ))}
     </ul>

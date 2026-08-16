@@ -28,6 +28,7 @@ export function makeProject(overrides: Partial<Project> = {}): Project {
   return {
     ...frontmatter,
     body: 'Le corps du projet.',
+    file: 'content/fr/projects/exemple.mdx',
     isOngoing: frontmatter.endedAt === undefined,
     ...overrides,
   }
@@ -38,6 +39,7 @@ export function makeExperience(overrides: Partial<Experience> = {}): Experience 
   return {
     ...frontmatter,
     body: 'Le corps de l’expérience.',
+    file: 'content/fr/experiences/exemple.md',
     isOngoing: frontmatter.endedAt === undefined,
     ...overrides,
   }
@@ -47,6 +49,7 @@ export function makeSkill(overrides: Partial<Skill> = {}): Skill {
   return {
     ...skillFrontmatterSchema.parse(makeSkillFrontmatter()),
     body: 'Le corps de la compétence.',
+    file: 'content/fr/skills/exemple.md',
     ...overrides,
   }
 }
