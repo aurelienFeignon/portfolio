@@ -55,6 +55,31 @@ export const fr = {
     description:
       'Portfolio de développeur Full-Stack : expériences professionnelles, projets et compétences.',
     /**
+     * ⭐⭐ **L'accroche de l'accueil — décision D7, tranchée le 2026-08-16.**
+     *
+     * P4-03 avait refusé d'en écrire une, et c'était juste : une prose sur le
+     * parcours d'Aurélien rédigée par une session est une **affirmation sur
+     * quelqu'un** que personne ne tient de lui. L'accueil affichait donc
+     * `site.description`, qui est une méta-description — exact, et insuffisant.
+     *
+     * Ce texte-ci ne vient pas d'une session : c'est le **profil du CV**, mot
+     * pour mot, dans le document que le site distribue déjà en PDF depuis la
+     * Phase 2. Il n'y a donc rien d'inventé, et les deux canaux disent la même
+     * chose.
+     *
+     * ⚠️ **Pourquoi une clé de dictionnaire et non un fichier de `content/`.**
+     * La règle opérationnelle de ce fichier est écrite plus haut : « si une
+     * phrase parle d'une expérience ou d'un projet **en particulier**, elle est
+     * du contenu ». Celle-ci ne nomme ni l'un ni l'autre — elle décrit la
+     * personne. Un type de contenu « personne » coûterait un schéma, un gate,
+     * des fixtures et une route pour un texte unique.
+     * **Déclencheur de réouverture** : le jour où ce texte doit porter du
+     * balisage — un lien, une emphase, un second paragraphe —, sa place devient
+     * `content/`, et le type manquant devra exister.
+     */
+    intro:
+      'Senior Full Stack Developer spécialisé dans les architectures temps réel et les systèmes distribués, avec une pratique de la mise en production de pipelines ML (Python/TensorFlow) et de fonctionnalités agentiques LLM (tool-calling, multi-fournisseurs). J’interviens de la conception architecturale à l’exploitation, avec un fort focus fiabilité, traçabilité et performance.',
+    /**
      * Intitulé de poste, émis par le `Person` des données structurées (P4-09).
      *
      * ⚠️ **Ce n'est pas une affirmation neuve** — et c'est ce qui autorise à
@@ -65,8 +90,13 @@ export const fr = {
      *
      * Un intitulé de poste déduit du contenu aurait été le mauvais chemin : deux
      * expériences sont en cours, et rien ne dit laquelle décrit le métier.
+     *
+     * ⚠️ **Aligné sur le CV le 2026-08-16** — il porte « Senior », que cette clé
+     * omettait. Les deux documents sont publiés par le même site : les laisser
+     * s'intituler différemment était un écart entre deux canaux qui parlent de la
+     * même personne, et c'est le CV qui fait foi.
      */
-    jobTitle: 'Développeur Full-Stack',
+    jobTitle: 'Développeur Full Stack senior',
     /**
      * Gabarit de titre (P4-08). `%s` est l'emplacement que Next remplit avec le
      * titre de la page — la convention vient de lui, pas de nous.

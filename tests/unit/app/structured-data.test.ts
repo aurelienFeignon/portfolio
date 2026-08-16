@@ -61,8 +61,22 @@ describe('accueil', () => {
     const french = await homeStructuredData(repositoryWithSkills([]), 'fr')
     const english = await homeStructuredData(repositoryWithSkills([]), 'en')
 
-    expect(nodeOfType(french['@graph'], 'Person')['jobTitle']).toBe('Développeur Full-Stack')
-    expect(nodeOfType(english['@graph'], 'Person')['jobTitle']).toBe('Full-Stack Developer')
+    expect(nodeOfType(french['@graph'], 'Person')['jobTitle']).toBe('Développeur Full Stack senior')
+    expect(nodeOfType(english['@graph'], 'Person')['jobTitle']).toBe('Senior Full Stack Developer')
+  })
+
+  it('décrit la personne par l’accroche, jamais par la description du site (D7)', async () => {
+    /*
+     * ⛔ La description du site parle des **rubriques** ; celle de la personne
+     * est le profil du CV. Les confondre était un constat de revue de P4-09, et
+     * le champ était resté vide plutôt que rempli avec la mauvaise valeur.
+     */
+    const document = await homeStructuredData(repositoryWithSkills([]), 'fr')
+    const person = nodeOfType(document['@graph'], 'Person')
+    const site = nodeOfType(document['@graph'], 'WebSite')
+
+    expect(person['description']).not.toBe(site['description'])
+    expect(person['description']).toContain('temps réel')
   })
 
   it('rattache la personne aux profils de la source unique', async () => {

@@ -1,17 +1,20 @@
 /**
  * Accueil d'une locale (P4-03).
  *
- * **Ce qu'elle dit, et ce qu'elle ne dit pas.** Elle porte l'identité, une
- * phrase de situation, et l'accès aux trois sections. Elle ne porte **aucun
- * texte de présentation écrit ici** : une prose qui parlerait du parcours
- * d'Aurélien serait du contenu éditorial, dont la place est `content/` et
- * l'auteur son propriétaire (CF-09, ADR-0001). En inventer aurait produit des
- * affirmations sur quelqu'un, dans un dictionnaire d'interface, sans que rien ne
- * les distingue d'un libellé de bouton.
+ * **Ce qu'elle dit, et d'où ça vient.** Elle porte l'identité, une accroche, et
+ * l'accès aux trois sections.
  *
- * La phrase affichée est donc `site.description`, qui existe, est traduite, et
- * sert déjà de description de page. Un vrai texte d'accroche est identifié comme
- * une **décision éditoriale** dans `phase-4-log.md` §8.
+ * ⭐⭐ **L'accroche est le profil du CV, mot pour mot** — décision **D7**,
+ * tranchée le 2026-08-16. P4-03 avait refusé d'en écrire une, et c'était juste :
+ * une prose sur le parcours d'Aurélien rédigée par une session aurait été une
+ * affirmation sur quelqu'un que personne ne tient de lui. La page affichait donc
+ * `site.description`, une méta-description — exact, et insuffisant. Ce texte-ci
+ * ne vient pas d'une session : il est déjà publié par le PDF que ce site
+ * distribue depuis la Phase 2.
+ *
+ * `site.description` reste ce qu'elle est — la description **de page**, lue par
+ * `generateMetadata` et par l'image de partage. Les deux ne disent plus la même
+ * chose, et c'est précisément ce que D7 corrigeait.
  *
  * Le sélecteur de langue reste rendu par la page : ses options dépendent de
  * l'endroit affiché, qu'un layout ne connaît pas.
@@ -65,7 +68,7 @@ export default async function HomePage({ params }: LocaleParams) {
           les porte. */}
       <JsonLd data={structuredData} />
       <h1 className={page.title}>{messages.site.name}</h1>
-      <p className={lead.lead}>{messages.site.description}</p>
+      <p className={lead.lead}>{messages.site.intro}</p>
 
       <SectionGuide locale={locale} links={sectionLinks(locale)} />
 

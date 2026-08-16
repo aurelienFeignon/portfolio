@@ -53,6 +53,14 @@ Posées à l'ouverture de la session, en vue de P2-11.
 | **D6** | Combien de compétences publier | **Toutes celles du CV**, `featured` sur une dizaine. La page les groupe par catégorie, le volume ne nuit pas. |
 | **D7** | Rendre le paquet GHCR public | **Oui — action manuelle restante.** Le jeton `gh` local n'a pas la portée `read:packages`, je n'ai donc pas pu le faire. Chemin : *GitHub → Packages → portfolio → Package settings → Change visibility → Public*. Ensuite, sur le VPS : `docker logout ghcr.io && rm /srv/portfolio/.ghcr-token`, et retirer le `docker login` de `deploy.sh`. Bénéfice : plus de PAT à renouveler, donc plus de déploiement qui s'arrête un jour sans rapport apparent avec le code. |
 
+## Décisions de contenu — 2026-08-16
+
+| # | Question | Réponse |
+|---|---|---|
+| **D7** | Le texte d'accueil | **Le profil du CV, mot pour mot.** P4-03 avait refusé d'en écrire un, et avait raison : une prose sur le parcours d'Aurélien rédigée par une session est une affirmation sur quelqu'un que personne ne tient de lui. Celui-ci est déjà publié par le PDF que le site distribue depuis la Phase 2 — rien n'est inventé, et les deux canaux disent la même chose. Clé `site.intro`, pas `content/` : le texte ne nomme ni expérience ni projet. Déclencheur de réouverture écrit dans `fr.ts`. Le second volet de D7 — séparer les `sections[x].description` en six clés — **reste ouvert et non fait** : six clés portant trois valeurs identiques seraient une duplication sans contenu derrière. |
+| **D7 bis** | `site.jobTitle` | **Aligné sur le CV**, qui porte « senior ». Deux documents publiés par le même site ne peuvent pas s'intituler différemment. |
+| **D3** | Un seul projet publié | **Assumé, rien de plus n'est publié.** Le GitHub ne contient que quatre projets scolaires ENI de 2021, zéro étoile, dernier push octobre 2021. Les mettre à côté d'Augure **abaisserait** le signal — un CTO lit le plus faible, pas le plus fort. La profondeur technique est déjà portée par les fiches d'expérience. Le levier reste d'écrire un projet représentatif d'aujourd'hui, pas d'ajouter du volume. |
+
 ---
 
 ## Bloc A — Infrastructure et déploiement

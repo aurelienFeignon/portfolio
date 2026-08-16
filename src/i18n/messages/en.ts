@@ -24,12 +24,15 @@ export const en: Messages = {
     /** Nom propre : identique au français, et c'est voulu (P4-02). */
     name: 'Aurélien Feignon',
     description: 'Full-Stack developer portfolio: professional experience, projects and skills.',
+    /** Le profil du CV anglais, mot pour mot — décision D7, voir `fr.ts`. */
+    intro:
+      'Senior Full Stack Developer specialised in real-time architectures and distributed systems, with hands-on experience deploying ML pipelines (Python/TensorFlow) and agentic LLM features (tool-calling, multi-provider). I work from architectural design to operations, with a strong focus on reliability, traceability and performance.',
     /**
      * Voir `fr.ts` : ce n'est pas une affirmation neuve — elle est déjà publiée
-     * dans `description` ci-dessus. Cette clé la rend lisible par une machine
-     * (P4-09).
+     * dans `description` ci-dessus, et le CV porte « Senior » (P4-09, aligné le
+     * 2026-08-16).
      */
-    jobTitle: 'Full-Stack Developer',
+    jobTitle: 'Senior Full Stack Developer',
     /**
      * La barre verticale est le séparateur usuel d'un titre de page en anglais,
      * là où le français emploie le tiret cadratin entouré d'espaces. Ce n'est
