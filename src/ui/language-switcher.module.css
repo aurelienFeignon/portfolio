@@ -1,0 +1,64 @@
+/*
+ * Sélecteur de langue (P4-11).
+ *
+ * ⛔⛔ **Ce composant n'avait aucun module, et le défaut était en production.**
+ * Il rendait un `<ul>` à puces dont le lien était une cible de la hauteur d'une
+ * ligne — soit **moins que `--tap-target-min` sur les 16 pages servies**, à
+ * toutes les largeurs tactiles. Aucun test ne pouvait le voir avant P4-11 : ce
+ * n'est ni une erreur, ni une violation qu'axe rapporte, ni un dépassement de
+ * budget. **Une régression purement géométrique ne se prouve que par une
+ * mesure géométrique**, et c'est cette mesure qui l'a trouvé.
+ *
+ * ⭐ Le seuil n'est pas écrit ici : `tapTarget` le compose depuis le token, une
+ * fois pour les six composants qui en ont besoin.
+ *
+ * ⚠️ Ce sélecteur reste rendu par chaque page, à l'intérieur du `main` — un
+ * placement inhabituel pour une commande de portée globale, et une décision de
+ * gabarit toujours ouverte (`phase-4-log.md` §7.4). Ce module l'habille là où il
+ * est ; il ne tranche pas où il devrait être.
+ */
+
+.list {
+  composes: bareList from './bare-list.module.css';
+
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  align-items: center;
+}
+
+.link {
+  composes: tapTarget from './tap-target.module.css';
+
+  padding-inline: var(--space-3);
+  color: var(--color-text);
+  border-radius: var(--radius-sm);
+}
+
+.link:hover {
+  background: var(--color-surface);
+}
+
+/*
+ * La langue **courante** n'est pas un lien : c'est un `<span aria-current>`,
+ * donc pas une cible tactile. Elle partage la hauteur des liens pour que la
+ * ligne ne se déforme pas, sans prétendre être cliquable.
+ */
+.current {
+  composes: tapTarget from './tap-target.module.css';
+
+  padding-inline: var(--space-3);
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+/*
+ * La mention « cette page n'existe pas dans cette langue » (P3-09). Elle est
+ * rattachée à son lien par `aria-describedby` : elle doit se lire, pas se
+ * confondre avec lui.
+ */
+.note {
+  display: block;
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}

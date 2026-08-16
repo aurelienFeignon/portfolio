@@ -35,6 +35,7 @@ import lead from '@/ui/lead.module.css'
 import page from '@/ui/page.module.css'
 
 import './globals.css'
+import accentLink from '@/ui/accent-link.module.css'
 
 const messages = getMessages(DEFAULT_LOCALE)
 
@@ -51,7 +52,9 @@ export default function GlobalNotFound() {
           <h1 className={page.title}>{messages.notFound.title}</h1>
           <p className={lead.lead}>{messages.notFound.message}</p>
           <p>
-            <a href={homePath(DEFAULT_LOCALE)}>{messages.backHome}</a>
+            <a className={accentLink.accentLink} href={homePath(DEFAULT_LOCALE)}>
+              {messages.backHome}
+            </a>
           </p>
         </main>
       </body>

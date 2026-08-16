@@ -20,6 +20,8 @@
 import { LOCALE_NAMES, type Locale } from '../i18n/locales.ts'
 import { getMessages } from '../i18n/messages/index.ts'
 
+import styles from './language-switcher.module.css'
+
 export interface LanguageOption {
   readonly locale: Locale
   /** Toujours atteignable : la page elle-même, ou son repli. */
@@ -39,12 +41,12 @@ export function LanguageSwitcher({
 
   return (
     <nav aria-label={messages.language.label}>
-      <ul>
+      <ul className={styles.list}>
         {options.map(({ locale, href, translated }) => {
           if (locale === current) {
             return (
               <li key={locale}>
-                <span lang={locale} aria-current="true">
+                <span className={styles.current} lang={locale} aria-current="true">
                   {LOCALE_NAMES[locale]}
                 </span>
               </li>
@@ -56,6 +58,7 @@ export function LanguageSwitcher({
           return (
             <li key={locale}>
               <a
+                className={styles.link}
                 href={href}
                 lang={locale}
                 hrefLang={locale}
@@ -63,7 +66,11 @@ export function LanguageSwitcher({
               >
                 {LOCALE_NAMES[locale]}
               </a>
-              {translated ? null : <span id={noteId}>{messages.language.unavailable}</span>}
+              {translated ? null : (
+                <span className={styles.note} id={noteId}>
+                  {messages.language.unavailable}
+                </span>
+              )}
             </li>
           )
         })}

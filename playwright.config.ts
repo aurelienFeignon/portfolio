@@ -43,7 +43,12 @@ export default defineConfig({
     },
     {
       name: 'mobile-safari',
-      testMatch: '**/shared/**/*.spec.ts',
+      // ⭐ **Le seul profil qui n'avait pas de dossier propre** — sans
+      // conséquence tant qu'aucun parcours n'était spécifiquement mobile. P4-11
+      // en écrit un : le responsive se mesure sur des largeurs émulées depuis
+      // `desktop-chromium`, mais un **moteur** différent, avec sa barre d'outils
+      // et son `devicePixelRatio`, ne se simule pas par un `setViewportSize`.
+      testMatch: ['**/shared/**/*.spec.ts', '**/profiles/mobile-safari/**/*.spec.ts'],
       use: { ...devices['iPhone 14'] },
     },
     {

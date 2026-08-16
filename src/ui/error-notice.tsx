@@ -24,6 +24,7 @@ import type { Messages } from '@/i18n/messages'
 import styles from './error-notice.module.css'
 import lead from './lead.module.css'
 import page from './page.module.css'
+import accentLink from './accent-link.module.css'
 
 export function ErrorNotice({
   messages,
@@ -47,7 +48,9 @@ export function ErrorNotice({
         {/* Le retour à l'accueil est une vraie navigation : si le rendu client
             est en cause, un `<a>` recharge le document et sort de l'impasse là
             où un `router.push` rejouerait le même code. */}
-        <a href={homeHref}>{messages.backHome}</a>
+        <a className={accentLink.accentLink} href={homeHref}>
+          {messages.backHome}
+        </a>
       </p>
     </main>
   )

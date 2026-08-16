@@ -3,7 +3,7 @@
 > Statut global : **Phases 0, 1, 2 et 3 terminées et validées.** **Phase 4 ouverte le 2026-08-15**,
 > dernière phase de la tranche T1. **P2-11 (rédaction du contenu réel) est DONE (2026-08-15)** : le
 > contenu d'amorçage est entièrement remplacé, et le chemin critique de T1 est donc levé.
-> **P4-07 à P4-10 closes le 2026-08-16** : 11 tâches de la Phase 4 sur 17.
+> **P4-07 à P4-11 closes le 2026-08-16** : 12 tâches de la Phase 4 sur 17.
 > Journal de la Phase 4 : [`phase-4-log.md`](./phase-4-log.md) — phases précédentes :
 > [`phase-3-log.md`](./phase-3-log.md), [`phase-2-log.md`](./phase-2-log.md),
 > [`phase-1-log.md`](./phase-1-log.md)
@@ -717,7 +717,7 @@ reste et le filet de sécurité permanent du projet. Journal de phase :
 | P4-08 | Métadonnées OpenGraph, gabarit de titre, images de partage et icône | **DONE** *(2026-08-16)* | P3-06 |
 | P4-09 | JSON-LD : `Person`, `WebSite`, `CreativeWork`, `BreadcrumbList` | **DONE** *(2026-08-16)* | P4-05 |
 | P4-10 | Passe accessibilité : titres, focus, contrastes, points de repère, les cinq fichiers non couverts, le garde des endroits piloté par l'arborescence, et `experimental.globalNotFound` comme plancher | **DONE** *(2026-08-16)* | P4-06 |
-| P4-11 | Responsive documentaire : mobile, tablette, desktop | TODO | P4-06 |
+| P4-11 | Responsive documentaire : mobile, tablette, desktop | **DONE** *(2026-08-16)* | P4-06 |
 | P4-12 | E2E : navigation complète, deep links, bascule de langue, clavier | TODO | P4-11 |
 | P4-13 | **Mise en production du portfolio documentaire** *(jalon T1)* | TODO | P4-12, P1-15, P2-11 |
 | P4-14 | Supervision : healthcheck conteneur + sonde externe avec alerte (risque R-15) | TODO | P4-13 |
@@ -874,6 +874,23 @@ et la fermer demanderait une copie figée de l'icône (`phase-4-log.md` §14.4).
 parcours refuse désormais toute origine étrangère sur **toutes** les pages servies.
 📏 Image de production **272 Mo** (+4 Mo, le coût de `next/og`, entièrement de build, aucune
 dépendance ajoutée au verrou) ; socle 126,4 Ko ; 569 tests, 117 E2E. · Depends on: P3-06
+
+**P4-11 — Responsive documentaire**
+Status: **DONE** (2026-08-16) — débordement, cibles tactiles et rognage mesurés sur **16 pages ×
+5 largeurs** (320 à 1440), plus un parcours sur le moteur mobile réel.
+⭐⭐⭐ **Première tâche de la phase sans garde derrière elle** : un débordement ne lève rien et
+n'apparaît dans aucun rapport axe. Elle a donc commencé par **mesurer**.
+⛔⛔ **Deux défauts réels, en production** : le sélecteur de langue n'avait **aucun module CSS** — son
+lien faisait la hauteur d'une ligne sur les 16 pages, en place depuis P3-09 et passé à travers une
+passe d'accessibilité complète, axe ne rapportant pas WCAG 2.5.8 —, et le lien « retour à l'accueil »
+était nu dans **trois** fichiers.
+⭐ `tap-target.module.css` annonçait dès P4-03 que P4-11 vérifierait les cibles et que « qu'elles
+viennent toutes d'ici est ce qui rend cette vérification tenable ». Deux fichiers à corriger au lieu
+de six.
+⭐ **Aucune media query de largeur n'a été nécessaire** : la mise en page fluide de l'ADR-0010 tenait
+déjà. Ce que la tâche apporte est la **preuve**.
+📏 Socle, JS par route et image inchangés. 625 tests, 140 E2E, couverture 100 %.
+· Depends on: P4-06
 
 **P4-10 — Passe accessibilité**
 Status: **DONE** (2026-08-16) — audit axe, plan des titres, points de repère et noms accessibles sur
