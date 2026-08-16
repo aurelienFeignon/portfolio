@@ -7,14 +7,27 @@ Ce qui s'y trouve est le **contenu réel** (P2-11, 2026-08-15) : par locale, **2
 (Augure, Askor chez EVEA Conseil), **1 projet** (ce portfolio) et **40 compétences** groupées en cinq
 catégories, dont dix mises en avant. Le contenu d'amorçage de P2-10 a été entièrement remplacé.
 
-Deux réserves à corriger quand tu auras la réponse :
+Une réserve à corriger quand tu auras la réponse :
 
-- les **dates de début** sont au 1ᵉʳ janvier (2021 pour Askor, 2025 pour Augure) : le CV ne donne
-  que l'année, et le schéma exige un jour. Remplace-les par les vrais mois ;
 - les **niveaux** (1 à 5) sont une proposition, déduite de la place que chaque technologie occupe
   dans les expériences. C'est un jugement sur toi-même : relis-les.
 
-Deux règles à connaître avant d'écrire :
+## Les dates disent ce que tu sais, et rien de plus
+
+Une date s'écrit à **la précision que tu connais** — `'2021'`, `'2021-03'` ou `'2021-03-14'` — et le
+site l'affiche telle quelle : « 2021 », « mars 2021 », « 14 mars 2021 ».
+
+Ce n'est pas un confort d'écriture. L'attribut `datetime` du HTML et les données structurées
+**réémettent la valeur telle qu'elle est stockée** : écrire `2021-01-01` quand tu ne connais que
+l'année affirme ce jour-là à un moteur de recherche. C'est ce qui se passait jusqu'au 2026-08-16, où
+les deux expériences portaient un 1ᵉʳ janvier d'attente ; elles disent maintenant `'2021'` et
+`'2025'`. Si tu retrouves les vrais mois, précise-les — c'est tout ce qu'il y a à faire.
+
+⚠️ **Une année s'écrit entre quotes.** En YAML, `startedAt: 2021` est un **nombre**, pas une chaîne :
+le build casse. `startedAt: '2021'` est correct. Les formes avec tiret (`2021-03`, `2021-03-14`)
+n'ont pas ce problème.
+
+## Deux règles à connaître avant d'écrire
 
 - une valeur contenant `: ` doit être **entre guillemets**, sans quoi YAML y lit une table imbriquée ;
 - chaque entrée de `technologies` doit correspondre au `slug` d'une compétence **de la même locale** (P2-07).

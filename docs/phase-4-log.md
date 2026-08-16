@@ -496,8 +496,100 @@ Coût réel, à ne pas sous-estimer :
 
 ⚠️ **C'est un préalable de P4-09**, pas une amélioration facultative : sans lui, le JSON-LD affirmera
 des jours inventés à un moteur de recherche, et aucun gate ne le verra. La décision d'engager ce
-chantier — il touche le schéma de contenu et les fichiers de l'auteur — **appartient à l'utilisateur**
-et lui est posée en clôture de P4-04.
+chantier — il touche le schéma de contenu et les fichiers de l'auteur — appartenait à l'utilisateur.
+
+✅ **Décidé et fait le 2026-08-16, avant P4-05** (P4-17, §10).
 
 ⭐ Effet de bord heureux : le jour où ce correctif est fait, **D1 cesse d'être une fausseté ouverte**
 pour devenir « préciser quand on saura ».
+
+## 10. P4-17 — la précision voyage avec la donnée
+
+Le préalable de §9.6 est levé. `isoDateSchema` accepte `AAAA`, `AAAA-MM` ou `AAAA-MM-JJ` — **exactement
+le domaine de `<time datetime>`** pour une date calendaire. `DateRange` ne retranche plus rien : il met
+en forme ce qu'il reçoit et réémet la valeur *verbatim*. La propriété que P4-09 exigeait est désormais
+vraie **par construction** plutôt que par vigilance.
+
+La preuve tient en trois lignes de HTML servi :
+
+```html
+<!-- Askor : le mois n'est pas connu -->
+<time dateTime="2021">2021</time>
+<!-- Le portfolio : le jour est connu -->
+<time dateTime="2026-08-11">11 août 2026</time>
+<time dateTime="2026-08-11">August 11, 2026</time>
+```
+
+### 10.1 Ce qui a été renversé, et pourquoi c'était nécessaire
+
+`common.ts` déclarait : « la précision d'affichage — “mars 2022” plutôt qu'une date complète — est une
+décision de rendu, prise en Phase 4, pas une décision de stockage ». La prémisse est fausse sur le
+point qui compte, et P4-04 est la tâche qui l'a révélé : **`datetime` et le JSON-LD ne sont pas du
+rendu, ce sont des émissions de données.** Une date complète y affirme un jour à un moteur de
+recherche, que l'auteur le connaisse ou non.
+
+⭐⭐⭐ **Quand une valeur porte une incertitude, l'incertitude doit voyager avec elle.** Sinon chaque
+consommateur redécide, et le premier qui oublie affirme un fait faux — silencieusement, puisqu'une
+date complète est toujours valide. C'est la leçon générale, et elle vaut au-delà des dates.
+
+Corollaire de méthode : la troncature de P4-04 était un correctif **dans une vue** pour un problème
+**de donnée**. Elle ne mentait pas, mais elle effaçait les dates réellement connues et ne protégeait
+qu'un seul consommateur. Un correctif qui doit être répété par chaque lecteur n'est pas un correctif.
+
+### 10.2 Élargir un domaine, c'est revisiter chaque comparateur
+
+⛔⛔ **Le constat le plus utile de la revue.** Trois défauts, une seule racine : le domaine des dates
+avait été élargi sans que tous les consommateurs qui les comparent **en tant que chaînes** soient
+rouverts.
+
+**La validation rejetait du contenu juste.** « Commencé en juin 2021, terminé en 2021 » échouait sur
+`'2021' >= '2021-06'`, avec le message « `endedAt` est antérieure à `startedAt` » — c'est-à-dire que
+le build cassait en accusant l'auteur d'une faute qu'il n'avait pas commise.
+
+**Et le tri lisait mal les dates de fin.** Comparer les chaînes brutes revient à lire une valeur
+grossière comme le **début** de sa période. C'est juste pour une date de début, et faux pour une date
+de fin : « terminé en 2021 » passait pour antérieur à « terminé le 5 janvier 2021 ».
+
+⭐⭐⭐ **La règle retenue n'invente rien : deux dates ne se comparent que sur ce qu'elles affirment
+toutes les deux.** La comparaison est tronquée à la précision commune ; deux valeurs qui ne disent
+pas la même chose sont **égales**, et un départage explicite prend le relais (date de début, puis
+slug). L'alternative — étendre une date grossière à la fin de sa période — aurait demandé de choisir
+une convention que le contenu ne porte pas, et de l'arithmétique calendaire (années bissextiles) pour
+rien.
+
+⚠️ Le premier test écrit pour cette règle **ne la discriminait pas** : il passait aussi bien avec la
+comparaison brute. Il a fallu choisir un cas où les deux règles divergent — c'est la seule façon de
+savoir qu'un test mesure ce qu'il prétend.
+
+### 10.3 Deux pièges rencontrés
+
+⛔ **Le tri comparait par `localeCompare`.** Tant que toutes les dates faisaient dix caractères, la
+comparaison lexicographique et la collation ICU donnaient le même résultat. Avec trois longueurs, le
+tiret devient porteur — et `localeCompare` le traite comme de la ponctuation, dont le poids dépend
+d'une collation qu'aucun test ne contrôle. Les dates se comparent maintenant par **unités de code**,
+comme le faisait déjà `isPeriodOrdered`. Quatre cas croisant les trois précisions gardent l'ordre.
+
+⭐ **En YAML, `2021` nu est un entier.** Le schéma attend une chaîne : les valeurs à l'année sont
+quotées dans `content/`. Sans cela le build casse — ce qui est le comportement voulu, mais le message
+ne dit pas « quote ta valeur ».
+
+### 10.4 Ce qui n'a pas été écrit
+
+`precisionOf()` a été écrit puis **retiré avant le commit** : `src/ui` ne peut pas importer
+`src/content`, et c'était son seul usager possible. `DateRange` lit la forme lui-même, en une ligne.
+Une fonction exportée sans appelant aurait été du vocabulaire public à maintenir pour rien — la règle
+que `fr.ts` applique déjà à ses clés de traduction.
+
+⚠️ **D1 change de nature.** Les mois de début d'Askor et d'Augure ne sont plus une *fausseté ouverte*
+inscrite dans `content/` : le contenu dit maintenant exactement ce qu'on sait. La question devient
+« préciser quand on saura », et elle ne bloque plus rien.
+
+### 10.5 Relevés
+
+| Relevé après P4-17 | Valeur | Seuil |
+|---|---|---|
+| JS propre à chaque route | **0,0 Ko** sur 16 routes | cible 25 · bloquant 40 Ko |
+| Socle partagé | **129,5 Ko — inchangé** | cible 136 · bloquant 146 |
+| Tests | **484** verts, couverture 100 % | — |
+| E2E | 86 verts sur 5 profils | — |
+| Contenu validé | 86 fichiers | — |

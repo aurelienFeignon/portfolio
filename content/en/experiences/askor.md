@@ -3,7 +3,7 @@ slug: askor
 company: EVEA Conseil
 role: Full-Stack Developer
 location: Tours, France
-startedAt: 2021-01-01
+startedAt: '2021'
 technologies:
   - symfony
   - api-platform

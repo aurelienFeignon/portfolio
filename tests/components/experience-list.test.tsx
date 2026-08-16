@@ -56,22 +56,26 @@ describe('liste des expériences', () => {
     expect(screen.queryByText(/·/)).not.toBeInTheDocument()
   })
 
-  it('montre la période à l’année, et « en cours » sans ouvrir la fiche', () => {
+  it('montre la période à la précision connue, et « en cours » sans ouvrir la fiche', () => {
     render(
       <ExperienceList
         locale="fr"
         items={[
           // La fabrique rend un `href` unique à chaque appel : deux clés React
           // égales omettraient ou dupliqueraient un enfant, sans erreur.
-          makeExperienceSummary({ startedAt: '2025-01-01', endedAt: undefined }),
-          makeExperienceSummary({ startedAt: '2021-01-01', endedAt: '2024-06-30' }),
+          //
+          // Les deux précisions sont représentées à dessein : c'est la liste qui
+          // les fait cohabiter dans une même page, et une mise en forme qui
+          // supposerait une seule forme s'y verrait.
+          makeExperienceSummary({ startedAt: '2025', endedAt: undefined }),
+          makeExperienceSummary({ startedAt: '2021', endedAt: '2024-06-30' }),
         ]}
       />,
     )
 
     expect(screen.getByText('2025')).toHaveAttribute('datetime', '2025')
     expect(screen.getByText(/En cours/)).toBeVisible()
-    expect(screen.getByText('2024')).toHaveAttribute('datetime', '2024')
+    expect(screen.getByText('30 juin 2024')).toHaveAttribute('datetime', '2024-06-30')
   })
 
   it('reste une page valide quand la locale ne traduit aucune expérience', () => {

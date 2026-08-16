@@ -90,14 +90,70 @@ describe('schéma de projet', () => {
   })
 
   it.each([
-    ['un mois seul', '2024-01'],
     ['un format francisé', '15/01/2024'],
     ['un jour qui n’existe pas', '2024-02-30'],
+    ['un mois qui n’existe pas', '2024-13'],
+    ['une année sur deux chiffres', '24'],
     ['un horodatage complet', '2024-01-15T10:00:00Z'],
+    ['une année suivie d’un tiret', '2024-'],
   ])('rejette une date de début exprimée avec %s', (_label, startedAt) => {
     expect(
       failurePaths(projectFrontmatterSchema.safeParse(makeProjectFrontmatter({ startedAt }))),
     ).toContain('startedAt')
+  })
+
+  it.each([
+    ['l’année seule', '2024'],
+    ['l’année et le mois', '2024-03'],
+    ['le jour', '2024-03-14'],
+  ])('accepte une date de début exprimée à %s', (_label, startedAt) => {
+    // ⚠️ Renversement assumé d'une décision de P2-02, qui n'acceptait que le
+    // jour. Le motif est écrit dans `common.ts` : `<time datetime>` et le
+    // JSON-LD ne sont pas du rendu, ce sont des **émissions de données**, et une
+    // date complète y affirme un jour que l'auteur ne connaît pas toujours.
+    // L'incertitude doit donc voyager avec la valeur, pas être retranchée par
+    // chaque consommateur.
+    expect(projectFrontmatterSchema.safeParse(makeProjectFrontmatter({ startedAt })).success).toBe(
+      true,
+    )
+  })
+
+  it.each([
+    ['une fin à l’année après un début au mois', '2021-06', '2021'],
+    ['une fin au mois après un début au jour', '2021-03-14', '2021-06'],
+    ['une fin à l’année après un début à l’année', '2021', '2021'],
+    ['une fin au jour après un début à l’année', '2021', '2021-03-14'],
+  ])('accepte %s : la comparaison se fait à la précision commune', (_label, startedAt, endedAt) => {
+    // ⚠️ « commencé en juin 2021, terminé en 2021 » est parfaitement écrivable, et
+    // la comparaison brute des chaînes le rejetait : `'2021' >= '2021-06'` est
+    // faux. Deux dates ne peuvent être comparées que sur ce qu'elles **affirment
+    // toutes les deux** — sans quoi le build casse sur un contenu juste, avec un
+    // message qui accuse l'auteur.
+    expect(
+      projectFrontmatterSchema.safeParse(makeProjectFrontmatter({ startedAt, endedAt })).success,
+    ).toBe(true)
+  })
+
+  it('rejette une date de fin antérieure, même à des précisions différentes', () => {
+    expect(
+      failurePaths(
+        projectFrontmatterSchema.safeParse(
+          makeProjectFrontmatter({ startedAt: '2021-06', endedAt: '2020' }),
+        ),
+      ),
+    ).toContain('endedAt')
+  })
+
+  it('dit à l’auteur qu’une année nue est un nombre en YAML', () => {
+    // Le seul des trois formats que YAML transforme en nombre. Le message par
+    // défaut — « expected string, received number » — n'aide pas à écrire la
+    // correction, qui est d'ajouter des quotes.
+    const result = projectFrontmatterSchema.safeParse(
+      makeProjectFrontmatter({ startedAt: 2021 as unknown as string }),
+    )
+
+    expect(failurePaths(result)).toContain('startedAt')
+    expect(JSON.stringify(result.error?.issues)).toMatch(/quote/i)
   })
 
   it('rejette une date de fin antérieure à la date de début', () => {
