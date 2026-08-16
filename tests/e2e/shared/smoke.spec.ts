@@ -1,4 +1,4 @@
-import AxeBuilder from '@axe-core/playwright'
+import { expectNoBlockingAxeViolations } from '../support/axe'
 import { expect, test } from '../support/test'
 
 test.describe('page d’accueil', () => {
@@ -51,14 +51,6 @@ test.describe('page d’accueil', () => {
 
   test('ne présente aucune violation axe de niveau serious ou critical', async ({ page }) => {
     await page.goto('/fr')
-
-    const { violations } = await new AxeBuilder({ page })
-      .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'])
-      .analyze()
-
-    const blocking = violations.filter(
-      (violation) => violation.impact === 'serious' || violation.impact === 'critical',
-    )
-    expect(blocking.map((violation) => `${violation.id}: ${violation.help}`)).toEqual([])
+    await expectNoBlockingAxeViolations(page, '/fr')
   })
 })

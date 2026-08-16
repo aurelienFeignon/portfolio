@@ -709,7 +709,7 @@ reste et le filet de sécurité permanent du projet. Journal de phase :
 | P4-01 | ADR-0010 : stratégie de style | **DONE** *(2026-08-15)* | P3-09 |
 | P4-02 | Layout documentaire : en-tête, navigation, pied de page, lien d'évitement | **DONE** *(2026-08-15)* | P4-01 |
 | P4-03 | Accueil : présentation et accès aux trois sections | **DONE** *(2026-08-15)* | P4-02 |
-| P4-04 | Liste et détail des expériences | TODO | P4-02 |
+| P4-04 | Liste et détail des expériences | **DONE** *(2026-08-16)* | P4-02 |
 | P4-05 | Liste et détail des projets — **première page qui rend un corps MDX** | TODO | P4-02 |
 | P4-06 | Compétences (groupées par catégorie) | TODO | P4-02 |
 | P4-07 | Pages 404 et erreur, localisées | TODO | P4-02 |
@@ -772,6 +772,25 @@ de niveau 2 — le plan du document, que les lecteurs d'écran parcourent aussi.
 dictionnaire d'interface, sans rien pour les distinguer d'un libellé. La page affiche
 `site.description`, qui existe et est traduite ; le vrai texte d'accroche est une **décision
 éditoriale ouverte** (`phase-4-log.md` §8). · Depends on: P4-02
+
+**P4-04 — Liste et détail des expériences**
+Status: **DONE** (2026-08-16) — `ExperienceList` (poste titré et lié, employeur, lieu quand il est
+connu, période, « en cours » visible **sans ouvrir la fiche**) et la fiche complète : réalisations et
+pile technique, dont les slugs sont résolus en libellés par le référentiel des compétences.
+⭐⭐ **La décision 4 est tranchée : la précision d'affichage est l'ANNÉE**, et ce n'est pas
+cosmétique. Le CV source ne donne que des années, le schéma exige un jour, et `content/` porte donc
+des 1ᵉʳ janvier d'attente (décision D1, ouverte) : « janvier 2021 » afficherait comme un fait un mois
+que personne ne connaît. ⛔ Conséquence qui va plus loin que l'affichage — **`datetime` porte la même
+précision que ce qui est montré** : `<time datetime="2021-01-01">` affirmerait ce jour à un moteur de
+recherche et au JSON-LD de P4-09.
+⛔⛔ **Mais ce qui est livré est la troncature, pas la règle** — la revue l'a établi. `year()` est
+inconditionnelle : elle efface aussi la précision **connue** du projet « portfolio », et elle ne
+protège que cette vue (P4-09 lira l'entité et réémettra la date complète, rien ne l'en empêche). Le
+correctif au bon niveau — `isoDateSchema` acceptant `AAAA` / `AAAA-MM` / `AAAA-MM-JJ`, l'incertitude
+voyageant **avec** la donnée — est inscrit comme **préalable de P4-09** (`phase-4-log.md` §9.6) et
+touche le schéma de contenu : la décision appartient à l'utilisateur.
+⭐ `page.module.css` extrait au **deuxième** exemplaire, avant que P4-05 et P4-06 n'en fassent un
+quatrième et un cinquième. · Depends on: P4-02
 
 **Critères de sortie** — Toutes les exigences de la §20 de la mission satisfaites ; Lighthouse
 mobile ≥ 85 / a11y 100 / SEO 100 ; 0 violation axe serious/critical ; le projet `no-js` passe ;

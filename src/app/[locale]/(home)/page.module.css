@@ -1,29 +1,14 @@
 /*
  * Accueil (P4-03).
  *
- * Le cadrage horizontal vient de `container.module.css`, comme l'en-tête et le
- * pied de page : c'est ce qui aligne le `h1` sur la marque, au pixel près, sans
- * que la valeur soit recopiée ici.
+ * Le gabarit — cadrage horizontal, rythme vertical, typographie du titre — vient
+ * de `page.module.css`, partagé avec les pages de section. Ce module ne porte
+ * donc que ce qui est **propre à l'accueil**, et rien qui soit un simple alias :
+ * un fichier de renommage était deux règles pour zéro valeur.
  */
 
-.main {
-  composes: container from '../../../ui/container.module.css';
-
-  padding-block: var(--space-6);
-}
-
-.name {
-  margin: 0;
-  font-size: var(--text-2xl);
-  line-height: 1.2;
-}
-
-/*
- * La phrase de situation, en retrait de couleur mais pas de taille : elle est du
- * texte courant que quelqu'un doit pouvoir lire, pas une légende.
- */
 .lede {
-  margin: var(--space-3) 0 var(--space-6);
+  margin: 0;
   max-width: 50ch;
   color: var(--color-text-muted);
 }

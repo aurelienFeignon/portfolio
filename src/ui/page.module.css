@@ -1,0 +1,41 @@
+/*
+ * Le gabarit d'une page documentaire (P4-04).
+ *
+ * `container` borne la mesure ; ce qui s'y ajoute est le rythme vertical, que
+ * les cinq gabarits de la phase partagent. Extrait au **deuxième** exemplaire,
+ * avant que P4-05 et P4-06 n'en fassent un quatrième et un cinquième — c'est le
+ * seuil auquel `container.module.css` puis `tap-target.module.css` ont été
+ * écrits, et la raison est la même : ce n'est pas la valeur qui divergerait,
+ * c'est ce qui l'accompagne.
+ */
+
+.page {
+  composes: container from './container.module.css';
+
+  /*
+   * Le rythme vertical est posé **une fois**, par un `gap`, plutôt que par une
+   * marge sur chaque enfant. C'est ce qui permet à `.title` de ne porter que sa
+   * typographie : une page n'a plus rien à contredire, elle ajoute seulement là
+   * où elle veut plus d'air.
+   */
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding-block: var(--space-6);
+}
+
+/*
+ * Le titre d'une page. `--text-2xl` est entré en P4-03 avec le `h1` de
+ * l'accueil ; il sert ici la même fonction, et à la même altitude dans le plan
+ * du document.
+ *
+ * ⚠️ Il ne porte **que** la typographie. `composes` est tout ou rien : y
+ * empaqueter un rythme vertical obligeait chaque page à le contredire — l'une
+ * l'écrasait déjà, l'autre compensait sur le paragraphe suivant. L'espacement
+ * appartient au flux de la page, qui seule le connaît.
+ */
+.title {
+  margin: 0;
+  font-size: var(--text-2xl);
+  line-height: 1.2;
+}
