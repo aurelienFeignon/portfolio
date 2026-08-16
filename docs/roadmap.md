@@ -720,7 +720,7 @@ reste et le filet de sécurité permanent du projet. Journal de phase :
 | P4-10 | Passe accessibilité : titres, focus, contrastes, points de repère, les cinq fichiers non couverts, le garde des endroits piloté par l'arborescence, et `experimental.globalNotFound` comme plancher | **DONE** *(2026-08-16)* | P4-06 |
 | P4-11 | Responsive documentaire : mobile, tablette, desktop | **DONE** *(2026-08-16)* | P4-06 |
 | P4-12 | E2E : navigation complète, deep links, bascule de langue, clavier | **DONE** *(2026-08-16)* | P4-11 |
-| P4-13 | **Mise en production du portfolio documentaire** *(jalon T1)* | TODO | P4-12, P1-15, P2-11 |
+| P4-13 | **Mise en production du portfolio documentaire** *(jalon T1)* | **IN_PROGRESS** *(2026-08-16)* — Lighthouse mesuré et appliqué ; **bloquée** sur la vérification de `SITE_URL` au VPS | P4-12, P1-15, P2-11 |
 | P4-14 | Supervision : healthcheck conteneur + sonde externe avec alerte (risque R-15) | TODO | P4-13 |
 | P4-15 | Checklist de mise en ligne + rollback vérifié en conditions réelles | TODO | P4-13 |
 | P4-17 | **Précision variable des dates** — préalable de P4-09, levé | **DONE** *(2026-08-16)* | P4-04 |
@@ -985,18 +985,34 @@ chose avant de muter. Panne de P4-10 reproduite dans l'outillage qui existe pour
 📏 140 → **144** E2E ; 627 → **632** tests ; couverture inchangée (100 %). Aucune ligne de `src/` modifiée.
 · Depends on: P4-11
 
+**P4-13 — Mise en production (jalon T1)**
+Status: **IN_PROGRESS** (2026-08-16). Le site est **déployé en continu depuis P1-15** : la tâche
+n'installe rien, elle **prononce** que ce qui est déployé est le portfolio documentaire complet — ce
+qui suppose de vérifier ce que les Phases 3 et 4 lui ont laissé.
+⛔⛔ **Le critère de sortie « Lighthouse ≥ 85 / a11y 100 / SEO 100 » n'était mesuré nulle part**, et
+il l'est maintenant : `scripts/check-lighthouse.mts`, branché sur `make ci` et sur la CI, contre
+l'**image de production**, sur deux pages et deux profils. **Accessibilité 100, SEO 100** partout.
+⭐⭐ **Trois manières de juger**, parce que les catégories ne se mesurent pas pareil : le score pour
+l'accessibilité et le SEO (structurels, bloquants) ; les **audits** pour les bonnes pratiques, dont le
+score plafonne à 78 parce que le banc sert du HTTP nu ; un simple **relevé** pour la performance,
+mesurée 100 puis 99 sur la même page à deux tirs. Vu rouge trois fois, une par manière de juger.
+⛔ **Ce qui reste, et qui n'est pas à moi** : les deux sources de `SITE_URL` — l'`ENV` de l'image
+(la CI construit avec `https://aurelienfeignon.com`, vérifié) et l'`env_file` du VPS, **qui
+l'emporte**. Ni SSH ni requête publique n'y donnent accès depuis la machine de développement
+(`Permission denied (publickey)` ; 302 Cloudflare Access). La tâche ne peut pas se déclarer close
+sans ce relevé — le supposer serait exactement le défaut que la phase traque.
+· Depends on: P4-12, P1-15, P2-11
+
 **Critères de sortie** — Toutes les exigences de la §20 de la mission satisfaites ; Lighthouse
 mobile ≥ 85 / a11y 100 / SEO 100 ; 0 violation axe serious/critical ; le projet `no-js` passe ;
 **aucune dépendance Three.js dans le dépôt à ce stade** ; **site en ligne, supervisé, avec un
 rollback prouvé**.
 
-⛔⛔ **Le critère Lighthouse n'est mesuré NULLE PART**, constaté pendant l'inventaire de P4-12 : le
-mot n'apparaît que dans quatre documents, et aucun gate, aucun parcours, aucune étape de CI ne
-produit un score. C'est exactement le défaut du seuil de 400 Mo, que P4-05 a découvert en s'y
-référant — *un seuil que rien ne fait respecter n'est pas un seuil*. **Arbitrage du 2026-08-16 :
-dette nommée, portée par P4-13 et P4-15**, la mesure se faisant de toute façon contre le site
-déployé ; P4-12 porte les parcours, pas les audits de performance. Ce qui rouvre la question : une
-mise en ligne effectuée sans que le score ait jamais été relevé.
+✅ ~~**Le critère Lighthouse n'est mesuré nulle part**~~ — constaté pendant l'inventaire de P4-12,
+**soldé en P4-13** : `scripts/check-lighthouse.mts` le mesure contre l'image de production, sur
+`make ci` et sur la CI. Accessibilité et SEO bloquent à 100 ; les bonnes pratiques sont jugées sur
+leurs audits ; la performance est relevée. ⚠️ **Reste ouvert** : la performance contre le **site
+réel**, réseau et CDN compris — c'est P4-16, et cela suppose de lever Cloudflare Access.
 
 > P4-13 à P4-16 constituent le jalon **T1**. Ce sont des mises en production anticipées : la
 > Phase 15 reste la release du produit complet et **réutilisera la checklist établie en P4-15**

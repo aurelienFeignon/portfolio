@@ -20,7 +20,8 @@
     "check-static": "node scripts/check-static-rendering.mts",
     "build": "node scripts/check-content.mts && node scripts/generate-route-manifest.mts && next build && node scripts/check-static-rendering.mts",
     "start": "next start -H 0.0.0.0 -p 3000",
-    "check-dns": "node scripts/check-dns.mts"
+    "check-dns": "node scripts/check-dns.mts",
+    "lighthouse": "node scripts/check-lighthouse.mts"
   },
   "dependencies": {
     "@mdx-js/mdx": "^3.1.1",
@@ -47,6 +48,7 @@
     "eslint-import-resolver-typescript": "3.10.1",
     "eslint-plugin-import": "2.32.0",
     "jsdom": "30.0.1",
+    "lighthouse": "13.4.1",
     "prettier": "3.9.6",
     "typescript": "6.0.3",
     "typescript-eslint": "8.65.0",

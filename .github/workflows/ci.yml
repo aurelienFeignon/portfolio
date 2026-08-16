@@ -169,6 +169,20 @@ jobs:
           SITE_URL: ${{ env.SITE_URL }}
           CI: 'true'
 
+      # ⛔⛔ « Lighthouse mobile ≥ 85 / a11y 100 / SEO 100 » est un critère de
+      # SORTIE de la Phase 4 depuis la Phase 0, et il n'était mesuré nulle part —
+      # le mot n'apparaissait que dans quatre documents. C'est le défaut du seuil
+      # de 400 Mo, à l'identique. Relevé pendant l'inventaire de P4-12.
+      #
+      # ⭐ Le script tourne ici avec le Chromium déjà installé pour Playwright, et
+      # décide lui-même de ce qui bloque : accessibilité et SEO à 100 (structurel),
+      # « bonnes pratiques » sur ses audits — son score est plafonné par le HTTP nu
+      # du banc —, performance relevée sans être bloquante sur un runner partagé.
+      - name: Audit Lighthouse de l'image de production
+        run: node scripts/check-lighthouse.mts | tee -a "$GITHUB_STEP_SUMMARY"
+        env:
+          PLAYWRIGHT_BASE_URL: http://localhost:3000
+
       - name: Publier le rapport Playwright
         if: always()
         uses: actions/upload-artifact@v4

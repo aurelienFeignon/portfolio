@@ -37,6 +37,7 @@ install up up-d sh typecheck lint format test test-watch coverage bundle: | $(MO
 
 .PHONY: help doctor image install up up-d down sh logs ps reset typecheck lint format e2e \
         build prod-up prod-down e2e-prod bundle ci check-dns check-content check-image-size \
+        lighthouse \
         test test-watch coverage
 
 help: ## Affiche cette aide
@@ -102,6 +103,9 @@ prod-down: ## Arrête l'image de production
 e2e-prod: ## Tests end-to-end contre le BUILD DE PRODUCTION (testing-strategy §8)
 	$(COMPOSE_PROD) run --rm e2e
 
+lighthouse: ## Audit Lighthouse contre le BUILD DE PRODUCTION (performance-budget §3)
+	$(COMPOSE_PROD) run --rm e2e node scripts/check-lighthouse.mts
+
 check-dns: ## Vérifie la zone DNS et l'authentification d'expédition (P1-17)
 	$(RUN) node scripts/check-dns.mts
 
@@ -147,6 +151,7 @@ ci: ## Enchaîne tous les gates, dans l'ordre de testing-strategy.md §8
 	 $(MAKE) build; \
 	 $(MAKE) check-image-size; \
 	 $(MAKE) e2e-prod; \
+	 $(MAKE) lighthouse; \
 	 $(MAKE) prod-down; \
 	 echo; echo "  ✓ Tous les gates sont verts."
 
