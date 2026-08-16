@@ -30,30 +30,34 @@ import type { PageLocation } from '@/routing/paths'
 import type { Section } from '@/routing/sections'
 
 /**
- * Le fil d'Ariane d'un endroit — **dérivé de l'endroit**, jamais écrit à la main.
+ * Le fil d'Ariane d'une page — **dérivé de sa position**, jamais écrit à la main.
  *
  * L'accueil s'y nomme par `site.name`, comme le lien de la marque dans l'en-tête :
  * c'est la même cible et le même libellé, et deux écritures finiraient par n'être
  * plus la même (P4-02).
+ *
+ * ⭐ **La signature dit ce qui existe, et rien de plus.** La première version
+ * prenait un `PageLocation` complet et traitait le cas « accueil » — qu'aucun
+ * appelant ne lui passe, l'accueil n'ayant pas de fil — plus un `entityName`
+ * optionnel qui ne pouvait jamais manquer. Deux branches mortes, **révélées par
+ * la sortie de `make coverage`** et non par la relecture. Elles sont supprimées
+ * plutôt que couvertes : écrire un test pour une branche inatteignable donne un
+ * chiffre vert et un mécanisme qui ment.
  */
 function trailTo(
   locale: Locale,
-  location: PageLocation,
-  entityName?: string,
+  section: Section,
+  leaf?: { readonly slug: string; readonly name: string },
 ): readonly TrailStep[] {
   const messages = getMessages(locale)
-  const home: TrailStep = { name: messages.site.name, location: { kind: 'home' } }
+  const steps: readonly TrailStep[] = [
+    { name: messages.site.name, location: { kind: 'home' } },
+    { name: messages.sections[section].name, location: { kind: 'section', section } },
+  ]
 
-  if (location.kind === 'home') return [home]
+  if (leaf === undefined) return steps
 
-  const section: TrailStep = {
-    name: messages.sections[location.section].name,
-    location: { kind: 'section', section: location.section },
-  }
-
-  if (location.kind === 'section') return [home, section]
-
-  return [home, section, { name: entityName ?? '', location }]
+  return [...steps, { name: leaf.name, location: { kind: 'entity', section, slug: leaf.slug } }]
 }
 
 /**
@@ -106,9 +110,7 @@ export async function homeStructuredData(
 
 /** Une page de section : son fil d'Ariane, et rien d'autre. */
 export function sectionStructuredData(locale: Locale, section: Section): JsonLdDocument {
-  return jsonLdDocument([
-    breadcrumbNode(getSiteUrl(), locale, trailTo(locale, { kind: 'section', section })),
-  ])
+  return jsonLdDocument([breadcrumbNode(getSiteUrl(), locale, trailTo(locale, section))])
 }
 
 /**
@@ -129,10 +131,8 @@ export function experienceStructuredData(
   locale: Locale,
   entity: { readonly slug: string; readonly name: string },
 ): JsonLdDocument {
-  const location: PageLocation = { kind: 'entity', section: 'experiences', slug: entity.slug }
-
   return jsonLdDocument([
-    breadcrumbNode(getSiteUrl(), locale, trailTo(locale, location, entity.name)),
+    breadcrumbNode(getSiteUrl(), locale, trailTo(locale, 'experiences', entity)),
   ])
 }
 
@@ -166,6 +166,10 @@ export function projectStructuredData(
       startedAt: project.startedAt,
       keywords,
     }),
-    breadcrumbNode(siteUrl, locale, trailTo(locale, location, project.title)),
+    breadcrumbNode(
+      siteUrl,
+      locale,
+      trailTo(locale, 'projects', { ...project, name: project.title }),
+    ),
   ])
 }
