@@ -45,6 +45,20 @@ function isInternal(route: string): boolean {
   return route.startsWith('/_')
 }
 
+/**
+ * La page **introuvable** est prérendue comme les autres, et n'a rien à faire au
+ * sitemap : elle est servie en 404 par réécriture du proxy (P4-07), elle porte
+ * `noindex`, et rien ne la lie. L'annoncer à un moteur de recherche reviendrait
+ * à lui promettre une page qui répond 404.
+ *
+ * ⚠️ L'exception est **nommée** plutôt que déduite d'un préfixe : `/_` désigne
+ * les routes internes de Next, et étendre ce préfixe à nos propres pages aurait
+ * ouvert une porte que personne n'aurait refermée.
+ */
+function isNotFoundPage(route: string): boolean {
+  return route.endsWith('/404')
+}
+
 function read<T>(name: string): T {
   const path = join(nextDir, name)
   try {
@@ -111,7 +125,7 @@ if (appRoutes.includes('/sitemap.xml')) {
   )
 
   for (const [route] of prerenderedPages) {
-    if (!isInternal(route) && !inSitemap.has(route)) {
+    if (!isInternal(route) && !isNotFoundPage(route) && !inSitemap.has(route)) {
       problems.push(
         `${route} — prégénérée mais absente du sitemap : elle ne sera pas indexée, ` +
           `et le contrôle E2E des « hreflang » ne la verra pas non plus.`,

@@ -97,6 +97,15 @@ export const fr = {
   },
 
   /** Listes vides — une locale peut ne pas encore traduire une section (R-07). */
+  /** Page introuvable (P4-07). Servie par réécriture du proxy, jamais liée. */
+  notFound: {
+    title: 'Page introuvable',
+    message:
+      'Cette adresse ne correspond à aucune page du site. Elle a peut-être changé, ou comporte une faute de frappe.',
+    backHome: 'Retour à l’accueil',
+    elsewhere: 'Ou reprendre par une section :',
+  },
+
   /** Titre du bloc « pile technique », commun aux deux types de fiche (P4-05). */
   technologies: 'Technologies',
 

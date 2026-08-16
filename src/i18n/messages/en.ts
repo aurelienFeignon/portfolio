@@ -64,6 +64,14 @@ export const en: Messages = {
   },
 
   /** Titre du bloc « pile technique », commun aux deux types de fiche (P4-05). */
+  notFound: {
+    title: 'Page not found',
+    message:
+      'This address does not match any page on the site. It may have moved, or contain a typo.',
+    backHome: 'Back to the home page',
+    elsewhere: 'Or start from a section:',
+  },
+
   technologies: 'Tech stack',
 
   empty: 'Nothing to show in this language yet.',

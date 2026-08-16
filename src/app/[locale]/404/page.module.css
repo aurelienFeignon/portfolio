@@ -1,0 +1,9 @@
+/*
+ * Page introuvable (P4-07).
+ */
+
+.message {
+  margin: 0;
+  max-width: 60ch;
+  color: var(--color-text-muted);
+}
