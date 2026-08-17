@@ -36,7 +36,7 @@ $(MOUNTPOINTS):
 install up up-d sh typecheck lint format test test-watch coverage bundle: | $(MOUNTPOINTS)
 
 .PHONY: help doctor image install up up-d down sh logs ps reset typecheck lint format e2e \
-        build prod-up prod-down e2e-prod bundle ci check-dns check-content check-image-size \
+        build prod-up prod-down e2e-prod bundle ci check-dns check-uptime check-content check-image-size \
         lighthouse \
         test test-watch coverage
 
@@ -108,6 +108,17 @@ lighthouse: ## Audit Lighthouse contre le BUILD DE PRODUCTION (performance-budge
 
 check-dns: ## Vérifie la zone DNS et l'authentification d'expédition (P1-17)
 	$(RUN) node scripts/check-dns.mts
+
+# Le MÊME script que la sonde planifiée (`.github/workflows/uptime.yml`), avec
+# le même argv — celui-ci dans le conteneur, celle-là sans Docker : une sonde
+# qu'on ne peut pas rejouer à la main est un mécanisme qu'on ne peut pas
+# instruire le jour où elle crie.
+#
+# ⭐ Aucune entrée dans `package.json` : elle serait une TROISIÈME écriture de la
+# même commande, que personne n'invoquerait (`check-dns` et `lighthouse` portent
+# déjà ce doublon mort — on ne le recopie pas).
+check-uptime: ## Interroge le site EN LIGNE depuis l'extérieur, comme la sonde (P4-14)
+	$(RUN) node scripts/check-uptime.mts
 
 check-content: ## Valide tout le contenu Markdown/MDX (CF-10) — inclus dans `build`
 	$(RUN) pnpm check-content

@@ -310,9 +310,11 @@ gh run list --branch main --limit 1
 qu'Access est actif**, et aucun moteur de recherche n'atteint le site. Lever Access fait donc partie
 de la mise en ligne réelle, au même titre que le déploiement lui-même.
 
-Reste à vérifier **le jour où Access est levé** : Cloudflare sert actuellement son propre
-`robots.txt` managé (« Content Signals »), qui remplacerait celui de l'application et sa directive
-`Sitemap:`. Impossible de trancher aujourd'hui, la requête n'atteignant pas l'origine.
+✅ **La réserve sur le `robots.txt` managé est tranchée — 2026-08-17, P4-14.** Elle était fondée :
+Cloudflare servait ses seuls « Content Signals », **en 200**, sans la directive `Sitemap:` de
+l'application. Le sitemap n'était donc annoncé à personne. Depuis l'application Access en **Bypass**
+sur `/robots.txt` (§7.2), Cloudflare **fusionne** au lieu de remplacer — ses signaux, puis le fichier
+de l'origine. Mesuré des deux côtés, avant et après.
 
 ---
 
@@ -424,3 +426,115 @@ consommé la bande passante du VPS. Contre une attaque volumétrique, seule une 
 le pare-feu cloud Hetzner — évite la saturation du lien. Restreindre 80/443 aux plages Cloudflare
 dans la console Hetzner ajouterait cette couche, au prix d'une resynchronisation manuelle à chaque
 évolution des plages, que ce script ne peut pas faire à ta place faute de jeton d'API (R-22).
+
+---
+
+## 7. Supervision — exécuté le 2026-08-17 (P4-14, risque R-15)
+
+L'image porte un `HEALTHCHECK` depuis P1-13, et `deploy.sh` l'attend avant de déclarer un
+déploiement réussi. Il interroge `http://127.0.0.1:3000/` **depuis l'intérieur du conteneur** : il ne
+dit donc rien de la zone DNS, du proxy Cloudflare, de Caddy, du réseau `edge`, ni du fait que la
+machine soit allumée. **Un VPS éteint a un healthcheck parfaitement silencieux.**
+
+| Pièce | Où elle vit |
+|---|---|
+| La sonde | [`scripts/check-uptime.mts`](../scripts/check-uptime.mts) — rejouable à la main par `make check-uptime` |
+| Sa planification | [`.github/workflows/uptime.yml`](../.github/workflows/uptime.yml) — toutes les 10 min, plus `workflow_dispatch` |
+| Son banc | `tests/integration/uptime-probe.test.ts` — 15 cas, chacun une panne observable |
+
+### 7.1 Ce que la sonde regarde, et pourquoi le statut ne suffit pas
+
+Elle interroge `https://aurelienfeignon.com/robots.txt` et exige **deux** choses : une **200 sans
+suivre les redirections**, et la directive `Sitemap:` portant l'origine de production **dans le corps
+servi**.
+
+⛔⛔⛔ **Le second contrôle est tout le travail, et c'est mesuré** — arrêt volontaire du conteneur,
+2026-08-17 :
+
+| État du site | Statut rendu | Directive `Sitemap:` |
+|---|---|---|
+| debout | **200** | **présente** |
+| **arrêté** | **200 quand même** | **absente** |
+
+Cloudflare **compose la réponse à sa périphérie** : origine vivante, il lui ajoute ses signaux ;
+origine morte, il sert ses signaux **seuls**, toujours en 200. ⭐⭐ Une sonde jugée sur le code HTTP
+aurait donc été **verte sur un site éteint** — c'est-à-dire exactement la panne que R-15 décrit.
+
+⚠️ **Conséquence pour qui reprendra ce code** : retirer le contrôle du corps en « simplifiant »
+rendrait la sonde décorative sans rien faire rougir. Le banc le tient avec le corps managé
+réellement observé pendant l'arrêt.
+
+### 7.2 L'application Access qui rend la sonde possible
+
+Le site est fermé au public (§4.2) : une requête anonyme reçoit une 302 **produite par Cloudflare**,
+donc verte même conteneur arrêté. Une application Access dédiée ouvre le seul chemin sondé.
+
+| Champ | Valeur |
+|---|---|
+| Type | Self-hosted |
+| Nom | `portfolio — robots.txt (sonde)` |
+| Hostname / Path | `aurelienfeignon.com` / `robots.txt` |
+| Politique | **Bypass**, Include **Everyone** |
+
+L'application la plus spécifique l'emporte sur celle qui couvre `aurelienfeignon.com/*`. **Vérifié
+le 2026-08-17** : `/robots.txt` rend 200, tandis que `/`, `/fr`, `/sitemap.xml` et `/fr/skills`
+rendent toujours 302 vers `cloudflareaccess.com`. Le reste du site n'a pas bougé.
+
+### 7.3 Quand l'alerte crie
+
+L'alerte est **l'e-mail d'échec de GitHub Actions**, pas un service de plus. Deux conditions à
+connaître, parce qu'elles se perdent sans rien casser :
+
+- le réglage *GitHub → Settings → Notifications → Actions → Email* doit être actif ;
+- ⚠️ **la notification part vers le compte qui a créé ou modifié en dernier la ligne `cron`.** Si
+  quelqu'un d'autre y touche, les alertes le suivent.
+
+Le message d'échec nomme lui-même quoi regarder, dans cet ordre — les trois commandes sont au §4 :
+
+1. **l'état de la pile** — `status` dit si le conteneur tourne et sur quel tag ;
+2. **les journaux** du service `web`, puis ceux de `caddy` si `web` est sain ;
+3. **le retour arrière** — `rollback` ramène au tag précédent, mesuré à 9 s en P1-15.
+
+⭐ La sonde rejoue à la main par `make check-uptime`, **exactement la commande de la sonde
+planifiée** : un mécanisme d'alerte qu'on ne peut pas rejouer est un mécanisme qu'on ne peut pas
+instruire le jour où il crie.
+
+### 7.4 L'arrêt volontaire — exécuté le 2026-08-17
+
+Pas une simulation : le conteneur de production a réellement été arrêté, puis redémarré.
+
+```text
+docker compose stop web   → portfolio-web-1  Exited (143)
+  /robots.txt  → 200, directive ABSENTE      ← la sonde sort en 1
+  /fr          → 302 (Access, inchangé)
+docker compose start web  → Up 20 seconds (healthy)
+  /robots.txt  → 200, directive présente     ← la sonde sort en 0
+```
+
+Le site étant fermé au public, l'indisponibilité n'a coûté aucun visiteur. C'est la seule façon de
+prouver que la sonde voit une panne réelle plutôt qu'une panne écrite dans son banc.
+
+### 7.5 Ce que cette sonde n'est pas
+
+⚠️ **Elle partage une plateforme avec la chaîne de déploiement.** Une panne de GitHub la rend
+**muette, pas rouge**. C'est l'arbitrage du 2026-08-17 : une sonde versionnée, relisable en revue et
+sans compte tiers, contre l'indépendance totale d'un service extérieur.
+*Ce qui rouvrirait la question* : une panne réelle que la sonde n'aurait pas signalée, ou une mise en
+ligne au public — à ce moment, une sonde tierce gratuite (5 min, alerte e-mail et SMS) devient
+justifiée par l'audience.
+
+⚠️ **La planification d'Actions est « au mieux »** : GitHub retarde ou saute des exécutions sous
+charge, et désactive un `cron` après **60 jours sans activité** sur le dépôt. La résolution réelle
+est donc « 10 minutes plus un retard non garanti », ce qui reste très au-dessous du risque visé —
+une panne durant des **jours** sans être vue.
+
+⚠️ **Aucun relevé d'expiration de certificat, et ce n'est pas un oubli.** Le site étant proxifié, le
+certificat vu de l'extérieur est celui de **Cloudflare**, qu'il renouvelle seul : en mesurer les
+jours restants promettrait « TLS surveillé » en observant ce qui ne peut pas casser. Le certificat
+qui peut réellement expirer est celui de **Caddy sur l'origine** ; en mode *Full (strict)*, son
+expiration fait répondre Cloudflare en **526**, que la sonde nomme explicitement. Le relevé TLS est
+donc pris au bon endroit.
+
+⚠️ **Ce qu'elle ne surveille pas du tout** : le disque, la mémoire, les mises à jour de sécurité, la
+dérive du pare-feu `CF-ORIGIN` (§6.3, `--check` sort en 1). Ce sont d'autres moitiés de R-15, et
+elles relèvent de la Phase 15 — les nommer ici évite de croire le risque couvert.

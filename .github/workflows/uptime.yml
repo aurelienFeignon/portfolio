@@ -1,0 +1,103 @@
+# Sonde externe de disponibilité — P4-14, risque R-15.
+#
+# Le `HEALTHCHECK` de l'image regarde le site depuis l'INTÉRIEUR du conteneur :
+# il ne peut par construction rien dire d'un VPS éteint, d'une zone DNS cassée,
+# d'un Caddy arrêté ou d'un pare-feu qui a dérivé. Ce workflow est la moitié qui
+# manquait — il regarde depuis dehors, par le chemin d'un visiteur.
+#
+# ## Ce qui alerte
+#
+# ⭐ **L'alerte est l'e-mail d'échec de GitHub Actions**, pas un service de plus.
+# Un job en échec sur un workflow planifié déclenche une notification vers le
+# compte qui a **créé ou modifié en dernier la ligne `cron`** — c'est la règle de
+# GitHub, et elle a deux conséquences à connaître :
+#
+#   - le réglage `Settings → Notifications → Actions → Email` doit être actif,
+#     au moins en « failed workflows only » (vérifié le 2026-08-17, P4-14) ;
+#   - **si quelqu'un d'autre modifie le `cron`, les alertes le suivent.** Ce
+#     n'est pas une hypothèse sur le monde : c'est écrit dans la documentation de
+#     GitHub, et c'est la seule façon de perdre l'alerte sans rien casser.
+#
+# ## Ce que cette sonde ne prétend pas être
+#
+# ⚠️ **La planification d'Actions est « au mieux ».** GitHub retarde ou saute les
+# exécutions planifiées sous charge, et désactive un `cron` après 60 jours sans
+# activité sur le dépôt. La résolution réelle n'est donc pas « 10 minutes » mais
+# « 10 minutes plus un retard non garanti » — ce qui reste très au-dessous du
+# risque visé par R-15, qui est une panne durant des JOURS sans être vue. Le
+# retard réellement observé est relevé dans `deploy/README.md` §7.4 plutôt que
+# supposé.
+#
+# ⚠️ **Elle partage une plateforme avec la chaîne de déploiement.** Une panne de
+# GitHub rend la sonde muette, pas rouge. C'est l'arbitrage du 2026-08-17 (une
+# sonde versionnée, relisable et sans compte tiers, contre l'indépendance totale
+# d'un service tiers) ; ce qui le rouvrirait est écrit dans `deploy/README.md`
+# §7.5.
+
+name: Sonde externe
+
+on:
+  schedule:
+    - cron: '*/10 * * * *'
+  # La sonde doit être déclenchable à la main : c'est ce qui a permis de la voir
+  # rouge sur une panne réelle (arrêt volontaire du conteneur, P4-14).
+  workflow_dispatch:
+
+# Aucun droit n'est nécessaire : la sonde ne lit que le dépôt et n'écrit nulle
+# part. C'est le principe du moindre privilège appliqué à un workflow qui tourne
+# 144 fois par jour.
+permissions:
+  contents: read
+
+# Deux exécutions ne se marchent pas dessus, et une sonde en retard n'est pas
+# annulée : elle a précisément quelque chose à dire.
+concurrency:
+  group: uptime
+  cancel-in-progress: false
+
+jobs:
+  probe:
+    name: le site répond depuis l’extérieur
+    runs-on: ubuntu-latest
+    # ⚠️ Sans borne, une exécution coincée tient le verrou de `concurrency`
+    # jusqu'à six heures : les suivantes sont **écartées**, et la sonde se tait
+    # sans être rouge — le pire état pour un mécanisme d'alerte. La sonde elle-même
+    # borne ses requêtes ; ceci borne tout le reste (réseau du runner, installation
+    # de Node).
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      # Version de Node lue à sa source unique — l'`ARG` du Dockerfile —, comme
+      # le fait le job `versions` de `ci.yml` (ADR-0007 §Règles 3 et 6). Le
+      # script est un `.mts` : il lui faut un Node qui sache retirer les types,
+      # pas celui que le runner porte par hasard.
+      #
+      # ⭐ **Le MAJEUR, pas le correctif exact**, et c'est la seule différence
+      # avec `ci.yml` : une version au correctif près manque le cache d'outils du
+      # runner et retélécharge ~50 Mo **à chacune des 144 exécutions
+      # quotidiennes**. Le majeur est ce dont le retrait de types dépend, et il
+      # reste **dérivé** de la même source — rien n'est recopié.
+      - id: node
+        run: |
+          version="$(grep -oP '^ARG NODE_VERSION=\K.*' Dockerfile)"
+          test -n "$version" || { echo "NODE_VERSION introuvable dans le Dockerfile"; exit 1; }
+          echo "major=${version%%.*}" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ steps.node.outputs.major }}
+
+      # ⭐ **Aucun `pnpm install`, et c'est structurel** : le script n'emploie que
+      # des modules natifs de Node. Une sonde qui dépendrait de l'installation
+      # des paquets deviendrait rouge le jour où un registre est indisponible —
+      # c'est-à-dire une fausse alerte sur un site parfaitement sain, la panne
+      # qui apprend à ne plus lire les alertes.
+      #
+      # ⚠️ `shell: bash` (donc `-eo pipefail`) et `2>&1` : sans eux, `| tee`
+      # avale le code de sortie et ce gate ne peut PAS échouer. Le dépôt l'a payé
+      # deux fois — le seuil de taille d'image et l'audit Lighthouse (P4-13
+      # §20.7).
+      - name: Sonder l’origine
+        shell: bash
+        run: node scripts/check-uptime.mts 2>&1 | tee -a "$GITHUB_STEP_SUMMARY"
