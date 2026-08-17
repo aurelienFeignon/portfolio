@@ -2417,6 +2417,33 @@ l'inverse — la politique **Bypass** laisse passer la requête vers l'origine, 
 fichier. Non vérifié pour autant, faute d'avoir désactivé quoi que ce soit : c'est écrit comme un
 déclencheur, pas comme un fait.
 
+### 21.6 bis L'alerte, éprouvée depuis GitHub — et le retard, observé le jour même
+
+Le `cron` et le `workflow_dispatch` ne s'exécutent que depuis la branche par défaut : la chaîne
+complète n'était donc éprouvable qu'après la fusion de #32. Elle l'a été dans la foulée, sur le site
+réel :
+
+| Horodatage (UTC) | Événement | Verdict |
+|---|---|---|
+| 11:57:22 | sonde, site sain | succès, 16 s |
+| 11:57:51 | `docker compose stop web` | `Exited (143)` |
+| 11:57:54 | sonde | **échec, 27 s** — les deux tentatives, puis l'alerte |
+| 11:58:49 | `docker compose start web` | `healthy` en 6 s |
+| 11:58:51 | sonde | succès, 13 s |
+
+⭐ **58 secondes d'indisponibilité**, aucun visiteur — le site est fermé au public, et c'est ce qui
+rend l'épreuve gratuite. Le journal du run porte la consigne de dépannage : celui qui ouvre l'alerte
+lit les trois commandes sans ouvrir un document.
+
+⚠️ **Le premier tir planifié n'est pas tombé à l'heure ronde.** Le workflow annonce que la
+planification d'Actions est « au mieux » ; la propriété s'est vérifiée le jour même, avant même
+qu'on la cherche. Ce que la sonde garantit est *« une panne ne dure pas des jours »* — pas *« une
+panne est vue en dix minutes »*. Écrire la seconde phrase aurait été une promesse que le mécanisme ne
+tient pas.
+
+⚠️ **Ce que le dépôt ne peut pas prouver seul** : l'arrivée de l'e-mail. Elle dépend d'un réglage du
+compte GitHub, hors du dépôt, et c'est la dernière pièce de la Definition of Done de cette tâche.
+
 ### 21.7 Relevés
 
 | Relevé après P4-14 | Valeur | Seuil |

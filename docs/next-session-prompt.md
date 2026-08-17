@@ -39,7 +39,7 @@ Les Phases 0, 1, 2 et 3 sont TERMINÉES et validées. Ne les refais pas, ne les 
 
 ## État
 
-Phases 0 à 3 : **DONE**. **Phase 4 (Portfolio HTML) : en cours**, 14 tâches sur 17 closes — **le jalon T1 est atteint**.
+Phases 0 à 3 : **DONE**. **Phase 4 (Portfolio HTML) : en cours**, 15 tâches sur 17 closes — **le jalon T1 est atteint**.
 **Tout ce qui suit est fusionné sur `main` et déployé**, les cinq jobs verts à chaque fois —
 publication GHCR et déploiement VPS compris. P4-12 l'est depuis le 2026-08-16 (PR #28, `749044c`).
 
@@ -59,9 +59,10 @@ publication GHCR et déploiement VPS compris. P4-12 l'est depuis le 2026-08-16 (
 | P4-11 | Responsive : débordement, cibles tactiles et rognage sur 16 pages × 5 largeurs |
 | P4-12 | Parcours complets, et l'**inventaire des 14 scénarios devenu un garde** |
 | P4-13 | **Jalon T1** : Lighthouse mesuré et appliqué, prérequis vérifiés **sur le serveur** |
+| P4-14 | **Supervision** : sonde externe, vue rouge sur un **arrêt réel** de la production |
 
-**Reste : P4-14** (supervision), **P4-15** (checklist et rollback rejoué), **P4-16**
-(vérification depuis l'extérieur, qui suppose de lever Cloudflare Access).
+**Reste : P4-15** (checklist et rollback rejoué) et **P4-16** (vérification depuis l'extérieur, qui
+suppose de lever Cloudflare Access).
 
 ### ⛔⛔ Ce qui fait foi pour juger d'un déploiement
 
@@ -78,6 +79,10 @@ Conséquence pour **P4-16** : la vérification post-déploiement — indexation,
 `sitemap.xml` observés **depuis l'extérieur** — est impossible tant qu'Access est actif. Lever Access
 fait partie de la mise en ligne réelle. Détail : `deploy/README.md` §4.2.
 
+⭐ **Une exception depuis P4-14** : `/robots.txt` porte une application Access en **Bypass**, pour que
+la sonde atteigne l'origine (`deploy/README.md` §7.2). C'est le seul chemin public — vérifié URL par
+URL, tout le reste rend toujours 302.
+
 ### Ce que la Phase 4 coûte, remesuré après P4-12
 
 | Relevé | Valeur (2026-08-16) | Seuil |
@@ -85,7 +90,7 @@ fait partie de la mise en ligne réelle. Détail : `deploy/README.md` §4.2.
 | JS propre à chaque route | **8,2 Ko** — le seul JavaScript applicatif du site | cible 25 · bloquant 40 |
 | Socle partagé | **126,4 Ko** | cible 136 · bloquant 146 |
 | Image de production | **273 Mo** | cible 250 · bloquant 400 |
-| Tests | **632** verts, couverture **100 %** | ≥ 80 % |
+| Tests | **646** verts, couverture **100 %** | ≥ 80 % |
 | E2E | **144** verts sur 5 profils, 0 violation axe sur les **16 pages servies** | — |
 
 ⛔ **Le profil `no-js` n'est plus vrai *par construction*** : il l'est **par vérification**. Les
@@ -95,7 +100,7 @@ frontières d'erreur sont des composants client, et c'est tout le JavaScript app
 plancher qui donne un `lang` aux voies que le proxy n'atteint pas. Sa stabilisation — ou son retrait —
 est un déclencheur de réexamen ; un parcours garde l'effet, donc le retrait se verrait.
 
-### ⭐⭐⭐ Les six leçons que la Phase 4 a payées, et qui valent pour la suite
+### ⭐⭐⭐ Les sept leçons que la Phase 4 a payées, et qui valent pour la suite
 
 Le détail est dans `phase-4-log.md` — ici, seulement ce qui se transporte.
 
@@ -113,9 +118,15 @@ Le détail est dans `phase-4-log.md` — ici, seulement ce qui se transporte.
 5. **Un garde ne couvre que la dimension qu'on lui a donnée.** Un audit d'accessibilité ne voit que
    les pages qu'on lui nomme ; un `Record<Type, …>` ne voit pas le disque ; un garde qui lit du texte
    source lit **tout** le texte source, commentaires compris. Dérive le périmètre, ne l'énumère pas.
-6. **`/code-review` puis `/simplify` avant chaque push, sans exception.** Sur les cinq dernières
+6. **`/code-review` puis `/simplify` avant chaque push, sans exception.** Sur les six dernières
    tâches ils ont trouvé **plus de trente défauts réels** sur du code dont tous les gates étaient
-   verts — dont plusieurs régressions introduites par la tâche même qui les corrigeait.
+   verts — dont plusieurs régressions introduites par la tâche même qui les corrigeait. En P4-14, la
+   revue a posé la question qui a produit la leçon 7.
+7. **Un intermédiaire change ce qu'un code de retour SIGNIFIE** (P4-14). Conteneur de production
+   arrêté, `/robots.txt` rend **200 quand même** : Cloudflare compose la réponse à sa périphérie. Un
+   contrôle jugé sur le statut aurait été vert sur un site éteint. Dès qu'un CDN, un proxy ou un
+   cache peut répondre à la place de l'origine, juge sur quelque chose que **seule l'origine** peut
+   produire.
 
 ## Décisions déjà prises — ne pas les rejouer
 
@@ -163,10 +174,19 @@ mets l'ADR à jour et ajoute une ligne au journal des révisions. Jamais de chan
 
 ## Ta mission cette session
 
-**Enchaîne sur P4-14** — la **supervision** : healthcheck du conteneur (il existe) plus une sonde
-**externe** avec alerte reçue, provoquée par un arrêt volontaire (risque R-15). Puis P4-15 (checklist
-de mise en ligne et rollback rejoué) et P4-16 (vérification depuis l'extérieur, qui suppose de lever
-Cloudflare Access).
+**Enchaîne sur P4-15** — la **checklist de mise en ligne** et le **rollback rejoué** en conditions
+réelles. Puis P4-16 (vérification depuis l'extérieur, qui suppose de lever Cloudflare Access).
+
+⭐⭐ **P4-14 a laissé un outil que P4-15 doit employer, pas refaire** : `make check-uptime` interroge
+le site en ligne et sort en 1 s'il est muet. Un rollback rejoué se juge par cette sonde, pas par un
+`curl` écrit pour l'occasion. Le rollback lui-même a été **prouvé** en P1-15 (26 sondes HTTPS,
+aucune indisponibilité observée) ; ce qui manque est la **checklist**.
+
+⛔⛔⛔ **Et la leçon de P4-14, qui vaut pour toute vérification depuis l'extérieur — donc pour P4-16 :
+interposer un CDN change ce qu'un code de retour SIGNIFIE.** Conteneur arrêté, `/robots.txt` rend
+**200 quand même** : Cloudflare compose la réponse à sa périphérie. Un contrôle jugé sur le statut
+aurait été vert sur un site éteint. Ne juge jamais l'origine sur un code de retour seul — juge sur
+quelque chose que **seule l'origine** peut produire.
 
 ⭐⭐ **Le serveur est accessible, mais la clé porte une passphrase.** Demande à l'utilisateur de faire
 `ssh-add ~/.ssh/id_ed25519_aureliefeignon` une fois, puis emploie

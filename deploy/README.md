@@ -495,24 +495,39 @@ Le message d'échec nomme lui-même quoi regarder, dans cet ordre — les trois 
 2. **les journaux** du service `web`, puis ceux de `caddy` si `web` est sain ;
 3. **le retour arrière** — `rollback` ramène au tag précédent, mesuré à 9 s en P1-15.
 
-⭐ La sonde rejoue à la main par `make check-uptime`, **exactement la commande de la sonde
-planifiée** : un mécanisme d'alerte qu'on ne peut pas rejouer est un mécanisme qu'on ne peut pas
-instruire le jour où il crie.
+⭐ La sonde rejoue à la main par `make check-uptime` — **le même script, le même argument**, dans le
+conteneur de développement au lieu du runner. Un mécanisme d'alerte qu'on ne peut pas rejouer est un
+mécanisme qu'on ne peut pas instruire le jour où il crie.
 
 ### 7.4 L'arrêt volontaire — exécuté le 2026-08-17
 
-Pas une simulation : le conteneur de production a réellement été arrêté, puis redémarré.
+Pas une simulation : le conteneur de production a réellement été arrêté, la sonde a été lancée
+**depuis GitHub**, et le site remis debout. 58 secondes d'indisponibilité, aucun visiteur — le site
+est fermé au public.
 
 ```text
-docker compose stop web   → portfolio-web-1  Exited (143)
-  /robots.txt  → 200, directive ABSENTE      ← la sonde sort en 1
-  /fr          → 302 (Access, inchangé)
-docker compose start web  → Up 20 seconds (healthy)
-  /robots.txt  → 200, directive présente     ← la sonde sort en 0
+11:57:22Z   sonde (site sain)      → succès en 16 s
+11:57:51Z   docker compose stop web → portfolio-web-1  Exited (143)
+11:57:54Z   sonde                   → ÉCHEC en 27 s
+              ✗ tentative 1/2 : 200, mais la directive « Sitemap: … » est absente
+              ✗ tentative 2/2 : idem                    ← les deux tentatives, puis l'alerte
+11:58:49Z   docker compose start web → Up 6 seconds (healthy)
+11:58:51Z   sonde                   → succès en 13 s
 ```
 
-Le site étant fermé au public, l'indisponibilité n'a coûté aucun visiteur. C'est la seule façon de
-prouver que la sonde voit une panne réelle plutôt qu'une panne écrite dans son banc.
+⭐ **Le journal du run porte la consigne de dépannage** : l'opérateur qui ouvre l'alerte y lit les
+trois commandes du §7.3 sans avoir à ouvrir ce fichier.
+
+⚠️ **Le premier tir planifié n'est pas tombé à l'heure ronde**, et c'est la propriété annoncée au
+§7.5, observée dès le premier jour : la planification d'Actions est « au mieux ». Ce que la sonde
+garantit est *« une panne ne dure pas des jours »*, pas *« une panne est vue en dix minutes »*.
+
+### 7.4 bis Ce qui reste à vérifier, et qui ne se vérifie qu'une fois
+
+⚠️ **L'e-mail d'alerte n'est pas un mécanisme du dépôt** : il dépend du réglage GitHub du compte
+(§7.3). Le run en échec du 2026-08-17 est celui qui le prouve — si aucun e-mail n'est arrivé, ce
+n'est pas la sonde qu'il faut corriger mais *GitHub → Settings → Notifications → Actions*, et il faut
+alors rejouer un échec pour le constater.
 
 ### 7.5 Ce que cette sonde n'est pas
 
