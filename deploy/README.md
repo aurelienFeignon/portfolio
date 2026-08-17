@@ -522,12 +522,14 @@ trois commandes du §7.3 sans avoir à ouvrir ce fichier.
 §7.5, observée dès le premier jour : la planification d'Actions est « au mieux ». Ce que la sonde
 garantit est *« une panne ne dure pas des jours »*, pas *« une panne est vue en dix minutes »*.
 
-### 7.4 bis Ce qui reste à vérifier, et qui ne se vérifie qu'une fois
+### 7.4 bis L'alerte est **reçue** — confirmé le 2026-08-17
 
-⚠️ **L'e-mail d'alerte n'est pas un mécanisme du dépôt** : il dépend du réglage GitHub du compte
-(§7.3). Le run en échec du 2026-08-17 est celui qui le prouve — si aucun e-mail n'est arrivé, ce
-n'est pas la sonde qu'il faut corriger mais *GitHub → Settings → Notifications → Actions*, et il faut
-alors rejouer un échec pour le constater.
+L'e-mail d'échec de GitHub Actions est arrivé pour le run rouge de 11:57:54Z. C'est la seule pièce
+que le dépôt ne peut pas prouver seul : elle dépend d'un réglage du compte (§7.3), hors du dépôt.
+
+⚠️ **Le jour où une panne passe inaperçue, c'est là qu'il faut regarder d'abord** — *GitHub →
+Settings → Notifications → Actions* —, et non dans la sonde : elle, son code de sortie et son journal
+disent ce qu'ils voient.
 
 ### 7.5 Ce que cette sonde n'est pas
 

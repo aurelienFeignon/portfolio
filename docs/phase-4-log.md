@@ -2441,8 +2441,10 @@ qu'on la cherche. Ce que la sonde garantit est *« une panne ne dure pas des jou
 panne est vue en dix minutes »*. Écrire la seconde phrase aurait été une promesse que le mécanisme ne
 tient pas.
 
-⚠️ **Ce que le dépôt ne peut pas prouver seul** : l'arrivée de l'e-mail. Elle dépend d'un réglage du
-compte GitHub, hors du dépôt, et c'est la dernière pièce de la Definition of Done de cette tâche.
+✅ **L'e-mail est arrivé** — confirmé par l'utilisateur pour le run rouge de 11:57:54Z. C'est la
+seule pièce que le dépôt ne peut pas prouver seul : elle dépend d'un réglage du compte GitHub, hors
+du dépôt. ⚠️ Conséquence pour plus tard : si une panne passe un jour inaperçue, c'est là qu'il faut
+regarder d'abord, et non dans la sonde.
 
 ### 21.7 Relevés
 
@@ -2508,7 +2510,8 @@ de `afterEach`, pour une seconde sur une suite qui en dure soixante.
 
 | Sujet | État |
 |---|---|
-| L'alerte **reçue** | Un `cron` et un `workflow_dispatch` ne s'exécutent que depuis la branche par défaut : la preuve se fait après fusion, et la tâche reste `IN_PROGRESS` jusque-là |
+| L'alerte **reçue** | ✅ Prouvée le 2026-08-17 — arrêt volontaire, sonde rouge depuis GitHub, e-mail reçu. Le maillon hors dépôt est le réglage de notification du compte |
+| Le premier tir **planifié** | N'est pas tombé à l'heure ronde. Propriété annoncée (planification « au mieux »), vérifiée le jour même — la sonde garantit « pas des jours », pas « en dix minutes » |
 | Disque, mémoire, mises à jour, dérive de `CF-ORIGIN` | Autres moitiés de R-15, **hors périmètre** — nommées dans `deploy/README.md` §7.5 pour ne pas croire le risque couvert |
 | Expiration du certificat | **Non relevée, délibérément** : le certificat vu de l'extérieur est celui de Cloudflare, qu'il renouvelle seul. Celui qui peut expirer est celui de Caddy, et son expiration fait répondre **526** — que la sonde nomme |
 | La sonde partage sa plateforme avec le déploiement | Arbitrage assumé ; le déclencheur de bascule vers une sonde tierce est écrit (`deploy/README.md` §7.5) |
