@@ -245,6 +245,12 @@ Deux détails qui ne se devinent pas, et que les tests fixent :
 
 ### 9.4 Un point à vérifier avant la mise en production (P4-13)
 
+⛔⛔ **Démenti par la mesure le 2026-08-17 (P4-13) : `content/` EST dans l'image de production**, 87
+fichiers et 384 Ko, à `/app/content`. Le traceur de fichiers de Next l'inclut dans la sortie
+`standalone`, que le `Dockerfile` copie telle quelle. L'affirmation ci-dessous était **déduite** du
+fait que seul `.next/standalone` est copié, et jamais vérifiée. Voir `phase-4-log.md` §20.8 — ce qui
+protège réellement les routes est le gate de rendu statique, pas cette absence.
+
 `content/` **n'est pas dans l'image de production** : la lecture a lieu au build, toutes les pages
 étant statiques. C'est cohérent, et c'est aussi une contrainte à honorer — **aucune route ne doit
 pouvoir se rendre à la demande**, sans quoi le serveur chercherait un dossier absent. À vérifier au

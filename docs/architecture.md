@@ -323,6 +323,9 @@ Aucun ISR en v1 : le contenu ne change qu'au déploiement (H-05).
 > **Précisé le 2026-08-14 (P3-02, P3-03).** Trois points que l'exécution a rendus concrets.
 >
 > - **Aucune route ne peut se rendre à la demande**, et ce n'est pas une préférence :
+>   ⛔ *(Corrigé le 2026-08-17, P4-13 : `content/` **est** dans l'image — le traceur de Next l'inclut
+>   dans la sortie `standalone`. L'exigence ci-dessous ne change pas ; ce qui la tient est le gate
+>   `check-static-rendering.mts`, et non l'absence des fichiers. Voir `phase-4-log.md` §20.8.)*
 >   `content/` n'est pas dans l'image de production ([`phase-2-log.md`](./phase-2-log.md) §9.4). Une
 >   route rendue à la requête chercherait un dossier absent et échouerait chez le visiteur, jamais au
 >   build. `dynamicParams = false` le déclare ; `scripts/check-static-rendering.mts` le **vérifie**,

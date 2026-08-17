@@ -2182,12 +2182,25 @@ Ce qui est établi d'ici : la CI construit avec `https://aurelienfeignon.com` (l
 **Les deux voies sont fermées depuis la machine de développement**, et les deux ont été essayées :
 
 ```text
-ssh portfolio           → Permission denied (publickey)
-curl https://aurelienfeignon.com/fr → 302 vers cloudflareaccess.com   (conforme, §4.2)
+ssh -o BatchMode=yes portfolio       → Permission denied (publickey)
+curl https://aurelienfeignon.com/fr  → 302 vers cloudflareaccess.com   (conforme, §4.2)
 ```
 
-⚠️ Au passage : l'entrée `~/.ssh/config` pointe sur **2.28.48.165**, ce qui ne ressemble pas à une
-adresse Hetzner de Nuremberg. Elle a l'air périmée, et c'est peut-être toute la cause du refus.
+⛔⛔ **Et le diagnostic tiré de la première ligne était faux.** J'en avais conclu que l'entrée
+`~/.ssh/config` était périmée — l'adresse ne ressemblant pas à une IP Hetzner de Nuremberg. Elle ne
+l'est pas : **le VPS est le même, et la clé demande simplement une passphrase**. `BatchMode=yes`
+interdit toute invite, et OpenSSH rend alors le même `Permission denied (publickey)` que pour une
+clé non autorisée.
+
+⭐⭐⭐ **Deux causes très différentes derrière un message identique** — « cette clé n'est pas
+autorisée » et « cette clé n'a pas été déverrouillée » — et rien dans la sortie ne les distingue.
+J'ai comblé l'écart par une hypothèse sur le monde, exactement ce que cette phase passe son temps à
+refuser. La vérification qui coûte zéro : `ssh-add -l`, qui répond ici **« The agent has no
+identities »** — les deux agents de la machine tournent et ne portent aucune clé.
+
+La passphrase appartient à l'utilisateur et ne se demande pas. Deux voies propres : `ssh-add` une
+fois dans un terminal, ce qui charge la clé dans l'agent (`/run/user/1000/openssh_agent`) et rend la
+vérification exécutable ici ; ou l'utilisateur exécute les deux lectures et en donne la sortie.
 
 P4-13 **reste ouverte**. Prononcer la mise en production sans ce relevé serait une affirmation sur le
 monde que rien ne confronte au monde — la faute que cette phase entière traque, commise sur la tâche
@@ -2239,3 +2252,54 @@ avoir déstructuré `verdict`, ce qui ne discrimine pas l'union. Personne ne l'a
 `.mts` de `scripts/` ne sont pas dans le périmètre de `tsconfig.json`** — une exposition antérieure à
 cette tâche, valable pour les six scripts. Le test porte maintenant sur `threshold.verdict`, et le
 fichier a été typecheck explicitement en mode strict.
+
+### 20.8 Les deux prérequis, vérifiés sur le serveur — et une prémisse fausse depuis la Phase 2
+
+La clé SSH portant une passphrase, la vérification est passée par l'agent de l'utilisateur, chargé
+par lui. Toutes les commandes sont en **lecture seule** ; rien n'a été modifié sur le serveur.
+
+**Prérequis 1 — `SITE_URL` a deux sources, et l'`env_file` l'emporte.** Levé, et au-delà de ce qui
+était demandé : les trois écritures coïncident, et surtout le site **sert** ce qu'elles annoncent.
+
+| Source | Valeur |
+|---|---|
+| `/srv/portfolio/.env` — celle qui l'emporte | `https://aurelienfeignon.com` |
+| `Config.Env` du conteneur en cours | `https://aurelienfeignon.com` |
+| `ENV` gravé dans l'image | `https://aurelienfeignon.com` |
+
+⭐ **Et la vérification qui compte n'est aucune des trois** : ce que l'origine rend réellement.
+`canonical` et les **trois** `hreflang` portent le bon domaine, le sitemap servi compte 14 URL et
+**zéro** d'une autre origine. Trois variables d'environnement peuvent coïncider et un HTML gravé au
+build dire autre chose — c'est le document servi qui tranche.
+
+**Prérequis 2 — « aucune route ne peut se rendre à la demande ».** L'exigence tient : `/fr/inexistant`
+rend **404 avec `<html lang="fr">`** sur l'origine, et le gate de rendu statique refuse toute route
+non prégénérée. Mais la **raison** écrite depuis la Phase 2 est fausse.
+
+⛔⛔ **`content/` EST dans l'image de production** — 87 fichiers, 384 Ko, à `/app/content` — alors que
+quatre documents affirment le contraire depuis P2-03, et que le prompt de reprise en faisait un
+prérequis de cette tâche. Le mécanisme : le **traceur de fichiers de Next** inclut les fichiers lus
+au build dans la sortie `standalone`, que le `Dockerfile` copie telle quelle. Reproduit à l'identique
+sur l'image locale — `.next/standalone/content` existe.
+
+⭐⭐⭐ **L'affirmation était une déduction, jamais une mesure** : « on ne copie que `.next/standalone`,
+donc `content/` n'y est pas ». Elle est fausse parce qu'un outil intermédiaire fait quelque chose que
+personne ne lui a demandé. C'est exactement la forme des six défauts déjà livrés de cette phase — *une
+affirmation sur le monde que rien ne confronte au monde* —, et celle-ci a vécu **quatre phases**, en
+tête des réserves de sortie de la Phase 2, recopiée dans le tableau des acquis de la Phase 3, dans
+`architecture.md`, et dans le prompt de reprise.
+
+⚠️ **Ce que cela change, et ce que cela ne change pas.** Rien à corriger : le contenu est public — le
+site le publie —, 384 Ko sont sous le bruit de mesure de l'image, et une route qui se rendrait à la
+demande fonctionnerait au lieu de tomber. C'est précisément le point : **le filet de sécurité auquel
+la Phase 2 croyait n'existe pas**. Ce qui protège les routes est le gate `check-static-rendering.mts`,
+et lui seul. Les quatre écritures portent désormais la correction plutôt que la croyance.
+
+### 20.9 Ce que P4-13 laisse ouvert
+
+| Sujet | État |
+|---|---|
+| Performance contre le **site réel** | **P4-16**, et cela suppose de lever Cloudflare Access. L'audit d'ici juge l'artefact, pas le service |
+| Supervision (healthcheck + sonde externe) | **P4-14** — le conteneur a son healthcheck, aucune sonde n'observe de l'extérieur |
+| Checklist de mise en ligne et rollback rejoué | **P4-15**. Le rollback a été **prouvé** en P1-15 (26 sondes, aucune indisponibilité observée) ; la checklist reste à écrire |
+| Les `.mts` de `scripts/` hors du périmètre de `tsconfig.json` | Six fichiers, exposition antérieure à cette tâche (§20.7) |

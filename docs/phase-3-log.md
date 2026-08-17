@@ -24,7 +24,7 @@ route résout la bonne entité dans la bonne langue, rien de plus. P4-02 à P4-0
 | `getContentLocales(type, slug)` rend les locales où l'entité existe vraiment | P2-05 | C'est la brique de P3-07 (risque R-07) |
 | `src/seo/site-url.ts` : `parseSiteUrl`, `buildAbsoluteUrl`, `getSiteUrl` | P1-10, **sans consommateur** | P3-06 le branche enfin — dette 2 de `phase-1-log.md` §7.4 |
 | `src/app/layout.tsx` code `lang="fr"` en dur, et le dit | P1-09 | Dette 1 de `phase-1-log.md` §7.4, corrigée en P3-02 |
-| `content/` **n'est pas dans l'image de production** | P2-03, `phase-2-log.md` §9.4 | Aucune route de contenu ne doit pouvoir se rendre à la demande |
+| ~~`content/` **n'est pas dans l'image de production**~~ — ⛔ **FAUX, mesuré en P4-13** (`phase-4-log.md` §20.8) | P2-03, `phase-2-log.md` §9.4 | L'exigence tient — aucune route ne doit se rendre à la demande — mais ce qui la protège est le **gate de rendu statique**, pas cette absence |
 
 ## 3. Décisions à prendre pendant la phase
 

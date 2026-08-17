@@ -39,7 +39,7 @@ Les Phases 0, 1, 2 et 3 sont TERMINÉES et validées. Ne les refais pas, ne les 
 
 ## État
 
-Phases 0 à 3 : **DONE**. **Phase 4 (Portfolio HTML) : en cours**, 13 tâches sur 17 closes.
+Phases 0 à 3 : **DONE**. **Phase 4 (Portfolio HTML) : en cours**, 14 tâches sur 17 closes — **le jalon T1 est atteint**.
 **Tout ce qui suit est fusionné sur `main` et déployé**, les cinq jobs verts à chaque fois —
 publication GHCR et déploiement VPS compris. P4-12 l'est depuis le 2026-08-16 (PR #28, `749044c`).
 
@@ -58,8 +58,10 @@ publication GHCR et déploiement VPS compris. P4-12 l'est depuis le 2026-08-16 (
 | P4-10 | Passe accessibilité, **périmètre dérivé du sitemap** ; plancher `globalNotFound` |
 | P4-11 | Responsive : débordement, cibles tactiles et rognage sur 16 pages × 5 largeurs |
 | P4-12 | Parcours complets, et l'**inventaire des 14 scénarios devenu un garde** |
+| P4-13 | **Jalon T1** : Lighthouse mesuré et appliqué, prérequis vérifiés **sur le serveur** |
 
-**Reste : P4-13 à P4-16** — c'est-à-dire le jalon **T1**, la mise en production.
+**Reste : P4-14** (supervision), **P4-15** (checklist et rollback rejoué), **P4-16**
+(vérification depuis l'extérieur, qui suppose de lever Cloudflare Access).
 
 ### ⛔⛔ Ce qui fait foi pour juger d'un déploiement
 
@@ -161,11 +163,18 @@ mets l'ADR à jour et ajoute une ligne au journal des révisions. Jamais de chan
 
 ## Ta mission cette session
 
-**Enchaîne sur P4-13** — la **mise en production du portfolio documentaire**, jalon **T1**. Puis
-P4-14 (supervision), P4-15 (checklist et rollback) et P4-16 (vérification depuis l'extérieur, qui
-suppose de lever Cloudflare Access).
+**Enchaîne sur P4-14** — la **supervision** : healthcheck du conteneur (il existe) plus une sonde
+**externe** avec alerte reçue, provoquée par un arrêt volontaire (risque R-15). Puis P4-15 (checklist
+de mise en ligne et rollback rejoué) et P4-16 (vérification depuis l'extérieur, qui suppose de lever
+Cloudflare Access).
 
-⭐⭐⭐ **Ce que P4-12 a appris, et qui vaut pour P4-13 : la mission précédente était fausse sur trois
+⭐⭐ **Le serveur est accessible, mais la clé porte une passphrase.** Demande à l'utilisateur de faire
+`ssh-add ~/.ssh/id_ed25519_aureliefeignon` une fois, puis emploie
+`SSH_AUTH_SOCK=/run/user/1000/openssh_agent ssh portfolio '…'`. ⛔⛔ Sans agent, `BatchMode=yes` rend
+`Permission denied (publickey)` — **le même message que pour une clé non autorisée**, et j'en avais
+tiré un diagnostic faux. `ssh-add -l` distingue les deux cas et coûte zéro.
+
+⭐⭐⭐ **Ce que P4-12 a appris, et qui vaut pour la suite : une mission peut être fausse sur trois
 points, et sincère.** Elle annonçait cinq scénarios E2E « couverts » ; trois ne l'étaient pas. C'est
 la forme de défaut que la phase entière traque, arrivée dans le document qui demande de ne plus la
 produire. **Constate, ne crois pas** — y compris ce fichier-ci.
@@ -198,16 +207,17 @@ quelque part que rien ne confronte au moment où elle compte*. P4-09 à P4-11 on
   méta-description d'une section et la copie visible des cartes de l'accueil. Les séparer en six clés
   porterait aujourd'hui trois valeurs identiques.
 
-### ⛔⛔ Ce que P4-13 exige d'avoir vérifié AVANT
+### ✅ Ce que P4-13 a vérifié sur le serveur, et qu'il ne faut pas refaire
 
-C'est une mise en production, et deux points l'attendent depuis la Phase 3 :
-
-- **`SITE_URL` a deux sources** — l'`ENV` de l'image et l'`env_file` de Compose, ce dernier
-  l'emportant. Si `/srv/portfolio/.env` portait une autre origine, le site servirait des canoniques
-  d'un domaine et des liens d'exécution d'un autre, **sans que rien n'échoue** (`phase-3-log.md`
-  §17.4, dette 1).
-- **`content/` n'est pas dans l'image** : aucune route ne doit pouvoir se rendre à la demande. Le
-  gate le vérifie ; la checklist de P4-15 doit le redire plutôt que de le supposer acquis.
+- ✅ **`SITE_URL` coïncide dans ses trois écritures** — `.env` du VPS, `Config.Env` du conteneur,
+  `ENV` de l'image — et le site **sert** ce qu'elles annoncent : `canonical`, trois `hreflang`,
+  14 URL au sitemap, zéro d'une autre origine. La dette 1 de `phase-3-log.md` §17.4 est soldée.
+  ⭐ **La vérification qui compte n'est aucune des trois variables**, c'est le document servi.
+- ⛔⛔ **`content/` EST dans l'image**, contrairement à ce que quatre documents affirmaient depuis
+  P2-03 : 87 fichiers, 384 Ko, le traceur de Next l'incluant dans la sortie `standalone`. Mesuré en
+  P4-13. L'exigence « aucune route ne se rend à la demande » tient toujours, mais ce qui la protège
+  est le **gate de rendu statique, et lui seul** — le filet de sécurité auquel la Phase 2 croyait
+  n'existe pas. La checklist de P4-15 doit le dire ainsi.
 
 ⭐⭐ **Un gate travaillera pour toi si tu le laisses faire.** `check-static-rendering.mts` porte six
 contrôles et a refusé, sans qu'on le lui demande, une image de partage rendue à la demande puis une
