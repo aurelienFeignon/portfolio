@@ -2303,3 +2303,185 @@ et lui seul. Les quatre écritures portent désormais la correction plutôt que 
 | Supervision (healthcheck + sonde externe) | **P4-14** — le conteneur a son healthcheck, aucune sonde n'observe de l'extérieur |
 | Checklist de mise en ligne et rollback rejoué | **P4-15**. Le rollback a été **prouvé** en P1-15 (26 sondes, aucune indisponibilité observée) ; la checklist reste à écrire |
 | Les `.mts` de `scripts/` hors du périmètre de `tsconfig.json` | Six fichiers, exposition antérieure à cette tâche (§20.7) |
+
+## 21. P4-14 — la sonde externe, et la 200 qui ne prouvait rien
+
+### 21.1 Ce que le healthcheck ne peut pas voir, par construction
+
+L'image porte un `HEALTHCHECK` depuis P1-13, et `deploy.sh` l'attend avant de déclarer un
+déploiement réussi. Il interroge `http://127.0.0.1:3000/` **depuis l'intérieur du conteneur**.
+
+Il ne dit donc rien de la zone DNS, du proxy Cloudflare, de Caddy, du réseau `edge`, ni du fait que
+la machine soit allumée : **un VPS éteint a un healthcheck parfaitement silencieux**. C'est
+exactement le risque R-15 — *« service à terre sans que je le sache »* —, et la moitié qui manquait
+est celle qui regarde de dehors.
+
+### 21.2 Les arbitrages, posés avant d'écrire une ligne
+
+⭐ La règle de §14.8, appliquée pour la troisième tâche consécutive. Quatre décisions, chacune avec
+un défaut recommandé, présentées **avant** la première ligne de code.
+
+| # | Arbitrage | Décision de l'utilisateur |
+|---|---|---|
+| 1 | Qui exécute la sonde : service tiers gratuit, `cron` GitHub Actions, ou les deux | **Cron GitHub Actions** — versionné, relisable en revue, aucun compte tiers |
+| 2 | Comment traverser Cloudflare Access : Bypass sur un chemin, jeton de service, ou accepter la 302 | **Bypass** sur un seul chemin — aucun secret à créer ni à renouveler |
+| 3 | Provoquer une panne réelle en production | **Oui, arrêt réel** — le site est fermé au public, l'indisponibilité ne coûte aucun visiteur |
+| 4 | Fusionner d'abord la PR #31 (clôture de P4-13) | **Oui**, pour partir d'une base propre |
+
+⚠️ L'arbitrage 1 porte sa contrepartie, écrite plutôt que subie : la sonde **partage une plateforme
+avec la chaîne de déploiement**, et une panne de GitHub la rend *muette, pas rouge*. Ce qui rouvre la
+question est dans `deploy/README.md` §7.5.
+
+### 21.3 ⛔⛔⛔ La 200 ne prouve rien — et c'est l'arrêt volontaire qui l'a établi
+
+C'est le constat central de la tâche, et il a failli lui échapper. La revue a posé la bonne
+question — *cette 200 vient-elle de l'origine, ou de la périphérie de Cloudflare ?* — et la seule
+réponse honnête était de couper le site :
+
+| État du site | Statut de `/robots.txt` | Directive `Sitemap:` |
+|---|---|---|
+| debout | **200** | **présente** |
+| **arrêté** | **200 quand même** | **absente** |
+
+Cloudflare **compose la réponse à sa périphérie** : origine vivante, il ajoute ses « Content
+Signals » au fichier de l'application ; origine morte, il sert ses signaux **seuls**, toujours en
+200. ⭐⭐ **Une sonde jugée sur le code HTTP aurait donc été verte sur un site éteint** —
+c'est-à-dire sur la panne même qu'elle existe pour voir.
+
+Le contrôle du corps n'est pas un raffinement : c'est tout le travail. Il est désormais gardé par le
+banc, avec le corps managé **réellement observé pendant l'arrêt** — et non une fixture imaginée, que
+la revue avait justement relevée comme telle.
+
+⭐⭐⭐ **Ce que cela apprend dépasse cette sonde** : *interposer un CDN change ce qu'un code de retour
+signifie*. Le statut cesse de parler de l'origine dès qu'un intermédiaire peut répondre à sa place.
+
+### 21.4 ⭐⭐ Une réserve de la Phase 1 tranchée au passage, et dans le mauvais sens
+
+`deploy/README.md` §4.2 portait : *« Cloudflare sert actuellement son propre `robots.txt` managé,
+qui remplacerait celui de l'application et sa directive `Sitemap:`. Impossible de trancher
+aujourd'hui, la requête n'atteignant pas l'origine. »*
+
+La première exécution de la sonde l'a tranchée : **elle était fondée**. La requête anonyme rendait
+60 lignes de signaux, **sans aucune directive `Sitemap:`** — le sitemap n'était donc annoncé à
+personne, un défaut d'indexation qui attendait P4-16 sans que rien ne le signale.
+
+L'application Access en **Bypass** sur `/robots.txt` l'a refermée : Cloudflare **fusionne** au lieu
+de remplacer. Vérifié dans les deux sens — `/robots.txt` rend 200 avec la directive, tandis que `/`,
+`/fr`, `/sitemap.xml` et `/fr/skills` rendent toujours 302 vers `cloudflareaccess.com`.
+
+⭐ **Une sonde bien placée a trouvé un défaut de SEO** : le contrôle qui existait pour distinguer
+l'origine de la périphérie a mesuré, en passant, ce qu'aucun gate ne mesurait.
+
+### 21.5 ⛔ Le défaut de la sonde, trouvé par sa première exécution
+
+Elle lisait l'origine dans `SITE_URL`. Or cette variable désigne *« l'origine que ce processus
+sert »*, et vaut `http://localhost:3000` dans le conteneur de développement : le premier
+`make check-uptime` a interrogé le mauvais site et rendu *« aucune réponse »* sur un site parfaitement
+sain.
+
+L'origine surveillée est désormais écrite dans le script, comme `check-dns.mts` écrit le domaine de
+la zone. ⭐ Ce n'est pas une seconde source à accorder avec la `SITE_URL` de `ci.yml` : c'est une
+déclaration **indépendante**, et leur désaccord est précisément ce que le contrôle du `Sitemap:` rend
+visible — une image construite avec une autre origine fait rougir la sonde au lieu de servir en
+silence.
+
+### 21.6 Ce que la revue a changé
+
+Six constats, aucun dans `src/` — cette tâche n'en touche pas une ligne.
+
+⭐⭐⭐ **Le premier valait la tâche entière** : *« la 200 est-elle produite par l'origine ? »*. Il
+était formulé comme un défaut de la sonde (« un site mort peut se lire vert »), et la mesure a montré
+que c'était vrai **du statut** et faux **du mécanisme** — le contrôle du corps le rattrape. La
+conclusion juste n'était donc ni « la sonde est cassée » ni « le rapport se trompe », mais *le
+contrôle du corps est le seul qui atteint l'origine*, ce que ni la revue ni moi n'avions écrit. §21.3
+existe grâce à ce constat.
+
+⛔ **Un renvoi mort imprimé dans l'alerte elle-même** : le message d'échec pointait vers
+`deploy/README.md` §7.3 alors que le fichier s'arrêtait au §6.3. Une consigne de dépannage qui
+désigne une section inexistante est pire qu'aucune consigne — le §7 est écrit dans ce même lot, après
+exécution, comme la règle du fichier l'exige.
+
+⛔ **Une fixture inventée là où la réalité était disponible** : le cas « robots.txt managé » servait
+deux lignes que le CDN ne produit jamais. Il porte désormais le corps **réellement mesuré pendant
+l'arrêt**, et un second cas a été ajouté pour l'autre moitié — le corps **fusionné** que sert la
+production, qui doit rester vert. Sans lui, la sonde pouvait crier sur un site sain, et *une fausse
+alerte est ce qui apprend à ne plus lire les alertes*.
+
+⚠️ **Une exécution coincée aurait silencieusement éteint la sonde** : avec `cancel-in-progress: false`,
+un job bloqué tient le verrou de `concurrency` jusqu'à six heures et les suivants sont écartés — muet,
+pas rouge. `timeout-minutes: 5` borne le cas.
+
+⚠️ **Un constat écarté, avec sa raison** : la revue annonçait qu'en désactivant le `robots.txt`
+managé, le chemin retomberait sous Access et la sonde virerait au rouge en permanence. C'est
+l'inverse — la politique **Bypass** laisse passer la requête vers l'origine, qui sert son propre
+fichier. Non vérifié pour autant, faute d'avoir désactivé quoi que ce soit : c'est écrit comme un
+déclencheur, pas comme un fait.
+
+### 21.7 Relevés
+
+| Relevé après P4-14 | Valeur | Seuil |
+|---|---|---|
+| Tests | **646** verts *(632 après P4-12)* | — |
+| Couverture globale | **100 %** sur les quatre métriques | ≥ 80 % |
+| Socle partagé, JS par route, image | **inchangés** — cette tâche ne touche pas `src/` | — |
+| Mutations | **6 appliquées, 6 tuées** | — |
+| Indisponibilité provoquée | **~90 s**, site fermé au public | — |
+
+⭐ Les six mutations portent sur ce qui fait le travail : corps non vérifié, tentative unique, code de
+sortie neutralisé, redirections suivies, puis — après la passe de simplification — le contrôle de
+corps rejoué et la directive attendue remplacée par une chaîne écrite à la main. La restauration a
+été constatée par `diff` et non supposée : `git checkout --` ne rend pas un fichier non suivi, piège
+payé en P4-11 puis en P4-12.
+
+### 21.7 bis Ce que la passe de simplification a changé
+
+⭐⭐ **La sonde attend désormais la directive par la fonction qui l'émet.** `src/app/robots.ts`
+construit son `Sitemap:` avec `buildAbsoluteUrl(getSiteUrl(), '/sitemap.xml')` ; la sonde écrivait la
+même forme à la main. Elle la **dérive** maintenant de la même fonction — une chaîne recopiée aurait
+défendu l'ancienne forme le jour où celle du site change, en silence. `parseSiteUrl` valide au
+passage ce qu'une normalisation maison à coups d'expression régulière laissait passer : une origine
+portant un chemin. ⭐ Ce module n'importe rien, donc la sonde reste exécutable **sans installation**,
+propriété dont dépend le workflow.
+
+⛔ **L'origine se surcharge par ARGUMENT, plus par variable d'environnement.** Le premier jet avait
+refermé la panne de §21.5 en déplaçant la valeur sous un autre nom (`UPTIME_ORIGIN`) : la *forme* de
+la faute restait — une valeur ambiante pouvant pointer la sonde ailleurs, verte pour toujours. Un
+argument s'écrit au site d'appel et ne s'hérite d'aucun conteneur. Le délai entre deux tentatives
+reste, lui, dans l'environnement : il gouverne la **vitesse** de la vérification, jamais ce qui est
+vérifié.
+
+⭐ **Le majeur de Node, et non le correctif exact, dans le workflow.** Une version épinglée au
+correctif manque le cache d'outils du runner et retélécharge ~50 Mo à **chacune des 144 exécutions
+quotidiennes**. Le majeur reste dérivé de l'`ARG` du Dockerfile — la source unique tient.
+⚠️ Le constat qui a mené là allait plus loin : `setup-node` est, dans le chemin d'alerte, la même
+classe de dépendance distante que le `pnpm install` que ce workflow refuse. Il n'est pas retiré —
+l'écrire en `.mjs` sortirait le fichier de la convention des six autres scripts **et** du périmètre
+d'ESLint — mais la page du run **nomme l'étape en échec**, ce qui distingue une panne d'outillage
+d'une panne de site. C'est écrit plutôt que supposé.
+
+⭐ **Trois écritures de la même commande ramenées à deux** : l'entrée `check-uptime` de
+`package.json` n'était invoquée par personne, le `Makefile` et le workflow appelant le script
+directement. Elle est supprimée — `check-dns` et `lighthouse` portent déjà ce doublon mort, on ne le
+recopie pas. Et le commentaire du `Makefile` promettait « la MÊME commande » là où c'est le même
+**script** avec le même argv, l'un dans Docker et l'autre sans.
+
+⭐ **Le même récit était écrit trois fois** — l'en-tête du script, la fixture, le cas de test. La
+mesure vit une fois, dans le script ; le banc en porte la **preuve** et y renvoie. Deux tests qui
+montaient une fixture 500 identique n'en font plus qu'un, et un verdict initial `« aucune tentative »`
+que la boucle rendait inatteignable a disparu avec elle.
+
+⚠️ **Deux constats écartés, avec leur raison.** Le lanceur de sous-processus est au **troisième**
+exemplaire (`content-gate`, `static-rendering-gate`, celui-ci) : l'extraire demanderait de réécrire
+deux fichiers antérieurs dans une PR de fonctionnalité, ce que le dépôt a déjà refusé pour `htmlOf`
+(§15.5 bis) — le déclencheur est écrit dans l'en-tête du banc. Et les quatorze sous-processus du banc
+tournent en série (~1 s par exécution) : les rendre concurrents demanderait de sortir l'état partagé
+de `afterEach`, pour une seconde sur une suite qui en dure soixante.
+
+### 21.8 Ce que P4-14 laisse ouvert
+
+| Sujet | État |
+|---|---|
+| L'alerte **reçue** | Un `cron` et un `workflow_dispatch` ne s'exécutent que depuis la branche par défaut : la preuve se fait après fusion, et la tâche reste `IN_PROGRESS` jusque-là |
+| Disque, mémoire, mises à jour, dérive de `CF-ORIGIN` | Autres moitiés de R-15, **hors périmètre** — nommées dans `deploy/README.md` §7.5 pour ne pas croire le risque couvert |
+| Expiration du certificat | **Non relevée, délibérément** : le certificat vu de l'extérieur est celui de Cloudflare, qu'il renouvelle seul. Celui qui peut expirer est celui de Caddy, et son expiration fait répondre **526** — que la sonde nomme |
+| La sonde partage sa plateforme avec le déploiement | Arbitrage assumé ; le déclencheur de bascule vers une sonde tierce est écrit (`deploy/README.md` §7.5) |

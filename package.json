@@ -21,7 +21,6 @@
     "build": "node scripts/check-content.mts && node scripts/generate-route-manifest.mts && next build && node scripts/check-static-rendering.mts",
     "start": "next start -H 0.0.0.0 -p 3000",
     "check-dns": "node scripts/check-dns.mts",
-    "check-uptime": "node scripts/check-uptime.mts",
     "lighthouse": "node scripts/check-lighthouse.mts"
   },
   "dependencies": {

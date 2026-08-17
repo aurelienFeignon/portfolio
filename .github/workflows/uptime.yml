@@ -59,22 +59,34 @@ jobs:
   probe:
     name: le site répond depuis l’extérieur
     runs-on: ubuntu-latest
+    # ⚠️ Sans borne, une exécution coincée tient le verrou de `concurrency`
+    # jusqu'à six heures : les suivantes sont **écartées**, et la sonde se tait
+    # sans être rouge — le pire état pour un mécanisme d'alerte. La sonde elle-même
+    # borne ses requêtes ; ceci borne tout le reste (réseau du runner, installation
+    # de Node).
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
 
       # Version de Node lue à sa source unique — l'`ARG` du Dockerfile —, comme
       # le fait le job `versions` de `ci.yml` (ADR-0007 §Règles 3 et 6). Le
-      # script est un `.mts` : il lui faut le Node du projet, pas celui que le
-      # runner porte par hasard.
+      # script est un `.mts` : il lui faut un Node qui sache retirer les types,
+      # pas celui que le runner porte par hasard.
+      #
+      # ⭐ **Le MAJEUR, pas le correctif exact**, et c'est la seule différence
+      # avec `ci.yml` : une version au correctif près manque le cache d'outils du
+      # runner et retélécharge ~50 Mo **à chacune des 144 exécutions
+      # quotidiennes**. Le majeur est ce dont le retrait de types dépend, et il
+      # reste **dérivé** de la même source — rien n'est recopié.
       - id: node
         run: |
           version="$(grep -oP '^ARG NODE_VERSION=\K.*' Dockerfile)"
           test -n "$version" || { echo "NODE_VERSION introuvable dans le Dockerfile"; exit 1; }
-          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "major=${version%%.*}" >> "$GITHUB_OUTPUT"
 
       - uses: actions/setup-node@v4
         with:
-          node-version: ${{ steps.node.outputs.version }}
+          node-version: ${{ steps.node.outputs.major }}
 
       # ⭐ **Aucun `pnpm install`, et c'est structurel** : le script n'emploie que
       # des modules natifs de Node. Une sonde qui dépendrait de l'installation

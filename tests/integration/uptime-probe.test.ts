@@ -45,12 +45,21 @@ async function serving(handler: Handler): Promise<string> {
   return origin
 }
 
+/**
+ * ⚠️ **Le troisième exemplaire de ce lanceur de sous-processus**, après
+ * `content-gate.test.ts` et `static-rendering-gate.test.ts`, dont le bloc `catch`
+ * est identique au caractère près. Il n'est **pas** extrait ici : sortir un
+ * `tests/integration/support/run-script.ts` demanderait de réécrire deux fichiers
+ * antérieurs dans une PR de fonctionnalité — ce que le dépôt a déjà refusé pour
+ * `htmlOf` (P4-09 §15.5 bis). **Déclencheur écrit** : le prochain qui touche l'un
+ * de ces trois fichiers extrait les trois.
+ */
 async function probe(origin: string): Promise<{ code: number; output: string }> {
   try {
-    const { stdout, stderr } = await run('node', [SCRIPT], {
-      // Le délai entre deux tentatives n'a aucune raison d'être subi ici : c'est
-      // la seule valeur que l'environnement pilote dans le script.
-      env: { ...process.env, UPTIME_ORIGIN: origin, UPTIME_RETRY_DELAY_MS: '0' },
+    // L'origine passe par ARGUMENT — elle ne doit pouvoir s'hériter de rien. Le
+    // délai, lui, gouverne la vitesse et non ce qui est mesuré.
+    const { stdout, stderr } = await run('node', [SCRIPT, origin], {
+      env: { ...process.env, UPTIME_RETRY_DELAY_MS: '0' },
     })
     return { code: 0, output: stdout + stderr }
   } catch (error) {
@@ -64,11 +73,48 @@ function ourRobots(origin: string): string {
   return `User-Agent: *\nAllow: /\n\nSitemap: ${origin}/sitemap.xml\n`
 }
 
+/**
+ * ⛔⛔⛔ **Le corps réellement servi le 2026-08-17, conteneur ARRÊTÉ** — pas une
+ * fixture imaginée. Le pourquoi est raconté une seule fois, dans l'en-tête de
+ * `scripts/check-uptime.mts` ; ici vit la preuve, pas le récit.
+ */
+const CLOUDFLARE_MANAGED_ONLY = [
+  '# As a condition of accessing this website, you agree to abide by the following',
+  '# content signals:',
+  '',
+  '# (a)  If a Content-Signal = yes, you may collect content for the corresponding',
+  '#      use.',
+  '',
+  'User-agent: *',
+  'Content-Signal: search=yes, ai-train=no',
+  '',
+  'User-agent: CCBot',
+  'Disallow: /',
+  '',
+  '# END Cloudflare Managed Content',
+  '',
+].join('\n')
+
 describe('sonde externe', () => {
   it('sort en 0 quand l’origine sert son propre robots.txt', async () => {
     const origin = await serving((_request, response, base) => {
       response.writeHead(200, { 'content-type': 'text/plain' })
       response.end(ourRobots(base))
+    })
+
+    const { code, output } = await probe(origin)
+
+    expect(code).toBe(0)
+    expect(output).toContain('Le site répond depuis l’extérieur')
+  })
+
+  it('accepte le corps FUSIONNÉ que la production sert réellement', async () => {
+    // ⭐ L'autre moitié du cas mesuré : site debout, Cloudflare ajoute ses signaux
+    // AU-DESSUS du fichier de l'origine. Ne tester que le fichier nu laisserait
+    // la sonde crier sur la production — une fausse alerte est ce qui apprend à
+    // ne plus lire les alertes.
+    const origin = await serving((_request, response, base) => {
+      response.writeHead(200).end(CLOUDFLARE_MANAGED_ONLY + ourRobots(base))
     })
 
     const { code, output } = await probe(origin)
@@ -143,12 +189,11 @@ describe('sonde externe', () => {
     expect(output).toContain('503 au lieu de 200')
   })
 
-  it('refuse le robots.txt managé de Cloudflare, servi en 200', async () => {
-    // Réserve écrite dans `deploy/README.md` §4.2 : Cloudflare sert son propre
-    // robots.txt (« Content Signals »), qui remplacerait le nôtre et sa directive
-    // `Sitemap:`. Un contrôle sur le seul statut serait vert.
+  it('voit le site éteint derrière la 200 de Cloudflare — la panne de R-15', async () => {
+    // Le statut est identique à celui d'un site sain ; seul le corps distingue
+    // les deux états (`scripts/check-uptime.mts`, en-tête).
     const origin = await serving((_request, response) => {
-      response.writeHead(200, { 'content-type': 'text/plain' }).end('User-agent: *\nAllow: /\n')
+      response.writeHead(200, { 'content-type': 'text/plain' }).end(CLOUDFLARE_MANAGED_ONLY)
     })
 
     const { code, output } = await probe(origin)
@@ -171,7 +216,9 @@ describe('sonde externe', () => {
   })
 
   it('sort en 1 quand rien ne répond — la panne que le healthcheck ne voit pas', async () => {
-    const origin = await serving((_request, response) => response.end())
+    // Le gestionnaire ne sera jamais appelé : on n'emprunte au serveur que son
+    // port, avant de le fermer.
+    const origin = await serving(() => {})
     await close?.()
     close = null
 
@@ -201,26 +248,18 @@ describe('sonde externe', () => {
     expect(output).toContain('✓ tentative 2/2')
   })
 
-  it('n’insiste pas indéfiniment : deux tentatives, puis l’alerte', async () => {
+  it('n’insiste pas indéfiniment, et dit quoi regarder', async () => {
     let calls = 0
     const origin = await serving((_request, response) => {
       calls += 1
       response.writeHead(500).end()
     })
 
-    const { code } = await probe(origin)
+    const { code, output } = await probe(origin)
 
     expect(code).toBe(1)
     expect(calls).toBe(2)
-  })
-
-  it('dit quoi regarder plutôt que de laisser l’alerte muette', async () => {
-    const origin = await serving((_request, response) => {
-      response.writeHead(500).end()
-    })
-
-    const { output } = await probe(origin)
-
+    // Une alerte muette oblige son lecteur à réinventer le diagnostic.
     expect(output).toContain('deploy.sh')
     expect(output).toContain('rollback')
   })

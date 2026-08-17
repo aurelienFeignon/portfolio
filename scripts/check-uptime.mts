@@ -35,8 +35,25 @@
  *    verte en suivant la redirection.
  * 2. **La directive `Sitemap:` porte l'origine de production.** C'est ce qui
  *    distingue *notre* `robots.txt` de celui que **Cloudflare sert lui-même**
- *    (« Content Signals », réserve écrite dans `deploy/README.md` §4.2) et d'une
- *    image construite avec la mauvaise `SITE_URL` — deux pannes qui rendent 200.
+ *    (« Content Signals ») et d'une image construite avec la mauvaise
+ *    `SITE_URL` — deux pannes qui rendent 200.
+ *
+ * ⛔⛔⛔ **Le second contrôle n'est pas un raffinement : il est TOUT le travail,
+ * et c'est mesuré.** Le 2026-08-17, conteneur volontairement arrêté sur le VPS :
+ *
+ * ```text
+ * site debout : GET /robots.txt → 200, « Sitemap: https://aurelienfeignon.com/… » présente
+ * site ARRÊTÉ : GET /robots.txt → 200, directive ABSENTE
+ * ```
+ *
+ * Cloudflare **compose la réponse à sa périphérie** : quand l'origine répond, il
+ * lui ajoute ses signaux ; quand elle est morte, il sert ses signaux **seuls**,
+ * en 200. Une sonde jugée sur le statut aurait donc été **verte sur un site
+ * éteint** — exactement la panne que R-15 décrit. Ce que le corps prouve, le
+ * statut ne le prouve pas.
+ *
+ * ⭐⭐ **Ne retirez pas ce contrôle en simplifiant.** `uptime-probe.test.ts` le
+ * tient avec le corps managé **réellement observé** pendant cet arrêt.
  *
  * ⚠️ **Ce qu'elle ne surveille PAS, et pourquoi ce n'est pas un oubli.** Aucun
  * relevé d'expiration de certificat : le site étant proxifié, le certificat
@@ -47,6 +64,11 @@
  * (strict)*, son expiration fait répondre Cloudflare en **526**, que ce script
  * nomme. Un statut 52x est donc le relevé TLS, et il est mesuré au bon endroit.
  */
+// ⭐ La seule dépendance de ce script, et elle est **interne** : `site-url.ts`
+// n'importe rien lui-même, donc la sonde reste exécutable sans `pnpm install` —
+// propriété dont dépend `.github/workflows/uptime.yml`.
+import { buildAbsoluteUrl, parseSiteUrl } from '../src/seo/site-url.ts'
+
 /**
  * ⛔ **L'origine surveillée n'est PAS lue dans `SITE_URL`, et c'est délibéré.**
  * Cette variable désigne « l'origine du site que ce processus sert » : elle vaut
@@ -54,22 +76,39 @@
  * mesuré le mauvais site à sa première exécution. Une sonde interroge une
  * adresse **publique**, qui ne dépend d'aucun environnement.
  *
- * ⭐ Elle est donc écrite ici, comme `check-dns.mts` écrit le domaine de la zone.
- * Ce n'est pas une seconde source à accorder avec la `SITE_URL` de `ci.yml` :
- * c'est une déclaration **indépendante**, et leur désaccord est exactement ce que
- * la directive `Sitemap:` ci-dessous rend visible — une image construite avec
- * une autre origine fait rougir la sonde au lieu de servir en silence.
+ * ⭐ Elle est donc écrite ici, comme `check-dns.mts` écrit le domaine de la zone —
+ * les deux sondes de ce dossier regardent le même hôte depuis dehors, chacune
+ * avec sa propre déclaration. Ce n'est pas une seconde source à accorder avec la
+ * `SITE_URL` de `ci.yml` : c'est une déclaration **indépendante**, et leur
+ * désaccord est exactement ce que la directive `Sitemap:` ci-dessous rend
+ * visible — une image construite avec une autre origine fait rougir la sonde au
+ * lieu de servir en silence.
  *
- * `UPTIME_ORIGIN` n'existe que pour les tests, qui font répondre une fixture.
+ * ⭐ L'origine se surcharge par **argument**, jamais par l'environnement, et
+ * uniquement pour les tests : un argument s'écrit au site d'appel et ne s'hérite
+ * pas d'un conteneur, d'un dépôt ou d'une organisation. C'est précisément la
+ * forme de la panne que ce commentaire raconte, refermée au lieu d'être
+ * déplacée sous un autre nom.
  */
-const ORIGIN = (process.env['UPTIME_ORIGIN'] ?? 'https://aurelienfeignon.com').replace(/\/+$/, '')
-const PROBE_PATH = '/robots.txt'
+const SITE = parseSiteUrl(process.argv[2] ?? 'https://aurelienfeignon.com')
+
+const PROBE_URL = buildAbsoluteUrl(SITE, '/robots.txt')
+
+/**
+ * ⭐⭐ **Attendue par la fonction qui l'émet.** `src/app/robots.ts` construit sa
+ * directive avec exactement `buildAbsoluteUrl(…, '/sitemap.xml')` : la sonde ne
+ * recopie donc pas une forme, elle la **dérive de la même source**. Une chaîne
+ * écrite à la main ici défendrait l'ancienne forme le jour où celle du site
+ * change, en silence — c'est la faute que ce dépôt traque depuis §7.
+ */
+const EXPECTED_SITEMAP = `Sitemap: ${buildAbsoluteUrl(SITE, '/sitemap.xml')}`
 
 /**
  * Deux tentatives, pas une. Une alerte qu'un hoquet réseau suffit à déclencher
  * finit par ne plus être lue, et une sonde qui crie pour rien est pire qu'aucune
  * sonde. Le délai est réglable **pour les tests**, qui n'ont aucune raison
- * d'attendre : c'est la seule valeur que l'environnement pilote ici.
+ * d'attendre — l'environnement peut le porter sans risque : il gouverne la
+ * vitesse de la vérification, jamais ce qui est vérifié.
  */
 const ATTEMPTS = 2
 const RETRY_DELAY_MS = Number(process.env['UPTIME_RETRY_DELAY_MS'] ?? 15_000)
@@ -101,12 +140,7 @@ type Verdict = { ok: boolean; detail: string }
  * sous-processus contre un serveur de fixture, ce qui vérifie aussi le code de
  * sortie, c'est-à-dire ce qui déclenche réellement l'alerte.
  */
-function verdictFor(
-  status: number,
-  location: string | null,
-  body: string,
-  origin: string,
-): Verdict {
+function verdictFor(status: number, location: string | null, body: string): Verdict {
   if (status >= 300 && status < 400) {
     const target = location ?? '(sans en-tête Location)'
     const access = target.includes('cloudflareaccess.com')
@@ -120,19 +154,18 @@ function verdictFor(
 
   if (status !== 200) return { ok: false, detail: `${status} au lieu de 200` }
 
-  const expected = `Sitemap: ${origin}/sitemap.xml`
-  if (!body.includes(expected)) {
+  if (!body.includes(EXPECTED_SITEMAP)) {
     return {
       ok: false,
       detail:
-        `200, mais la directive « ${expected} » est absente du corps servi — ` +
+        `200, mais la directive « ${EXPECTED_SITEMAP} » est absente du corps servi — ` +
         `ce n’est pas le robots.txt de l’application (Cloudflare sert le sien, ` +
         `ou l’image a été construite avec une autre SITE_URL). Reçu : ` +
         `${JSON.stringify(body.slice(0, 120))}`,
     }
   }
 
-  return { ok: true, detail: `200, et la directive « ${expected} » est servie` }
+  return { ok: true, detail: `200, et la directive « ${EXPECTED_SITEMAP} » est servie` }
 }
 
 async function probe(url: string): Promise<Verdict> {
@@ -143,12 +176,7 @@ async function probe(url: string): Promise<Verdict> {
       signal: AbortSignal.timeout(TIMEOUT_MS),
       headers: { 'user-agent': 'portfolio-uptime-probe (P4-14)' },
     })
-    return verdictFor(
-      response.status,
-      response.headers.get('location'),
-      await response.text(),
-      ORIGIN,
-    )
+    return verdictFor(response.status, response.headers.get('location'), await response.text())
   } catch (error) {
     // Connexion refusée, DNS mort, délai dépassé : aucune réponse HTTP n'existe,
     // et c'est la panne la plus grave — celle que le healthcheck du conteneur ne
@@ -157,17 +185,18 @@ async function probe(url: string): Promise<Verdict> {
   }
 }
 
-const url = `${ORIGIN}${PROBE_PATH}`
-console.log(`Sonde externe — ${url}\n`)
-
-let verdict: Verdict = { ok: false, detail: 'aucune tentative' }
-
-for (let attempt = 1; attempt <= ATTEMPTS; attempt += 1) {
-  verdict = await probe(url)
-  console.log(`  ${verdict.ok ? '✓' : '✗'} tentative ${attempt}/${ATTEMPTS} : ${verdict.detail}`)
-  if (verdict.ok) break
-  if (attempt < ATTEMPTS) await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS))
+async function probeUntilSettled(): Promise<Verdict> {
+  for (let attempt = 1; ; attempt += 1) {
+    const verdict = await probe(PROBE_URL)
+    console.log(`  ${verdict.ok ? '✓' : '✗'} tentative ${attempt}/${ATTEMPTS} : ${verdict.detail}`)
+    if (verdict.ok || attempt === ATTEMPTS) return verdict
+    await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS))
+  }
 }
+
+console.log(`Sonde externe — ${PROBE_URL}\n`)
+
+const verdict = await probeUntilSettled()
 
 if (verdict.ok) {
   console.log(`\n✓ Le site répond depuis l’extérieur.`)
@@ -176,7 +205,7 @@ if (verdict.ok) {
     `\n✗ LE SITE NE RÉPOND PAS depuis l’extérieur — ${verdict.detail}\n` +
       `\n  Le healthcheck du conteneur ne couvre pas ce cas : il interroge` +
       `\n  127.0.0.1 depuis l’intérieur du conteneur (P1-13).\n` +
-      `\n  Quoi regarder, dans cet ordre (deploy/README.md §7.3) :` +
+      `\n  Quoi regarder, dans cet ordre (deploy/README.md §7.3, commandes §4) :` +
       `\n    1. l’état de la pile   : ssh portfolio 'SSH_ORIGINAL_COMMAND=status /srv/portfolio/deploy.sh'` +
       `\n    2. les journaux        : ssh portfolio 'docker compose -f /srv/portfolio/docker-compose.yml logs --tail 100 web'` +
       `\n    3. le retour arrière   : ssh portfolio 'SSH_ORIGINAL_COMMAND=rollback /srv/portfolio/deploy.sh'`,

@@ -109,9 +109,14 @@ lighthouse: ## Audit Lighthouse contre le BUILD DE PRODUCTION (performance-budge
 check-dns: ## Vérifie la zone DNS et l'authentification d'expédition (P1-17)
 	$(RUN) node scripts/check-dns.mts
 
-# La MÊME commande que la sonde planifiée (`.github/workflows/uptime.yml`), et
-# non une variante : une sonde qu'on ne peut pas rejouer à la main est un
-# mécanisme qu'on ne peut pas instruire le jour où elle crie.
+# Le MÊME script que la sonde planifiée (`.github/workflows/uptime.yml`), avec
+# le même argv — celui-ci dans le conteneur, celle-là sans Docker : une sonde
+# qu'on ne peut pas rejouer à la main est un mécanisme qu'on ne peut pas
+# instruire le jour où elle crie.
+#
+# ⭐ Aucune entrée dans `package.json` : elle serait une TROISIÈME écriture de la
+# même commande, que personne n'invoquerait (`check-dns` et `lighthouse` portent
+# déjà ce doublon mort — on ne le recopie pas).
 check-uptime: ## Interroge le site EN LIGNE depuis l'extérieur, comme la sonde (P4-14)
 	$(RUN) node scripts/check-uptime.mts
 
