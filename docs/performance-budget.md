@@ -51,6 +51,27 @@ Une bonne mesure depuis la région du VPS ne prouve rien pour un recruteur situ�
 Accessibilité et SEO sont à 100 sans négociation possible : ce sont des exigences produit (§5
 Vision), et ce sont les deux domaines où la 3D fait peser un risque.
 
+### 3.1 Qui applique ces scores — ajouté en P4-13
+
+⛔⛔ **Ils n'étaient appliqués nulle part.** Écrits ici depuis la Phase 0, ils n'existaient que dans
+quatre documents : aucun gate, aucun parcours, aucune étape de CI ne produisait un score. C'est le
+défaut du seuil de 400 Mo, découvert par P4-05 **en s'y référant** — *un seuil que rien ne fait
+respecter n'est pas un seuil*. Relevé pendant l'inventaire de P4-12.
+
+`scripts/check-lighthouse.mts` les mesure contre l'**image de production**, sur l'accueil et une
+fiche (§2), en profil mobile et desktop. Il est branché sur `make ci` et sur la CI. **Trois manières
+de juger, parce que les catégories ne se mesurent pas de la même façon** :
+
+| Catégorie | Décide | Pourquoi |
+|---|---|---|
+| accessibilité, SEO | le **score**, à 100 | contrôles structurels : l'attribut est là ou il n'y est pas. Bloquants |
+| bonnes pratiques | *aucun audit en échec* hors `is-on-https` et `redirects-http` | ⭐⭐ ces deux-là dépendent de l'**adresse d'interrogation** : le score vaut **78 en local** (`http://web:3000`, réseau Docker) et **100 en CI** (`http://localhost:3000`, contexte sûr aux yeux de Chrome). Juger sur le score ferait donc dépendre le verdict de l'endroit où l'on mesure ; la production est en HTTPS avec HSTS et un 308 |
+| performance | rien : la valeur est **relevée** | dépend de la charge de la machine — mesurée à 100 puis 99 sur la même page à deux tirs. Un seuil bloquant produirait une CI rouge sur du code conforme |
+
+⚠️ **Ce que cet audit ne mesure pas** : le réseau, le CDN et le TTFB depuis une autre région. Il juge
+l'**artefact**, pas le service. Le relevé qui fait foi pour la performance est **P4-16**, contre le
+site réel — ce qui suppose de lever Cloudflare Access.
+
 ---
 
 ## 4. Budget JavaScript

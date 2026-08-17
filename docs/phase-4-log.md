@@ -2076,3 +2076,166 @@ des orphelins.
 sections qu'il traverse, ce que `site-chrome.spec.ts` asserte déjà pour deux d'entre elles. Le
 doublon est conservé — il porte la **troisième**, que ce fichier-là ne visite pas, et un parcours
 doit rester lisible seul (la raison écrite en P4-10 §17.7 pour les audits axe en double).
+
+## 20. P4-13 — la mise en production, et le critère de sortie que rien ne mesurait
+
+### 20.1 Ce que P4-13 est réellement, et ce qu'elle n'est pas
+
+Le site est **déployé en continu depuis P1-15** : chaque poussée sur `main` publie une image sur GHCR
+et la déploie sur le VPS. P4-13 n'installe donc rien — elle **prononce** que ce qui est déployé est
+le portfolio documentaire complet, et cela suppose d'avoir vérifié ce que la Phase 3 et la Phase 4
+lui ont laissé à vérifier. C'est une tâche de **constat**, et la valeur y est dans ce qu'on refuse de
+supposer.
+
+### 20.2 ⛔⛔ « Lighthouse ≥ 85 / a11y 100 / SEO 100 » n'était mesuré nulle part
+
+Le critère est écrit depuis la Phase 0. Le mot « Lighthouse » n'apparaissait que dans **quatre
+documents** : aucun gate, aucun parcours, aucune étape de CI ne produisait un score. C'est le défaut
+du seuil de 400 Mo, à l'identique — *un seuil que rien ne fait respecter n'est pas un seuil* —, et il
+a été trouvé de la même façon : **en s'y référant**, pendant l'inventaire de P4-12.
+
+`scripts/check-lighthouse.mts` le mesure désormais contre l'**image de production**, sur l'accueil et
+une fiche (déduite du sitemap, jamais nommée), en mobile et en desktop. Branché sur `make ci` **et**
+sur la CI, dans le job qui porte déjà l'image et Chromium.
+
+⭐ **Aucun `chrome-launcher`, aucune installation de navigateur** : le script tourne dans le service
+`e2e`, dont l'image Playwright porte Chromium. On le lance avec un port de débogage et Lighthouse s'y
+branche — une dépendance de moins, et le navigateur audité est exactement celui du banc.
+
+**Justification de la dépendance** (CT-08). *Problème* : produire les scores que le critère de sortie
+exige. *Pourquoi celle-ci* : Lighthouse **est** la mesure nommée par le critère ; approximer ses
+métriques à la main donnerait un nombre qu'on n'aurait pas le droit d'appeler « Lighthouse ».
+*Alternatives* : `@lhci/cli` (une chaîne de serveur et de rapports dont rien ici n'a besoin) ; un
+audit maison en Playwright (écrire « Lighthouse ≥ 85 » sur cette base serait plus faux que de ne rien
+écrire). *Catégorie* : **dépendance de test**, comme `@axe-core/playwright` que `testing-strategy.md`
+§3 qualifie explicitement de « non structurante » — elle n'entre pas dans l'image de production.
+
+### 20.3 ⭐⭐ Trois manières de juger, parce que les catégories ne se mesurent pas pareil
+
+Le premier jet les traitait toutes au score, avec un seul message d'avertissement. Il était **faux**,
+et la mesure l'a montré tout de suite.
+
+| Catégorie | Verdict | Relevé | Ce qui a décidé |
+|---|---|---|---|
+| accessibilité | **score ≥ 100, bloquant** | **100** partout | structurel : l'attribut est là ou il n'y est pas |
+| SEO | **score ≥ 100, bloquant** | **100** partout | idem |
+| bonnes pratiques | **aucun audit en échec**, bloquant | 78 | voir ci-dessous |
+| performance | **relevé**, jamais bloquant | 99–100 | voir ci-dessous |
+
+⭐⭐ **« Bonnes pratiques » plafonne à 78 en local, et le chiffre ne dit rien du site.** Les deux
+seuls audits en échec sont `is-on-https` (poids 5) et `redirects-http` (poids 1), qui échouent quand
+l'origine n'est pas un **contexte sûr** — ici `http://web:3000`, par le réseau Docker. La production
+est en HTTPS avec HSTS et une redirection 308 **vérifiée depuis l'extérieur** (`deploy/README.md`
+§2). Juger la catégorie sur son score mesurerait donc le banc : elle est jugée sur une propriété qui
+parle du site — *aucun autre audit ne doit échouer*. Une API dépréciée, une erreur de console ou une bibliothèque vulnérable font rougir ;
+un seuil à 95 serait resté rouge en permanence et aurait fini supprimé.
+
+⛔ **Le premier message d'avertissement était faux, et c'est ce qui compte.** Il annonçait « le score
+dépend de la charge de la machine » pour *les deux* catégories non bloquantes. C'est vrai de la
+performance — mesurée **100 puis 99 sur la même page à deux tirs**, sans qu'une ligne ait bougé — et
+faux des bonnes pratiques, dont le 78 est parfaitement déterministe. **Une explication fausse est
+pire qu'aucune** : elle range un chiffre parmi le bruit, et plus personne ne le regarde. Les deux
+raisons sont désormais énoncées séparément.
+
+⚠️ **Ce que cet audit ne mesure pas** : le réseau, le CDN, le TTFB depuis une autre région. Il juge
+l'**artefact**, pas le service. Le relevé qui fait foi pour la performance est **P4-16**.
+
+### 20.4 Le gate vu rouge, trois fois — une par manière de juger
+
+| Mutation | Ce qui devait rougir | Verdict |
+|---|---|---|
+| `<html lang="">` | accessibilité, au score | ✅ 100 → **95/96**, sortie 2 |
+| la méta-description retirée de `pageMetadata` | SEO, au score | ✅ 100 → **92**, sortie 2 |
+| `is-on-https` retiré de la liste des audits que le banc seul empêche | bonnes pratiques, aux audits | ✅ sortie 2, l'audit nommé |
+
+⛔ **Une quatrième mutation n'a rien prouvé, et le harnais l'a dit** : déclarer la page `noindex` par
+un `export const metadata` a **cassé le build** — une route ne peut pas exporter à la fois `metadata`
+et `generateMetadata`. Le contrôle du code de sortie du build, écrit après la panne de P4-10, a
+refusé de conclure au lieu d'auditer l'image précédente. C'est la deuxième fois de la phase qu'il
+gagne sa place.
+
+### 20.5 Relevés
+
+| Relevé après P4-13 | Valeur | Seuil |
+|---|---|---|
+| Lighthouse **accessibilité** | **100** — accueil et fiche, mobile et desktop | 100, **bloquant** |
+| Lighthouse **SEO** | **100** — idem | 100, **bloquant** |
+| Lighthouse **bonnes pratiques** | **78 en local, 100 en CI** — et aucun audit en échec hors les deux du banc | audits, **bloquant** |
+| Lighthouse **performance** | 99–100 selon le tir | 85, relevé — P4-16 fait foi |
+| Image de production | **273 Mo — inchangée** | cible 250 · bloquant 400 |
+| Socle partagé | **126,4 Ko — inchangé** | cible 136 · bloquant 146 |
+
+⭐ **La dépendance n'entre pas dans l'image** : 273 Mo avant comme après. C'est ce que
+`testing-strategy.md` §3 entend par « dépendance de test, non structurante », et c'est **mesuré**
+plutôt que déduit du fait qu'elle est en `devDependencies`.
+
+### 20.6 ⛔ Ce qui bloque la clôture de P4-13, et qui n'est pas à moi
+
+`SITE_URL` a **deux sources en production**, et l'`env_file` de Compose l'emporte sur l'`ENV` de
+l'image. Si `/srv/portfolio/.env` portait une autre origine, le site servirait des canoniques d'un
+domaine et des liens d'exécution d'un autre — **sans que rien n'échoue**. La dette est écrite depuis
+`phase-3-log.md` §17.4 avec la mention « à vérifier dans la checklist de P4-13 ».
+
+Ce qui est établi d'ici : la CI construit avec `https://aurelienfeignon.com` (lu dans
+`.github/workflows/ci.yml`). Ce qui ne l'est pas : la valeur du `.env` sur le VPS.
+
+**Les deux voies sont fermées depuis la machine de développement**, et les deux ont été essayées :
+
+```text
+ssh portfolio           → Permission denied (publickey)
+curl https://aurelienfeignon.com/fr → 302 vers cloudflareaccess.com   (conforme, §4.2)
+```
+
+⚠️ Au passage : l'entrée `~/.ssh/config` pointe sur **2.28.48.165**, ce qui ne ressemble pas à une
+adresse Hetzner de Nuremberg. Elle a l'air périmée, et c'est peut-être toute la cause du refus.
+
+P4-13 **reste ouverte**. Prononcer la mise en production sans ce relevé serait une affirmation sur le
+monde que rien ne confronte au monde — la faute que cette phase entière traque, commise sur la tâche
+qui la clôt.
+
+### 20.7 Ce que la revue a changé — dont un gate qui n'a jamais pu échouer
+
+⛔⛔⛔ **`| tee` avalait le code de sortie : l'étape Lighthouse ne pouvait pas faire échouer la CI —
+et le gate de taille d'image non plus, depuis P4-05.** Le shell par défaut d'Actions est
+`bash -e {0}`, **sans `pipefail`** : l'étape sort avec le statut de `tee`, toujours 0. Vérifié à la
+main :
+
+```text
+bash -e            -c 'false | tee /dev/null; echo $?'   →  0
+bash -eo pipefail  -c 'false | tee /dev/null; echo $?'   →  1
+```
+
+⭐⭐⭐ **P4-05 avait rendu le seuil d'image bloquant après avoir découvert qu'il n'était appliqué nulle
+part. Il ne l'était toujours pas *dans la CI*** — seulement dans `make ci`, qui n'a pas de tuyau. Un
+seuil peut donc être appliqué **à un endroit sur deux**, et c'est le tuyau d'affichage qui décide.
+Les deux étapes portent désormais `shell: bash` (qui sélectionne `-eo pipefail`) et `2>&1`, sans quoi
+le détail de l'échec partait sur stderr et n'atteignait jamais le résumé de la CI.
+
+⛔ **Un audit tombé en erreur se lisait comme un succès.** Le filtre écartait `score === null`, ce qui
+couvre les audits informatifs **et** ceux dont `scoreDisplayMode` vaut `error`. « Bonnes pratiques »
+étant jugée sur cette liste et jamais sur son score, un audit planté n'apparaissait nulle part : un
+gate qui verdit sur une panne de son propre instrument.
+
+⚠️ **`process.exit(1)` tronquait l'explication.** Quand la sortie standard est un tuyau — ce qu'elle
+est en CI —, Node écrit de façon asynchrone et `process.exit()` abandonne la file. C'est
+`process.exitCode` qui laisse le processus se terminer une fois les écritures vidées. Vérifié en
+rejouant une mutation à travers `| cat` : les quatre lignes de détail arrivent entières.
+
+⭐⭐⭐ **Et le chiffre « 78 » était lui-même une mesure d'un seul endroit, énoncée comme
+universelle** — la faute que ce journal reproche depuis §7, commise dans la tâche qui la corrige sur
+Lighthouse. La **première exécution en CI l'a démenti le jour même** : là-bas l'image est servie sur
+`http://localhost:3000`, que Chrome tient pour un **contexte sûr**, si bien que `is-on-https` passe
+et que « bonnes pratiques » vaut **100**. En local, le service `e2e` joint `http://web:3000` par le
+réseau Docker, et le score tombe à 78.
+
+⭐⭐ **Le mécanisme, lui, était juste, et c'est ce qui a sauvé le gate** : juger la catégorie sur ses
+**audits** rend le verdict identique des deux côtés, là où un seuil sur le score aurait été vert en
+CI et rouge en local — c'est-à-dire un gate dont la conclusion dépend de l'endroit où on l'exécute.
+La liste `LAB_ONLY_FAILURES` n'est donc pas une excuse pour un banc imparfait : c'est ce qui rend la
+mesure **portable**.
+
+⚠️ **Et un accès de propriété qui ne compilait que par accident** : `threshold.minimum` était lu après
+avoir déstructuré `verdict`, ce qui ne discrimine pas l'union. Personne ne l'a vu parce que **les
+`.mts` de `scripts/` ne sont pas dans le périmètre de `tsconfig.json`** — une exposition antérieure à
+cette tâche, valable pour les six scripts. Le test porte maintenant sur `threshold.verdict`, et le
+fichier a été typecheck explicitement en mode strict.

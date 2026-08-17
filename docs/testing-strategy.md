@@ -290,6 +290,7 @@ make ci
  ├── coverage          seuils ci-dessus
  ├── build             next build dans l'image
  ├── e2e               Playwright sur le build de production
+ ├── lighthouse        a11y 100 · SEO 100 · audits de bonnes pratiques (P4-13)
  └── docker            construction de l'étage runner
 ```
 
