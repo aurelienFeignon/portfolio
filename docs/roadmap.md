@@ -3,8 +3,9 @@
 > Statut global : **Phases 0, 1, 2 et 3 terminées et validées.** **Phase 4 ouverte le 2026-08-15**,
 > dernière phase de la tranche T1. **P2-11 (rédaction du contenu réel) est DONE (2026-08-15)** : le
 > contenu d'amorçage est entièrement remplacé, et le chemin critique de T1 est donc levé.
-> **P4-07 à P4-12 closes le 2026-08-16** : 13 tâches de la Phase 4 sur 17. Reste le jalon **T1**
-> (P4-13 à P4-16), c'est-à-dire la mise en production.
+> **P4-07 à P4-13 closes** : 14 tâches de la Phase 4 sur 17. **Le jalon T1 est atteint** — le
+> portfolio documentaire est en production, mesuré et vérifié sur le serveur. Restent P4-14
+> (supervision), P4-15 (checklist et rollback) et P4-16 (vérification depuis l'extérieur).
 > Journal de la Phase 4 : [`phase-4-log.md`](./phase-4-log.md) — phases précédentes :
 > [`phase-3-log.md`](./phase-3-log.md), [`phase-2-log.md`](./phase-2-log.md),
 > [`phase-1-log.md`](./phase-1-log.md)
@@ -720,7 +721,7 @@ reste et le filet de sécurité permanent du projet. Journal de phase :
 | P4-10 | Passe accessibilité : titres, focus, contrastes, points de repère, les cinq fichiers non couverts, le garde des endroits piloté par l'arborescence, et `experimental.globalNotFound` comme plancher | **DONE** *(2026-08-16)* | P4-06 |
 | P4-11 | Responsive documentaire : mobile, tablette, desktop | **DONE** *(2026-08-16)* | P4-06 |
 | P4-12 | E2E : navigation complète, deep links, bascule de langue, clavier | **DONE** *(2026-08-16)* | P4-11 |
-| P4-13 | **Mise en production du portfolio documentaire** *(jalon T1)* | **IN_PROGRESS** *(2026-08-16)* — Lighthouse mesuré et appliqué ; **bloquée** sur la vérification de `SITE_URL` au VPS | P4-12, P1-15, P2-11 |
+| P4-13 | **Mise en production du portfolio documentaire** *(jalon T1)* | **DONE** *(2026-08-17)* | P4-12, P1-15, P2-11 |
 | P4-14 | Supervision : healthcheck conteneur + sonde externe avec alerte (risque R-15) | TODO | P4-13 |
 | P4-15 | Checklist de mise en ligne + rollback vérifié en conditions réelles | TODO | P4-13 |
 | P4-17 | **Précision variable des dates** — préalable de P4-09, levé | **DONE** *(2026-08-16)* | P4-04 |
@@ -996,13 +997,17 @@ l'**image de production**, sur deux pages et deux profils. **Accessibilité 100,
 l'accessibilité et le SEO (structurels, bloquants) ; les **audits** pour les bonnes pratiques, dont le
 score plafonne à 78 parce que le banc sert du HTTP nu ; un simple **relevé** pour la performance,
 mesurée 100 puis 99 sur la même page à deux tirs. Vu rouge trois fois, une par manière de juger.
-⛔ **Ce qui reste, et qui n'est pas à moi** : les deux sources de `SITE_URL` — l'`ENV` de l'image
-(la CI construit avec `https://aurelienfeignon.com`, vérifié) et l'`env_file` du VPS, **qui
-l'emporte**. Ni SSH ni requête publique n'y donnent accès depuis la machine de développement : la clé demande une
-**passphrase** et aucun agent ne la porte (⛔⛔ `BatchMode=yes` rend alors le même
-`Permission denied (publickey)` qu'une clé non autorisée — deux causes, un seul message), et la route
-publique est fermée par Access. La tâche ne peut pas se déclarer close sans ce relevé — le supposer
-serait exactement le défaut que la phase traque.
+✅ **Les deux prérequis sont vérifiés sur le serveur** (2026-08-17, en lecture seule, par l'agent SSH
+de l'utilisateur — la clé porte une passphrase, qui ne se demande pas). `SITE_URL` coïncide dans ses
+**trois** écritures — `.env` du VPS, `Config.Env` du conteneur, `ENV` de l'image — et surtout le site
+**sert** ce qu'elles annoncent : `canonical`, trois `hreflang`, 14 URL au sitemap, **zéro d'une autre
+origine**. Trois variables peuvent coïncider et un HTML gravé au build dire autre chose.
+⛔⛔ **La seconde vérification a démenti une prémisse vieille de quatre phases** : `content/` **est**
+dans l'image de production (87 fichiers, 384 Ko), le traceur de Next l'incluant dans la sortie
+`standalone`. Quatre documents affirmaient le contraire depuis P2-03 — une **déduction** jamais
+mesurée. L'exigence tient (`/fr/inexistant` rend 404 avec `lang`), mais ce qui la protège est le gate
+de rendu statique, **et lui seul** : le filet de sécurité auquel la Phase 2 croyait n'existe pas.
+⚠️ Ce que P4-13 laisse : la performance contre le **site réel** est P4-16, et suppose de lever Access.
 · Depends on: P4-12, P1-15, P2-11
 
 **Critères de sortie** — Toutes les exigences de la §20 de la mission satisfaites ; Lighthouse
