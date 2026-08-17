@@ -998,9 +998,11 @@ score plafonne à 78 parce que le banc sert du HTTP nu ; un simple **relevé** p
 mesurée 100 puis 99 sur la même page à deux tirs. Vu rouge trois fois, une par manière de juger.
 ⛔ **Ce qui reste, et qui n'est pas à moi** : les deux sources de `SITE_URL` — l'`ENV` de l'image
 (la CI construit avec `https://aurelienfeignon.com`, vérifié) et l'`env_file` du VPS, **qui
-l'emporte**. Ni SSH ni requête publique n'y donnent accès depuis la machine de développement
-(`Permission denied (publickey)` ; 302 Cloudflare Access). La tâche ne peut pas se déclarer close
-sans ce relevé — le supposer serait exactement le défaut que la phase traque.
+l'emporte**. Ni SSH ni requête publique n'y donnent accès depuis la machine de développement : la clé demande une
+**passphrase** et aucun agent ne la porte (⛔⛔ `BatchMode=yes` rend alors le même
+`Permission denied (publickey)` qu'une clé non autorisée — deux causes, un seul message), et la route
+publique est fermée par Access. La tâche ne peut pas se déclarer close sans ce relevé — le supposer
+serait exactement le défaut que la phase traque.
 · Depends on: P4-12, P1-15, P2-11
 
 **Critères de sortie** — Toutes les exigences de la §20 de la mission satisfaites ; Lighthouse
