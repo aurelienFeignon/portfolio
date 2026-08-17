@@ -2182,12 +2182,25 @@ Ce qui est établi d'ici : la CI construit avec `https://aurelienfeignon.com` (l
 **Les deux voies sont fermées depuis la machine de développement**, et les deux ont été essayées :
 
 ```text
-ssh portfolio           → Permission denied (publickey)
-curl https://aurelienfeignon.com/fr → 302 vers cloudflareaccess.com   (conforme, §4.2)
+ssh -o BatchMode=yes portfolio       → Permission denied (publickey)
+curl https://aurelienfeignon.com/fr  → 302 vers cloudflareaccess.com   (conforme, §4.2)
 ```
 
-⚠️ Au passage : l'entrée `~/.ssh/config` pointe sur **2.28.48.165**, ce qui ne ressemble pas à une
-adresse Hetzner de Nuremberg. Elle a l'air périmée, et c'est peut-être toute la cause du refus.
+⛔⛔ **Et le diagnostic tiré de la première ligne était faux.** J'en avais conclu que l'entrée
+`~/.ssh/config` était périmée — l'adresse ne ressemblant pas à une IP Hetzner de Nuremberg. Elle ne
+l'est pas : **le VPS est le même, et la clé demande simplement une passphrase**. `BatchMode=yes`
+interdit toute invite, et OpenSSH rend alors le même `Permission denied (publickey)` que pour une
+clé non autorisée.
+
+⭐⭐⭐ **Deux causes très différentes derrière un message identique** — « cette clé n'est pas
+autorisée » et « cette clé n'a pas été déverrouillée » — et rien dans la sortie ne les distingue.
+J'ai comblé l'écart par une hypothèse sur le monde, exactement ce que cette phase passe son temps à
+refuser. La vérification qui coûte zéro : `ssh-add -l`, qui répond ici **« The agent has no
+identities »** — les deux agents de la machine tournent et ne portent aucune clé.
+
+La passphrase appartient à l'utilisateur et ne se demande pas. Deux voies propres : `ssh-add` une
+fois dans un terminal, ce qui charge la clé dans l'agent (`/run/user/1000/openssh_agent`) et rend la
+vérification exécutable ici ; ou l'utilisateur exécute les deux lectures et en donne la sortie.
 
 P4-13 **reste ouverte**. Prononcer la mise en production sans ce relevé serait une affirmation sur le
 monde que rien ne confronte au monde — la faute que cette phase entière traque, commise sur la tâche
