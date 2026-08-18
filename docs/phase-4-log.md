@@ -2417,6 +2417,35 @@ l'inverse — la politique **Bypass** laisse passer la requête vers l'origine, 
 fichier. Non vérifié pour autant, faute d'avoir désactivé quoi que ce soit : c'est écrit comme un
 déclencheur, pas comme un fait.
 
+### 21.6 bis L'alerte, éprouvée depuis GitHub — et le retard, observé le jour même
+
+Le `cron` et le `workflow_dispatch` ne s'exécutent que depuis la branche par défaut : la chaîne
+complète n'était donc éprouvable qu'après la fusion de #32. Elle l'a été dans la foulée, sur le site
+réel :
+
+| Horodatage (UTC) | Événement | Verdict |
+|---|---|---|
+| 11:57:22 | sonde, site sain | succès, 16 s |
+| 11:57:51 | `docker compose stop web` | `Exited (143)` |
+| 11:57:54 | sonde | **échec, 27 s** — les deux tentatives, puis l'alerte |
+| 11:58:49 | `docker compose start web` | `healthy` en 6 s |
+| 11:58:51 | sonde | succès, 13 s |
+
+⭐ **58 secondes d'indisponibilité**, aucun visiteur — le site est fermé au public, et c'est ce qui
+rend l'épreuve gratuite. Le journal du run porte la consigne de dépannage : celui qui ouvre l'alerte
+lit les trois commandes sans ouvrir un document.
+
+⚠️ **Le premier tir planifié n'est pas tombé à l'heure ronde.** Le workflow annonce que la
+planification d'Actions est « au mieux » ; la propriété s'est vérifiée le jour même, avant même
+qu'on la cherche. Ce que la sonde garantit est *« une panne ne dure pas des jours »* — pas *« une
+panne est vue en dix minutes »*. Écrire la seconde phrase aurait été une promesse que le mécanisme ne
+tient pas.
+
+✅ **L'e-mail est arrivé** — confirmé par l'utilisateur pour le run rouge de 11:57:54Z. C'est la
+seule pièce que le dépôt ne peut pas prouver seul : elle dépend d'un réglage du compte GitHub, hors
+du dépôt. ⚠️ Conséquence pour plus tard : si une panne passe un jour inaperçue, c'est là qu'il faut
+regarder d'abord, et non dans la sonde.
+
 ### 21.7 Relevés
 
 | Relevé après P4-14 | Valeur | Seuil |
@@ -2425,7 +2454,7 @@ déclencheur, pas comme un fait.
 | Couverture globale | **100 %** sur les quatre métriques | ≥ 80 % |
 | Socle partagé, JS par route, image | **inchangés** — cette tâche ne touche pas `src/` | — |
 | Mutations | **6 appliquées, 6 tuées** | — |
-| Indisponibilité provoquée | **~90 s**, site fermé au public | — |
+| Indisponibilité provoquée | **~90 s** (§21.3) puis **58 s** (§21.6 bis), soit **~148 s** en deux arrêts, site fermé au public | — |
 
 ⭐ Les six mutations portent sur ce qui fait le travail : corps non vérifié, tentative unique, code de
 sortie neutralisé, redirections suivies, puis — après la passe de simplification — le contrôle de
@@ -2481,7 +2510,8 @@ de `afterEach`, pour une seconde sur une suite qui en dure soixante.
 
 | Sujet | État |
 |---|---|
-| L'alerte **reçue** | Un `cron` et un `workflow_dispatch` ne s'exécutent que depuis la branche par défaut : la preuve se fait après fusion, et la tâche reste `IN_PROGRESS` jusque-là |
+| L'alerte **reçue** | ✅ Prouvée le 2026-08-17 — arrêt volontaire, sonde rouge depuis GitHub, e-mail reçu. Le maillon hors dépôt est le réglage de notification du compte |
+| Le premier tir **planifié** | N'est pas tombé à l'heure ronde. Propriété annoncée (planification « au mieux »), vérifiée le jour même — la sonde garantit « pas des jours », pas « en dix minutes » |
 | Disque, mémoire, mises à jour, dérive de `CF-ORIGIN` | Autres moitiés de R-15, **hors périmètre** — nommées dans `deploy/README.md` §7.5 pour ne pas croire le risque couvert |
 | Expiration du certificat | **Non relevée, délibérément** : le certificat vu de l'extérieur est celui de Cloudflare, qu'il renouvelle seul. Celui qui peut expirer est celui de Caddy, et son expiration fait répondre **526** — que la sonde nomme |
 | La sonde partage sa plateforme avec le déploiement | Arbitrage assumé ; le déclencheur de bascule vers une sonde tierce est écrit (`deploy/README.md` §7.5) |

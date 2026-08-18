@@ -3,14 +3,14 @@
 > Statut global : **Phases 0, 1, 2 et 3 terminées et validées.** **Phase 4 ouverte le 2026-08-15**,
 > dernière phase de la tranche T1. **P2-11 (rédaction du contenu réel) est DONE (2026-08-15)** : le
 > contenu d'amorçage est entièrement remplacé, et le chemin critique de T1 est donc levé.
-> **P4-07 à P4-13 closes** : 14 tâches de la Phase 4 sur 17. **Le jalon T1 est atteint** — le
-> portfolio documentaire est en production, mesuré et vérifié sur le serveur. **P4-14 (supervision)
-> est engagée** : la sonde externe est écrite et vue rouge sur un arrêt réel ; restent l'alerte reçue,
+> **P4-07 à P4-14 closes** : 15 tâches de la Phase 4 sur 17. **Le jalon T1 est atteint** — le
+> portfolio documentaire est en production, mesuré et vérifié sur le serveur. La sonde
+> externe est vue rouge sur un arrêt réel de la production, et l'alerte est **reçue**. Restent
 > P4-15 (checklist et rollback) et P4-16 (vérification depuis l'extérieur).
 > Journal de la Phase 4 : [`phase-4-log.md`](./phase-4-log.md) — phases précédentes :
 > [`phase-3-log.md`](./phase-3-log.md), [`phase-2-log.md`](./phase-2-log.md),
 > [`phase-1-log.md`](./phase-1-log.md)
-> Dernière mise à jour : 2026-08-16
+> Dernière mise à jour : 2026-08-17
 
 Ce document est la **source de vérité unique des tâches**. Les identifiants sont stables et ne
 sont jamais réutilisés, même si une tâche est abandonnée.
@@ -723,7 +723,7 @@ reste et le filet de sécurité permanent du projet. Journal de phase :
 | P4-11 | Responsive documentaire : mobile, tablette, desktop | **DONE** *(2026-08-16)* | P4-06 |
 | P4-12 | E2E : navigation complète, deep links, bascule de langue, clavier | **DONE** *(2026-08-16)* | P4-11 |
 | P4-13 | **Mise en production du portfolio documentaire** *(jalon T1)* | **DONE** *(2026-08-17)* | P4-12, P1-15, P2-11 |
-| P4-14 | Supervision : healthcheck conteneur + sonde externe avec alerte (risque R-15) | **IN_PROGRESS** *(2026-08-17)* | P4-13 |
+| P4-14 | Supervision : healthcheck conteneur + sonde externe avec alerte (risque R-15) | **DONE** *(2026-08-17)* | P4-13 |
 | P4-15 | Checklist de mise en ligne + rollback vérifié en conditions réelles | TODO | P4-13 |
 | P4-17 | **Précision variable des dates** — préalable de P4-09, levé | **DONE** *(2026-08-16)* | P4-04 |
 | P4-16 | Vérification post-déploiement : indexation, canonical, hreflang, sitemap accessibles publiquement — **suppose de lever Cloudflare Access**, qui ferme le site au public depuis le 2026-08-15 (`deploy/README.md` §4.2) | TODO | P4-13 |
@@ -1012,7 +1012,7 @@ de rendu statique, **et lui seul** : le filet de sécurité auquel la Phase 2 cr
 · Depends on: P4-12, P1-15, P2-11
 
 **P4-14 — Supervision**
-Status: **IN_PROGRESS** (2026-08-17) — le conteneur porte un `HEALTHCHECK` depuis P1-13, et il
+Status: **DONE** (2026-08-17) — le conteneur porte un `HEALTHCHECK` depuis P1-13, et il
 interroge `127.0.0.1` **depuis l'intérieur du conteneur** : un VPS éteint a un healthcheck
 parfaitement silencieux. `scripts/check-uptime.mts` regarde le site par le chemin d'un visiteur,
 `.github/workflows/uptime.yml` l'exécute toutes les dix minutes, et l'alerte est l'e-mail d'échec
@@ -1028,9 +1028,13 @@ l'application Access en **Bypass** sur ce seul chemin, Cloudflare **fusionne** ;
 resté fermé, vérifié URL par URL.
 ⛔ Un défaut dans la sonde elle-même, trouvé par sa première exécution : elle lisait `SITE_URL`, qui
 vaut `http://localhost:3000` dans le conteneur de développement — elle mesurait le mauvais site.
-⚠️ **Ce qui reste avant DONE** : un `cron` et un `workflow_dispatch` ne s'exécutent que depuis la
-branche par défaut. L'alerte **reçue** — le critère d'acceptation — se prouve donc une fois ceci sur
-`main`. · Depends on: P4-13
+✅ **Le critère d'acceptation est tenu, et il l'est par une exécution** : conteneur de production
+arrêté 58 s, sonde **rouge** depuis GitHub, **e-mail d'alerte reçu**, puis verte au redémarrage
+(`deploy/README.md` §7.4 et §7.4 bis).
+⚠️ Le premier tir **planifié** n'est pas tombé à l'heure ronde : la planification d'Actions est « au
+mieux », propriété annoncée par le workflow et vérifiée le jour même. Ce que la sonde garantit est
+« une panne ne dure pas des jours », pas « une panne est vue en dix minutes ».
+· Depends on: P4-13
 
 **Critères de sortie** — Toutes les exigences de la §20 de la mission satisfaites ; Lighthouse
 mobile ≥ 85 / a11y 100 / SEO 100 ; 0 violation axe serious/critical ; le projet `no-js` passe ;
@@ -1042,6 +1046,11 @@ rollback prouvé**.
 `make ci` et sur la CI. Accessibilité et SEO bloquent à 100 ; les bonnes pratiques sont jugées sur
 leurs audits ; la performance est relevée. ⚠️ **Reste ouvert** : la performance contre le **site
 réel**, réseau et CDN compris — c'est P4-16, et cela suppose de lever Cloudflare Access.
+
+✅ ~~**Site supervisé**~~ — **soldé en P4-14** : le healthcheck du conteneur ne voit que l'intérieur
+du conteneur ; une sonde externe le complète, vue rouge sur un arrêt volontaire de la production,
+alerte reçue. ⚠️ **Reste du critère de sortie** : *rollback prouvé* — il l'a été en P1-15, mais la
+**checklist** de P4-15 reste à écrire.
 
 > P4-13 à P4-16 constituent le jalon **T1**. Ce sont des mises en production anticipées : la
 > Phase 15 reste la release du produit complet et **réutilisera la checklist établie en P4-15**

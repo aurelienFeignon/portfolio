@@ -23,7 +23,7 @@
  * Cloudflare et pas le site.
  *
  * ⭐ `/robots.txt` porte une application Access dédiée en politique **Bypass**
- * (`deploy/README.md` §7.1) : c'est le seul chemin que l'origine sert
+ * (`deploy/README.md` §7.2) : c'est le seul chemin que l'origine sert
  * anonymement. Il est servi par l'application elle-même (`src/app/robots.ts`),
  * donc une réponse conforme prouve toute la chaîne — DNS, Cloudflare, Caddy,
  * réseau `edge`, conteneur, rendu Next.
@@ -144,7 +144,7 @@ function verdictFor(status: number, location: string | null, body: string): Verd
   if (status >= 300 && status < 400) {
     const target = location ?? '(sans en-tête Location)'
     const access = target.includes('cloudflareaccess.com')
-      ? ' — Cloudflare Access intercepte ce chemin : la politique Bypass de deploy/README.md §7.1 a disparu, et la sonde ne voit plus le site'
+      ? ' — Cloudflare Access intercepte ce chemin : la politique Bypass de deploy/README.md §7.2 a disparu, et la sonde ne voit plus le site'
       : ''
     return { ok: false, detail: `${status} vers ${target}${access}` }
   }
