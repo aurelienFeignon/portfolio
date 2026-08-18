@@ -3,14 +3,13 @@
 > Statut global : **Phases 0, 1, 2 et 3 terminées et validées.** **Phase 4 ouverte le 2026-08-15**,
 > dernière phase de la tranche T1. **P2-11 (rédaction du contenu réel) est DONE (2026-08-15)** : le
 > contenu d'amorçage est entièrement remplacé, et le chemin critique de T1 est donc levé.
-> **P4-07 à P4-14 closes** : 15 tâches de la Phase 4 sur 17. **Le jalon T1 est atteint** — le
-> portfolio documentaire est en production, mesuré et vérifié sur le serveur. La sonde
-> externe est vue rouge sur un arrêt réel de la production, et l'alerte est **reçue**. Restent
-> P4-15 (checklist et rollback) et P4-16 (vérification depuis l'extérieur).
+> **P4-07 à P4-15 closes** : 16 tâches de la Phase 4 sur 17. **Le jalon T1 est atteint** — le
+> portfolio documentaire est en production, supervisé, avec une checklist de mise en ligne et un
+> rollback rejoué. Reste **P4-16** (vérification depuis l'extérieur, qui suppose de lever Access).
 > Journal de la Phase 4 : [`phase-4-log.md`](./phase-4-log.md) — phases précédentes :
 > [`phase-3-log.md`](./phase-3-log.md), [`phase-2-log.md`](./phase-2-log.md),
 > [`phase-1-log.md`](./phase-1-log.md)
-> Dernière mise à jour : 2026-08-17
+> Dernière mise à jour : 2026-08-18
 
 Ce document est la **source de vérité unique des tâches**. Les identifiants sont stables et ne
 sont jamais réutilisés, même si une tâche est abandonnée.
@@ -358,6 +357,13 @@ SHA → SSH vers le VPS. La clé de déploiement est enregistrée avec
 `command="/srv/portfolio/deploy.sh"` et ne donne pas de shell (`cat /etc/shadow` → `commande
 refusée`). **Rollback exécuté pour de vrai** : retour d'un commit au précédent en 9 s, 26 sondes
 HTTPS à 0,5 s pendant l'opération, aucun échec observé — puis remise à niveau par le même chemin.
+⛔⛔ **Amendé le 2026-08-18 (P4-15) : cette mesure de disponibilité est périmée, sans avoir jamais
+été fausse.** Elle a été prise proxy Cloudflare en *DNS only* — la réserve écrite deux lignes plus
+bas —, donc une 200 venait bien de l'origine. Depuis la bascule en *Full (strict)* du 2026-08-12,
+Cloudflare compose la réponse à sa périphérie : le même geste rendrait aujourd'hui 26 verts sur un
+site mort. Le rejeu jugé sur le corps observe **~1 s d'indisponibilité de l'origine**
+(`deploy/README.md` §4.3). Le rollback, lui, fonctionne — c'est sa *preuve d'innocuité* qui a changé
+de sens.
 Procédure d'exploitation dans [`deploy/README.md`](../deploy/README.md), écrite après exécution.
 ⚠ Deux points hors périmètre restent ouverts : le proxy Cloudflare est encore en *DNS only* (le CDN
 de H-01b n'est donc pas actif), et DMARC n'est pas publié.
@@ -724,7 +730,7 @@ reste et le filet de sécurité permanent du projet. Journal de phase :
 | P4-12 | E2E : navigation complète, deep links, bascule de langue, clavier | **DONE** *(2026-08-16)* | P4-11 |
 | P4-13 | **Mise en production du portfolio documentaire** *(jalon T1)* | **DONE** *(2026-08-17)* | P4-12, P1-15, P2-11 |
 | P4-14 | Supervision : healthcheck conteneur + sonde externe avec alerte (risque R-15) | **DONE** *(2026-08-17)* | P4-13 |
-| P4-15 | Checklist de mise en ligne + rollback vérifié en conditions réelles | TODO | P4-13 |
+| P4-15 | Checklist de mise en ligne + rollback vérifié en conditions réelles | **DONE** *(2026-08-18)* | P4-13 |
 | P4-17 | **Précision variable des dates** — préalable de P4-09, levé | **DONE** *(2026-08-16)* | P4-04 |
 | P4-16 | Vérification post-déploiement : indexation, canonical, hreflang, sitemap accessibles publiquement — **suppose de lever Cloudflare Access**, qui ferme le site au public depuis le 2026-08-15 (`deploy/README.md` §4.2) | TODO | P4-13 |
 
@@ -1036,6 +1042,32 @@ mieux », propriété annoncée par le workflow et vérifiée le jour même. Ce 
 « une panne ne dure pas des jours », pas « une panne est vue en dix minutes ».
 · Depends on: P4-13
 
+**P4-15 — Checklist de mise en ligne et rollback rejoué**
+Status: **DONE** (2026-08-18) — la checklist vit dans `deploy/README.md` §8, écrite **après
+exécution** : la moitié « déployer » jouée par la fusion de la PR #33, la moitié « revenir » par un
+aller-retour réel sur la production (§4.3). La Phase 15 la réutilise.
+⛔⛔⛔ **Le rejeu a démenti l'état annoncé** : le rollback était réputé *prouvé* depuis P1-15 — « 26
+sondes HTTPS, aucun échec » — mais cette mesure date du 2026-08-11, **proxy Cloudflare en *DNS
+only***. Depuis la bascule en *Full (strict)* du 2026-08-12, une 200 ne parle plus de l'origine, et
+refaire ce geste aujourd'hui rendrait 26 verts sur un site mort. ⭐⭐⭐ **Une preuve d'exploitation
+peut se périmer sans jamais devenir fausse** — elle se relit exactement comme au premier jour.
+⛔⛔ **La coupure existe, et un statut ne la voit pas** : rejeu jugé sur le corps, à ~5-6 verdicts par
+seconde, **~1 s d'origine absente** à l'aller — sous un **200 constant**, corps servi par Cloudflare.
+Aucune au retour : le défaut n'est **pas déterministe**, raison non établie.
+⭐⭐ **La mesure emploie la sonde de P4-14 mise en boucle**, `UPTIME_RETRY_DELAY_MS=0` : dix fois la
+cadence de P1-15 sans changer d'un mot ce qui est vérifié.
+⭐ **Symétrie du verbe reconfirmée** : `rollback` a servi dans les deux sens, état final identique à
+l'état initial.
+⚠️ Ce que P4-15 laisse : la bascule **sans coupure** est hors périmètre (assumée, nommée en §8.5), et
+rien ne garde les références `§x.y` recopiées dans des chaînes de caractères.
+· Depends on: P4-13, P1-15
+Acceptance:
+- Checklist de mise en ligne écrite, **et chacun de ses points exécuté** au moins une fois.
+- Rollback rejoué en conditions réelles, **jugé par la sonde externe** et non par un contrôle écrit
+  pour l'occasion.
+- Disponibilité pendant l'opération **mesurée**, avec la cadence et les réserves de la mesure.
+- Procédure de retour utilisable sans relire le journal de phase.
+
 **Critères de sortie** — Toutes les exigences de la §20 de la mission satisfaites ; Lighthouse
 mobile ≥ 85 / a11y 100 / SEO 100 ; 0 violation axe serious/critical ; le projet `no-js` passe ;
 **aucune dépendance Three.js dans le dépôt à ce stade** ; **site en ligne, supervisé, avec un
@@ -1049,8 +1081,12 @@ réel**, réseau et CDN compris — c'est P4-16, et cela suppose de lever Cloudf
 
 ✅ ~~**Site supervisé**~~ — **soldé en P4-14** : le healthcheck du conteneur ne voit que l'intérieur
 du conteneur ; une sonde externe le complète, vue rouge sur un arrêt volontaire de la production,
-alerte reçue. ⚠️ **Reste du critère de sortie** : *rollback prouvé* — il l'a été en P1-15, mais la
-**checklist** de P4-15 reste à écrire.
+alerte reçue.
+
+✅ ~~**Rollback prouvé**~~ — **soldé en P4-15**, et pas comme prévu : la preuve de P1-15 est
+**périmée** (prise en *DNS only*, son critère a cessé de parler de l'origine le 2026-08-12). Rejoué
+le 2026-08-18, jugé sur le corps : aller-retour par le même verbe, **~1 s d'origine absente sous un
+200 constant** à l'aller, aucune au retour. Checklist en `deploy/README.md` §8.
 
 > P4-13 à P4-16 constituent le jalon **T1**. Ce sont des mises en production anticipées : la
 > Phase 15 reste la release du produit complet et **réutilisera la checklist établie en P4-15**

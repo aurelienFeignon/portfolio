@@ -39,7 +39,7 @@ Les Phases 0, 1, 2 et 3 sont TERMINÉES et validées. Ne les refais pas, ne les 
 
 ## État
 
-Phases 0 à 3 : **DONE**. **Phase 4 (Portfolio HTML) : en cours**, 15 tâches sur 17 closes — **le jalon T1 est atteint**.
+Phases 0 à 3 : **DONE**. **Phase 4 (Portfolio HTML) : en cours**, 16 tâches sur 17 closes — **le jalon T1 est atteint**.
 **Tout ce qui suit est fusionné sur `main` et déployé**, les cinq jobs verts à chaque fois —
 publication GHCR et déploiement VPS compris. P4-14 l'est depuis le 2026-08-17 (PR #32, `daffa6d`) — CI verte sur ce commit.
 
@@ -60,9 +60,9 @@ publication GHCR et déploiement VPS compris. P4-14 l'est depuis le 2026-08-17 (
 | P4-12 | Parcours complets, et l'**inventaire des 14 scénarios devenu un garde** |
 | P4-13 | **Jalon T1** : Lighthouse mesuré et appliqué, prérequis vérifiés **sur le serveur** |
 | P4-14 | **Supervision** : sonde externe, vue rouge sur un **arrêt réel** de la production |
+| P4-15 | Checklist de mise en ligne (`deploy/README.md` §8) et **rollback rejoué** sur la production |
 
-**Reste : P4-15** (checklist et rollback rejoué) et **P4-16** (vérification depuis l'extérieur, qui
-suppose de lever Cloudflare Access).
+**Reste : P4-16** seule (vérification depuis l'extérieur, qui suppose de lever Cloudflare Access).
 
 ### ⛔⛔ Ce qui fait foi pour juger d'un déploiement
 
@@ -177,13 +177,18 @@ mets l'ADR à jour et ajoute une ligne au journal des révisions. Jamais de chan
 
 ## Ta mission cette session
 
-**Enchaîne sur P4-15** — la **checklist de mise en ligne** et le **rollback rejoué** en conditions
-réelles. Puis P4-16 (vérification depuis l'extérieur, qui suppose de lever Cloudflare Access).
+**Enchaîne sur P4-16** — la vérification depuis l'extérieur : indexation, `canonical`, `hreflang`,
+`sitemap.xml` observés comme un visiteur anonyme les voit. **Elle suppose de lever Cloudflare
+Access**, donc de me le demander : c'est une décision de mise en ligne, pas une étape technique.
 
-⭐⭐ **P4-14 a laissé un outil que P4-15 doit employer, pas refaire** : `make check-uptime` interroge
-le site en ligne et sort en 1 s'il est muet. Un rollback rejoué se juge par cette sonde, pas par un
-`curl` écrit pour l'occasion. Le rollback lui-même a été **prouvé** en P1-15 (26 sondes HTTPS,
-aucune indisponibilité observée) ; ce qui manque est la **checklist**.
+⭐⭐ **P4-15 a laissé la checklist que toute mise en ligne suit désormais** : `deploy/README.md` §8,
+écrite après exécution. Ne l'imagine pas à nouveau, joue-la.
+
+⛔⛔⛔ **Et sa leçon, qui vise directement P4-16 : une preuve d'exploitation peut se périmer sans
+jamais devenir fausse.** Le rollback était réputé prouvé depuis P1-15 (« 26 sondes HTTPS, aucun
+échec ») — mesure prise **proxy en *DNS only***, donc honnête ce jour-là et vide de sens depuis la
+bascule en *Full (strict)*. Rejoué le 2026-08-18 en jugeant le **corps** : **~1 s d'origine absente
+sous un 200 constant**. Tout ce que P4-16 mesurera de l'extérieur traverse ce même intermédiaire.
 
 ⛔⛔⛔ **Et la leçon de P4-14, qui vaut pour toute vérification depuis l'extérieur — donc pour P4-16 :
 interposer un CDN change ce qu'un code de retour SIGNIFIE.** Conteneur arrêté, `/robots.txt` rend
