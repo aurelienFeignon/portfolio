@@ -2454,7 +2454,7 @@ regarder d'abord, et non dans la sonde.
 | Couverture globale | **100 %** sur les quatre métriques | ≥ 80 % |
 | Socle partagé, JS par route, image | **inchangés** — cette tâche ne touche pas `src/` | — |
 | Mutations | **6 appliquées, 6 tuées** | — |
-| Indisponibilité provoquée | **~90 s**, site fermé au public | — |
+| Indisponibilité provoquée | **~90 s** (§21.3) puis **58 s** (§21.6 bis), soit **~148 s** en deux arrêts, site fermé au public | — |
 
 ⭐ Les six mutations portent sur ce qui fait le travail : corps non vérifié, tentative unique, code de
 sortie neutralisé, redirections suivies, puis — après la passe de simplification — le contrôle de

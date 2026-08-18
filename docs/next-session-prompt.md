@@ -41,7 +41,7 @@ Les Phases 0, 1, 2 et 3 sont TERMINÉES et validées. Ne les refais pas, ne les 
 
 Phases 0 à 3 : **DONE**. **Phase 4 (Portfolio HTML) : en cours**, 15 tâches sur 17 closes — **le jalon T1 est atteint**.
 **Tout ce qui suit est fusionné sur `main` et déployé**, les cinq jobs verts à chaque fois —
-publication GHCR et déploiement VPS compris. P4-12 l'est depuis le 2026-08-16 (PR #28, `749044c`).
+publication GHCR et déploiement VPS compris. P4-14 l'est depuis le 2026-08-17 (PR #32, `daffa6d`) — CI verte sur ce commit.
 
 | Tâche | Ce qu'elle a livré |
 |---|---|
@@ -83,15 +83,18 @@ fait partie de la mise en ligne réelle. Détail : `deploy/README.md` §4.2.
 la sonde atteigne l'origine (`deploy/README.md` §7.2). C'est le seul chemin public — vérifié URL par
 URL, tout le reste rend toujours 302.
 
-### Ce que la Phase 4 coûte, remesuré après P4-12
+### Ce que la Phase 4 coûte
 
-| Relevé | Valeur (2026-08-16) | Seuil |
+| Relevé | Valeur | Seuil |
 |---|---|---|
 | JS propre à chaque route | **8,2 Ko** — le seul JavaScript applicatif du site | cible 25 · bloquant 40 |
 | Socle partagé | **126,4 Ko** | cible 136 · bloquant 146 |
 | Image de production | **273 Mo** | cible 250 · bloquant 400 |
-| Tests | **646** verts, couverture **100 %** | ≥ 80 % |
+| Tests | **646** verts *(632 après P4-12)*, couverture **100 %** | ≥ 80 % |
 | E2E | **144** verts sur 5 profils, 0 violation axe sur les **16 pages servies** | — |
+
+⚠️ Trois premiers relevés et E2E : mesurés le **2026-08-16** (P4-12). Tests et couverture : le
+**2026-08-17** (P4-14). P4-14 ne touche pas `src/`, le poids servi n'a donc pas bougé.
 
 ⛔ **Le profil `no-js` n'est plus vrai *par construction*** : il l'est **par vérification**. Les
 frontières d'erreur sont des composants client, et c'est tout le JavaScript applicatif du site.

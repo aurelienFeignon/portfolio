@@ -3,14 +3,14 @@
 > Statut global : **Phases 0, 1, 2 et 3 terminées et validées.** **Phase 4 ouverte le 2026-08-15**,
 > dernière phase de la tranche T1. **P2-11 (rédaction du contenu réel) est DONE (2026-08-15)** : le
 > contenu d'amorçage est entièrement remplacé, et le chemin critique de T1 est donc levé.
-> **P4-07 à P4-13 closes** : 14 tâches de la Phase 4 sur 17. **Le jalon T1 est atteint** — le
-> portfolio documentaire est en production, mesuré et vérifié sur le serveur. **P4-14 close** : la
-> sonde externe est vue rouge sur un arrêt réel de la production, et l'alerte est **reçue**. Restent
+> **P4-07 à P4-14 closes** : 15 tâches de la Phase 4 sur 17. **Le jalon T1 est atteint** — le
+> portfolio documentaire est en production, mesuré et vérifié sur le serveur. La sonde
+> externe est vue rouge sur un arrêt réel de la production, et l'alerte est **reçue**. Restent
 > P4-15 (checklist et rollback) et P4-16 (vérification depuis l'extérieur).
 > Journal de la Phase 4 : [`phase-4-log.md`](./phase-4-log.md) — phases précédentes :
 > [`phase-3-log.md`](./phase-3-log.md), [`phase-2-log.md`](./phase-2-log.md),
 > [`phase-1-log.md`](./phase-1-log.md)
-> Dernière mise à jour : 2026-08-16
+> Dernière mise à jour : 2026-08-17
 
 Ce document est la **source de vérité unique des tâches**. Les identifiants sont stables et ne
 sont jamais réutilisés, même si une tâche est abandonnée.
@@ -1030,7 +1030,7 @@ resté fermé, vérifié URL par URL.
 vaut `http://localhost:3000` dans le conteneur de développement — elle mesurait le mauvais site.
 ✅ **Le critère d'acceptation est tenu, et il l'est par une exécution** : conteneur de production
 arrêté 58 s, sonde **rouge** depuis GitHub, **e-mail d'alerte reçu**, puis verte au redémarrage
-(`deploy/README.md` §7.4).
+(`deploy/README.md` §7.4 et §7.4 bis).
 ⚠️ Le premier tir **planifié** n'est pas tombé à l'heure ronde : la planification d'Actions est « au
 mieux », propriété annoncée par le workflow et vérifiée le jour même. Ce que la sonde garantit est
 « une panne ne dure pas des jours », pas « une panne est vue en dix minutes ».
