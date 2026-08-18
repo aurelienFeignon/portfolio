@@ -2556,11 +2556,9 @@ conteneur unique avec `UPTIME_RETRY_DELAY_MS=0` rend ~5 à 6 verdicts par second
 cadence de P1-15 — sans qu'une seule ligne de ce qui est *vérifié* change. C'est ce que le prompt de
 reprise demandait : employer l'outil laissé par P4-14, pas écrire un `curl` pour l'occasion.
 
-⚠️ **Deux réserves, non levées.** La coupure n'est **pas déterministe** — visible à l'aller, absente
-au retour, raison non établie. Et au retour, une requête a mis ~1,5 s avant de revenir verte,
-laissant un trou d'échantillonnage : la couverture n'est pas continue, et une coupure plus brève que
-l'intervalle reste possible aux deux passages. La même prudence que P1-15, à une cadence dix fois
-plus fine.
+⚠️ **Deux réserves, non levées** — coupure non déterministe, couverture non continue. Elles sont
+écrites une fois, avec les horodatages qui les fondent, dans `deploy/README.md` §4.3 : c'est le
+relevé d'exploitation, et ce journal n'en est pas une seconde copie.
 
 ### 22.3 La checklist, écrite après exécution
 
