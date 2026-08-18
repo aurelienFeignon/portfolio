@@ -272,6 +272,11 @@ niveau.
 200, aucun échec**. Formulé prudemment : aucune indisponibilité n'a été observée — un intervalle
 d'une demi-seconde peut manquer une coupure plus brève.
 
+⛔⛔ **Ce relevé est PÉRIMÉ depuis le 2026-08-12, sans avoir jamais été faux — voir §4.3.** Il a été
+pris quand le proxy Cloudflare était en *DNS only* : une 200 venait alors de l'origine. Depuis la
+bascule en *Full (strict)*, elle peut venir de la périphérie, et le même geste rendrait 26 verts sur
+un site mort. Le rejeu du 2026-08-18, jugé sur le corps, observe **~1 s d'origine absente**.
+
 Deux choses vérifiées à cette occasion, qui ne se devinent pas :
 
 - **Le rollback est symétrique.** Après retour à `306651a2…`, `.tag.previous` contient `a16b4b7f…` :
@@ -315,6 +320,49 @@ Cloudflare servait ses seuls « Content Signals », **en 200**, sans la directiv
 l'application. Le sitemap n'était donc annoncé à personne. Depuis l'application Access en **Bypass**
 sur `/robots.txt` (§7.2), Cloudflare **fusionne** au lieu de remplacer — ses signaux, puis le fichier
 de l'origine. Mesuré des deux côtés, avant et après.
+
+---
+
+## 4.3 Le même rollback rejoué — exécuté le 2026-08-18 (P4-15)
+
+Rejoué pour deux raisons. La première est le critère de sortie de la Phase 4 : *rollback prouvé*. La
+seconde n'était pas prévue — **la preuve du §4.1 ne peut plus être refaite par ses propres moyens.**
+
+Elle a été prise le 2026-08-11, quand le proxy Cloudflare était encore en *DNS only* : une 200 venait
+alors **de l'origine**, et « 26 sondes HTTPS, aucun échec » disait bien ce qu'elle avait l'air de
+dire. Le passage en *Full (strict)* le 2026-08-12 (§5) a changé ce que ce critère **signifie** :
+depuis, Cloudflare peut composer la réponse à sa périphérie, et le §7.4 l'a mesuré. La preuve n'est
+pas fausse — elle est **périmée**, et refaire le même geste aujourd'hui donnerait un vert qui ne
+prouve rien.
+
+Le rejeu est donc jugé sur le corps, comme la sonde : c'est **la sonde elle-même** qui a mesuré, mise
+en boucle dans un conteneur unique (`UPTIME_RETRY_DELAY_MS=0`), soit ~5 à 6 verdicts par seconde
+contre un échantillon toutes les 0,5 s en 2026-08-11.
+
+| | Aller `4084cd50…` → `daffa6de…` | Retour `daffa6de…` → `4084cd50…` |
+|---|---|---|
+| Verbe | `rollback` | `rollback` — **le même** |
+| Durée rendue par `deploy.sh` | 10 s (06:46:11 → 06:46:21 UTC) | 9 s (06:47:55 → 06:48:04 UTC) |
+| Origine absente, observée | **~1 s** (4 verdicts rouges à 06:46:14) | **aucune** — 294 verdicts, 0 rouge |
+
+⛔⛔⛔ **Pendant cette seconde, le statut est resté 200.** Le corps servi était celui de Cloudflare
+(« *As a condition of accessing this website…* »), la directive `Sitemap:` absente. Un contrôle jugé
+sur le code de retour aurait rapporté **zéro indisponibilité sur une origine absente** — sur une
+opération d'exploitation normale, cette fois, et non sur un arrêt provoqué comme au §7.4.
+
+⭐⭐ **La symétrie du §4.1 est reconfirmée, et c'est elle qui a servi au retour** : après l'aller,
+`.tag.previous` contenait le tag qu'on venait de quitter, et le **même verbe** a ramené la production
+à `4084cd50…`. L'état final est identique à l'état initial, `status` à l'appui.
+
+⚠️ **Deux réserves, non levées.** La coupure n'est **pas déterministe** : visible à l'aller, absente
+au retour, et la raison n'est pas établie. Et au retour, une requête a mis ~1,5 s avant de revenir
+**verte**, laissant un trou d'échantillonnage à 06:47:58 — la couverture n'est donc pas continue, et
+une coupure plus brève que l'intervalle reste possible aux deux passages. C'est la même prudence que
+le §4.1, à une cadence dix fois plus fine.
+
+⭐ **La cible de retour était locale** (`docker images` : image `daffa6de…` présente depuis 19 h),
+d'où les 10 s. C'est exactement ce que protège le `docker system prune -f` sans `-a` (§1.1) — à
+vérifier **avant** de déclencher, la checklist du §8 le demande.
 
 ---
 
@@ -555,3 +603,101 @@ donc pris au bon endroit.
 ⚠️ **Ce qu'elle ne surveille pas du tout** : le disque, la mémoire, les mises à jour de sécurité, la
 dérive du pare-feu `CF-ORIGIN` (§6.3, `--check` sort en 1). Ce sont d'autres moitiés de R-15, et
 elles relèvent de la Phase 15 — les nommer ici évite de croire le risque couvert.
+
+---
+
+## 8. Checklist de mise en ligne — P4-15
+
+Écrite **après exécution**, comme le §4.1 : chacun de ses points a été joué le 2026-08-18, la moitié
+« déployer » par la fusion de la PR #33 (06:34 UTC) et la moitié « revenir » par l'aller-retour du
+§4.3. La Phase 15 la réutilise plutôt que d'en écrire une seconde.
+
+Les commandes distantes emploient l'alias `portfolio` du `~/.ssh/config` de l'exploitant — c'est
+le même hôte que le `aurel@<ip>` des sections précédentes, écrit sous la forme qui a réellement servi.
+
+⛔ **La règle qui gouverne toute la liste** : ne juger aucune étape sur un code de retour. Un CDN est
+interposé, et il répond à la place de l'origine — mesuré deux fois (§7.4, §4.3). Ce qui fait foi est
+la conclusion du workflow d'un côté, la sonde de l'autre.
+
+### 8.1 Avant
+
+- [ ] **La CI de la PR est verte** — trois jobs seulement (`versions de référence`,
+      `lint · typecheck · tests · budget de bundle`, `image de production · end-to-end`).
+      ⛔ `publier l'image sur GHCR` et `déployer sur le VPS` sont gardés par
+      `github.event_name == 'push' && github.ref == 'refs/heads/main'` : **ils n'existent pas avant
+      la fusion**, et le dernier run de `main` parle du commit précédent, pas du vôtre. Les cinq
+      jobs se vérifient au §8.3, jamais ici.
+- [ ] **Relever l'état courant** :
+      `ssh portfolio 'SSH_ORIGINAL_COMMAND="status" /srv/portfolio/deploy.sh'`.
+      **Noter le tag courant** — c'est la cible de retour, et `deploy.sh` ne l'enregistre qu'après un
+      déploiement réussi.
+- [ ] **L'image de la cible de retour est encore locale** sur le VPS
+      (`docker images ghcr.io/aurelienfeignon/portfolio`). Sinon le rollback devra la retélécharger,
+      au pire moment (§1.1).
+- [ ] **La sonde est verte avant de commencer** : `make check-uptime`. Partir d'un rouge inconnu rend
+      tout le reste illisible.
+- [ ] **La clé personnelle est déverrouillée** : `ssh-add -l`. Sans agent, `BatchMode=yes` rend
+      `Permission denied (publickey)` pour une clé verrouillée **comme** pour une clé non autorisée —
+      deux causes, un seul message.
+
+### 8.2 Pendant
+
+- [ ] Le déploiement part **tout seul** à la fusion sur `main`. Aucune action manuelle, aucun
+      `deploy` à la main : le tag doit désigner un état exact du dépôt.
+- [ ] Suivre jusqu'à la conclusion : `gh run watch <id> --exit-status`.
+
+### 8.3 Après
+
+- [ ] **`make check-uptime` → vert.** C'est le seul contrôle qui distingue une origine vivante d'une
+      réponse composée par Cloudflare.
+- [ ] **`status`** : tag courant = le SHA attendu, conteneur `(healthy)`, tag précédent = celui noté
+      au §8.1.
+- [ ] **`SITE_URL` coïncide dans ses trois écritures** — `ENV` de l'image, `.env` du VPS lu par
+      Compose, `Config.Env` du conteneur. L'`env_file` **l'emporte** sur l'`ENV` de l'image : une
+      divergence ferait servir des canoniques d'un domaine et des liens d'exécution d'un autre, sans
+      que rien n'échoue (§3.2).
+- [ ] **Ce qui a changé est servi** — et vérifié sur le document servi, pas sur ces trois variables :
+      elles peuvent coïncider pendant qu'un HTML gravé au build dit autre chose (P4-13). C'est le
+      `canonical` du document qui tranche.
+- [ ] **Les cinq jobs du run de `main` ont conclu** — `déployer sur le VPS` compris :
+      `gh run watch <id> --exit-status`, ou `gh run list --branch main --limit 1`. Le vert de GHCR
+      ne dit rien du VPS.
+- [ ] **Un tir PLANIFIÉ de la sonde est passé vert** depuis le déploiement :
+      `gh run list --workflow "Sonde externe" --event schedule --limit 1`. ⛔ Sans `--event
+      schedule`, un `workflow_dispatch` déclenché à la main coche la case sans rien prouver — or ce
+      qu'on veut savoir est que le **`cron` est vivant**, et il ne s'exécute que depuis la branche
+      par défaut.
+
+### 8.4 Si ça tourne mal
+
+- [ ] **Ne pas doubler la manœuvre** : si le conteneur n'atteint pas `healthy` en 120 s, `deploy.sh`
+      remet **de lui-même** le tag qui servait avant la tentative, et sort en 1. Lire son journal
+      avant d'agir.
+- [ ] ⛔⛔ **Après un retour AUTOMATIQUE, ne pas enchaîner un `rollback` à la main.**
+      `.tag.previous` n'est écrit **qu'après un succès** : il porte donc encore la version
+      d'**avant** celle qui servait, et un `rollback` reculerait de **deux** versions. Le vérifier
+      par `status` avant tout geste — c'est aussi ce qui protège la seule cible de retour connue
+      d'être écrasée par un déploiement raté.
+- [ ] Sinon, revenir à la main :
+      `ssh portfolio 'SSH_ORIGINAL_COMMAND="rollback" /srv/portfolio/deploy.sh'`.
+      Compter **~10 s**, dont **~1 s d'origine absente** sous un statut 200 constant (§4.3).
+- [ ] **Le verbe est symétrique** : le relancer repart en avant. Un retour par précaution s'annule
+      donc par le même geste, `status` à l'appui.
+- [ ] **Juger le retour par la sonde**, jamais par un `curl` ni par un statut.
+
+### 8.5 Ce que cette checklist ne couvre pas
+
+Nommé pour ne pas croire le sujet couvert :
+
+- **La vérification depuis l'extérieur** — indexation, `canonical`, `hreflang`, `sitemap.xml`
+  observés par un visiteur anonyme — est **P4-16**, et suppose de lever Cloudflare Access (§4.2).
+- **Il n'y a pas de bascule sans coupure.** `docker compose up -d web` recrée le conteneur ; la
+  seconde d'absence du §4.3 est le prix de cette simplicité, et l'éliminer demanderait deux
+  conteneurs et une bascule côté Caddy. Assumé tant que le site n'a pas d'audience.
+- **DMARC** n'est toujours pas publié (§5).
+
+⚠️ **Et ce qu'il ne faut pas croire couvert par un déploiement réussi** : `content/` **est** dans
+l'image de production (87 fichiers, le traceur de Next l'inclut dans la sortie `standalone`), ce que
+quatre documents ont nié pendant quatre phases. L'exigence « aucune route ne se rend à la demande »
+tient toujours, mais ce qui la protège est **`check-static-rendering.mts`, et lui seul** — un gate de
+la CI, pas une propriété de l'image. Aucune étape de cette checklist ne le remplace.

@@ -81,7 +81,7 @@ reste, sa justification change et doit être réécrite.
 | P4-12 | E2E : navigation complète, deep links, bascule de langue, clavier | E2E-01, E2E-02, E2E-03, E2E-08, E2E-12 de `testing-strategy.md` §4.7 |
 | P4-13 | Mise en production (jalon T1) | La CI verte sur `main` fait foi (`deploy/README.md` §4.2) |
 | P4-14 | Supervision : healthcheck + sonde externe avec alerte | Une alerte **reçue**, provoquée par un arrêt volontaire |
-| P4-15 | Checklist de mise en ligne + rollback en conditions réelles | Rollback **exécuté**, comme en P1-15 |
+| P4-15 | Checklist de mise en ligne + rollback en conditions réelles | Rollback **rejoué**, jugé par la sonde — la preuve de P1-15 est périmée (§22.1) |
 | P4-16 | Vérification post-déploiement, Access levé | `canonical`, `hreflang`, sitemap et `robots.txt` observés **depuis l'extérieur** |
 
 ## 5. Ordre de travail
@@ -107,12 +107,12 @@ métadonnées en dépendent, et le poser après aurait voulu dire réécrire cha
 - [ ] 0 violation axe `serious`/`critical`.
 - [ ] Le projet E2E `no-js` passe.
 - [ ] **Aucune dépendance Three.js dans le dépôt** à ce stade.
-- [ ] **Site en ligne, supervisé, avec un rollback prouvé.**
+- [x] **Site en ligne, supervisé, avec un rollback prouvé.** — P4-13, P4-14, P4-15 (§22).
 
 S'y ajoutent deux vérifications héritées, qui deviennent réelles ici :
 
 - [ ] L'image de production reste **sous 400 Mo** après l'entrée du runtime MDX (P4-05).
-- [ ] `SITE_URL` : l'`ENV` de l'image et l'`env_file` de Compose **coïncident** (P4-15).
+- [x] `SITE_URL` : l'`ENV` de l'image et l'`env_file` de Compose **coïncident** — vérifié en P4-13 sur le document servi, et devenu un point de la checklist (`deploy/README.md` §8.3).
 
 ## 7. P4-02 — le layout documentaire
 
@@ -2301,7 +2301,7 @@ et lui seul. Les quatre écritures portent désormais la correction plutôt que 
 |---|---|
 | Performance contre le **site réel** | **P4-16**, et cela suppose de lever Cloudflare Access. L'audit d'ici juge l'artefact, pas le service |
 | Supervision (healthcheck + sonde externe) | **P4-14** — le conteneur a son healthcheck, aucune sonde n'observe de l'extérieur |
-| Checklist de mise en ligne et rollback rejoué | **P4-15**. Le rollback a été **prouvé** en P1-15 (26 sondes, aucune indisponibilité observée) ; la checklist reste à écrire |
+| Checklist de mise en ligne et rollback rejoué | ✅ **Soldé en P4-15** (§22) — et la preuve de P1-15 invoquée ici s'est révélée **périmée** : prise en *DNS only*, son critère a cessé de parler de l'origine le 2026-08-12 |
 | Les `.mts` de `scripts/` hors du périmètre de `tsconfig.json` | Six fichiers, exposition antérieure à cette tâche (§20.7) |
 
 ## 21. P4-14 — la sonde externe, et la 200 qui ne prouvait rien
@@ -2515,3 +2515,80 @@ de `afterEach`, pour une seconde sur une suite qui en dure soixante.
 | Disque, mémoire, mises à jour, dérive de `CF-ORIGIN` | Autres moitiés de R-15, **hors périmètre** — nommées dans `deploy/README.md` §7.5 pour ne pas croire le risque couvert |
 | Expiration du certificat | **Non relevée, délibérément** : le certificat vu de l'extérieur est celui de Cloudflare, qu'il renouvelle seul. Celui qui peut expirer est celui de Caddy, et son expiration fait répondre **526** — que la sonde nomme |
 | La sonde partage sa plateforme avec le déploiement | Arbitrage assumé ; le déclencheur de bascule vers une sonde tierce est écrit (`deploy/README.md` §7.5) |
+
+## 22. P4-15 — la checklist, et la preuve qui avait cessé de prouver
+
+### 22.1 Ce que la tâche devait faire, et ce qu'elle a trouvé en le faisant
+
+La commande était simple : écrire la **checklist de mise en ligne**, et **rejouer le rollback** en
+conditions réelles. Le rollback lui-même était réputé *prouvé* depuis P1-15 — trois documents le
+disaient, avec son chiffre : « 26 sondes HTTPS à 0,5 s pendant l'opération, aucun échec observé ».
+
+Le rejeu a montré que cette preuve **ne peut plus être refaite par ses propres moyens**.
+
+Elle date du 2026-08-11, quand le proxy Cloudflare était encore en *DNS only* — la roadmap le dit
+dans la même entrée, deux lignes plus bas, comme une réserve hors périmètre. Une 200 venait donc de
+l'origine, et le chiffre disait ce qu'il avait l'air de dire. Le passage en *Full (strict)* le
+2026-08-12 a changé ce que ce critère **signifie** ; P4-14 l'a mesuré sur un arrêt provoqué. Refaire
+aujourd'hui le geste de P1-15 rendrait 26 verts sur une origine morte.
+
+⭐⭐⭐ **Une preuve d'exploitation peut se périmer sans jamais devenir fausse** — il suffit qu'un
+élément d'infrastructure change ce que son critère mesure. Elle ne se relit pas comme une erreur :
+elle se relit exactement comme le jour où elle a été écrite, ce qui est précisément le problème.
+
+### 22.2 Le rejeu, et la seconde qu'un statut n'aurait pas vue
+
+Aller-retour complet le 2026-08-18, les deux sens par le **même verbe** `rollback` — la symétrie de
+`.tag.previous` établie en P1-15 tient toujours, et c'est elle qui a servi au retour.
+
+| | Aller | Retour |
+|---|---|---|
+| Durée rendue par `deploy.sh` | 10 s | 9 s |
+| Origine absente, **observée** | **~1 s** (4 verdicts rouges) | aucune (294 verdicts verts) |
+| Statut HTTP pendant la coupure | **200** — corps de Cloudflare | — |
+
+⛔⛔ **La coupure existe, et elle est invisible à tout contrôle jugé sur le statut.** Cette fois, ce
+n'est pas un arrêt provoqué pour la démonstration (§21.3) : c'est une opération d'exploitation
+normale, celle qu'on déclenche précisément quand la production va mal.
+
+⭐⭐ **La mesure emploie la sonde, elle ne la refait pas.** `check-uptime.mts` mis en boucle dans un
+conteneur unique avec `UPTIME_RETRY_DELAY_MS=0` rend ~5 à 6 verdicts par seconde — dix fois la
+cadence de P1-15 — sans qu'une seule ligne de ce qui est *vérifié* change. C'est ce que le prompt de
+reprise demandait : employer l'outil laissé par P4-14, pas écrire un `curl` pour l'occasion.
+
+⚠️ **Deux réserves, non levées** — coupure non déterministe, couverture non continue. Elles sont
+écrites une fois, avec les horodatages qui les fondent, dans `deploy/README.md` §4.3 : c'est le
+relevé d'exploitation, et ce journal n'en est pas une seconde copie.
+
+### 22.3 La checklist, écrite après exécution
+
+`deploy/README.md` §8. Elle n'a pas été imaginée : chacun de ses points a été joué le jour même — la
+moitié « déployer » par la fusion de la PR #33, la moitié « revenir » par l'aller-retour du §4.3.
+
+Elle est gouvernée par une seule règle, et c'est la leçon 7 de la phase : **ne juger aucune étape sur
+un code de retour**. D'où ses points les moins évidents :
+
+- **la cible de retour doit être vérifiée locale AVANT de déclencher** — sinon le rollback
+  retélécharge l'image au pire moment ;
+- **`ssh-add -l` fait partie de la préparation** — sans agent, une clé verrouillée et une clé non
+  autorisée rendent le même message ;
+- **un tir planifié de la sonde doit être vu vert après le déploiement** : le `cron` ne s'exécute que
+  depuis la branche par défaut, c'est l'unique preuve que la supervision est vivante sur l'état
+  déployé.
+
+### 22.4 Les arbitrages, posés pendant la tâche
+
+| Sujet | Tranché | Condition de réouverture |
+|---|---|---|
+| La seconde de coupure au rollback | **Assumée et mesurée**, pas supprimée : l'éliminer demande deux conteneurs et une bascule côté Caddy | Le jour où le site a une audience — donc après P4-16 |
+| La preuve de P1-15 | **Amendée, pas effacée** : elle était vraie, et la raison de sa péremption est la leçon | — |
+| Le rejeu jugé par la sonde plutôt que par un contrôle écrit pour l'occasion | **Sonde en boucle** : cadence écrite au site d'appel, critère inchangé | Si la cadence devait dépendre d'un réglage du script plutôt que de l'appel |
+
+### 22.5 Ce que P4-15 laisse ouvert
+
+| Sujet | État |
+|---|---|
+| Vérification depuis l'extérieur | **P4-16**, et suppose de lever Cloudflare Access |
+| Bascule sans coupure | **Hors périmètre**, arbitrage ci-dessus, nommé dans `deploy/README.md` §8.5 |
+| Références `§x.y` recopiées dans des chaînes de caractères | **Ouvert** : `check-uptime.mts` renvoyait au §7.1 pour ce qui est au §7.2, corrigé à la main le 2026-08-18. Rien ne garde ces renvois — un gate qui vérifie que les sections citées depuis `scripts/` existent reste à écrire |
+| DMARC | Toujours pas publié — hors phase |
