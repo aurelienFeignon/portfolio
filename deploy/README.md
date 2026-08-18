@@ -292,7 +292,38 @@ Remise à niveau ensuite, par le même chemin, en nommant explicitement le tag :
 ssh aurel@<ip> 'SSH_ORIGINAL_COMMAND="deploy <sha40>" /srv/portfolio/deploy.sh'
 ```
 
-### 4.3 Le même rollback rejoué — exécuté le 2026-08-18 (P4-15)
+---
+
+## 4.2 Le site est volontairement fermé au public
+
+Depuis le 2026-08-15, `aurelienfeignon.com` est derrière **Cloudflare Access**, avec authentification
+**OTP par e-mail**, et le restera **tant que le portfolio n'est pas terminé**. Décision de
+l'utilisateur : le site est déployé et fonctionne, il n'est simplement pas encore montrable.
+
+⚠️ **Conséquence pour tout diagnostic.** Une requête anonyme sur n'importe quelle URL renvoie une
+redirection 302 vers `augure.cloudflareaccess.com/cdn-cgi/access/login/…`. Cela **ressemble** à une
+panne de déploiement ou à une zone DNS cassée, et ce n'en est pas une. Ce qui fait foi est la
+conclusion du workflow CI sur `main` — les jobs « publier l'image sur GHCR » et « déployer sur le
+VPS » :
+
+```bash
+gh run list --branch main --limit 1
+```
+
+⚠️ **Conséquence pour P4-16.** La vérification post-déploiement — indexation, `canonical`,
+`hreflang`, `sitemap.xml`, `robots.txt` observés depuis l'extérieur — est **impossible tant
+qu'Access est actif**, et aucun moteur de recherche n'atteint le site. Lever Access fait donc partie
+de la mise en ligne réelle, au même titre que le déploiement lui-même.
+
+✅ **La réserve sur le `robots.txt` managé est tranchée — 2026-08-17, P4-14.** Elle était fondée :
+Cloudflare servait ses seuls « Content Signals », **en 200**, sans la directive `Sitemap:` de
+l'application. Le sitemap n'était donc annoncé à personne. Depuis l'application Access en **Bypass**
+sur `/robots.txt` (§7.2), Cloudflare **fusionne** au lieu de remplacer — ses signaux, puis le fichier
+de l'origine. Mesuré des deux côtés, avant et après.
+
+---
+
+## 4.3 Le même rollback rejoué — exécuté le 2026-08-18 (P4-15)
 
 Rejoué pour deux raisons. La première est le critère de sortie de la Phase 4 : *rollback prouvé*. La
 seconde n'était pas prévue — **la preuve du §4.1 ne peut plus être refaite par ses propres moyens.**
@@ -332,35 +363,6 @@ le §4.1, à une cadence dix fois plus fine.
 ⭐ **La cible de retour était locale** (`docker images` : image `daffa6de…` présente depuis 19 h),
 d'où les 10 s. C'est exactement ce que protège le `docker system prune -f` sans `-a` (§1.1) — à
 vérifier **avant** de déclencher, la checklist du §8 le demande.
-
----
-
-## 4.2 Le site est volontairement fermé au public
-
-Depuis le 2026-08-15, `aurelienfeignon.com` est derrière **Cloudflare Access**, avec authentification
-**OTP par e-mail**, et le restera **tant que le portfolio n'est pas terminé**. Décision de
-l'utilisateur : le site est déployé et fonctionne, il n'est simplement pas encore montrable.
-
-⚠️ **Conséquence pour tout diagnostic.** Une requête anonyme sur n'importe quelle URL renvoie une
-redirection 302 vers `augure.cloudflareaccess.com/cdn-cgi/access/login/…`. Cela **ressemble** à une
-panne de déploiement ou à une zone DNS cassée, et ce n'en est pas une. Ce qui fait foi est la
-conclusion du workflow CI sur `main` — les jobs « publier l'image sur GHCR » et « déployer sur le
-VPS » :
-
-```bash
-gh run list --branch main --limit 1
-```
-
-⚠️ **Conséquence pour P4-16.** La vérification post-déploiement — indexation, `canonical`,
-`hreflang`, `sitemap.xml`, `robots.txt` observés depuis l'extérieur — est **impossible tant
-qu'Access est actif**, et aucun moteur de recherche n'atteint le site. Lever Access fait donc partie
-de la mise en ligne réelle, au même titre que le déploiement lui-même.
-
-✅ **La réserve sur le `robots.txt` managé est tranchée — 2026-08-17, P4-14.** Elle était fondée :
-Cloudflare servait ses seuls « Content Signals », **en 200**, sans la directive `Sitemap:` de
-l'application. Le sitemap n'était donc annoncé à personne. Depuis l'application Access en **Bypass**
-sur `/robots.txt` (§7.2), Cloudflare **fusionne** au lieu de remplacer — ses signaux, puis le fichier
-de l'origine. Mesuré des deux côtés, avant et après.
 
 ---
 
@@ -610,15 +612,23 @@ elles relèvent de la Phase 15 — les nommer ici évite de croire le risque cou
 « déployer » par la fusion de la PR #33 (06:34 UTC) et la moitié « revenir » par l'aller-retour du
 §4.3. La Phase 15 la réutilise plutôt que d'en écrire une seconde.
 
+Les commandes distantes emploient l'alias `portfolio` du `~/.ssh/config` de l'exploitant — c'est
+le même hôte que le `aurel@<ip>` des sections précédentes, écrit sous la forme qui a réellement servi.
+
 ⛔ **La règle qui gouverne toute la liste** : ne juger aucune étape sur un code de retour. Un CDN est
 interposé, et il répond à la place de l'origine — mesuré deux fois (§7.4, §4.3). Ce qui fait foi est
 la conclusion du workflow d'un côté, la sonde de l'autre.
 
 ### 8.1 Avant
 
-- [ ] **La CI est verte sur le commit exact à déployer** — les cinq jobs, `déployer sur le VPS`
-      compris : `gh run list --branch main --limit 1`. Le vert de GHCR ne dit rien du VPS.
-- [ ] **Relever l'état courant** : `SSH_ORIGINAL_COMMAND="status" /srv/portfolio/deploy.sh`.
+- [ ] **La CI de la PR est verte** — trois jobs seulement (`versions de référence`,
+      `lint · typecheck · tests · budget de bundle`, `image de production · end-to-end`).
+      ⛔ `publier l'image sur GHCR` et `déployer sur le VPS` sont gardés par
+      `github.event_name == 'push' && github.ref == 'refs/heads/main'` : **ils n'existent pas avant
+      la fusion**, et le dernier run de `main` parle du commit précédent, pas du vôtre. Les cinq
+      jobs se vérifient au §8.3, jamais ici.
+- [ ] **Relever l'état courant** :
+      `ssh portfolio 'SSH_ORIGINAL_COMMAND="status" /srv/portfolio/deploy.sh'`.
       **Noter le tag courant** — c'est la cible de retour, et `deploy.sh` ne l'enregistre qu'après un
       déploiement réussi.
 - [ ] **L'image de la cible de retour est encore locale** sur le VPS
@@ -649,14 +659,25 @@ la conclusion du workflow d'un côté, la sonde de l'autre.
 - [ ] **Ce qui a changé est servi** — et vérifié sur le document servi, pas sur ces trois variables :
       elles peuvent coïncider pendant qu'un HTML gravé au build dit autre chose (P4-13). C'est le
       `canonical` du document qui tranche.
-- [ ] **Un tir planifié de la sonde est passé vert** depuis le déploiement
-      (`gh run list --workflow "Sonde externe" --limit 1`). Le `cron` ne s'exécute que depuis la
-      branche par défaut : c'est l'unique preuve que la supervision est vivante sur l'état déployé.
+- [ ] **Les cinq jobs du run de `main` ont conclu** — `déployer sur le VPS` compris :
+      `gh run watch <id> --exit-status`, ou `gh run list --branch main --limit 1`. Le vert de GHCR
+      ne dit rien du VPS.
+- [ ] **Un tir PLANIFIÉ de la sonde est passé vert** depuis le déploiement :
+      `gh run list --workflow "Sonde externe" --event schedule --limit 1`. ⛔ Sans `--event
+      schedule`, un `workflow_dispatch` déclenché à la main coche la case sans rien prouver — or ce
+      qu'on veut savoir est que le **`cron` est vivant**, et il ne s'exécute que depuis la branche
+      par défaut.
 
 ### 8.4 Si ça tourne mal
 
 - [ ] **Ne pas doubler la manœuvre** : si le conteneur n'atteint pas `healthy` en 120 s, `deploy.sh`
-      revient **de lui-même** au tag précédent et sort en 1. Lire son journal avant d'agir.
+      remet **de lui-même** le tag qui servait avant la tentative, et sort en 1. Lire son journal
+      avant d'agir.
+- [ ] ⛔⛔ **Après un retour AUTOMATIQUE, ne pas enchaîner un `rollback` à la main.**
+      `.tag.previous` n'est écrit **qu'après un succès** : il porte donc encore la version
+      d'**avant** celle qui servait, et un `rollback` reculerait de **deux** versions. Le vérifier
+      par `status` avant tout geste — c'est aussi ce qui protège la seule cible de retour connue
+      d'être écrasée par un déploiement raté.
 - [ ] Sinon, revenir à la main :
       `ssh portfolio 'SSH_ORIGINAL_COMMAND="rollback" /srv/portfolio/deploy.sh'`.
       Compter **~10 s**, dont **~1 s d'origine absente** sous un statut 200 constant (§4.3).

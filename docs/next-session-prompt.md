@@ -41,7 +41,14 @@ Les Phases 0, 1, 2 et 3 sont TERMINÉES et validées. Ne les refais pas, ne les 
 
 Phases 0 à 3 : **DONE**. **Phase 4 (Portfolio HTML) : en cours**, 16 tâches sur 17 closes — **le jalon T1 est atteint**.
 **Tout ce qui suit est fusionné sur `main` et déployé**, les cinq jobs verts à chaque fois —
-publication GHCR et déploiement VPS compris. P4-14 l'est depuis le 2026-08-17 (PR #32, `daffa6d`) — CI verte sur ce commit.
+publication GHCR et déploiement VPS compris. ⛔ **Sauf la dernière ligne du tableau tant que sa PR
+n'est pas fusionnée.** ⭐ L'état réellement déployé ne se recopie pas ici, il **se lit** — trois SHA
+successifs ont pourri à cet endroit :
+
+```bash
+gh run list --branch main --limit 1                                   # ce que la CI a conclu
+ssh portfolio 'SSH_ORIGINAL_COMMAND="status" /srv/portfolio/deploy.sh' # ce que le serveur SERT
+```
 
 | Tâche | Ce qu'elle a livré |
 |---|---|

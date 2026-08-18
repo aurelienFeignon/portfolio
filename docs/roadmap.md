@@ -365,8 +365,10 @@ site mort. Le rejeu jugé sur le corps observe **~1 s d'indisponibilité de l'or
 (`deploy/README.md` §4.3). Le rollback, lui, fonctionne — c'est sa *preuve d'innocuité* qui a changé
 de sens.
 Procédure d'exploitation dans [`deploy/README.md`](../deploy/README.md), écrite après exécution.
-⚠ Deux points hors périmètre restent ouverts : le proxy Cloudflare est encore en *DNS only* (le CDN
-de H-01b n'est donc pas actif), et DMARC n'est pas publié.
+⚠ Deux points hors périmètre étaient ouverts à la clôture : le proxy Cloudflare en *DNS only* (le
+CDN de H-01b inactif) et DMARC non publié. ✅ **Le premier est levé depuis le 2026-08-12** — proxy en
+*Full (strict)*, CDN actif (`deploy/README.md` §5) —, et c'est précisément cette bascule qui a périmé
+la mesure de disponibilité ci-dessus. **DMARC reste à publier.**
 · Depends on: P1-13, P1-14, **P1-17**
 Acceptance:
 - VPS provisionné : pare-feu fermé par défaut, SSH par clé sans mot de passe ni accès root,
