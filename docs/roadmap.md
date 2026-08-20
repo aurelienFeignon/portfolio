@@ -3,13 +3,14 @@
 > Statut global : **Phases 0, 1, 2 et 3 terminées et validées.** **Phase 4 ouverte le 2026-08-15**,
 > dernière phase de la tranche T1. **P2-11 (rédaction du contenu réel) est DONE (2026-08-15)** : le
 > contenu d'amorçage est entièrement remplacé, et le chemin critique de T1 est donc levé.
-> **P4-07 à P4-15 closes** : 16 tâches de la Phase 4 sur 17. **Le jalon T1 est atteint** — le
-> portfolio documentaire est en production, supervisé, avec une checklist de mise en ligne et un
-> rollback rejoué. Reste **P4-16** (vérification depuis l'extérieur, qui suppose de lever Access).
+> **PHASE 4 CLOSE — 17 tâches sur 17, et le jalon T1 est atteint.** Le portfolio documentaire est en
+> production, supervisé, avec une checklist de mise en ligne, un rollback rejoué et une vérification
+> **depuis l'extérieur** : 14 URL, `canonical`, `hreflang` et `lang` concordants, Lighthouse contre le
+> site réel (a11y 100, SEO 100, bonnes pratiques 100). Suite : **Phase 5 — Fondation Three.js**.
 > Journal de la Phase 4 : [`phase-4-log.md`](./phase-4-log.md) — phases précédentes :
 > [`phase-3-log.md`](./phase-3-log.md), [`phase-2-log.md`](./phase-2-log.md),
 > [`phase-1-log.md`](./phase-1-log.md)
-> Dernière mise à jour : 2026-08-18
+> Dernière mise à jour : 2026-08-20 (Phase 4 close)
 
 Ce document est la **source de vérité unique des tâches**. Les identifiants sont stables et ne
 sont jamais réutilisés, même si une tâche est abandonnée.
@@ -734,7 +735,7 @@ reste et le filet de sécurité permanent du projet. Journal de phase :
 | P4-14 | Supervision : healthcheck conteneur + sonde externe avec alerte (risque R-15) | **DONE** *(2026-08-17)* | P4-13 |
 | P4-15 | Checklist de mise en ligne + rollback vérifié en conditions réelles | **DONE** *(2026-08-18)* | P4-13 |
 | P4-17 | **Précision variable des dates** — préalable de P4-09, levé | **DONE** *(2026-08-16)* | P4-04 |
-| P4-16 | Vérification post-déploiement : indexation, canonical, hreflang, sitemap accessibles publiquement — **suppose de lever Cloudflare Access**, qui ferme le site au public depuis le 2026-08-15 (`deploy/README.md` §4.2) | TODO | P4-13 |
+| P4-16 | Vérification post-déploiement : indexation, canonical, hreflang, sitemap accessibles publiquement | **DONE** *(2026-08-20)* | P4-13 |
 
 **P4-01 — ADR-0010, stratégie de style**
 Status: **DONE** (2026-08-15) — **CSS Modules + tokens en variables CSS**, décidé sur une exécution
@@ -1070,6 +1071,33 @@ Acceptance:
 - Disponibilité pendant l'opération **mesurée**, avec la cadence et les réserves de la mesure.
 - Procédure de retour utilisable sans relire le journal de phase.
 
+**P4-16 — Vérification post-déploiement, depuis l'extérieur**
+Status: **DONE** (2026-08-20) — Cloudflare Access **levé temporairement** à la demande de
+l'exploitant : le site a été réellement public le temps de la mesure. 14 URL au sitemap, 14 pages
+servies, `lang` / `canonical` / `hreflang` concordants — **0 écart sur 14**. Les 404 localisées
+tiennent en production, `/_next/inexistant` compris. Relevés en `deploy/README.md` §9.
+✅ **Le relevé Lighthouse que P4-13 avait renvoyé ici est pris, contre le SERVICE** : accessibilité
+100, SEO 100, **bonnes pratiques 100**, performance 98 mobile / 100 desktop.
+⭐⭐ **Le 78 local en « bonnes pratiques » n'était pas une dette, c'était l'adresse d'interrogation** —
+`is-on-https` ne peut passer que sur une origine en HTTPS. Juger la catégorie sur ses *audits* a
+évité d'inscrire une fausse dette au budget.
+⛔⛔ **Deux instruments ont menti avant toute vérification** : une lecture sensible à la casse rendait
+« aucun hreflang » sur quatorze pages qui en portent trois (Next sert `hrefLang`, valide en HTML), et
+`check-lighthouse.mts` imprimait « contre l'image de production » et « ce banc sert du HTTP nu »
+**pendant qu'il auditait le site en HTTPS**. ⭐⭐⭐ **Une absence et un instrument aveugle se lisent
+exactement pareil.**
+⭐ Outil laissé : `make check-public-seo`, rejouable, origine par argument. ⛔ **Il ne peut pas être
+un gate de CI** — derrière Access il serait rouge en permanence, pour une raison qui n'est pas un
+défaut ; il nomme ce cas au lieu de rendre « 302 inattendue ».
+⚠️ Ce que la tâche ne dit pas : rien sur l'indexation **effective** — aucun moteur sollicité, aucune
+Search Console déclarée. Le site est établi *indexable*, pas *indexé*.
+· Depends on: P4-13, P4-14
+Acceptance:
+- `canonical`, `hreflang`, `lang`, sitemap et `robots.txt` observés **depuis l'extérieur**, en
+  visiteur anonyme, et **concordants entre eux**.
+- Lighthouse mesuré contre le **site réel**, seuils de sortie de phase appliqués.
+- Vérification **rejouable** par un outil du dépôt, et non par une session d'observation.
+
 **Critères de sortie** — Toutes les exigences de la §20 de la mission satisfaites ; Lighthouse
 mobile ≥ 85 / a11y 100 / SEO 100 ; 0 violation axe serious/critical ; le projet `no-js` passe ;
 **aucune dépendance Three.js dans le dépôt à ce stade** ; **site en ligne, supervisé, avec un
@@ -1078,8 +1106,9 @@ rollback prouvé**.
 ✅ ~~**Le critère Lighthouse n'est mesuré nulle part**~~ — constaté pendant l'inventaire de P4-12,
 **soldé en P4-13** : `scripts/check-lighthouse.mts` le mesure contre l'image de production, sur
 `make ci` et sur la CI. Accessibilité et SEO bloquent à 100 ; les bonnes pratiques sont jugées sur
-leurs audits ; la performance est relevée. ⚠️ **Reste ouvert** : la performance contre le **site
-réel**, réseau et CDN compris — c'est P4-16, et cela suppose de lever Cloudflare Access.
+leurs audits ; la performance est relevée. ✅ **Le volet « site réel » est soldé en P4-16** — a11y
+100, SEO 100, bonnes pratiques 100, performance 98 mobile / 100 desktop, Access levé
+(`performance-budget.md` §3).
 
 ✅ ~~**Site supervisé**~~ — **soldé en P4-14** : le healthcheck du conteneur ne voit que l'intérieur
 du conteneur ; une sonde externe le complète, vue rouge sur un arrêt volontaire de la production,

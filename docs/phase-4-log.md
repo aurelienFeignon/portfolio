@@ -2592,3 +2592,93 @@ un code de retour**. D'où ses points les moins évidents :
 | Bascule sans coupure | **Hors périmètre**, arbitrage ci-dessus, nommé dans `deploy/README.md` §8.5 |
 | Références `§x.y` recopiées dans des chaînes de caractères | **Ouvert** : `check-uptime.mts` renvoyait au §7.1 pour ce qui est au §7.2, corrigé à la main le 2026-08-18. Rien ne garde ces renvois — un gate qui vérifie que les sections citées depuis `scripts/` existent reste à écrire |
 | DMARC | Toujours pas publié — hors phase |
+
+## 23. P4-16 — la vérification depuis l'extérieur, et deux instruments qui mentaient
+
+### 23.1 Ce que la tâche a établi
+
+Access levé temporairement le 2026-08-20, à la demande de l'exploitant : le site a été **réellement
+public** le temps de la mesure. Relevés complets dans `deploy/README.md` §9 — ici, ce qui se
+transporte.
+
+⚠️ **La date de cette section a été fausse pendant une heure, et rien dans le dépôt ne l'aurait
+dit.** L'horloge de la machine de travail affichait le 2026-08-18 ; GitHub et le serveur, eux,
+comptaient le 2026-08-20 — le conteneur de production affichait `Up 2 days` sur un déploiement que je
+croyais du matin même. ⭐⭐ **Une date écrite dans un journal se prend sur l'horloge de ce qu'on
+décrit** — le serveur, la forge —, jamais sur celle du poste qui écrit.
+
+Le site est **indexable et cohérent avec lui-même** : 14 URL au sitemap, 14 pages servies, `lang`,
+`canonical` et `hreflang` concordants, **0 écart sur 14**. Les 404 localisées tiennent en production,
+y compris sur `/_next/inexistant`, la voie que le proxy n'atteint pas — le plancher
+`experimental.globalNotFound` de P4-10 fait ce qu'on attendait de lui, mesuré hors du banc pour la
+première fois.
+
+Et le relevé que P4-13 avait explicitement renvoyé ici : **Lighthouse contre le service**, pas contre
+l'artefact — accessibilité 100, SEO 100, bonnes pratiques **100**, performance 98 mobile / 100
+desktop. ⭐⭐ **Le 78 en « bonnes pratiques » du banc local n'était pas une dette** : `is-on-https` et
+`redirects-http` ne peuvent passer que sur une origine en HTTPS. Le choix de P4-13 — juger cette
+catégorie sur ses **audits** et non sur son score — est ce qui a évité d'inscrire une fausse dette au
+budget, et le site réel vient de le confirmer.
+
+### 23.2 ⛔⛔ Les deux instruments ont menti avant que quoi que ce soit ne soit vérifié
+
+C'est le constat de la tâche, et il est arrivé deux fois en une heure.
+
+**Une lecture sensible à la casse a rendu « aucun hreflang » sur quatorze pages qui en portent
+trois.** Next sert `hrefLang="fr"`, avec le L majuscule du nom de propriété React ; HTML étant
+insensible à la casse, la balise est valide et les robots la lisent. Seule ma regex ne la lisait pas.
+⭐⭐⭐ **Une absence et un instrument aveugle se lisent exactement pareil** — la seule différence est
+qu'on a vérifié l'instrument. Le contrôle porte maintenant sur `<link rel="alternate">` sans supposer
+ni l'ordre ni la casse des attributs, et le banc le tient avec une fixture en `hrefLang`.
+
+**`check-lighthouse.mts` a imprimé « contre l'image de production » et « ce banc sert du HTTP nu »
+pendant qu'il auditait le site en HTTPS**, avec `is-on-https` à 100 dans le même rapport. Sa prose
+était constante, sa cible ne l'est pas. C'est le défaut que toute la Phase 4 traque — *une
+affirmation que rien ne confronte au monde* — trouvé dans le rapport qui devait servir de preuve à
+P4-16. Corrigé : le texte **dérive** désormais de l'adresse interrogée.
+
+### 23.3 L'outil, et pourquoi il n'est pas un gate
+
+`scripts/check-public-seo.mts` + `make check-public-seo`. L'origine passe par **argument**, comme
+pour la sonde de P4-14 et pour la même raison.
+
+⛔ **Il ne peut pas être un gate de CI** : derrière Access, toute page rend 302, donc il serait rouge
+en permanence pour une raison qui n'est pas un défaut. Il **nomme** ce cas plutôt que de rendre « 302
+inattendue » — c'est son échec le plus probable, et le plus trompeur. La checklist du §8.3 l'appelle
+au moment d'une mise en ligne.
+
+⭐⭐ **Le banc l'a vu rouge, et le rouge a payé deux fois.** Le cas « une URL du sitemap appartient à
+une autre origine » a échoué non pas sur la fixture mais sur **deux défauts du script** : un `fetch`
+sans garde tuait le processus sur un hôte injoignable — la panne la plus banale qu'un sitemap puisse
+porter — et la ligne « ✓ 14 URL, **toutes** sur l'origine » s'imprimait alors que l'écart venait
+d'être enregistré. Le second est, une fois de plus, une prose constante décrivant un fait variable.
+
+### 23.3 bis Ce que la revue a trouvé, et qui relève de la même famille
+
+⛔⛔ **Le contrôle d'origine du sitemap comparait un préfixe de chaîne.**
+`https://exemple.com.pages.dev/en` commence par `https://exemple.com` et n'en est pas — un alias de
+préproduction resté au sitemap, c'est-à-dire du contenu dupliqué, c'est-à-dire **exactement ce que ce
+contrôle existe pour voir**. Prouvé par exécution en revue, deux serveurs à l'appui : sortie en 0,
+avec « ✓ 14 URL, *toutes* sur l'origine » imprimé par-dessus. Le banc porte le cas, vu rouge avant
+le correctif ; la comparaison porte désormais sur les origines **analysées**.
+
+⛔⛔ **Et le correctif de `check-lighthouse.mts` n'allait qu'à moitié.** Le *libellé* dérivait de la
+cible ; le *verdict*, lui, continuait de raconter — `is-on-https` et `redirects-http` restaient
+filtrés inconditionnellement. Une régression d'« Always Use HTTPS » aurait donc produit une sortie en
+0 **pendant que le rapport imprime que ces audits passent**. ⭐⭐ **Corriger la phrase et laisser le
+verdict est la même faute, déplacée d'un cran** : ce qui trompe n'est pas le texte, c'est l'accord
+entre ce qu'on affirme et ce qu'on vérifie.
+
+⭐ Le correctif a lui-même failli introduire une panne franche : `SUR_HTTPS` était déclarée **après**
+la boucle d'audit qui devait la lire — zone morte, script mort à la première mesure. Remontée auprès
+de `BASE_URL`, avec la raison écrite à côté.
+
+### 23.4 Ce que P4-16 laisse ouvert
+
+| Sujet | État |
+|---|---|
+| Indexation **effective** | **Non couverte** : aucun moteur sollicité, aucune Search Console déclarée. La tâche établit que le site est *indexable*, pas qu'il est *indexé* |
+| Le site reste-t-il public ? | **Décision de l'exploitant.** Access a été levé pour la mesure ; la fermeture reste la règle jusqu'à la fin du portfolio |
+| `make check-public-seo` en CI | **Impossible tant qu'Access est actif** — et ce serait un faux rouge, pas une garde |
+| Quatrième lanceur de sous-processus dans les bancs | Le déclencheur d'extraction passe de trois à **quatre** fichiers ; P4-16 refuse de réécrire trois bancs antérieurs dans une PR de fonctionnalité, comme le dépôt l'a déjà tranché pour `htmlOf` |
+| Références `§x.y` dans des chaînes | Toujours ouvert (P4-15 §22.5) — et ce script en cite deux de plus |
