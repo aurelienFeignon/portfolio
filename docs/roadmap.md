@@ -1132,7 +1132,7 @@ le 2026-08-18, jugé sur le corps : aller-retour par le même verbe, **~1 s d'or
 | ID | Tâche | Dépend de |
 |---|---|---|
 | P5-01 | Vérification de la matrice de compatibilité React / R3F / drei (risque R-08) — **DONE** *(2026-08-20)* | P4-12 |
-| P5-02 | Installation justifiée de `three`, `@react-three/fiber`, `@react-three/drei` | P5-01 |
+| P5-02 | Installation justifiée de `three`, `@react-three/fiber`, `@react-three/drei` — **DONE** *(2026-08-20)* | P5-01 |
 | P5-03 | `resolveCapabilityTier` (fonction pure) + adaptateur navigateur | P5-02 |
 | P5-04 | Montage du canvas : dynamique, `ssr:false`, après idle, `aria-hidden` | P5-03 |
 | P5-05 | Scène primitive : bureau + trois écrans en géométries de base | P5-04 |
@@ -1141,6 +1141,29 @@ le 2026-08-18, jugé sur le corps : aller-retour par le même verbe, **~1 s d'or
 | P5-08 | Panneau de diagnostic : FPS, draw calls, triangles, mémoire | P5-06 |
 | P5-09 | Test de non-régression : aucun module `three` dans les chunks initiaux | P5-04 |
 | P5-10 | Boucle de rendu à la demande, pause hors écran / onglet masqué | P5-06 |
+
+**P5-02 — Installation justifiée des trois dépendances 3D**
+Status: **DONE** (2026-08-20) — `three@0.185.1`, `@react-three/fiber@9.7.0`,
+`@react-three/drei@10.7.8` et `@types/three@0.185.4`, **épinglés à la version exacte** (R-08).
+Justification : **ADR-0016**. ⭐ Numéro 0016 et non 0011 : les numéros 0011 à 0015 sont réservés à des
+décisions planifiées, dont l'une est **nommée par P8-01** — un numéro réservé ne se reprend pas.
+⭐⭐ **Installer ne coûte rien, et c'est mesuré** : socle partagé **126,4 Ko**, **8,2 Ko** par route et
+image de production **273 Mo** — les trois inchangés. Attendu, rien n'important encore ces paquets ;
+mais *attendu n'est pas vérifié*, et c'est la forme d'affirmation que cette phase a appris à ne pas
+croire sur parole. ⭐ L'image ne bouge pas parce que la sortie `standalone` n'emporte que ce que le
+traceur atteint — le même mécanisme qui, en P4-13, avait **démenti** quatre documents en y incluant
+`content/`.
+⛔ **Un garde ESLint refuse l'import GLOBAL de `drei`** (`import * as`, `export *`), les deux
+sélecteurs **vus rouges avant d'être crus**, le cas nominal vérifié vert. ⚠️ Il ne couvre que le cas
+catastrophique : **quatre composants nommés coûtent déjà 303,7 Ko**, soit 95 % de la cible.
+⭐⭐ **Un garde syntaxique attrape une forme, pas une quantité** — le garde budgétaire suppose un
+chunk, donc P5-04 / P5-09.
+· Depends on: P5-01
+Acceptance:
+- Dépendances épinglées à la version exacte, aucune plage.
+- Décision structurante écrite dans un ADR : problème, alternatives mesurées, conséquences.
+- **Preuve que l'installation ne change rien à ce qui est servi**, par mesure avant/après.
+- Contrainte d'usage de `drei` tenue par un garde, et **les limites du garde écrites**.
 
 **P5-01 — Matrice de compatibilité React / R3F / drei**
 Status: **DONE** (2026-08-20) — **GO pour P5-02** aux versions `three@0.185.1`,
