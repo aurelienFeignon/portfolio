@@ -323,6 +323,13 @@ de l'origine. Mesuré des deux côtés, avant et après.
 
 ---
 
+⭐ **Access a été levé temporairement le 2026-08-18**, à la demande de l'exploitant, le temps
+d'exécuter P4-16 (§9). Le site a été **réellement public** pendant cette fenêtre. La fermeture reste
+la règle jusqu'à la fin du portfolio ; la vérification, elle, ne pouvait pas être faite autrement —
+c'est écrit ici depuis le 2026-08-15.
+
+---
+
 ## 4.3 Le même rollback rejoué — exécuté le 2026-08-18 (P4-15)
 
 Rejoué pour deux raisons. La première est le critère de sortie de la Phase 4 : *rollback prouvé*. La
@@ -659,6 +666,10 @@ la conclusion du workflow d'un côté, la sonde de l'autre.
 - [ ] **Ce qui a changé est servi** — et vérifié sur le document servi, pas sur ces trois variables :
       elles peuvent coïncider pendant qu'un HTML gravé au build dit autre chose (P4-13). C'est le
       `canonical` du document qui tranche.
+- [ ] **Si le site est ouvert au public** : `make check-public-seo` → vert. Il lit `robots.txt`, le
+      sitemap et **chaque page qu'il annonce**, et compare `canonical`, `lang` et `hreflang` à ce que
+      le sitemap déclare (§9). ⚠️ Derrière Access, il rend une erreur qui **nomme** la fermeture — ce
+      n'est pas un défaut, et c'est pourquoi il n'est pas un gate de CI.
 - [ ] **Les cinq jobs du run de `main` ont conclu** — `déployer sur le VPS` compris :
       `gh run watch <id> --exit-status`, ou `gh run list --branch main --limit 1`. Le vert de GHCR
       ne dit rien du VPS.
@@ -701,3 +712,34 @@ l'image de production (87 fichiers, le traceur de Next l'inclut dans la sortie `
 quatre documents ont nié pendant quatre phases. L'exigence « aucune route ne se rend à la demande »
 tient toujours, mais ce qui la protège est **`check-static-rendering.mts`, et lui seul** — un gate de
 la CI, pas une propriété de l'image. Aucune étape de cette checklist ne le remplace.
+
+---
+
+## 9. Vérification post-déploiement — exécutée le 2026-08-18 (P4-16)
+
+Ce que le site annonce à un robot, constaté **depuis l'extérieur**, Access levé. Rejouable par
+`make check-public-seo` (`scripts/check-public-seo.mts` ; l'origine passe par argument).
+
+| Contrôle | Relevé |
+|---|---|
+| `robots.txt` | `User-Agent: *` / `Allow: /`, et `Sitemap:` déclaré. Le bloc managé de Cloudflare le **précède** et bloque GPTBot et meta-externalagent — il **fusionne**, il ne remplace plus (§7.2) |
+| `sitemap.xml` | **14 URL**, toutes sur l'origine de production, chacune avec ses trois `hreflang` |
+| Les 14 pages | 200, `<html lang>` conforme au segment d'URL, `canonical` **égal à l'URL du sitemap**, et hreflang **identiques** à ceux du sitemap — **0 écart sur 14** |
+| 404 | `/fr/inexistant`, `/en/inexistant`, `/inexistant` et **`/_next/inexistant`** rendent 404 avec un `lang` et un `noindex`. Le plancher `globalNotFound` de P4-10 tient en production |
+| En-têtes | HSTS `max-age=31536000; includeSubDomains`, `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`. Aucun `x-robots-tag` ne contredit l'indexation |
+| Lighthouse **contre le site réel** | accessibilité **100**, SEO **100**, bonnes pratiques **100**, performance **98 mobile / 100 desktop** (mobile+desktop, accueil et fiche) |
+
+⭐⭐ **« Bonnes pratiques » vaut 100 ici et 78 en local**, et c'est la même page : `is-on-https` et
+`redirects-http` ne peuvent passer que sur une origine en HTTPS. C'est exactement ce que P4-13 avait
+renvoyé à cette tâche — *l'audit local juge l'artefact, celui-ci juge le service*.
+
+⛔⛔ **Deux instruments ont menti avant que quoi que ce soit ne soit vérifié.** La première lecture
+des `hreflang` était sensible à la casse et rendait « aucun hreflang » sur quatorze pages qui en
+portent trois : Next sert `hrefLang` avec un L majuscule, valide en HTML. Et `check-lighthouse.mts`
+imprimait « contre l'image de production » et « ce banc sert du HTTP nu » **pendant qu'il auditait le
+site en HTTPS** — sa prose était constante, sa cible ne l'est pas. Les deux sont corrigés ; le second
+dérive maintenant son texte de l'adresse qu'il interroge.
+
+⚠️ **Ce que cette vérification ne dit pas** : rien sur l'indexation *effective* — aucun moteur n'a
+été sollicité, aucune Search Console n'est déclarée. Elle établit que le site est **indexable** et
+qu'il est **cohérent avec lui-même**, ce qui est la partie que le dépôt peut tenir.

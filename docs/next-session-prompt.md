@@ -39,7 +39,7 @@ Les Phases 0, 1, 2 et 3 sont TERMINÉES et validées. Ne les refais pas, ne les 
 
 ## État
 
-Phases 0 à 3 : **DONE**. **Phase 4 (Portfolio HTML) : en cours**, 16 tâches sur 17 closes — **le jalon T1 est atteint**.
+Phases 0 à 3 : **DONE**. **Phase 4 (Portfolio HTML) : CLOSE — 17 tâches sur 17, jalon T1 atteint.**
 **Tout ce qui suit est fusionné sur `main` et déployé**, les cinq jobs verts à chaque fois —
 publication GHCR et déploiement VPS compris. ⛔ **Sauf la dernière ligne du tableau tant que sa PR
 n'est pas fusionnée.** ⭐ L'état réellement déployé ne se recopie pas ici, il **se lit** — trois SHA
@@ -68,8 +68,11 @@ ssh portfolio 'SSH_ORIGINAL_COMMAND="status" /srv/portfolio/deploy.sh' # ce que 
 | P4-13 | **Jalon T1** : Lighthouse mesuré et appliqué, prérequis vérifiés **sur le serveur** |
 | P4-14 | **Supervision** : sonde externe, vue rouge sur un **arrêt réel** de la production |
 | P4-15 | Checklist de mise en ligne (`deploy/README.md` §8) et **rollback rejoué** sur la production |
+| P4-16 | Vérification **depuis l'extérieur**, Access levé : 0 écart sur 14 pages, Lighthouse contre le site réel |
 
-**Reste : P4-16** seule (vérification depuis l'extérieur, qui suppose de lever Cloudflare Access).
+**La Phase 4 est close.** Suite : **Phase 5 — Fondation Three.js**, qui commence par **P5-01**, la
+vérification de la matrice de compatibilité React / R3F / drei (risque R-08) — un préalable, pas une
+formalité : c'est lui qui autorise ou non l'installation de P5-02.
 
 ### ⛔⛔ Ce qui fait foi pour juger d'un déploiement
 
@@ -184,18 +187,26 @@ mets l'ADR à jour et ajoute une ligne au journal des révisions. Jamais de chan
 
 ## Ta mission cette session
 
-**Enchaîne sur P4-16** — la vérification depuis l'extérieur : indexation, `canonical`, `hreflang`,
-`sitemap.xml` observés comme un visiteur anonyme les voit. **Elle suppose de lever Cloudflare
-Access**, donc de me le demander : c'est une décision de mise en ligne, pas une étape technique.
+**Ouvre la Phase 5 — Fondation Three.js**, en commençant par **P5-01** : la matrice de compatibilité
+React / R3F / drei (risque R-08). C'est un **préalable** — il autorise ou refuse l'installation de
+P5-02, et un « ça devrait aller » ne vaut pas vérification.
 
-⭐⭐ **P4-15 a laissé la checklist que toute mise en ligne suit désormais** : `deploy/README.md` §8,
-écrite après exécution. Ne l'imagine pas à nouveau, joue-la.
+⛔ **La Phase 5 est la première depuis longtemps à ajouter des dépendances lourdes.** Le budget
+`three + R3F + drei` est à **320 Ko pour une cible de 220** (`performance-budget.md`) — l'écart est
+connu et assumé jusqu'ici parce que rien n'était installé. Il devient réel dès P5-02.
 
-⛔⛔⛔ **Et sa leçon, qui vise directement P4-16 : une preuve d'exploitation peut se périmer sans
-jamais devenir fausse.** Le rollback était réputé prouvé depuis P1-15 (« 26 sondes HTTPS, aucun
-échec ») — mesure prise **proxy en *DNS only***, donc honnête ce jour-là et vide de sens depuis la
-bascule en *Full (strict)*. Rejoué le 2026-08-18 en jugeant le **corps** : **~1 s d'origine absente
-sous un 200 constant**. Tout ce que P4-16 mesurera de l'extérieur traverse ce même intermédiaire.
+⭐⭐ **Ce que la Phase 4 laisse, et qu'il faut employer plutôt que refaire** : `deploy/README.md` §8
+(checklist de mise en ligne, jouée), `make check-uptime` (sonde externe), `make check-public-seo`
+(canonical / hreflang / sitemap sur le site public). Aucun de ces trois ne s'imagine à nouveau.
+
+⛔⛔⛔ **Les deux leçons de fin de phase, et elles visent tout ce qui suit :**
+1. **Une preuve d'exploitation peut se périmer sans jamais devenir fausse** (P4-15). Le rollback était
+   « prouvé » depuis P1-15 — mesure prise proxy en *DNS only*, honnête ce jour-là, vide de sens depuis
+   la bascule en *Full (strict)*. Rejoué en jugeant le corps : **~1 s d'origine absente sous un 200
+   constant**.
+2. **Une absence et un instrument aveugle se lisent exactement pareil** (P4-16). Une lecture sensible
+   à la casse a rendu « aucun hreflang » sur quatorze pages qui en portent trois. Vérifie l'instrument
+   avant de conclure au vide.
 
 ⛔⛔⛔ **Et la leçon de P4-14, qui vaut pour toute vérification depuis l'extérieur — donc pour P4-16 :
 interposer un CDN change ce qu'un code de retour SIGNIFIE.** Conteneur arrêté, `/robots.txt` rend

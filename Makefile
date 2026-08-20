@@ -38,7 +38,7 @@ install up up-d sh typecheck lint format test test-watch coverage bundle: | $(MO
 .PHONY: help doctor image install up up-d down sh logs ps reset typecheck lint format e2e \
         build prod-up prod-down e2e-prod bundle ci check-dns check-uptime check-content check-image-size \
         lighthouse \
-        test test-watch coverage
+        test test-watch coverage check-public-seo
 
 help: ## Affiche cette aide
 	@grep -hE '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
@@ -188,3 +188,13 @@ reset: ## DESTRUCTIF : supprime conteneurs ET volumes (node_modules, cache Next)
 	@echo "Supprime les volumes node_modules, next_cache, pnpm_home."
 	@read -p "Confirmer [o/N] ? " ok && [ "$$ok" = "o" ]
 	$(COMPOSE) down -v
+
+# ⭐ L'origine passe par ARGUMENT (`make check-public-seo ORIGIN=https://…`), jamais
+# par l'environnement : une sonde regarde une adresse publique, qui ne dépend
+# d'aucun conteneur. Même règle que `check-uptime`, née du même défaut.
+#
+# ⚠️ Ce n'est PAS un gate de CI et ça ne peut pas l'être : derrière Cloudflare
+# Access, le site rend 302 à tout visiteur anonyme, donc la vérification serait
+# rouge en permanence pour une raison qui n'est pas un défaut.
+check-public-seo: ## Vérifie canonical, hreflang, sitemap et robots.txt SUR LE SITE PUBLIC (P4-16)
+	$(RUN) node scripts/check-public-seo.mts $(ORIGIN)

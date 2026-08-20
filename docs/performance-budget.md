@@ -69,8 +69,22 @@ de juger, parce que les catégories ne se mesurent pas de la même façon** :
 | performance | rien : la valeur est **relevée** | dépend de la charge de la machine — mesurée à 100 puis 99 sur la même page à deux tirs. Un seuil bloquant produirait une CI rouge sur du code conforme |
 
 ⚠️ **Ce que cet audit ne mesure pas** : le réseau, le CDN et le TTFB depuis une autre région. Il juge
-l'**artefact**, pas le service. Le relevé qui fait foi pour la performance est **P4-16**, contre le
-site réel — ce qui suppose de lever Cloudflare Access.
+l'**artefact**, pas le service.
+
+✅ **Le relevé qui fait foi est pris — 2026-08-18 (P4-16), Access levé**, contre
+`https://aurelienfeignon.com`, même script avec `PLAYWRIGHT_BASE_URL` :
+
+| Catégorie | Site réel | Banc local |
+|---|---|---|
+| accessibilité | **100** | 100 |
+| SEO | **100** | 100 |
+| bonnes pratiques | **100** | 78 — `is-on-https` et `redirects-http` échouent sur du HTTP nu |
+| performance | **98** mobile · **100** desktop | 99–100 |
+
+⭐⭐ **Le 78 local n'était pas une dette, c'était l'adresse d'interrogation** — la même page vaut 100
+dès qu'elle est servie en HTTPS. Un seuil posé sur ce score aurait rendu le verdict dépendant de
+l'endroit où l'on mesure ; le juger sur ses **audits** l'a rendu portable, et le site réel le
+confirme.
 
 ---
 
