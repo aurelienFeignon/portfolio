@@ -13,6 +13,30 @@ export const CAPABILITY_TIERS = ['full', 'reduced', 'lite', 'none'] as const
 
 export type CapabilityTier = (typeof CAPABILITY_TIERS)[number]
 
+/**
+ * ⛔⛔ **Le mouvement ne se déduit PAS du palier, et c'est un défaut corrigé.**
+ *
+ * La première écriture ne rendait que le palier. Or `pointer !== 'fine'` décide
+ * avant tout le reste : un mobile tombait en `lite`, et la demande de mouvement
+ * réduit n'était **jamais évaluée**. ADR-0003 ne garantit l'absence de mouvement
+ * qu'au palier `reduced` — il définit `lite` comme « scène décorative non
+ * interactive, **ou** visuel statique », ce qui autorise une décoration animée.
+ * Un iPhone avec « Réduire les animations » recevait donc une scène animée,
+ * pendant que la même préférence était honorée sur un poste fixe.
+ *
+ * ⭐⭐ **Une préférence d'accessibilité et un coût matériel sont deux axes
+ * orthogonaux ; les projeter sur un seul ordinal en perd un.** Le palier dit ce
+ * que l'appareil peut rendre, `motion` dit ce que la personne accepte de voir —
+ * et l'ordre d'arbitrage du projet met l'accessibilité avant la richesse de la
+ * scène.
+ */
+export type MotionPreference = 'animated' | 'instant'
+
+export interface Capability {
+  readonly tier: CapabilityTier
+  readonly motion: MotionPreference
+}
+
 export interface CapabilityInput {
   /** `none` couvre autant l'absence de WebGL que l'échec de création du contexte. */
   readonly webgl: 'none' | 'webgl1' | 'webgl2'
@@ -76,4 +100,20 @@ export function resolveCapabilityTier(input: CapabilityInput): CapabilityTier {
   }
 
   return 'full'
+}
+
+/**
+ * La décision complète : ce que l'appareil peut rendre, **et** ce que la
+ * personne accepte de voir.
+ *
+ * ⭐ `motion` est lu **directement** dans l'entrée, sans passer par le palier :
+ * c'est ce qui garantit qu'aucune branche de capacité ne peut l'avaler. Un
+ * consommateur qui n'écoute que le palier laisserait la préférence sur le
+ * carreau à chaque fois que l'appareil est par ailleurs limité.
+ */
+export function resolveCapability(input: CapabilityInput): Capability {
+  return {
+    tier: resolveCapabilityTier(input),
+    motion: input.prefersReducedMotion ? 'instant' : 'animated',
+  }
 }

@@ -317,6 +317,30 @@ et non `number`, `null` signifie *inconnu*, et un axe inconnu **ne dégrade rien
 tests le tiennent. ⭐⭐ C'est la même faute que celles que la Phase 4 a traquées toute sa durée —
 *une absence et une valeur basse se lisent pareil si rien ne les distingue*.
 
+### 4.3 bis ⛔⛔ La préférence de mouvement était avalée par le palier
+
+Trouvé en revue, et c'est le défaut le plus grave de la tâche.
+
+`pointer !== 'fine'` décide **avant** tout le reste : un mobile tombait en `lite`, et
+`prefersReducedMotion` n'était **jamais évalué**. Or ADR-0003 ne garantit l'absence de mouvement
+qu'au palier `reduced` — il définit `lite` comme « scène décorative non interactive, **ou** visuel
+statique », ce qui autorise une décoration animée. Conséquence mesurable : **un iPhone avec
+« Réduire les animations » recevait une scène animée**, pendant que la même préférence était honorée
+sur un poste fixe. Et mon propre banc **épinglait** ce comportement, donc rien en aval ne l'aurait
+rattrapé.
+
+⭐⭐⭐ **Une préférence d'accessibilité et un coût matériel sont deux axes orthogonaux ; les projeter
+sur un seul ordinal en perd un.** `resolveCapability` rend désormais `{ tier, motion }`, et `motion`
+est lu **directement dans l'entrée** — aucune branche de capacité ne peut plus l'avaler.
+
+⚠️ Le palier, lui, ne change pas : ADR-0003 fait de `reduced-motion` une condition de palier à part
+entière, parce que la préférence coupe aussi l'ambiance et pas seulement les transitions. Un poste
+capable qui la demande reste donc en `reduced`. Rien n'est amendé dans l'ADR : un axe est **ajouté**
+à côté du sien, là où le sien ne pouvait pas porter l'information.
+
+⭐ L'ordre d'arbitrage du projet — *accessibilité > indexabilité > performance > richesse de la
+scène* — tranchait déjà la question ; encore fallait-il que le type puisse l'exprimer.
+
 ### 4.4 Les seuils, posés faute d'être écrits ailleurs
 
 ADR-0003 dit « mémoire faible » et « appareil moyen » sans les chiffrer. Les valeurs retenues, à
@@ -337,6 +361,7 @@ nombre limité — de l'ordre de 16 — et sur mobile, en réserver un pour savo
 | Sujet | État |
 |---|---|
 | Le palier est calculé, **personne ne le consomme** | P5-04 : c'est le montage du canvas qui le lira |
+| La lecture est un **instantané** | `matchMedia` est interrogé une fois, la `MediaQueryList` n'est pas conservée : une préférence basculée **en cours de session** n'est pas observée. Acceptable pour un montage qui a lieu une fois ; les requêtes sont **exportées** (`MEDIA_QUERIES`) pour que P5-04 puisse s'abonner à `change` sans recopier les chaînes — une chaîne recopiée continuerait d'écouter l'ancienne le jour où elle change, en silence |
 | `none` par **échec de chargement** ou perte de contexte | **P5-07**, error boundary — la fonction ne peut pas voir un import qui échoue |
 | `none` par **absence de JavaScript** | Hors de portée par construction : sans JS, rien de tout ceci ne s'exécute, et c'est exactement le comportement voulu |
 | Le seuil « appareil moyen » | Posé ici, jamais mesuré sur un vrai parc. *Déclencheur de réexamen* : un relevé de performance réelle en Phase 11 |

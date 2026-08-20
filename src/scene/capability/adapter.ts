@@ -13,6 +13,22 @@
  */
 import type { CapabilityInput } from './resolve'
 
+/**
+ * ⭐ **Les requêtes sont exportées parce qu'elles sont relues ailleurs.** La
+ * lecture ci-dessous est un **instantané** : `matchMedia` est interrogé une fois
+ * et la `MediaQueryList` n'est pas conservée, donc une préférence basculée en
+ * cours de session n'est pas observée. C'est acceptable pour un montage qui a
+ * lieu une fois — mais le consommateur qui voudra s'abonner à `change` doit
+ * pouvoir le faire **sans recopier ces chaînes**, faute de quoi le jour où l'une
+ * change, l'abonnement continuera d'écouter l'ancienne, en silence. Le montage
+ * du canvas (P5-04) est le premier concerné.
+ */
+export const MEDIA_QUERIES = {
+  pointeurFin: '(pointer: fine)',
+  pointeurGrossier: '(pointer: coarse)',
+  mouvementReduit: '(prefers-reduced-motion: reduce)',
+} as const
+
 /** La forme réellement lue, plutôt que le `Window` entier — ce qui est lu se voit. */
 export interface CapabilitySource {
   readonly matchMedia: (query: string) => { readonly matches: boolean }
@@ -71,8 +87,8 @@ function detecterWebgl(document: CapabilitySource['document']): CapabilityInput[
 }
 
 function detecterPointeur(source: CapabilitySource): CapabilityInput['pointer'] {
-  if (source.matchMedia('(pointer: fine)').matches) return 'fine'
-  if (source.matchMedia('(pointer: coarse)').matches) return 'coarse'
+  if (source.matchMedia(MEDIA_QUERIES.pointeurFin).matches) return 'fine'
+  if (source.matchMedia(MEDIA_QUERIES.pointeurGrossier).matches) return 'coarse'
   return 'none'
 }
 
@@ -83,7 +99,7 @@ export function readCapability(source: CapabilitySource): CapabilityInput {
   return {
     webgl: detecterWebgl(source.document),
     pointer: detecterPointeur(source),
-    prefersReducedMotion: source.matchMedia('(prefers-reduced-motion: reduce)').matches,
+    prefersReducedMotion: source.matchMedia(MEDIA_QUERIES.mouvementReduit).matches,
     saveData: navigator.connection?.saveData === true,
     deviceMemoryGb: navigator.deviceMemory ?? null,
     logicalCores: navigator.hardwareConcurrency ?? null,

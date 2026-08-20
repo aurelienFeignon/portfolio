@@ -14,7 +14,11 @@
  */
 import { describe, expect, it } from 'vitest'
 
-import { type CapabilityInput, resolveCapabilityTier } from '@/scene/capability/resolve'
+import {
+  type CapabilityInput,
+  resolveCapability,
+  resolveCapabilityTier,
+} from '@/scene/capability/resolve'
 
 /** Un appareil de bureau capable : le point de départ de chaque cas. */
 const CAPABLE: CapabilityInput = {
@@ -99,6 +103,44 @@ describe('resolveCapabilityTier', () => {
 
     it('mais les autres axes continuent de décider', () => {
       expect(resolveCapabilityTier(avec({ deviceMemoryGb: null, webgl: 'webgl1' }))).toBe('lite')
+    })
+  })
+})
+
+describe('⛔⛔ resolveCapability — le mouvement ne se déduit pas du palier', () => {
+  /*
+   * Le défaut que ces cas ferment : `pointer !== 'fine'` décide avant tout le
+   * reste, donc un mobile tombait en `lite` sans que `prefersReducedMotion` ne
+   * soit jamais évalué. ADR-0003 n'interdit pas le mouvement au palier `lite` —
+   * un iPhone avec « Réduire les animations » recevait une scène animée.
+   */
+  it('honore la préférence sur un mobile, là où le palier seul la perdait', () => {
+    expect(resolveCapability(avec({ pointer: 'coarse', prefersReducedMotion: true }))).toEqual({
+      tier: 'lite',
+      motion: 'instant',
+    })
+  })
+
+  it('l’honore aussi au palier le plus bas, où plus aucune condition ne la porterait', () => {
+    expect(resolveCapability(avec({ webgl: 'none', prefersReducedMotion: true }))).toEqual({
+      tier: 'none',
+      motion: 'instant',
+    })
+  })
+
+  it.each([
+    ['un poste capable', CAPABLE, 'full'],
+    ['un appareil moyen', avec({ logicalCores: 2 }), 'reduced'],
+  ])('laisse « animated » sur %s qui ne demande rien', (_libelle, input, tier) => {
+    expect(resolveCapability(input)).toEqual({ tier, motion: 'animated' })
+  })
+
+  it('garde le palier `reduced` d’ADR-0003 quand la préférence vient d’un poste capable', () => {
+    // Le tableau d'ADR-0003 fait de `reduced-motion` une condition de palier :
+    // la préférence coupe aussi l'ambiance, pas seulement les transitions.
+    expect(resolveCapability(avec({ prefersReducedMotion: true }))).toEqual({
+      tier: 'reduced',
+      motion: 'instant',
     })
   })
 })
