@@ -40,6 +40,20 @@ const BASE_URL = process.env['PLAYWRIGHT_BASE_URL'] ?? 'http://web:3000'
 const DEBUG_PORT = 9222
 
 /**
+ * ⛔⛔ **La cible se LIT, elle ne se raconte pas.** Ce script a imprimé « contre
+ * l'image de production » et « ce banc sert du HTTP nu » pendant qu'il auditait
+ * `https://aurelienfeignon.com` en HTTPS, avec `is-on-https` à 100 dans le même
+ * rapport : les deux phrases étaient constantes, la cible ne l'est pas. C'est le
+ * défaut que la Phase 4 traque partout ailleurs, trouvé dans le rapport qui
+ * devait servir de preuve à P4-16.
+ *
+ * ⭐ Déclarée **ici**, et non près de l'affichage : le verdict la lit dès la
+ * boucle d'audit, bien avant que la première ligne ne soit imprimée.
+ */
+const SUR_HTTPS = BASE_URL.startsWith('https:')
+const CIBLE = SUR_HTTPS ? `le site réel (${BASE_URL})` : `l’image de production (${BASE_URL})`
+
+/**
  * `performance-budget.md` §3, et **trois manières de juger** — parce que les
  * quatre catégories ne se mesurent pas de la même façon.
  *
@@ -182,7 +196,13 @@ try {
             return audit.score !== null && audit.score < 1
           })
           .map((ref) => ref.id)
-          .filter((id) => !LAB_ONLY_FAILURES.has(id))
+          // ⛔⛔ **Ces deux-là ne sont excusés que là où ils NE PEUVENT PAS
+          // passer.** Sur une origine en HTTPS ils doivent réussir : les filtrer
+          // quand même ferait sortir en 0 sur une régression d'« Always Use
+          // HTTPS » ou du 308 permanent, pendant que le rapport imprime le
+          // contraire. Le libellé dérivait déjà de la cible ; le VERDICT le
+          // devait aussi.
+          .filter((id) => !(LAB_ONLY_FAILURES.has(id) && !SUR_HTTPS))
 
         const score = result.lhr.categories[category]?.score
         // ⚠️ Un score absent n'est pas un score de zéro : c'est une catégorie que
@@ -204,17 +224,6 @@ try {
 } finally {
   await browser.close()
 }
-
-/**
- * ⛔⛔ **La cible se LIT, elle ne se raconte pas.** Ce script a imprimé « contre
- * l'image de production » et « ce banc sert du HTTP nu » pendant qu'il auditait
- * `https://aurelienfeignon.com` en HTTPS, avec `is-on-https` à 100 — les deux
- * phrases étaient constantes, la cible ne l'est pas. C'est le défaut que la
- * Phase 4 traque partout ailleurs, trouvé dans le rapport qui devait servir de
- * preuve à P4-16.
- */
-const SUR_HTTPS = BASE_URL.startsWith('https:')
-const CIBLE = SUR_HTTPS ? `le site réel (${BASE_URL})` : `l’image de production (${BASE_URL})`
 
 console.log(`\n  Lighthouse, contre ${CIBLE} :\n`)
 

@@ -192,6 +192,25 @@ describe('vérification post-déploiement (P4-16)', () => {
     expect(code).toBe(1)
   })
 
+  it('rougit sur une URL qui COMMENCE par l’origine sans en être', async () => {
+    // ⛔ `http://127.0.0.1:1234@exemple.test/en` commence par l'origine et n'en
+    // est pas : l'hôte est `exemple.test`, le reste est un userinfo. Même forme
+    // qu'un alias de préproduction — `https://exemple.com.pages.dev` commence
+    // par `https://exemple.com`. Un `startsWith` rend ces deux cas VERTS.
+    const { code, output } = await check(
+      await serving((origin) => ({
+        ...sound(origin),
+        sitemap: sitemapOf(origin).replace(
+          `<loc>${origin}/en</loc>`,
+          `<loc>${origin}@exemple.test/en</loc>`,
+        ),
+      })),
+    )
+
+    expect(output).toContain("d'une autre origine")
+    expect(code).toBe(1)
+  })
+
   it('rougit sur un canonical qui désigne une autre page', async () => {
     const { code, output } = await check(
       await serving((origin) => ({

@@ -128,6 +128,15 @@ function alternatesOfSitemapEntry(block: string): string[] {
     .sort()
 }
 
+/** L'origine d'une URL, ou une marque inanalysable — jamais une exception. */
+function originOf(raw: string): string {
+  try {
+    return new URL(raw).origin
+  } catch {
+    return `(URL inanalysable : ${JSON.stringify(raw.slice(0, 60))})`
+  }
+}
+
 const ROBOTS_URL = buildAbsoluteUrl(SITE, '/robots.txt')
 const SITEMAP_URL = buildAbsoluteUrl(SITE, '/sitemap.xml')
 
@@ -180,9 +189,18 @@ if (accessOrStatus('sitemap.xml', sitemap)) {
       'sitemap.xml',
       'aucune URL — un sitemap vide passe tous les contrôles suivants sans rien prouver',
     )
-  const etrangeres = entries.filter((e) => !e.loc.startsWith(SITE.origin))
+  // ⛔⛔ **Comparer les origines ANALYSÉES, jamais un préfixe de chaîne.**
+  // `https://exemple.com.pages.dev/en` commence par `https://exemple.com` et
+  // n'en est pas : c'est la forme exacte d'un alias de préproduction resté au
+  // sitemap — du contenu dupliqué, donc précisément ce que ce contrôle existe
+  // pour voir. Un `startsWith` le rend vert ; le banc le mesure.
+  const etrangeres = entries.filter((e) => originOf(e.loc) !== SITE.origin)
   if (etrangeres.length > 0)
-    fail('sitemap.xml', `${etrangeres.length} URL d'une autre origine, dont ${etrangeres[0]?.loc}`)
+    fail(
+      'sitemap.xml',
+      `${etrangeres.length} URL d'une autre origine, dont ${etrangeres[0]?.loc} ` +
+        `(origine réelle : ${originOf(etrangeres[0]?.loc ?? '')})`,
+    )
   if (failures.length === before) {
     console.log(`  ✓ sitemap.xml — ${entries.length} URL, toutes sur ${SITE.origin}`)
   }
