@@ -20,7 +20,7 @@
  *    `hrefLang="fr"`, avec un L majuscule. HTML étant insensible à la casse,
  *    c'est valide et les robots le lisent — mais une lecture sensible à la casse
  *    rend « aucun hreflang » sur quatorze pages qui en portent trois chacune.
- *    ⭐⭐ Mesuré le 2026-08-18, sur la première version de cette vérification :
+ *    ⭐⭐ Mesuré le 2026-08-20, sur la première version de cette vérification :
  *    **une absence et un instrument aveugle se lisent exactement pareil.**
  * 3. **Que le sitemap et les pages disent la même chose.** Les deux sont
  *    produits par des chemins différents ; leur désaccord est invisible à

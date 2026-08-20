@@ -10,7 +10,7 @@
 > Journal de la Phase 4 : [`phase-4-log.md`](./phase-4-log.md) — phases précédentes :
 > [`phase-3-log.md`](./phase-3-log.md), [`phase-2-log.md`](./phase-2-log.md),
 > [`phase-1-log.md`](./phase-1-log.md)
-> Dernière mise à jour : 2026-08-18 (Phase 4 close)
+> Dernière mise à jour : 2026-08-20 (Phase 4 close)
 
 Ce document est la **source de vérité unique des tâches**. Les identifiants sont stables et ne
 sont jamais réutilisés, même si une tâche est abandonnée.
@@ -735,7 +735,7 @@ reste et le filet de sécurité permanent du projet. Journal de phase :
 | P4-14 | Supervision : healthcheck conteneur + sonde externe avec alerte (risque R-15) | **DONE** *(2026-08-17)* | P4-13 |
 | P4-15 | Checklist de mise en ligne + rollback vérifié en conditions réelles | **DONE** *(2026-08-18)* | P4-13 |
 | P4-17 | **Précision variable des dates** — préalable de P4-09, levé | **DONE** *(2026-08-16)* | P4-04 |
-| P4-16 | Vérification post-déploiement : indexation, canonical, hreflang, sitemap accessibles publiquement | **DONE** *(2026-08-18)* | P4-13 |
+| P4-16 | Vérification post-déploiement : indexation, canonical, hreflang, sitemap accessibles publiquement | **DONE** *(2026-08-20)* | P4-13 |
 
 **P4-01 — ADR-0010, stratégie de style**
 Status: **DONE** (2026-08-15) — **CSS Modules + tokens en variables CSS**, décidé sur une exécution
@@ -1072,7 +1072,7 @@ Acceptance:
 - Procédure de retour utilisable sans relire le journal de phase.
 
 **P4-16 — Vérification post-déploiement, depuis l'extérieur**
-Status: **DONE** (2026-08-18) — Cloudflare Access **levé temporairement** à la demande de
+Status: **DONE** (2026-08-20) — Cloudflare Access **levé temporairement** à la demande de
 l'exploitant : le site a été réellement public le temps de la mesure. 14 URL au sitemap, 14 pages
 servies, `lang` / `canonical` / `hreflang` concordants — **0 écart sur 14**. Les 404 localisées
 tiennent en production, `/_next/inexistant` compris. Relevés en `deploy/README.md` §9.

@@ -323,7 +323,7 @@ de l'origine. Mesuré des deux côtés, avant et après.
 
 ---
 
-⭐ **Access a été levé temporairement le 2026-08-18**, à la demande de l'exploitant, le temps
+⭐ **Access a été levé temporairement le 2026-08-20**, à la demande de l'exploitant, le temps
 d'exécuter P4-16 (§9). Le site a été **réellement public** pendant cette fenêtre. La fermeture reste
 la règle jusqu'à la fin du portfolio ; la vérification, elle, ne pouvait pas être faite autrement —
 c'est écrit ici depuis le 2026-08-15.
@@ -715,7 +715,7 @@ la CI, pas une propriété de l'image. Aucune étape de cette checklist ne le re
 
 ---
 
-## 9. Vérification post-déploiement — exécutée le 2026-08-18 (P4-16)
+## 9. Vérification post-déploiement — exécutée le 2026-08-20 (P4-16)
 
 Ce que le site annonce à un robot, constaté **depuis l'extérieur**, Access levé. Rejouable par
 `make check-public-seo` (`scripts/check-public-seo.mts` ; l'origine passe par argument).

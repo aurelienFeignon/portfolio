@@ -71,7 +71,7 @@ de juger, parce que les catégories ne se mesurent pas de la même façon** :
 ⚠️ **Ce que cet audit ne mesure pas** : le réseau, le CDN et le TTFB depuis une autre région. Il juge
 l'**artefact**, pas le service.
 
-✅ **Le relevé qui fait foi est pris — 2026-08-18 (P4-16), Access levé**, contre
+✅ **Le relevé qui fait foi est pris — 2026-08-20 (P4-16), Access levé**, contre
 `https://aurelienfeignon.com`, même script avec `PLAYWRIGHT_BASE_URL` :
 
 | Catégorie | Site réel | Banc local |

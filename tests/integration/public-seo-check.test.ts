@@ -7,7 +7,7 @@
  * rien de ce qu'elle prétend garder.
  *
  * ⭐ Les fixtures ne sont pas inventées : le `robots.txt` est celui que
- * `aurelienfeignon.com` a réellement servi le 2026-08-18, bloc managé de
+ * `aurelienfeignon.com` a réellement servi le 2026-08-20, bloc managé de
  * Cloudflare compris, et les pages portent `hrefLang` avec le L majuscule que
  * Next émet — la casse qui a rendu la première lecture aveugle.
  *
@@ -42,7 +42,7 @@ afterEach(async () => {
   close = null
 })
 
-/** Le `robots.txt` réellement servi le 2026-08-18 — bloc managé de Cloudflare inclus. */
+/** Le `robots.txt` réellement servi le 2026-08-20 — bloc managé de Cloudflare inclus. */
 const robotsOf = (origin: string): string =>
   `User-agent: GPTBot\nDisallow: /\n\n# END Cloudflare Managed Content\n\nUser-Agent: *\nAllow: /\n\nSitemap: ${origin}/sitemap.xml\n`
 

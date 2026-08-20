@@ -2597,9 +2597,15 @@ un code de retour**. D'où ses points les moins évidents :
 
 ### 23.1 Ce que la tâche a établi
 
-Access levé temporairement le 2026-08-18, à la demande de l'exploitant : le site a été **réellement
+Access levé temporairement le 2026-08-20, à la demande de l'exploitant : le site a été **réellement
 public** le temps de la mesure. Relevés complets dans `deploy/README.md` §9 — ici, ce qui se
 transporte.
+
+⚠️ **La date de cette section a été fausse pendant une heure, et rien dans le dépôt ne l'aurait
+dit.** L'horloge de la machine de travail affichait le 2026-08-18 ; GitHub et le serveur, eux,
+comptaient le 2026-08-20 — le conteneur de production affichait `Up 2 days` sur un déploiement que je
+croyais du matin même. ⭐⭐ **Une date écrite dans un journal se prend sur l'horloge de ce qu'on
+décrit** — le serveur, la forge —, jamais sur celle du poste qui écrit.
 
 Le site est **indexable et cohérent avec lui-même** : 14 URL au sitemap, 14 pages servies, `lang`,
 `canonical` et `hreflang` concordants, **0 écart sur 14**. Les 404 localisées tiennent en production,
