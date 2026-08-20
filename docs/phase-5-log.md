@@ -59,21 +59,29 @@ de type. Même leçon qu'en P4-16 : vérifier l'instrument avant de conclure quo
 Le budget est en **transfert gzip** (`performance-budget.md` §4), et ces relevés y vivent au §4.3. Bundle ESM minifié par esbuild,
 `react` et `react-dom` exclus puisqu'ils sont déjà dans le socle :
 
-| Contenu du chunk | Minifié | **gzip** |
-|---|---|---|
-| `three` seul | 712,8 Ko | **184,2 Ko** |
-| `three` + R3F | 888,9 Ko | **241,5 Ko** |
-| `three` + R3F + drei, **imports ciblés** | 879,5 Ko | **238,4 Ko** |
-| `three` + R3F + drei **entier** (`export *`) | 2 655,8 Ko | **802,8 Ko** |
+| Contenu du chunk | Minifié | **gzip** | Δ |
+|---|---|---|---|
+| `three` seul (`export *`) | 712,8 Ko | **184,2 Ko** | — |
+| R3F + `three`, scène **sans** drei | 877,6 Ko | **237,5 Ko** | + 53,3 |
+| + drei, **un** composant | 879,5 Ko | **238,4 Ko** | **+ 0,9** |
+| + drei, **quatre** composants | 1 064,2 Ko | **303,7 Ko** | **+ 65,3** |
+| + drei **entier** (`export *`) | 2 655,8 Ko | **802,8 Ko** | + 499,1 |
 
-⛔⛔⛔ **Importer `drei` en entier coûte 2,5 fois le seuil bloquant de la phase.** Importé par
-composant nommé, il coûte **moins que rien** — 238,4 contre 241,5 Ko, l'écart étant du bruit de
-secouage d'arbre. La différence entre une phase qui tient son budget et une phase qui l'explose
-tient donc à **la forme des imports**, pas au choix des paquets.
+⛔⛔⛔ **La première version de ce tableau ne mesurait rien, et elle avait l'air d'une mesure.** Elle
+opposait un `export *` de `three` + R3F à un import de cinq symboles nommés incluant drei — le
+sur-ensemble y pesait **moins** que son sous-ensemble. C'est impossible, et c'était le signe que les
+deux entrées ne différaient pas seulement par drei. ⭐⭐⭐ **Deux mesures ne se comparent que si leurs
+entrées ne diffèrent QUE par ce qu'on veut mesurer.** Trouvée en revue, sur la seule lecture du
+tableau ; j'en avais tiré « drei coûte moins que rien », qui était faux et rassurant.
 
-⛔⛔ **Et `three` seul consomme déjà 184 Ko, soit 84 % de la cible de 220 Ko** — avant la première
-ligne de R3F. La cible n'est pas atteignable avec la distribution standard de `three` ; le seuil
-**bloquant de 320 Ko**, lui, est tenu avec 25 % de marge. Voir l'arbitrage §1.6.
+⛔⛔ **Ce que les chiffres corrigés disent** : drei coûte **peu par composant, beaucoup par poignée**.
+Un composant est gratuit ; **quatre composants courants** (`Center`, `Environment`, `OrbitControls`,
+`Text`) coûtent **+65,3 Ko** et ne laissent que **16 Ko sous le seuil bloquant** ; l'importer en
+entier coûte **2,5 fois** ce seuil. Le budget se joue sur la **forme et le nombre** des imports.
+
+⛔⛔ **Le plancher est 237,5 Ko**, sans une ligne de drei — la cible de 220 Ko lui est **inférieure**,
+donc inatteignable par construction. Le seuil bloquant de 320 tient, mais avec **5 % de marge** dès
+quatre composants de drei. Voir l'arbitrage §1.6.
 
 ### 1.4 Le plafond de version, latent et non actif
 
@@ -98,8 +106,8 @@ lockfile. Le dépôt épingle déjà à la version exacte, sans accent circonfle
 
 | Sujet | Défaut recommandé | Condition de réouverture |
 |---|---|---|
-| **La cible de 220 Ko pour le chunk 3D** | **À trancher par l'exploitant.** `three` seul en consomme 84 % : la cible est hors d'atteinte sans un `three` sur mesure. Recommandé — **la porter à 245 Ko** (le mesuré + une marge de 3 %) et garder le **seuil bloquant à 320**, plutôt que conserver une cible que rien ne peut atteindre et que tout le monde apprendra à ignorer | Un `three` sur mesure, ou une version qui allège la distribution standard |
-| **`drei` importé par composant nommé, jamais en entier** | **Contrainte dure**, pas une préférence : 238 Ko contre 803. Doit devenir un **garde** en P5-02 ou P5-09, pas une consigne de revue | — |
+| **La cible de 220 Ko pour le chunk 3D** | **À trancher par l'exploitant — D9.** Le plancher mesuré est 237,5 Ko : la cible lui est inférieure, donc hors d'atteinte. Recommandé — **la porter à 260 Ko** (plancher + une réserve d'environ un composant drei par écran), garder le **seuil bloquant à 320**, et **monter la ligne de la Phase 8 avec elle** (son 260 / 350 avait été dimensionné comme « Phase 5 + 40 ») | Un `three` sur mesure, ou une version qui allège la distribution standard |
+| **`drei` importé par composant nommé, jamais en entier** | **Contrainte dure**, pas une préférence : 238 Ko contre 803. Doit devenir un **garde** en P5-02 ou P5-09, pas une consigne de revue. ⚠️ Et le garde doit compter, pas seulement interdire `export *` : **quatre composants suffisent à consommer 80 % du seuil** | — |
 | **Vérifier la matrice hors du dépôt** | Bac à sable jetable, aucune dépendance ajoutée : P5-01 devait pouvoir conclure **NO-GO** sans laisser de trace à défaire | — |
 
 ### 1.7 Verdict
@@ -110,6 +118,8 @@ lockfile. Le dépôt épingle déjà à la version exacte, sans accent circonfle
 `ssr: false`, le découpage réel des chunks et l'absence du chemin critique sont P5-04 et P5-09. Le
 bac à sable prouve la compatibilité des paquets entre eux, pas leur intégration au site.
 
-⭐ **Rejouable** : les quatre mesures tiennent dans un répertoire jetable — un `package.json` aux
-versions exactes, un `tsconfig.json` reprenant les options du dépôt, une scène, et deux scripts
-(`node render.mjs`, `node bundle.mjs`). Aucune n'a besoin du dépôt.
+⭐ **Rejouable, et le harnais est versionné** : `tools/compat-3d/` porte le manifeste, le
+`tsconfig.json`, la scène et les deux scripts, avec la recette de rejeu. Il n'ajoute **aucune
+dépendance** au dépôt — le manifeste s'y appelle `manifest.json` et se copie au moment de l'emploi.
+⭐⭐ **Il est versionné à cause de l'erreur du §1.3** : un chiffre qui fixe le budget d'une phase doit
+pouvoir être recontrôlé par quelqu'un d'autre, sinon la correction se refait de mémoire.

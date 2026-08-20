@@ -1,13 +1,14 @@
 # Roadmap
 
-> Statut global : **Phases 0, 1, 2 et 3 terminées et validées.** **Phase 4 ouverte le 2026-08-15**,
-> dernière phase de la tranche T1. **P2-11 (rédaction du contenu réel) est DONE (2026-08-15)** : le
-> contenu d'amorçage est entièrement remplacé, et le chemin critique de T1 est donc levé.
-> **PHASE 4 CLOSE — 17 tâches sur 17, jalon T1 atteint. PHASE 5 ENGAGÉE** (P5-01 close : matrice
-> R3F vérifiée par exécution, **GO** sous deux contraintes — `performance-budget.md` §4.3).** Le portfolio documentaire est en
-> production, supervisé, avec une checklist de mise en ligne, un rollback rejoué et une vérification
-> **depuis l'extérieur** : 14 URL, `canonical`, `hreflang` et `lang` concordants, Lighthouse contre le
-> site réel (a11y 100, SEO 100, bonnes pratiques 100). Suite : **Phase 5 — Fondation Three.js**.
+> Statut global : **Phases 0 à 4 terminées et validées. PHASE 4 CLOSE — 17 tâches sur 17, jalon T1
+> atteint** : le portfolio documentaire est en production, supervisé, avec une checklist de mise en
+> ligne, un rollback rejoué et une vérification **depuis l'extérieur** (14 URL, `canonical`,
+> `hreflang` et `lang` concordants, Lighthouse contre le site réel — a11y 100, SEO 100, bonnes
+> pratiques 100).
+> **PHASE 5 ENGAGÉE** : P5-01 close, matrice R3F vérifiée **par exécution**, verdict **GO** sous deux
+> contraintes. ⚠️ Une décision attend l'exploitant — la cible du chunk 3D est **sous le plancher
+> mesuré** (`performance-budget.md` §4.3, décision **D9**). Suite : **P5-02**, l'installation.
+> Journal : [`phase-5-log.md`](./phase-5-log.md).
 > Journal de la Phase 4 : [`phase-4-log.md`](./phase-4-log.md) — phases précédentes :
 > [`phase-3-log.md`](./phase-3-log.md), [`phase-2-log.md`](./phase-2-log.md),
 > [`phase-1-log.md`](./phase-1-log.md)
@@ -33,8 +34,8 @@ silencieusement.
 | 1 | Fondation technique | **DONE** *(2026-08-12)* | Squelette dockerisé, gates verts, CI, déploiement du squelette |
 | 2 | Content layer | **DONE** *(2026-08-12)* | Markdown → objets typés validés, build cassé si invalide |
 | 3 | Internationalisation | **DONE** *(2026-08-14)* | `/fr` et `/en` résolus indépendamment, hreflang exact |
-| 4 | Portfolio HTML | **IN_PROGRESS** *(ouverte le 2026-08-15)* | **Produit utilisable sans Three.js** (phase obligatoire) |
-| 5 | Fondation Three.js | TODO | Scène primitive : bureau + 3 écrans, budget tenu |
+| 4 | Portfolio HTML | **DONE** *(2026-08-20)* | **Produit utilisable sans Three.js** (phase obligatoire) |
+| 5 | Fondation Three.js | **IN_PROGRESS** *(ouverte le 2026-08-20)* | Scène primitive : bureau + 3 écrans, budget tenu |
 | 6 | Navigation spatiale | TODO | Route ↔ scène, testé sans WebGL |
 | 7 | Interfaces des écrans | TODO | Contenu affiché sur les moniteurs, instance unique |
 | 8 | Modélisation et direction artistique | TODO | Scène crédible, budgets mesurés à chaque ajout |
@@ -1152,12 +1153,16 @@ représentative, **zéro erreur** ; et la scène **réellement montée par le r�
 Node sans WebGL (`@react-three/test-renderer`) — seule cette dernière prouve que React 19.2.8 et R3F
 9.7.0 s'accordent à l'exécution.
 ⛔⛔⛔ **Le poids décide, et il se mesure AVANT d'installer** : `drei` importé **en entier** pèse
-**802,8 Ko gzip**, soit 2,5 fois le seuil bloquant de la phase ; importé **par composant nommé**,
-238,4 Ko. La différence tient à la forme des imports, pas au choix des paquets — d'où une contrainte
-dure, à transformer en **garde** (P5-02 ou P5-09).
-⛔⛔ **`three` seul consomme déjà 184,2 Ko, soit 84 % de la cible de 220 Ko**, avant la première ligne
-de R3F. Le seuil bloquant de 320 tient avec 25 % de marge ; **la cible, elle, est inatteignable** —
-arbitrage ouvert (`performance-budget.md` §4.3).
+**802,8 Ko gzip**, soit 2,5 fois le seuil bloquant ; **quatre composants** courants coûtent +65,3 Ko
+et ne laissent que 16 Ko sous ce seuil ; **un** composant est gratuit (+0,9 Ko). Le budget se joue
+sur la **forme et le nombre** des imports — contrainte dure, à transformer en **garde** (P5-02 ou
+P5-09), et qui doit **compter**, pas seulement interdire `export *`.
+⛔⛔ **Le plancher mesuré est 237,5 Ko** — R3F et `three`, sans une ligne de drei — donc **la cible de
+220 Ko lui est inférieure et rien ne peut la tenir**. Décision **D9** ouverte
+(`performance-budget.md` §4.3) ; elle emporte aussi la ligne de la Phase 8.
+⛔ **Une première mesure était fausse et avait l'air juste** : deux entrées non comparables rendaient
+un sur-ensemble plus léger que son sous-ensemble. Trouvée en revue ; le harnais est désormais
+versionné (`tools/compat-3d/`) pour qu'un chiffre de budget reste recontrôlable.
 ⚠️ **Plafond de version latent** : R3F exige `react >=19 <19.3`. Nous sommes en 19.2.8, **qui est la
 dernière publiée** — le plafond ne mord pas aujourd'hui, mais dès P5-02 une montée en 19.3 devient un
 choix **contre** R3F, plus une montée de routine.
