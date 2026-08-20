@@ -98,8 +98,8 @@ Mesures en **transfert gzip/brotli**, telles que rapportées par l'analyse de bu
 | First Load JS partagé (toutes routes) | ≤ 136 Ko | **146 Ko** | Phase 1 |
 | JS d'une page de contenu (hors partagé) | ≤ 25 Ko | **40 Ko** | Phase 4 |
 | **JS total avant interactivité du contenu** | ≤ 120 Ko | **160 Ko** | Phase 4 |
-| Chunk 3D (three + R3F + drei, différé) | ≤ 220 Ko | **320 Ko** | Phase 5 |
-| Chunk 3D après direction artistique | ≤ 260 Ko | **350 Ko** | Phase 8 |
+| Chunk 3D (three + R3F + drei, différé) | ≤ 220 Ko — ⚠️ **sous le plancher mesuré, voir §4.3** | **320 Ko** | Phase 5 |
+| Chunk 3D après direction artistique | ≤ 260 Ko — ⚠️ **dérivée de la cible de 220, à réexaminer avec elle (§4.3)** | **350 Ko** | Phase 8 |
 
 Le chunk 3D **n'entre pas** dans le budget « avant interactivité » : c'est précisément ce que
 garantit l'ADR-0003. Un test de non-régression vérifie qu'aucun module `three` n'apparaît dans le
@@ -169,6 +169,52 @@ build en annonçait 20. Corrigé par un parcours récursif.
 (inchangé depuis la Phase 1, dont +3,5 Ko applicatifs), et **0,0 Ko de JS propre sur les 18**. Le
 site n'a toujours aucun composant client : la navigation et le sélecteur de langue sont des balises
 `<a>`, ce qui rend le profil `no-js` vrai par construction.
+
+---
+
+### 4.3 Le chunk 3D, mesuré AVANT installation — 2026-08-20 (P5-01)
+
+R-08 demandait de vérifier la compatibilité des paquets. La mesure du **poids** ne lui était pas
+demandée : elle a été faite parce qu'un budget qu'on découvre après l'installation n'est plus un
+budget, c'est un constat. Bundle ESM minifié par esbuild dans un bac à sable jetable, `react` et
+`react-dom` exclus (déjà dans le socle), gzip :
+
+| Contenu du chunk | Minifié | **gzip** | Δ vs la ligne au-dessus |
+|---|---|---|---|
+| `three` seul (`export *`) | 712,8 Ko | **184,2 Ko** | — |
+| R3F + `three`, scène **sans** `drei` | 877,6 Ko | **237,5 Ko** | + 53,3 Ko |
+| + `drei`, **un** composant (`<Center>`) | 879,5 Ko | **238,4 Ko** | **+ 0,9 Ko** |
+| + `drei`, **quatre** composants | 1 064,2 Ko | **303,7 Ko** | **+ 65,3 Ko** |
+| + `drei` **entier** (`export *`) | 2 655,8 Ko | **802,8 Ko** | + 499,1 Ko |
+
+⛔⛔ **Une première version de ce tableau ne mesurait rien, et elle avait l'air d'une mesure.** Elle
+comparait un `export *` de `three` + R3F à un import de cinq symboles nommés incluant `drei` : le
+sur-ensemble y pesait **moins** que son sous-ensemble, ce qui est impossible et signait des entrées
+non comparables. ⭐⭐⭐ **Deux mesures ne se comparent que si leurs entrées ne diffèrent que par ce
+qu'on veut mesurer** — trouvé en revue, sur la seule lecture du tableau, avant qu'un budget de phase
+ne s'appuie dessus. Le harnais est versionné (`tools/compat-3d/`) précisément pour que ce genre de
+correction n'ait pas à se refaire de mémoire.
+
+⛔⛔ **Ce que les vrais chiffres disent** : `drei` coûte **peu par composant et beaucoup par
+poignée**. Un composant est gratuit (+0,9 Ko) ; **quatre composants courants** — `Center`,
+`Environment`, `OrbitControls`, `Text` — coûtent **+65,3 Ko** et laissent **16 Ko sous le seuil
+bloquant** ; l'importer en entier coûte **2,5 fois ce seuil**. Le budget se joue donc sur la **forme
+et le nombre** des imports, ce qu'aucun seuil ne dit et qu'un garde doit tenir (P5-02 ou P5-09).
+
+**Constat sur la cible** — le **plancher mesuré est 237,5 Ko**, sans une ligne de `drei`. La cible de
+220 Ko lui est **inférieure** : comme le budget « First Load JS » de la §4.1 avant sa révision,
+aucune version du code ne peut la tenir, et un objectif que rien ne peut atteindre s'apprend à
+s'ignorer. Le **seuil bloquant de 320 Ko** tient, mais avec **5 % de marge seulement** dès qu'on
+emploie quatre composants de `drei`.
+
+⚠️ **Proposition, non appliquée — décision de l'exploitant (D9).** Porter la cible de la Phase 5 à
+**260 Ko** — le plancher de 237,5 plus une réserve d'environ un composant `drei` par écran — et
+laisser le seuil bloquant à 320. ⛔ **La ligne de la Phase 8 en dépend** : son 260 / 350 avait été
+dimensionné comme « la cible de la Phase 5 plus 40 » ; si la Phase 5 monte à 260, la Phase 8 doit
+monter avec, sans quoi la direction artistique n'aurait plus **aucune** marge. Contrairement à la
+§4.1, la mesure précède ici toute écriture de scène : il n'y a **pas encore de code à corriger**,
+donc rien à excuser. *Ce qui rouvrirait la question* : une distribution de `three` sur mesure, ou une
+version qui allège la distribution standard.
 
 ---
 

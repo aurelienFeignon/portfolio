@@ -1,16 +1,18 @@
 # Roadmap
 
-> Statut global : **Phases 0, 1, 2 et 3 terminées et validées.** **Phase 4 ouverte le 2026-08-15**,
-> dernière phase de la tranche T1. **P2-11 (rédaction du contenu réel) est DONE (2026-08-15)** : le
-> contenu d'amorçage est entièrement remplacé, et le chemin critique de T1 est donc levé.
-> **PHASE 4 CLOSE — 17 tâches sur 17, et le jalon T1 est atteint.** Le portfolio documentaire est en
-> production, supervisé, avec une checklist de mise en ligne, un rollback rejoué et une vérification
-> **depuis l'extérieur** : 14 URL, `canonical`, `hreflang` et `lang` concordants, Lighthouse contre le
-> site réel (a11y 100, SEO 100, bonnes pratiques 100). Suite : **Phase 5 — Fondation Three.js**.
+> Statut global : **Phases 0 à 4 terminées et validées. PHASE 4 CLOSE — 17 tâches sur 17, jalon T1
+> atteint** : le portfolio documentaire est en production, supervisé, avec une checklist de mise en
+> ligne, un rollback rejoué et une vérification **depuis l'extérieur** (14 URL, `canonical`,
+> `hreflang` et `lang` concordants, Lighthouse contre le site réel — a11y 100, SEO 100, bonnes
+> pratiques 100).
+> **PHASE 5 ENGAGÉE** : P5-01 close, matrice R3F vérifiée **par exécution**, verdict **GO** sous deux
+> contraintes. ⚠️ Une décision attend l'exploitant — la cible du chunk 3D est **sous le plancher
+> mesuré** (`performance-budget.md` §4.3, décision **D9**). Suite : **P5-02**, l'installation.
+> Journal : [`phase-5-log.md`](./phase-5-log.md).
 > Journal de la Phase 4 : [`phase-4-log.md`](./phase-4-log.md) — phases précédentes :
 > [`phase-3-log.md`](./phase-3-log.md), [`phase-2-log.md`](./phase-2-log.md),
 > [`phase-1-log.md`](./phase-1-log.md)
-> Dernière mise à jour : 2026-08-20 (Phase 4 close)
+> Dernière mise à jour : 2026-08-20 (Phase 4 close, Phase 5 engagée)
 
 Ce document est la **source de vérité unique des tâches**. Les identifiants sont stables et ne
 sont jamais réutilisés, même si une tâche est abandonnée.
@@ -32,8 +34,8 @@ silencieusement.
 | 1 | Fondation technique | **DONE** *(2026-08-12)* | Squelette dockerisé, gates verts, CI, déploiement du squelette |
 | 2 | Content layer | **DONE** *(2026-08-12)* | Markdown → objets typés validés, build cassé si invalide |
 | 3 | Internationalisation | **DONE** *(2026-08-14)* | `/fr` et `/en` résolus indépendamment, hreflang exact |
-| 4 | Portfolio HTML | **IN_PROGRESS** *(ouverte le 2026-08-15)* | **Produit utilisable sans Three.js** (phase obligatoire) |
-| 5 | Fondation Three.js | TODO | Scène primitive : bureau + 3 écrans, budget tenu |
+| 4 | Portfolio HTML | **DONE** *(2026-08-20)* | **Produit utilisable sans Three.js** (phase obligatoire) |
+| 5 | Fondation Three.js | **IN_PROGRESS** *(ouverte le 2026-08-20)* | Scène primitive : bureau + 3 écrans, budget tenu |
 | 6 | Navigation spatiale | TODO | Route ↔ scène, testé sans WebGL |
 | 7 | Interfaces des écrans | TODO | Contenu affiché sur les moniteurs, instance unique |
 | 8 | Modélisation et direction artistique | TODO | Scène crédible, budgets mesurés à chaque ajout |
@@ -1129,7 +1131,7 @@ le 2026-08-18, jugé sur le corps : aller-retour par le même verbe, **~1 s d'or
 
 | ID | Tâche | Dépend de |
 |---|---|---|
-| P5-01 | Vérification de la matrice de compatibilité React / R3F / drei (risque R-08) | P4-12 |
+| P5-01 | Vérification de la matrice de compatibilité React / R3F / drei (risque R-08) — **DONE** *(2026-08-20)* | P4-12 |
 | P5-02 | Installation justifiée de `three`, `@react-three/fiber`, `@react-three/drei` | P5-01 |
 | P5-03 | `resolveCapabilityTier` (fonction pure) + adaptateur navigateur | P5-02 |
 | P5-04 | Montage du canvas : dynamique, `ssr:false`, après idle, `aria-hidden` | P5-03 |
@@ -1139,6 +1141,39 @@ le 2026-08-18, jugé sur le corps : aller-retour par le même verbe, **~1 s d'or
 | P5-08 | Panneau de diagnostic : FPS, draw calls, triangles, mémoire | P5-06 |
 | P5-09 | Test de non-régression : aucun module `three` dans les chunks initiaux | P5-04 |
 | P5-10 | Boucle de rendu à la demande, pause hors écran / onglet masqué | P5-06 |
+
+**P5-01 — Matrice de compatibilité React / R3F / drei**
+Status: **DONE** (2026-08-20) — **GO pour P5-02** aux versions `three@0.185.1`,
+`@react-three/fiber@9.7.0`, `@react-three/drei@10.7.8`, `@types/three@0.185.4`. Vérifiée **dans un
+bac à sable jetable**, aucune dépendance ajoutée au dépôt : P5-01 devait pouvoir conclure NO-GO sans
+laisser de trace à défaire. Journal : [`phase-5-log.md`](./phase-5-log.md) §1.
+⭐⭐ **Trois preuves, pas une lecture de `peerDependencies`** : installation `pnpm` sans un
+avertissement de pair ; `tsc 6.0.3 --noEmit` avec les options strictes du dépôt sur une scène
+représentative, **zéro erreur** ; et la scène **réellement montée par le réconciliateur de R3F** en
+Node sans WebGL (`@react-three/test-renderer`) — seule cette dernière prouve que React 19.2.8 et R3F
+9.7.0 s'accordent à l'exécution.
+⛔⛔⛔ **Le poids décide, et il se mesure AVANT d'installer** : `drei` importé **en entier** pèse
+**802,8 Ko gzip**, soit 2,5 fois le seuil bloquant ; **quatre composants** courants coûtent +65,3 Ko
+et ne laissent que 16 Ko sous ce seuil ; **un** composant est gratuit (+0,9 Ko). Le budget se joue
+sur la **forme et le nombre** des imports — contrainte dure, à transformer en **garde** (P5-02 ou
+P5-09), et qui doit **compter**, pas seulement interdire `export *`.
+⛔⛔ **Le plancher mesuré est 237,5 Ko** — R3F et `three`, sans une ligne de drei — donc **la cible de
+220 Ko lui est inférieure et rien ne peut la tenir**. Décision **D9** ouverte
+(`performance-budget.md` §4.3) ; elle emporte aussi la ligne de la Phase 8.
+⛔ **Une première mesure était fausse et avait l'air juste** : deux entrées non comparables rendaient
+un sur-ensemble plus léger que son sous-ensemble. Trouvée en revue ; le harnais est désormais
+versionné (`tools/compat-3d/`) pour qu'un chiffre de budget reste recontrôlable.
+⚠️ **Plafond de version latent** : R3F exige `react >=19 <19.3`. Nous sommes en 19.2.8, **qui est la
+dernière publiée** — le plafond ne mord pas aujourd'hui, mais dès P5-02 une montée en 19.3 devient un
+choix **contre** R3F, plus une montée de routine.
+⚠️ Ce que P5-01 ne dit pas : rien du comportement **dans Next 16.3** — import dynamique `ssr: false`,
+découpage des chunks et absence du chemin critique sont P5-04 et P5-09.
+· Depends on: P4-12
+Acceptance:
+- Versions compatibles **établies par exécution**, pas par lecture de contraintes déclarées.
+- Aucune dépendance ajoutée au dépôt tant que le verdict n'est pas rendu.
+- Poids réel du chunk mesuré et confronté au budget **avant** l'installation.
+- Verdict explicite GO / NO-GO, et contraintes d'usage écrites.
 
 **Critères de sortie** — Chunk 3D ≤ 320 Ko et absent du chemin critique (prouvé) ; Core Web Vitals
 de la Phase 4 **non dégradés** ; désactiver WebGL laisse le site intact ; budgets de la scène

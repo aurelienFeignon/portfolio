@@ -740,6 +740,11 @@ imprimait « contre l'image de production » et « ce banc sert du HTTP nu » **
 site en HTTPS** — sa prose était constante, sa cible ne l'est pas. Les deux sont corrigés ; le second
 dérive maintenant son texte de l'adresse qu'il interroge.
 
+✅ **Le mode d'échec de l'outil est vérifié en production, le 2026-08-20** : Access refermé,
+`make check-public-seo` sort en 1 sur *« 302 vers Cloudflare Access — le site est FERMÉ au public. Ce
+n'est pas un défaut »*, tandis que `make check-uptime` reste **verte** — le Bypass sur `/robots.txt`
+survit à la fermeture. Les deux sondes disent donc des choses différentes, et chacune la sienne.
+
 ⚠️ **Ce que cette vérification ne dit pas** : rien sur l'indexation *effective* — aucun moteur n'a
 été sollicité, aucune Search Console n'est déclarée. Elle établit que le site est **indexable** et
 qu'il est **cohérent avec lui-même**, ce qui est la partie que le dépôt peut tenir.
