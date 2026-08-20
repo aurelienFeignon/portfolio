@@ -5,9 +5,9 @@
 > ligne, un rollback rejoué et une vérification **depuis l'extérieur** (14 URL, `canonical`,
 > `hreflang` et `lang` concordants, Lighthouse contre le site réel — a11y 100, SEO 100, bonnes
 > pratiques 100).
-> **PHASE 5 ENGAGÉE** : P5-01 close, matrice R3F vérifiée **par exécution**, verdict **GO** sous deux
-> contraintes. ⚠️ Une décision attend l'exploitant — la cible du chunk 3D est **sous le plancher
-> mesuré** (`performance-budget.md` §4.3, décision **D9**). Suite : **P5-02**, l'installation.
+> **PHASE 5 ENGAGÉE** : P5-01 (matrice R3F vérifiée **par exécution**, GO) et P5-02 (installation)
+> closes ; budget arrêté à **260 / 320 Ko** (D9), et la scène décrit **le bureau réel — deux moniteurs
+> et un portable** (D10). Suite : **P5-03**, `resolveCapabilityTier`.
 > Journal : [`phase-5-log.md`](./phase-5-log.md).
 > Journal de la Phase 4 : [`phase-4-log.md`](./phase-4-log.md) — phases précédentes :
 > [`phase-3-log.md`](./phase-3-log.md), [`phase-2-log.md`](./phase-2-log.md),
@@ -1135,7 +1135,7 @@ le 2026-08-18, jugé sur le corps : aller-retour par le même verbe, **~1 s d'or
 | P5-02 | Installation justifiée de `three`, `@react-three/fiber`, `@react-three/drei` — **DONE** *(2026-08-20)* | P5-01 |
 | P5-03 | `resolveCapabilityTier` (fonction pure) + adaptateur navigateur | P5-02 |
 | P5-04 | Montage du canvas : dynamique, `ssr:false`, après idle, `aria-hidden` | P5-03 |
-| P5-05 | Scène primitive : bureau + trois écrans en géométries de base | P5-04 |
+| P5-05 | Scène primitive : bureau, **deux moniteurs et un portable** en géométries de base (D10) | P5-04 |
 | P5-06 | Caméra, éclairage, environnement minimal | P5-05 |
 | P5-07 | Error boundary du canvas + gestion de `webglcontextlost` → palier `none` | P5-04 |
 | P5-08 | Panneau de diagnostic : FPS, draw calls, triangles, mémoire | P5-06 |

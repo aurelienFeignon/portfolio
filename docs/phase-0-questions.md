@@ -62,6 +62,12 @@ Posées à l'ouverture de la session, en vue de P2-11.
 | **D8** | Un projet représentatif d'aujourd'hui | **Née de la clôture de D3, ouverte.** Le levier n'est pas le volume mais **un** projet récent, décrit pour lui-même. Tant qu'il n'existe pas, la page Projets reste à un projet, assumé. |
 | **D3** | Un seul projet publié | **Assumé, rien de plus n'est publié.** Le GitHub ne contient que quatre projets scolaires ENI de 2021, zéro étoile, dernier push octobre 2021. Les mettre à côté d'Augure **abaisserait** le signal — un CTO lit le plus faible, pas le plus fort. La profondeur technique est déjà portée par les fiches d'expérience. Le levier reste d'écrire un projet représentatif d'aujourd'hui, pas d'ajouter du volume. |
 
+## Décision de scène — 2026-08-20
+
+| # | Question | Réponse |
+|---|---|---|
+| **D10** | Deux moniteurs + un portable, ou un troisième moniteur fictif ? | **Le bureau réel est assumé : deux moniteurs et un portable.** La métaphore gauche / centre / droite tombe, et c'est cohérent avec ce que ce dépôt fait partout ailleurs — constater plutôt qu'inventer. Un troisième moniteur fictif aurait rendu la navigation plus symétrique au prix d'une scène qui cesse de décrire un lieu existant, alors que tout le dossier de référence est bâti sur des photos et un étalon mesuré. **L'affectation était déjà en place et ne change pas** : écran gauche (portrait) → *Expériences*, écran central (paysage) → *Projets*, dalle du portable → *Compétences*, plus une vue d'ensemble pour `/`. ⚠️ Conséquence pour la Phase 6 : les trois cibles n'ont **pas** la même taille apparente ni la même hauteur, et le cadrage *Compétences* est le seul à 16° de champ au lieu de 34–36° — le `fov` devra être interpolé avec la position, sinon la transition produit un zoom sec. |
+
 ## Décision de budget — 2026-08-20
 
 | # | Question | Réponse |

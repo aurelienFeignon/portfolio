@@ -190,3 +190,88 @@ est **P5-04 / P5-09**, quand un chunk existera, et c'est écrit dans la règle e
 | La **surface de dépendances** | **273 paquets** en production, dont **65 sous `drei`** — un quart, pour une bibliothèque de confort (`@mediapipe/tasks-vision`, `draco3d`, `hls.js`, un moteur physique). Nuls en poids servi, réels en audit et en mise à jour. Consigné dans ADR-0016 |
 | `THREE.Clock` déprécié par `three` 0.185, employé par R3F 9.7.0 | Avertissement en console, sans conséquence. *Déclencheur* : le jour où `three` retire l'API |
 | Montée de React au-delà de 19.2.x | **Devient un choix contre R3F** (`react >=19 <19.3`). À vérifier à chaque campagne de mise à jour |
+
+---
+
+## 3. D10 — la scène décrit le bureau réel, et un dossier existait déjà
+
+### 3.1 Ce qui est arrivé, et d'où
+
+Un **dossier de scène complet**, préparé le 2026-08-14 hors de ce dépôt et transmis le 2026-08-20 :
+un plan coté de 45 Ko tiré de quatre photographies du poste réel, les données de scène en TypeScript
+pur (`layout.ts`), le composant R3F (`Desk.tsx`), le montage du canvas (`Scene.tsx`), une preview
+`three.js` autonome, une scène Blender de contrôle et les quatre cadrages rendus.
+
+⭐⭐ **Il n'est pas une maquette : il est mesuré.** L'échelle vient d'un étalon — un clavier plein
+format de 0,44 m, seul objet normalisé entièrement visible dans le plan du plateau — et la scène est
+**déjà comptée** : **30 draw calls et 4 114 triangles** en desktop, 20 et 1 966 en mobile, soit 3 %
+du budget triangles. Le dossier en tire la conclusion qui compte pour la suite : *la contrainte réelle
+sera le coût des ombres, pas la géométrie.*
+
+⭐ **Primitives uniquement, aucun modèle importé, aucune texture, aucun asset sous licence inconnue.**
+Cela s'accorde exactement avec ADR-0003 et laisse intact l'ADR-0011 réservé aux assets de la Phase 8.
+
+### 3.2 L'arbitrage que le dossier refusait de trancher seul
+
+Il s'arrête sur une question et l'écrit comme telle : *« rien ne devrait être figé côté navigation
+avant cet arbitrage »*. Le bureau réel porte **deux moniteurs et un portable**, pas trois écrans,
+alors que la roadmap disait « bureau + trois écrans » et que la métaphore de navigation était
+gauche / centre / droite.
+
+✅ **Tranché le 2026-08-20 (D10) : le bureau réel est assumé.** L'affectation était déjà en place et
+ne change pas — écran gauche portrait → *Expériences*, écran central paysage → *Projets*, dalle du
+portable → *Compétences*, plus une vue d'ensemble pour `/`.
+
+⚠️ **Ce que cela impose à la Phase 6** : les trois cibles n'ont ni la même taille apparente ni la
+même hauteur, et le cadrage *Compétences* est le seul à **16°** de champ au lieu de 34–36° — parce
+que le portable est le seul objet dont on cadre un écran monté sur un corps profond, et qu'à 34° sa
+base se projetait 63 % plus large que son capot. Conséquence directe : **le `fov` doit être interpolé
+avec la position**, sans quoi la transition vers *Compétences* produit un zoom sec.
+
+### 3.3 Ce que le dossier apprend, et qu'on n'aurait pas trouvé seul
+
+Sept pièges y sont consignés, chacun payé au moins une fois. Trois valent au-delà de cette scène :
+
+- ⛔⛔ **L'ordre d'Euler `XYZ` de Blender compose Rz·Ry·Rx, celui de three.js Rx·Ry·Rz.** Le même
+  triplet donne deux orientations différentes ; vérifié sur le capot du portable, où `(−15, −4, 0)`
+  rend deux axes distincts. La scène Blender est donc en `rotation_mode = 'ZYX'`, ce qui rend les
+  triplets recopiables sans conversion.
+- ⛔⛔ **Une valeur physiquement juste peut être visuellement nulle.** Les premiers chanfreins,
+  mesurés sur du vrai matériel à 1,5–3 mm, se projetaient sur 1,5 pixel à la distance de navigation
+  — invisibles. Ils sont délibérément portés à 5–8 mm. Et la moitié du réglage n'était pas la taille
+  mais la **rugosité** : à 0,70, la facette d'un chanfrein renvoie la même valeur que la face
+  voisine, et l'agrandir n'y change rien.
+- ⛔⛔ **Depuis three r155, l'intensité d'une ponctuelle change de LOI, pas d'échelle** : atténuation
+  en 1/d^`decay`, `decay` à 2. Une conversion par 4π donnait une irradiance 45 fois trop forte, et la
+  scène entière paraissait délavée — le premier réflexe, à tort, étant de chercher le défaut dans
+  l'éclairage.
+
+⭐⭐ Et une méthode, qui a trouvé quatre défauts qu'aucune relecture n'avait vus : vue orthographique
+de dessus, gros plan d'arête **découpé dans le rendu livré à sa résolution réelle**, balayage de
+rayons sur une silhouette composite, et `renderer.info` plutôt qu'un décompte à la main. *Un cadrage
+qui ne sert pas la navigation peut rester le seul à dire la vérité.*
+
+### 3.4 ⭐⭐ Ce qui entre dans le dépôt, et ce qui n'y entre pas
+
+**Seul `layout.ts` entrera**, au moment de P5-05 : les cotes, les matériaux et les nœuds, c'est-à-dire
+ce dont le code a besoin. Le dossier de référence, les photographies et la scène Blender **restent
+hors du dépôt**, qui est public — un plan coté qui décrit un domicile n'a pas à être publié pour
+qu'un portfolio affiche un bureau.
+
+⚠️ **La contrepartie est réelle, et il faut l'écrire plutôt que la taire** : `layout.ts` arrivera
+**sans son dossier**, donc sans le *pourquoi* de ses valeurs. Un chanfrein à 8 mm y paraîtra
+arbitraire alors qu'il résulte d'une mesure au pixel ; un lacet à 0° sur le portable paraîtra un
+oubli alors qu'il est une correction mesurée à 28 % d'écart. ⭐ Le remède n'est pas de tout recopier :
+c'est que les valeurs **non déductibles** portent leur raison en commentaire, à l'endroit où elles
+sont écrites — ce que `layout.ts` fait déjà pour la rugosité du plastique noir et pour la fusion des
+champs de touches. Le reste renvoie au dossier, **nommé mais non versé**.
+
+### 3.5 Ce que D10 laisse ouvert
+
+| Sujet | État |
+|---|---|
+| Huit hypothèses de cotes | **Ouvertes**, listées au §9 du dossier. ⭐ Une seule est décisive : **la largeur du plateau au mètre ruban** — la mesure photo donne 1,37 m, la valeur retenue 1,40, et une seule lecture verrouille toute la scène |
+| Quatre intensités d'éclairage | **Non réglées.** Ce sont les seules valeurs que ni le calcul ni Blender ne peuvent trancher : elles se règlent au curseur dans la preview, puis se recopient |
+| Rig de caméra | **N'existe pas.** Le montage place la caméra sur l'état courant, sans animation — ce qui est aussi le comportement attendu en `prefers-reduced-motion` |
+| `<ContactShadows>` et `RoomEnvironment` | **Débloqués** : le dossier les conditionnait à la confirmation de `drei`, acquise avec ADR-0016. Ce sont des imports nommés, donc compatibles avec le garde de P5-02 |
+| Entrée du dossier dans le dépôt | ✅ **Tranché : le dossier RESTE sur Drive**, seul `layout.ts` entrera (§3.4) |
