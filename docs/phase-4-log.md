@@ -2647,6 +2647,26 @@ sans garde tuait le processus sur un hôte injoignable — la panne la plus bana
 porter — et la ligne « ✓ 14 URL, **toutes** sur l'origine » s'imprimait alors que l'écart venait
 d'être enregistré. Le second est, une fois de plus, une prose constante décrivant un fait variable.
 
+### 23.3 bis Ce que la revue a trouvé, et qui relève de la même famille
+
+⛔⛔ **Le contrôle d'origine du sitemap comparait un préfixe de chaîne.**
+`https://exemple.com.pages.dev/en` commence par `https://exemple.com` et n'en est pas — un alias de
+préproduction resté au sitemap, c'est-à-dire du contenu dupliqué, c'est-à-dire **exactement ce que ce
+contrôle existe pour voir**. Prouvé par exécution en revue, deux serveurs à l'appui : sortie en 0,
+avec « ✓ 14 URL, *toutes* sur l'origine » imprimé par-dessus. Le banc porte le cas, vu rouge avant
+le correctif ; la comparaison porte désormais sur les origines **analysées**.
+
+⛔⛔ **Et le correctif de `check-lighthouse.mts` n'allait qu'à moitié.** Le *libellé* dérivait de la
+cible ; le *verdict*, lui, continuait de raconter — `is-on-https` et `redirects-http` restaient
+filtrés inconditionnellement. Une régression d'« Always Use HTTPS » aurait donc produit une sortie en
+0 **pendant que le rapport imprime que ces audits passent**. ⭐⭐ **Corriger la phrase et laisser le
+verdict est la même faute, déplacée d'un cran** : ce qui trompe n'est pas le texte, c'est l'accord
+entre ce qu'on affirme et ce qu'on vérifie.
+
+⭐ Le correctif a lui-même failli introduire une panne franche : `SUR_HTTPS` était déclarée **après**
+la boucle d'audit qui devait la lire — zone morte, script mort à la première mesure. Remontée auprès
+de `BASE_URL`, avec la raison écrite à côté.
+
 ### 23.4 Ce que P4-16 laisse ouvert
 
 | Sujet | État |
