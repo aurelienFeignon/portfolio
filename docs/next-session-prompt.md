@@ -199,9 +199,9 @@ dépendance structurante — et à poser le garde du budget.
 1. **`drei` s'importe par composant nommé, jamais en entier** : en entier il pèse 802,8 Ko gzip, soit
    **2,5 fois le seuil bloquant**. ⚠️ Mais interdire `export *` ne suffit pas — **quatre composants
    courants coûtent déjà +65,3 Ko** et ne laissent que 16 Ko sous le seuil. Le garde doit **compter**.
-2. **Le plancher mesuré est 237,5 Ko** (R3F + `three`, sans drei), donc **au-dessus de la cible de
-   220** : la cible ne peut pas être tenue. C'est la décision **D9** ci-dessous — ne pose pas le
-   garde avant qu'elle soit tranchée, tu inscrirais un seuil que rien ne peut satisfaire.
+2. **Le budget est chiffré, et D9 l'a tranché le 2026-08-20** : **cible 260 Ko, seuil bloquant 320**
+   (`performance-budget.md` §4.3). Le plancher mesuré étant 237,5 Ko, la cible laisse ~22 Ko — un à
+   deux composants `drei`. Le garde de P5-02 s'appuie sur ces deux nombres, et sur eux seuls.
 
 ⭐ **Le harnais qui a rendu ces chiffres est versionné** (`tools/compat-3d/`) : rejoue-le plutôt que
 de refaire les mesures, et ajoute-lui un cas si tu mesures autre chose.
@@ -290,7 +290,7 @@ Format des réponses : « D2 = …, défaut partout ailleurs » suffit. Aucune n
 
 ⭐ **Ce bloc ne contient QUE des questions vivantes**, et c'est ce qui lui donne sa valeur. Les
 décisions tranchées sont reportées dans `phase-0-questions.md` ; elles n'ont plus à être lues ici.
-**Closes : D1, D3, D4, D7** (le 2026-08-16 pour les deux dernières).
+**Closes : D1, D3, D4, D7** (le 2026-08-16 pour les deux dernières), **D9** (le 2026-08-20).
 
 **D2 🟠 — Relire les 40 niveaux de compétence (1 à 5).** *La seule qui ait un effet visible : les
 niveaux **ne sont ni affichés ni publiés** tant que tu ne les as pas relus.* Les publier afficherait
@@ -313,14 +313,6 @@ que des travaux scolaires de 2021, et la page Projets ne contient que ce portfol
 pas d'ajouter du volume — c'est **un** projet récent, décrit pour lui-même.
 → *Si tu en as un à montrer, c'est un fichier par locale dans `content/*/projects/`. Sinon, dis-le :
 la page reste à un projet, assumé, et je ne la rouvre plus.*
-
-**D9 🔴 — La cible du chunk 3D, qui est sous le plancher mesuré.** *La seule qui bloque quelque
-chose : le garde de budget de P5-02 en dépend.* `three` + R3F pèsent **237,5 Ko gzip** sans une ligne
-de `drei`, alors que la cible dit **220**. Même forme que le budget « First Load JS » de la Phase 1,
-révisé pour la même raison : un objectif sous le plancher du framework ne mesure rien.
-→ *Défaut recommandé : cible à **260 Ko**, seuil bloquant inchangé à **320**, et la ligne de la
-Phase 8 (aujourd'hui 260 / 350, dimensionnée comme « Phase 5 + 40 ») monte avec elle. Réponds « D9 =
-défaut » et je pose le garde là-dessus.* Détail : `performance-budget.md` §4.3.
 
 ## Contexte de planning
 

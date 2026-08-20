@@ -62,6 +62,12 @@ Posées à l'ouverture de la session, en vue de P2-11.
 | **D8** | Un projet représentatif d'aujourd'hui | **Née de la clôture de D3, ouverte.** Le levier n'est pas le volume mais **un** projet récent, décrit pour lui-même. Tant qu'il n'existe pas, la page Projets reste à un projet, assumé. |
 | **D3** | Un seul projet publié | **Assumé, rien de plus n'est publié.** Le GitHub ne contient que quatre projets scolaires ENI de 2021, zéro étoile, dernier push octobre 2021. Les mettre à côté d'Augure **abaisserait** le signal — un CTO lit le plus faible, pas le plus fort. La profondeur technique est déjà portée par les fiches d'expérience. Le levier reste d'écrire un projet représentatif d'aujourd'hui, pas d'ajouter du volume. |
 
+## Décision de budget — 2026-08-20
+
+| # | Question | Réponse |
+|---|---|---|
+| **D9** | La cible du chunk 3D, mesurée sous son plancher | **Cible portée à 260 Ko, seuil bloquant inchangé à 320 ; la Phase 8 passe de 260/350 à 300/350.** P5-01 a mesuré `three` + React Three Fiber à **237,5 Ko gzip** sans une ligne de `drei` : la cible de 220 Ko était **inférieure au plancher de ce qu'on installe**, donc intenable — même défaut que le budget « First Load JS » de la Phase 1, révisé pour la même raison. 260 laisse ~22 Ko, soit un à deux composants `drei` (un composant coûte 0,9 Ko, quatre en coûtent 65,3). La ligne de la Phase 8 avait été dimensionnée comme « cible de la Phase 5 + 40 » et monte avec elle, sans quoi la direction artistique n'aurait plus aucune marge. ⭐ Aucune ligne de code n'existe encore : la révision n'excuse rien, elle enregistre un plancher. Détail et mesures : `performance-budget.md` §4.3. |
+
 ---
 
 ## Bloc A — Infrastructure et déploiement
