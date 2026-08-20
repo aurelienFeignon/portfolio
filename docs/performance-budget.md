@@ -98,7 +98,7 @@ Mesures en **transfert gzip/brotli**, telles que rapportées par l'analyse de bu
 | First Load JS partagé (toutes routes) | ≤ 136 Ko | **146 Ko** | Phase 1 |
 | JS d'une page de contenu (hors partagé) | ≤ 25 Ko | **40 Ko** | Phase 4 |
 | **JS total avant interactivité du contenu** | ≤ 120 Ko | **160 Ko** | Phase 4 |
-| Chunk 3D (three + R3F + drei, différé) | ≤ 220 Ko | **320 Ko** | Phase 5 |
+| Chunk 3D (three + R3F + drei, différé) | ≤ 220 Ko — ⚠️ **inatteignable, voir §4.2** | **320 Ko** | Phase 5 |
 | Chunk 3D après direction artistique | ≤ 260 Ko | **350 Ko** | Phase 8 |
 
 Le chunk 3D **n'entre pas** dans le budget « avant interactivité » : c'est précisément ce que
@@ -169,6 +169,39 @@ build en annonçait 20. Corrigé par un parcours récursif.
 (inchangé depuis la Phase 1, dont +3,5 Ko applicatifs), et **0,0 Ko de JS propre sur les 18**. Le
 site n'a toujours aucun composant client : la navigation et le sélecteur de langue sont des balises
 `<a>`, ce qui rend le profil `no-js` vrai par construction.
+
+---
+
+### 4.3 Le chunk 3D, mesuré AVANT installation — 2026-08-20 (P5-01)
+
+R-08 demandait de vérifier la compatibilité des paquets. La mesure du **poids** ne lui était pas
+demandée : elle a été faite parce qu'un budget qu'on découvre après l'installation n'est plus un
+budget, c'est un constat. Bundle ESM minifié par esbuild dans un bac à sable jetable, `react` et
+`react-dom` exclus (déjà dans le socle), gzip :
+
+| Contenu du chunk | Minifié | **gzip** |
+|---|---|---|
+| `three` seul | 712,8 Ko | **184,2 Ko** |
+| `three` + `@react-three/fiber` | 888,9 Ko | **241,5 Ko** |
+| `three` + R3F + `drei`, **imports ciblés** | 879,5 Ko | **238,4 Ko** |
+| `three` + R3F + `drei` **entier** (`export *`) | 2 655,8 Ko | **802,8 Ko** |
+
+⛔⛔⛔ **`drei` importé en entier coûte 2,5 fois le seuil bloquant.** Importé par composant nommé, il
+ne coûte **rien de mesurable** — 238,4 contre 241,5 Ko, l'écart étant du bruit de secouage d'arbre.
+Ce budget ne se joue donc pas sur le choix des paquets mais sur **la forme des imports**, ce qu'aucun
+seuil ne dit et qu'un garde doit tenir (P5-02 ou P5-09).
+
+**Constat sur la cible** — `three` seul consomme **84 % de la cible de 220 Ko**, avant la première
+ligne de R3F. Comme le budget « First Load JS » de la §4.1 avant sa révision, cette cible est
+**inférieure au plancher de ce qu'on installe** : aucune version du code ne peut la tenir, et un
+objectif que rien ne peut atteindre s'apprend à s'ignorer. Le **seuil bloquant de 320 Ko**, lui,
+tient avec 25 % de marge.
+
+⚠️ **Proposition, non appliquée — décision de l'exploitant.** Porter la cible à **245 Ko** (le
+mesuré, plus 3 % de marge) et laisser le seuil bloquant à 320. Contrairement à la §4.1, la mesure
+précède ici toute écriture de scène : il n'y a **pas encore de code à corriger**, donc rien à
+excuser. *Ce qui rouvrirait la question* : une distribution de `three` sur mesure, ou une version qui
+allège la distribution standard.
 
 ---
 
