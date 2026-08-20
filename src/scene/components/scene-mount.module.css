@@ -1,0 +1,14 @@
+/*
+ * La scène est un DÉCOR : elle occupe le fond, derrière tout le contenu.
+ *
+ * ⛔ `pointer-events: none` n'est pas une précaution, c'est une correction par
+ * anticipation : une couche fixe qui couvre la fenêtre intercepte sinon chaque
+ * clic du site documentaire — liens, formulaire, sélecteur de langue. Elle sera
+ * levée sur les seules cibles cliquables, en Phase 6.
+ */
+.decor {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+}

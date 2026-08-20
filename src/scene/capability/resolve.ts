@@ -117,3 +117,20 @@ export function resolveCapability(input: CapabilityInput): Capability {
     motion: input.prefersReducedMotion ? 'instant' : 'animated',
   }
 }
+
+/**
+ * Faut-il monter la scène ?
+ *
+ * ⭐ La question est posée **ici**, et non dans le composant de montage, parce
+ * que `src/scene/components` est exclu de la mesure de couverture — il est tenu
+ * par le banc E2E. Une décision écrite là-bas ne serait éprouvée que par un
+ * navigateur ; écrite ici, elle l'est aussi par assertion.
+ *
+ * ⛔ `none` n'est pas « une scène vide » : c'est **aucun canvas, aucun contexte
+ * WebGL, aucun octet de three téléchargé**. La différence est tout le sens du
+ * palier (ADR-0003) — un appareil qui a demandé `save-data` ne doit pas payer le
+ * chunk pour ne rien voir.
+ */
+export function shouldMountScene(capability: Capability): boolean {
+  return capability.tier !== 'none'
+}

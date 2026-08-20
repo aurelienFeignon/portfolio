@@ -365,3 +365,72 @@ nombre limité — de l'ordre de 16 — et sur mobile, en réserver un pour savo
 | `none` par **échec de chargement** ou perte de contexte | **P5-07**, error boundary — la fonction ne peut pas voir un import qui échoue |
 | `none` par **absence de JavaScript** | Hors de portée par construction : sans JS, rien de tout ceci ne s'exécute, et c'est exactement le comportement voulu |
 | Le seuil « appareil moyen » | Posé ici, jamais mesuré sur un vrai parc. *Déclencheur de réexamen* : un relevé de performance réelle en Phase 11 |
+
+---
+
+## 5. P5-04 — le canvas monté, et le budget qui cesse d'être théorique
+
+### 5.1 Ce que le montage garantit, et par quoi
+
+Quatre propriétés d'ADR-0003, chacune tenue par quelque chose plutôt que par une intention :
+
+| Propriété | Ce qui la tient |
+|---|---|
+| Import **dynamique**, `ssr: false` | Mesuré : les cinq chunks du socle ne portent **aucune** occurrence de `WebGLRenderer` |
+| Monté **après `idle`** | `requestIdleCallback`, avec un repli `setTimeout` — Safari ne l'implémente qu'à partir de la 18.2, et sans repli la scène ne se monterait **jamais** sur ces navigateurs, sans que rien ne le dise |
+| `aria-hidden`, rien de focusable, aucun texte | Trois assertions du banc E2E, sur la racine désignée par `data-scene-root` |
+| Au palier `none`, **rien** n'est chargé | `profiles/no-webgl/scene-absente.spec.ts` : aucun canvas, et **aucun chunk servi ne contient `WebGLRenderer`** |
+
+### 5.2 ⭐⭐ Le budget de D9, mesuré pour de vrai
+
+D9 avait arrêté 260 Ko de cible et 320 de seuil bloquant sur une estimation de bac à sable. Le
+premier chunk réel les confronte :
+
+| | Estimation P5-01 | **Mesuré ici** |
+|---|---|---|
+| Chunk 3D différé, gzip | 237,5 Ko | **226 Ko** |
+| Socle partagé | 126,4 Ko | **127,0 Ko** (+0,6) |
+| JS par route | 8,2 Ko | 8,2 Ko |
+
+⭐ **Le vrai bundler fait mieux que l'estimation** — 226 contre 237,5. Le bac à sable était donc une
+**borne haute**, ce qui est la bonne direction pour un budget : il aurait été fâcheux qu'il flatte.
+La cible de 260 laisse aujourd'hui **34 Ko** pour `drei` et la scène, soit largement de quoi loger la
+poignée de composants qu'elle demandera.
+
+### 5.3 Deux corrections de conception, payées au banc
+
+⛔ **Le décor plein écran interceptait tout.** Une couche `position: fixed; inset: 0` couvre la
+fenêtre : sans `pointer-events: none`, elle avale **chaque clic du site documentaire** — liens,
+sélecteur de langue, formulaire à venir. Le correctif était écrit d'emblée, mais c'est un test
+dédié qui le tient, parce que rien ne le signalerait autrement : la page reste parfaitement normale
+à l'œil.
+
+⛔⛔ **Mon banc partagé s'exécutait sous `no-webgl`.** Écrit dans `shared/`, il affirmait « le canvas
+est là » — et `shared/` est joué par les quatre profils, dont celui dont **tout l'objet est qu'il n'y
+soit pas**. ⭐⭐ *Un banc qui affirme une présence ne peut pas être partagé avec le profil qui prouve
+l'absence.* Déplacé en `profiles/desktop-chromium/`, l'absence restant vérifiée en face.
+
+⭐ Et un sélecteur trop large : `[aria-hidden="true"]` attrape d'autres éléments de la page. Le
+contrôle « la scène n'écrit aucun texte » regardait donc autre chose qu'elle — vert pour une raison
+fausse. La racine porte désormais `data-scene-root`, et le banc ne désigne plus qu'elle.
+
+### 5.4 ⚠️ Trois échecs du banc local qui ne viennent pas de cette tâche
+
+`make e2e` rend trois rouges sur cette branche. **Les trois préexistent**, vérifié en remisant la
+modification et en rejouant chacun : la 404 du **serveur de développement** sert **deux**
+`meta[name="robots"]` (`noindex` et `noindex, follow`), et les deux parcours de cibles tactiles
+échouent également sans une ligne de cette tâche.
+
+⭐ La CI, elle, joue l'E2E contre **l'image de production**, où ces trois-là passent — c'est pourquoi
+`main` est vert. La dette est donc réelle mais locale : **le banc de développement et le banc de
+production ne disent pas la même chose**, et personne ne le savait avant d'y regarder. Consigné ici
+plutôt que corrigé dans une tâche qui n'en a pas le périmètre.
+
+### 5.5 Ce que P5-04 laisse ouvert
+
+| Sujet | État |
+|---|---|
+| La scène est **vide** | P5-05 la remplira ; ce qui est livré ici est le montage |
+| Aucun garde n'interdit `three` dans le socle | **P5-09** : la mesure existe (les cinq chunks sont propres), le **garde** reste à écrire |
+| Le divorce banc dev / banc prod | **Ouvert**, §5.4 — trois tests rouges en dev, verts en production |
+| `matchMedia` lu une seule fois | Toujours vrai : basculer « Réduire les animations » en cours de session ne se voit qu'au rechargement. Les requêtes sont exportées pour qu'un abonnement soit possible sans recopier les chaînes |
