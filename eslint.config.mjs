@@ -136,6 +136,36 @@ export default tseslint.config(
     },
   },
 
+  // ⛔⛔ `drei` s'importe COMPOSANT PAR COMPOSANT (ADR-0016). Ce n'est pas une
+  // préférence de style, c'est le budget de la phase, et il est mesuré :
+  //
+  //   R3F + three, sans drei ............ 237,5 Ko gzip
+  //   + drei, UN composant .............. 238,4 Ko   (+0,9)
+  //   + drei ENTIER ..................... 802,8 Ko   = 2,5 x le seuil bloquant
+  //
+  // ⚠️ Cette règle ne couvre que le cas CATASTROPHIQUE — l'import global. Quatre
+  // composants nommés suffisent à consommer 80 % du seuil, et aucune règle de
+  // lint ne pèse des octets : la mesure du chunk réel est P5-04 / P5-09.
+  {
+    files: ['src/**/*.{ts,tsx}'],
+    rules: {
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector:
+            "ImportDeclaration[source.value='@react-three/drei'] > ImportNamespaceSpecifier",
+          message:
+            'drei s’importe composant par composant (ADR-0016) : `import * as` embarque tout le paquet, soit 802,8 Ko gzip — 2,5 fois le seuil bloquant de la phase.',
+        },
+        {
+          selector: "ExportAllDeclaration[source.value='@react-three/drei']",
+          message:
+            'Un `export *` de drei embarque tout le paquet (802,8 Ko gzip, ADR-0016). Réexporte les composants un par un, ou n’en réexporte aucun.',
+        },
+      ],
+    },
+  },
+
   // Modules atteignables par `node` seul : le gate de contenu les charge sans
   // bundler, donc sans JSX ni React. La contrainte est identique à celle de
   // `src/content/**` (CT-09), et pour la même raison — la faute passerait `tsc`

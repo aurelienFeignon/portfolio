@@ -31,6 +31,15 @@ Statuts : `PROPOSÉ` · `ACCEPTÉ` · `REMPLACÉ PAR ADR-xxxx` · `ABANDONNÉ`
 |---|---|---|---|
 | [0010](./0010-styling-strategy.md) | Style : CSS Modules et tokens en variables CSS | ACCEPTÉ | 4 |
 
+## Décisions actées (Phase 5)
+
+| # | Titre | Statut | Phase d'application |
+|---|---|---|---|
+| [0016](./0016-3d-runtime-dependencies.md) | `three` + React Three Fiber + drei, drei importé composant par composant | ACCEPTÉ | 5–8 |
+
+⭐ **Le saut de 0010 à 0016 est délibéré** : 0011 à 0015 restent réservés aux décisions planifiées
+ci-dessous, dont l'une est nommée par la tâche P8-01. Un numéro réservé ne se reprend pas.
+
 ## Décisions identifiées, à instruire plus tard
 
 Ces sujets sont structurants mais ne peuvent pas être tranchés honnêtement en Phase 0 : ils

@@ -125,3 +125,57 @@ bac à sable prouve la compatibilité des paquets entre eux, pas leur intégrati
 dépendance** au dépôt — le manifeste s'y appelle `manifest.json` et se copie au moment de l'emploi.
 ⭐⭐ **Il est versionné à cause de l'erreur du §1.3** : un chiffre qui fixe le budget d'une phase doit
 pouvoir être recontrôlé par quelqu'un d'autre, sinon la correction se refait de mémoire.
+
+---
+
+## 2. P5-02 — l'installation, et ce qu'elle ne coûte pas encore
+
+### 2.1 Ce qui entre, et à quelles versions
+
+`three@0.185.1`, `@react-three/fiber@9.7.0`, `@react-three/drei@10.7.8` en production,
+`@types/three@0.185.4` en développement — **épinglés à la version exacte**, sans `^`, comme la
+mitigation de R-08 l'exige. Justification complète : **ADR-0016**.
+
+⭐ **L'ADR porte le numéro 0016 et non 0011** : les numéros 0011 à 0015 sont réservés à des décisions
+déjà planifiées, et l'une d'elles — les assets 3D — est **nommée par la tâche P8-01** de la roadmap.
+Prendre un numéro réservé aurait cassé une référence existante ; un numéro réservé ne se reprend pas.
+
+### 2.2 ⭐⭐ Installer ne coûte rien, et c'est mesuré
+
+| Relevé | Avant installation | Après |
+|---|---|---|
+| Socle partagé, 18 routes prérendues | 126,4 Ko | **126,4 Ko** |
+| JS propre à chaque route | 8,2 Ko | **8,2 Ko** |
+| Image de production | 273 Mo *(relevé de P4-12)* | **273 Mo** |
+
+Pas un octet — ni dans ce qui est servi, ni dans l'image. C'est attendu — rien n'importe encore ces paquets, et Next ne met dans un chunk que ce
+que le graphe atteint —, mais **attendu n'est pas vérifié** : c'est exactement la forme d'affirmation
+que cette phase-ci a appris à ne pas croire sur parole. Le coût apparaîtra au montage du canvas
+(P5-04), et c'est là qu'il sera pesé.
+
+⭐ **L'image ne bouge pas non plus, et ce n'était pas acquis** : l'étage de construction installe
+toutes les dépendances, développement compris. C'est la sortie `standalone` de Next — qui n'emporte
+que ce que le traceur atteint — qui les laisse dehors. La même sortie avait d'ailleurs **démenti**
+une prémisse de quatre phases en P4-13, en y incluant `content/` : elle n'emporte ni plus ni moins
+que ce qui est atteint, et cela se mesure dans les deux sens.
+
+### 2.3 Le garde, et ce qu'il ne garde pas
+
+Une règle ESLint refuse l'import **global** de `drei` — `import * as …` et `export * from …` — sur
+tout `src/**`. Les deux sélecteurs ont été **vus rouges avant d'être crus**, et le cas nominal (un
+import nommé) vérifié vert dans la foulée.
+
+⚠️ **Ce garde ne couvre que le cas catastrophique**, et il faut le dire ici plutôt que de laisser
+croire au contraire : l'import global coûte 802,8 Ko gzip, mais **quatre composants nommés en
+coûtent déjà 303,7**, soit 95 % de la cible et 80 % du seuil bloquant. Aucune règle de lint ne pèse
+des octets. ⭐⭐ **Un garde syntaxique attrape une forme, pas une quantité** — la mesure du chunk réel
+est **P5-04 / P5-09**, quand un chunk existera, et c'est écrit dans la règle elle-même.
+
+### 2.4 Ce que P5-02 laisse ouvert
+
+| Sujet | État |
+|---|---|
+| Le poids réel servi | **P5-04** : rien n'est importé, donc rien n'est mesurable au-delà de « inchangé » |
+| Le compte des composants `drei` | **Non gardé.** Le seul garde possible aujourd'hui est syntaxique ; le budgétaire suppose un chunk |
+| `THREE.Clock` déprécié par `three` 0.185, employé par R3F 9.7.0 | Avertissement en console, sans conséquence. *Déclencheur* : le jour où `three` retire l'API |
+| Montée de React au-delà de 19.2.x | **Devient un choix contre R3F** (`react >=19 <19.3`). À vérifier à chaque campagne de mise à jour |
