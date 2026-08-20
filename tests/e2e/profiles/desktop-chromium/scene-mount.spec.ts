@@ -39,17 +39,32 @@ test.describe('montage de la scène', () => {
     await expect(focusables).toHaveCount(0)
   })
 
-  test('⛔ n’intercepte aucun clic : un décor plein écran couvrirait tout le site', async ({
-    page,
-  }) => {
+  test('⛔ ne peut intercepter aucun clic — et par DEUX propriétés, pas une', async ({ page }) => {
     await page.goto('/fr')
     await expect(page.locator(`${RACINE} canvas`)).toBeAttached({ timeout: 10_000 })
 
-    // Le lien est sous une couche fixe qui couvre la fenêtre. S'il répond, c'est
-    // que `pointer-events` est bien coupé — sinon la scène avalerait la
-    // navigation entière, et le site deviendrait inutilisable à la souris.
-    await page.getByRole('link', { name: 'Expériences' }).first().click()
+    /*
+     * ⛔⛔ **La première écriture de ce test ne tenait rien.** Elle se contentait
+     * de cliquer un lien et de vérifier la navigation — or `z-index: -1` place
+     * déjà le décor sous tout élément dans le flux, donc le clic aboutissait
+     * **avec ou sans** `pointer-events: none`. Retirer la ligne de CSS que le
+     * test prétendait garder l'aurait laissé vert. Relevé en revue.
+     *
+     * Les deux propriétés sont donc affirmées séparément, parce qu'elles
+     * protègent contre deux choses différentes : l'empilement, qu'un futur
+     * contexte de superposition peut annuler, et l'insensibilité au pointeur,
+     * qui tient quel que soit l'empilement.
+     */
+    const style = await page.locator(RACINE).evaluate((element) => {
+      const calcule = getComputedStyle(element)
+      return { pointerEvents: calcule.pointerEvents, zIndex: calcule.zIndex }
+    })
 
+    expect(style.pointerEvents).toBe('none')
+    expect(Number(style.zIndex)).toBeLessThan(0)
+
+    // Et le comportement, pour mémoire : le site reste navigable sous le décor.
+    await page.getByRole('link', { name: 'Expériences' }).first().click()
     await expect(page).toHaveURL(/\/fr\/experiences$/)
   })
 

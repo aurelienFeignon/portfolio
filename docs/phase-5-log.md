@@ -377,7 +377,8 @@ Quatre propriétés d'ADR-0003, chacune tenue par quelque chose plutôt que par 
 | Propriété | Ce qui la tient |
 |---|---|
 | Import **dynamique**, `ssr: false` | Mesuré : les cinq chunks du socle ne portent **aucune** occurrence de `WebGLRenderer` |
-| Monté **après `idle`** | `requestIdleCallback`, avec un repli `setTimeout` — Safari ne l'implémente qu'à partir de la 18.2, et sans repli la scène ne se monterait **jamais** sur ces navigateurs, sans que rien ne le dise |
+| Monté **après `idle`** | `requestIdleCallback`, avec un repli `setTimeout` — Safari ne l'implémente qu'à partir de la 18.2, et sans repli la scène ne se monterait **jamais** sur ces navigateurs, sans que rien ne le dise. ⛔ Le repli attend **la même échéance de 2 s**, et non 200 ms comme d'abord écrit : un repli dix fois plus pressé que ce qu'il remplace, sur les appareils les plus lents, n'est pas un repli |
+| La **lecture** attend aussi | ⛔⛔ Elle **crée un vrai contexte WebGL** : la faire pendant l'hydratation coûtait des dizaines de millisecondes d'initialisation pilote, y compris à qui a demandé `save-data` et ne verra jamais la scène. Les deux promesses de la tâche n'étaient donc vraies qu'à moitié |
 | `aria-hidden`, rien de focusable, aucun texte | Trois assertions du banc E2E, sur la racine désignée par `data-scene-root` |
 | Au palier `none`, **rien** n'est chargé | `profiles/no-webgl/scene-absente.spec.ts` : aucun canvas, et **aucun chunk servi ne contient `WebGLRenderer`** |
 
@@ -399,11 +400,17 @@ poignée de composants qu'elle demandera.
 
 ### 5.3 Deux corrections de conception, payées au banc
 
-⛔ **Le décor plein écran interceptait tout.** Une couche `position: fixed; inset: 0` couvre la
-fenêtre : sans `pointer-events: none`, elle avale **chaque clic du site documentaire** — liens,
-sélecteur de langue, formulaire à venir. Le correctif était écrit d'emblée, mais c'est un test
-dédié qui le tient, parce que rien ne le signalerait autrement : la page reste parfaitement normale
-à l'œil.
+⛔ **Le décor plein écran pourrait tout intercepter.** Une couche `position: fixed; inset: 0`
+couvre la fenêtre : sans `pointer-events: none`, elle avalerait **chaque clic du site documentaire**.
+
+⛔⛔ **Et le test qui prétendait le garder ne gardait rien** — relevé en revue. Il cliquait un lien
+et vérifiait la navigation ; or `z-index: -1` place déjà le décor sous tout élément dans le flux,
+donc le clic aboutissait **avec ou sans** la ligne de CSS. Retirer ce qu'il protégeait l'aurait
+laissé vert. ⭐⭐⭐ **Un test qui passe pour deux raisons possibles n'en garde aucune** : il faut
+affirmer la propriété, pas son symptôme. Les deux sont maintenant vérifiées séparément —
+`pointer-events` et l'empilement —, parce qu'elles protègent contre deux choses différentes : un
+futur contexte de superposition peut annuler la seconde, jamais la première. **Vu rouge par
+mutation** avant d'être cru : la ligne retirée, le test échoue sur `Received: "auto"`.
 
 ⛔⛔ **Mon banc partagé s'exécutait sous `no-webgl`.** Écrit dans `shared/`, il affirmait « le canvas
 est là » — et `shared/` est joué par les quatre profils, dont celui dont **tout l'objet est qu'il n'y

@@ -36,25 +36,45 @@ const SceneCanvas = dynamic(() => import('./scene-canvas'), { ssr: false })
  * `requestIdleCallback` n'existe pas sur Safari avant la version 18.2. Le repli
  * n'est pas cosmétique : sans lui, la scène ne se monterait **jamais** sur ces
  * navigateurs, et rien ne le dirait — la page resterait simplement documentaire.
+ *
+ * ⛔ **Le repli attend aussi longtemps que l'échéance de `requestIdleCallback`,
+ * et pas moins.** Une première écriture le posait à 200 ms : dix fois plus tôt,
+ * sans le moindre signal d'inactivité, et précisément sur les navigateurs et les
+ * appareils les plus lents — c'est-à-dire ceux dont la fenêtre de LCP est la plus
+ * longue. Un repli plus pressé que ce qu'il remplace n'est pas un repli.
  */
+const ECHEANCE_MS = 2_000
+
 function auRepos(callback: () => void): () => void {
   if (typeof window.requestIdleCallback === 'function') {
-    const id = window.requestIdleCallback(callback, { timeout: 2_000 })
+    const id = window.requestIdleCallback(callback, { timeout: ECHEANCE_MS })
     return () => window.cancelIdleCallback(id)
   }
-  const id = window.setTimeout(callback, 200)
+  const id = window.setTimeout(callback, ECHEANCE_MS)
   return () => window.clearTimeout(id)
 }
 
 export function SceneMount() {
   const [capability, setCapability] = useState<Capability | null>(null)
 
-  useEffect(() => {
-    const lu = resolveCapability(readCapability(window))
-    if (!shouldMountScene(lu)) return undefined
-
-    return auRepos(() => setCapability(lu))
-  }, [])
+  useEffect(
+    () =>
+      /*
+       * ⛔⛔ **La LECTURE elle-même attend, pas seulement le montage.** Une
+       * première écriture appelait `readCapability` tout de suite et ne différait
+       * que le `setState` — or cette lecture **crée un vrai contexte WebGL** et le
+       * relâche, ce qui coûte des dizaines de millisecondes d'initialisation
+       * pilote sur un appareil modeste, en pleine hydratation. Elle le faisait
+       * même pour qui a demandé `save-data` et ne verra jamais la scène : les deux
+       * promesses de cette tâche — « jamais dans le chemin critique » et « le
+       * palier `none` ne paie rien » — n'étaient donc vraies qu'à moitié.
+       */
+      auRepos(() => {
+        const lu = resolveCapability(readCapability(window))
+        if (shouldMountScene(lu)) setCapability(lu)
+      }),
+    [],
+  )
 
   if (capability === null) return null
 

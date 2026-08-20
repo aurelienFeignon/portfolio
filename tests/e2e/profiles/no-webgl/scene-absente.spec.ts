@@ -22,7 +22,14 @@ test.describe('sans WebGL, la scène ne se monte pas', () => {
     // Laisser passer l'`idle` : c'est après lui que le montage aurait lieu.
     await page.waitForTimeout(2_500)
 
-    await expect(page.locator('div[aria-hidden="true"] canvas')).toHaveCount(0)
+    /*
+     * ⭐ Ancré sur `[data-scene-root]`, le même repère que le banc de présence.
+     * Écrit d'abord avec `div[aria-hidden="true"]` — le sélecteur que cette tâche
+     * a justement remplacé pour son imprécision : si l'enveloppe cessait de
+     * porter `aria-hidden`, ce contrôle passerait au vert **avec un canvas monté**.
+     */
+    await expect(page.locator('[data-scene-root] canvas')).toHaveCount(0)
+    await expect(page.locator('[data-scene-root]')).toHaveCount(0)
 
     // ⭐ Et la preuve qui compte vraiment : le chunk n'a même pas été demandé.
     const chunksJs = requetes.filter((url) => url.includes('/_next/static/chunks/'))
