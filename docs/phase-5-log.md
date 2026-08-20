@@ -106,13 +106,15 @@ lockfile. Le dépôt épingle déjà à la version exacte, sans accent circonfle
 
 | Sujet | Défaut recommandé | Condition de réouverture |
 |---|---|---|
-| **La cible de 220 Ko pour le chunk 3D** | **À trancher par l'exploitant — D9.** Le plancher mesuré est 237,5 Ko : la cible lui est inférieure, donc hors d'atteinte. Recommandé — **la porter à 260 Ko** (plancher + une réserve d'environ un composant drei par écran), garder le **seuil bloquant à 320**, et **monter la ligne de la Phase 8 avec elle** (son 260 / 350 avait été dimensionné comme « Phase 5 + 40 ») | Un `three` sur mesure, ou une version qui allège la distribution standard |
+| **La cible de 220 Ko pour le chunk 3D** | ✅ **Tranché le 2026-08-20 (D9) : 260 Ko de cible, 320 de seuil bloquant**, et la Phase 8 monte à 300 / 350. La cible de 220 était **sous le plancher mesuré** de 237,5 Ko, donc intenable ; 260 laisse ~22 Ko, soit un à deux composants drei | Un `three` sur mesure, ou une version qui allège la distribution standard |
 | **`drei` importé par composant nommé, jamais en entier** | **Contrainte dure**, pas une préférence : 238 Ko contre 803. Doit devenir un **garde** en P5-02 ou P5-09, pas une consigne de revue. ⚠️ Et le garde doit compter, pas seulement interdire `export *` : **quatre composants suffisent à consommer 80 % du seuil** | — |
 | **Vérifier la matrice hors du dépôt** | Bac à sable jetable, aucune dépendance ajoutée : P5-01 devait pouvoir conclure **NO-GO** sans laisser de trace à défaire | — |
 
 ### 1.7 Verdict
 
-**GO pour P5-02**, aux versions vérifiées ci-dessus, et sous les deux contraintes du §1.6.
+**GO pour P5-02**, aux versions vérifiées ci-dessus, et sous les deux contraintes du §1.6 — dont la
+seconde est désormais chiffrée : **cible 260 Ko, seuil bloquant 320** (D9, tranchée le 2026-08-20).
+Le garde de budget de P5-02 s'appuie sur ces deux nombres, et sur eux seuls.
 
 ⚠️ Ce que P5-01 **ne** dit **pas** : rien sur le comportement dans **Next 16.3** — l'import dynamique
 `ssr: false`, le découpage réel des chunks et l'absence du chemin critique sont P5-04 et P5-09. Le

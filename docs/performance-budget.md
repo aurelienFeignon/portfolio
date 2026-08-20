@@ -98,8 +98,10 @@ Mesures en **transfert gzip/brotli**, telles que rapportées par l'analyse de bu
 | First Load JS partagé (toutes routes) | ≤ 136 Ko | **146 Ko** | Phase 1 |
 | JS d'une page de contenu (hors partagé) | ≤ 25 Ko | **40 Ko** | Phase 4 |
 | **JS total avant interactivité du contenu** | ≤ 120 Ko | **160 Ko** | Phase 4 |
-| Chunk 3D (three + R3F + drei, différé) | ≤ 220 Ko — ⚠️ **sous le plancher mesuré, voir §4.3** | **320 Ko** | Phase 5 |
-| Chunk 3D après direction artistique | ≤ 260 Ko — ⚠️ **dérivée de la cible de 220, à réexaminer avec elle (§4.3)** | **350 Ko** | Phase 8 |
+| ~~Chunk 3D (three + R3F + drei, différé)~~ | ~~≤ 220 Ko~~ | ~~320 Ko~~ | **révisé, voir §4.3** |
+| Chunk 3D (three + R3F + drei, différé) | ≤ **260 Ko** | **320 Ko** | Phase 5 |
+| ~~Chunk 3D après direction artistique~~ | ~~≤ 260 Ko~~ | ~~350 Ko~~ | **révisé, voir §4.3** |
+| Chunk 3D après direction artistique | ≤ **300 Ko** | **350 Ko** | Phase 8 |
 
 Le chunk 3D **n'entre pas** dans le budget « avant interactivité » : c'est précisément ce que
 garantit l'ADR-0003. Un test de non-régression vérifie qu'aucun module `three` n'apparaît dans le
@@ -207,14 +209,18 @@ aucune version du code ne peut la tenir, et un objectif que rien ne peut atteind
 s'ignorer. Le **seuil bloquant de 320 Ko** tient, mais avec **5 % de marge seulement** dès qu'on
 emploie quatre composants de `drei`.
 
-⚠️ **Proposition, non appliquée — décision de l'exploitant (D9).** Porter la cible de la Phase 5 à
-**260 Ko** — le plancher de 237,5 plus une réserve d'environ un composant `drei` par écran — et
-laisser le seuil bloquant à 320. ⛔ **La ligne de la Phase 8 en dépend** : son 260 / 350 avait été
-dimensionné comme « la cible de la Phase 5 plus 40 » ; si la Phase 5 monte à 260, la Phase 8 doit
-monter avec, sans quoi la direction artistique n'aurait plus **aucune** marge. Contrairement à la
-§4.1, la mesure précède ici toute écriture de scène : il n'y a **pas encore de code à corriger**,
-donc rien à excuser. *Ce qui rouvrirait la question* : une distribution de `three` sur mesure, ou une
-version qui allège la distribution standard.
+✅ **Décision D9, tranchée par l'exploitant le 2026-08-20 : cible à 260 Ko, seuil bloquant inchangé
+à 320.** La cible est le plancher mesuré (237,5) plus une réserve d'environ **22 Ko**, soit un à deux
+composants `drei`. La ligne de la **Phase 8 monte avec elle**, à **300 / 350** : son 260 / 350 avait
+été dimensionné comme « la cible de la Phase 5 plus 40 », et la laisser en place aurait privé la
+direction artistique de toute marge.
+
+⭐ **Contrairement à la §4.1, aucune révision n'excuse ici du code existant** : la mesure précède
+toute écriture de scène — il n'y a pas encore une ligne à corriger, et le chiffre retenu est celui
+qu'on ne peut pas descendre, pas celui qu'on n'a pas su tenir.
+
+*Ce qui rouvrirait la question* : une distribution de `three` sur mesure, ou une version amont qui
+allège la distribution standard.
 
 ---
 
