@@ -205,7 +205,18 @@ try {
   await browser.close()
 }
 
-console.log('\n  Lighthouse, contre l’image de production :\n')
+/**
+ * ⛔⛔ **La cible se LIT, elle ne se raconte pas.** Ce script a imprimé « contre
+ * l'image de production » et « ce banc sert du HTTP nu » pendant qu'il auditait
+ * `https://aurelienfeignon.com` en HTTPS, avec `is-on-https` à 100 — les deux
+ * phrases étaient constantes, la cible ne l'est pas. C'est le défaut que la
+ * Phase 4 traque partout ailleurs, trouvé dans le rapport qui devait servir de
+ * preuve à P4-16.
+ */
+const SUR_HTTPS = BASE_URL.startsWith('https:')
+const CIBLE = SUR_HTTPS ? `le site réel (${BASE_URL})` : `l’image de production (${BASE_URL})`
+
+console.log(`\n  Lighthouse, contre ${CIBLE} :\n`)
 
 const failures: string[] = []
 
@@ -254,10 +265,15 @@ for (const threshold of THRESHOLDS) {
  * regarde plus.
  */
 console.log(
-  `\n  « bonnes pratiques » est jugée sur ses audits, pas sur son score : ` +
-    `${[...LAB_ONLY_FAILURES].join(' et ')} échouent parce que ce banc sert du HTTP nu.\n` +
+  (SUR_HTTPS
+    ? `\n  « bonnes pratiques » porte ici son score entier : ${[...LAB_ONLY_FAILURES].join(' et ')} ` +
+      `passent sur une origine en HTTPS, ce que le banc local ne peut pas rendre.\n`
+    : `\n  « bonnes pratiques » est jugée sur ses audits, pas sur son score : ` +
+      `${[...LAB_ONLY_FAILURES].join(' et ')} échouent parce que ce banc sert du HTTP nu.\n`) +
     `  « performance » est relevée sans être bloquante : elle dépend de la charge de la machine.\n` +
-    `  Le relevé qui fait foi pour les deux est P4-16, contre le site réel.`,
+    (SUR_HTTPS
+      ? `  Ce relevé-ci est celui qui fait foi (P4-16) : il mesure le service, réseau et CDN compris.`
+      : `  Le relevé qui fait foi pour les deux est P4-16, contre le site réel.`),
 )
 
 if (failures.length > 0) {
