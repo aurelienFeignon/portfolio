@@ -1133,7 +1133,7 @@ le 2026-08-18, jugé sur le corps : aller-retour par le même verbe, **~1 s d'or
 |---|---|---|
 | P5-01 | Vérification de la matrice de compatibilité React / R3F / drei (risque R-08) — **DONE** *(2026-08-20)* | P4-12 |
 | P5-02 | Installation justifiée de `three`, `@react-three/fiber`, `@react-three/drei` — **DONE** *(2026-08-20)* | P5-01 |
-| P5-03 | `resolveCapabilityTier` (fonction pure) + adaptateur navigateur | P5-02 |
+| P5-03 | `resolveCapabilityTier` (fonction pure) + adaptateur navigateur — **DONE** *(2026-08-20)* | P5-02 |
 | P5-04 | Montage du canvas : dynamique, `ssr:false`, après idle, `aria-hidden` | P5-03 |
 | P5-05 | Scène primitive : bureau, **deux moniteurs et un portable** en géométries de base (D10) | P5-04 |
 | P5-06 | Caméra, éclairage, environnement minimal | P5-05 |
@@ -1141,6 +1141,30 @@ le 2026-08-18, jugé sur le corps : aller-retour par le même verbe, **~1 s d'or
 | P5-08 | Panneau de diagnostic : FPS, draw calls, triangles, mémoire | P5-06 |
 | P5-09 | Test de non-régression : aucun module `three` dans les chunks initiaux | P5-04 |
 | P5-10 | Boucle de rendu à la demande, pause hors écran / onglet masqué | P5-06 |
+
+**P5-03 — Paliers de capacité : fonction pure et adaptateur**
+Status: **DONE** (2026-08-20) — `src/scene/capability/`, **30 cas, 100 % de couverture**.
+`resolve.ts` ne lit rien et reçoit six mesures ; `adapter.ts` est seul à lire le navigateur, **et le
+reçoit en argument**. ⭐ Sans cette frontière la décision serait inéprouvable : jsdom n'implémente pas
+WebGL, et aucun banc ne produit un appareil à 2 Go ou une demande d'économie de données.
+⛔ **L'ordre de résolution est la décision** : les conditions d'ADR-0003 se chevauchent (un mobile qui
+demande `reduced-motion` satisfait « lite » et « reduced »). Le palier le **plus bas** l'emporte —
+refuser du mouvement à qui en demande moins est correct, servir une scène animée à un appareil qui ne
+la tient pas ne l'est pas.
+⛔⛔ **Une mesure ABSENTE n'est pas une mesure BASSE** : `navigator.deviceMemory` n'existe que sur
+Chromium, et un `?? 0` aurait envoyé **tous** les visiteurs Firefox et Safari en `lite` — sur un
+défaut d'instrument, pas de machine. Le type porte `number | null`, et un axe inconnu ne dégrade rien
+à lui seul.
+⛔ **Le contexte WebGL de détection est rendu aussitôt** : un navigateur en tolère ~16, et sur mobile
+en retenir un pour savoir s'il en existe revient à le voler à la scène.
+⚠️ Seuils posés faute d'être chiffrés dans ADR-0003 : ≤ 2 Go (faible), ≤ 4 Go ou ≤ 4 cœurs (moyen).
+Ils ne peuvent pas être plus fins — la spécification arrondit `deviceMemory` à une puissance de deux.
+· Depends on: P5-02
+Acceptance:
+- Décision **pure**, testable sans DOM, sur les combinaisons qu'aucun banc ne produit.
+- Lecture du navigateur isolée et **injectable**, donc couverte elle aussi.
+- Chevauchements d'ADR-0003 **tranchés explicitement**, pas laissés à l'ordre des `if`.
+- Absence de mesure distinguée d'une mesure basse.
 
 **P5-02 — Installation justifiée des trois dépendances 3D**
 Status: **DONE** (2026-08-20) — `three@0.185.1`, `@react-three/fiber@9.7.0`,
