@@ -53,5 +53,12 @@
     ".next/types/**/*.ts",
     ".next/dev/types/**/*.ts"
   ],
-  "exclude": ["node_modules"]
+  // ⛔ `tools/` est HORS PÉRIMÈTRE, et c'est délibéré : il porte des harnais
+  // jetables qui importent des paquets que le dépôt n'installe pas (le banc de
+  // compatibilité 3D de P5-01 en est un). Les inclure ferait rougir `tsc` sur du
+  // code qui n'est pas construit et ne part jamais en production.
+  // ⚠️ Un répertoire exclu ne se vérifie plus tout seul — même trou que les
+  // `.mts` de `scripts/` (phase-4-log §20.7). Chaque harnais porte donc sa
+  // propre recette de vérification : voir `tools/compat-3d/README.md`.
+  "exclude": ["node_modules", "tools"]
 }

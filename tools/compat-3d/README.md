@@ -13,6 +13,14 @@ plus léger que son sous-ensemble ». Elle a été trouvée en revue, sur la seu
 lecture du tableau. Sans le harnais, la correction aurait demandé de tout
 refaire de mémoire.
 
+⛔ **Ce répertoire est exclu du `tsconfig.json` du dépôt.** Il importe `three`,
+`@react-three/fiber` et `@react-three/drei`, que le dépôt **n'installe pas** :
+inclus, il ferait rougir `tsc` sur du code qui n'est pas construit et ne part
+jamais en production. La contrepartie est un angle mort — un répertoire exclu ne
+se vérifie plus tout seul —, et c'est la recette ci-dessous qui le couvre : elle
+lance `tsc` **dans le bac à sable**, avec les mêmes options strictes, là où les
+paquets existent. C'est d'ailleurs tout l'objet de P5-01.
+
 ⛔ Le manifeste s'appelle `manifest.json` et **non** `package.json` : à la racine
 d'un dépôt qui n'est pas un monorepo, un second `package.json` est une invitation
 à des résolutions surprenantes. Il est copié au moment de l'emploi.
