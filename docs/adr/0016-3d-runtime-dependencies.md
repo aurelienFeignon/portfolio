@@ -78,9 +78,18 @@ l'application autour de la scène inverse exactement cette relation.
 - **Un avertissement traverse déjà la console** : R3F 9.7.0 emploie `THREE.Clock`, que `three` 0.185
   déprécie. Sans conséquence fonctionnelle ; *déclencheur de réexamen* : le jour où `three` la
   retire, R3F doit avoir suivi.
-- **Installer ne coûte rien tant que rien n'importe.** Mesuré : socle partagé **126,4 Ko** et
-  **8,2 Ko** par route, identiques avant et après l'installation. Le coût apparaîtra à P5-04, au
-  montage du canvas, et c'est là qu'il sera mesuré.
+- **Installer ne coûte rien tant que rien n'importe.** Mesuré : socle partagé **126,4 Ko**,
+  **8,2 Ko** par route et image de production **273 Mo**, identiques avant et après. Le coût
+  apparaîtra à P5-04, au montage du canvas, et c'est là qu'il sera mesuré.
+- ⚠️ **« Pas un octet » est vrai du bundle et de l'image, et muet sur la surface de dépendances.**
+  Le graphe de production compte désormais **273 paquets, dont 65 apparaissent sous `drei`** — un
+  quart, pour une bibliothèque de confort. On y trouve `@mediapipe/tasks-vision`, `draco3d`,
+  `hls.js`, `@dimforge/rapier3d-compat` : de la détection de pose, un décodeur de maillages
+  compressés, un lecteur vidéo HLS et un moteur physique, dont **aucun** n'est employé ici. Ils ne
+  pèsent rien tant que rien ne les importe — le secouage d'arbre les laisse dehors, c'est mesuré —
+  mais ils sont installés, audités et mis à jour comme le reste.
+  ⭐ **Cela renforce le repli désigné plutôt que de l'affaiblir** : retirer `drei` retire un quart de
+  la surface de production, pas seulement 0,9 Ko par composant.
 - `src/content/**` reste interdit d'accès à `three` et `@react-three/*` (CT-09) : cette règle
   existait avant les paquets, elle est maintenant vérifiable pour de bon.
 

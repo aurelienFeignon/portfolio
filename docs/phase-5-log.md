@@ -161,9 +161,19 @@ que ce qui est atteint, et cela se mesure dans les deux sens.
 
 ### 2.3 Le garde, et ce qu'il ne garde pas
 
-Une règle ESLint refuse l'import **global** de `drei` — `import * as …` et `export * from …` — sur
-tout `src/**`. Les deux sélecteurs ont été **vus rouges avant d'être crus**, et le cas nominal (un
-import nommé) vérifié vert dans la foulée.
+Une règle ESLint refuse l'import **global** de `drei` sur tout `src/**`, sous **quatre** formes :
+`import * as` depuis la racine, `import * as` depuis un sous-chemin (`/native`), `export *`, et
+**l'import dynamique du paquet entier**. Cette dernière n'était pas couverte par la première version
+et c'est **celle que P5-04 va écrire** : le canvas se monte par import dynamique (ADR-0003), et un
+`await import('@react-three/drei')` déplace le poids dans le chunk différé sans le réduire d'un
+octet. Trouvée en revue, par exécution de la règle plutôt que par lecture.
+
+⭐⭐ **Le garde est tenu par un banc, pas par un souvenir.** Il avait été « vu rouge » à l'écriture,
+ce qui ne prouve rien pour demain : en configuration plate, un **second** bloc `no-restricted-syntax`
+visant les mêmes fichiers **remplace** le tableau d'options entier — le garde cesse de rapporter,
+`lint` reste vert, et rien ne le dit. Un garde désarmé se lit exactement comme un garde satisfait.
+`drei-import-guard.test.ts` charge la configuration **réelle** du dépôt et éprouve les cinq formes,
+dont celle qui doit rester verte.
 
 ⚠️ **Ce garde ne couvre que le cas catastrophique**, et il faut le dire ici plutôt que de laisser
 croire au contraire : l'import global coûte 802,8 Ko gzip, mais **quatre composants nommés en
@@ -177,5 +187,6 @@ est **P5-04 / P5-09**, quand un chunk existera, et c'est écrit dans la règle e
 |---|---|
 | Le poids réel servi | **P5-04** : rien n'est importé, donc rien n'est mesurable au-delà de « inchangé » |
 | Le compte des composants `drei` | **Non gardé.** Le seul garde possible aujourd'hui est syntaxique ; le budgétaire suppose un chunk |
+| La **surface de dépendances** | **273 paquets** en production, dont **65 sous `drei`** — un quart, pour une bibliothèque de confort (`@mediapipe/tasks-vision`, `draco3d`, `hls.js`, un moteur physique). Nuls en poids servi, réels en audit et en mise à jour. Consigné dans ADR-0016 |
 | `THREE.Clock` déprécié par `three` 0.185, employé par R3F 9.7.0 | Avertissement en console, sans conséquence. *Déclencheur* : le jour où `three` retire l'API |
 | Montée de React au-delà de 19.2.x | **Devient un choix contre R3F** (`react >=19 <19.3`). À vérifier à chaque campagne de mise à jour |

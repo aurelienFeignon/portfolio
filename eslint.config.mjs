@@ -153,14 +153,23 @@ export default tseslint.config(
         'error',
         {
           selector:
-            "ImportDeclaration[source.value='@react-three/drei'] > ImportNamespaceSpecifier",
+            'ImportDeclaration[source.value=/^@react-three\\/drei(\\/|$)/] > ImportNamespaceSpecifier',
           message:
             'drei s’importe composant par composant (ADR-0016) : `import * as` embarque tout le paquet, soit 802,8 Ko gzip — 2,5 fois le seuil bloquant de la phase.',
         },
         {
-          selector: "ExportAllDeclaration[source.value='@react-three/drei']",
+          selector: 'ExportAllDeclaration[source.value=/^@react-three\\/drei(\\/|$)/]',
           message:
             'Un `export *` de drei embarque tout le paquet (802,8 Ko gzip, ADR-0016). Réexporte les composants un par un, ou n’en réexporte aucun.',
+        },
+        {
+          // ⛔ La forme que P5-04 va écrire : le canvas est monté par import
+          // DYNAMIQUE (`ssr: false`, ADR-0003). Un `await import('@react-three/drei')`
+          // embarque le paquet entier dans le chunk différé — le poids change de
+          // moment, pas de valeur.
+          selector: 'ImportExpression[source.value=/^@react-three\\/drei(\\/|$)/]',
+          message:
+            'Même dynamique, un import du paquet drei entier pèse 802,8 Ko gzip (ADR-0016). Importe les composants nommés depuis le module de scène, qui est lui-même chargé dynamiquement.',
         },
       ],
     },
