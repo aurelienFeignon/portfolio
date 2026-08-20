@@ -275,3 +275,93 @@ champs de touches. Le reste renvoie au dossier, **nommé mais non versé**.
 | Rig de caméra | **N'existe pas.** Le montage place la caméra sur l'état courant, sans animation — ce qui est aussi le comportement attendu en `prefers-reduced-motion` |
 | `<ContactShadows>` et `RoomEnvironment` | **Débloqués** : le dossier les conditionnait à la confirmation de `drei`, acquise avec ADR-0016. Ce sont des imports nommés, donc compatibles avec le garde de P5-02 |
 | Entrée du dossier dans le dépôt | ✅ **Tranché : le dossier RESTE sur Drive**, seul `layout.ts` entrera (§3.4) |
+
+---
+
+## 4. P5-03 — les quatre paliers, décidés sans rien lire
+
+### 4.1 Ce que la séparation achète
+
+ADR-0003 pose quatre paliers — `full`, `reduced`, `lite`, `none` — et les fait dépendre de six
+mesures du navigateur. Écrire tout cela d'un bloc aurait rendu la décision **inéprouvable** : jsdom
+n'implémente pas WebGL, et aucun banc ne produit sur commande un appareil à 2 Go de mémoire ou une
+demande d'économie de données.
+
+D'où deux modules et une frontière stricte :
+
+- `resolve.ts` — **pure**, aucune lecture, aucune globale. Elle reçoit six valeurs et rend un palier.
+- `adapter.ts` — la seule à lire le navigateur, et **elle le reçoit en argument**. Ce qui est lu se
+  voit dans un type de sept lignes plutôt que de se perdre dans `window`.
+
+Résultat : 30 cas, **100 % de couverture**, sur des environnements qui n'existent pas ici — Safari
+sans `deviceMemory`, un mobile en économie de données, une machine dont WebGL est désactivé par
+configuration.
+
+### 4.2 ⛔ L'ordre de résolution est la décision, pas une commodité d'écriture
+
+Les conditions d'ADR-0003 **se chevauchent** : un mobile qui demande `prefers-reduced-motion`
+satisfait à la fois « lite » (mobile) et « reduced » (mouvement réduit). Le tableau ne dit pas
+laquelle l'emporte.
+
+**La fonction retient toujours le palier le plus bas**, et la raison est asymétrique : refuser du
+mouvement à qui en demande moins est correct ; servir une scène animée à un appareil qui ne la tient
+pas ne l'est pas. Deux cas du banc tiennent cette règle explicitement.
+
+### 4.3 ⛔⛔ Une mesure ABSENTE n'est pas une mesure BASSE
+
+`navigator.deviceMemory` n'existe **que sur Chromium**. Firefox et Safari ne l'implémentent pas.
+
+Traiter cette absence comme « 0 Go » — ce que ferait n'importe quel `?? 0` — enverrait **tous** leurs
+visiteurs en `lite`, sur un défaut d'instrument et non de machine. Le type porte donc `number | null`
+et non `number`, `null` signifie *inconnu*, et un axe inconnu **ne dégrade rien à lui seul** : trois
+tests le tiennent. ⭐⭐ C'est la même faute que celles que la Phase 4 a traquées toute sa durée —
+*une absence et une valeur basse se lisent pareil si rien ne les distingue*.
+
+### 4.3 bis ⛔⛔ La préférence de mouvement était avalée par le palier
+
+Trouvé en revue, et c'est le défaut le plus grave de la tâche.
+
+`pointer !== 'fine'` décide **avant** tout le reste : un mobile tombait en `lite`, et
+`prefersReducedMotion` n'était **jamais évalué**. Or ADR-0003 ne garantit l'absence de mouvement
+qu'au palier `reduced` — il définit `lite` comme « scène décorative non interactive, **ou** visuel
+statique », ce qui autorise une décoration animée. Conséquence mesurable : **un iPhone avec
+« Réduire les animations » recevait une scène animée**, pendant que la même préférence était honorée
+sur un poste fixe. Et mon propre banc **épinglait** ce comportement, donc rien en aval ne l'aurait
+rattrapé.
+
+⭐⭐⭐ **Une préférence d'accessibilité et un coût matériel sont deux axes orthogonaux ; les projeter
+sur un seul ordinal en perd un.** `resolveCapability` rend désormais `{ tier, motion }`, et `motion`
+est lu **directement dans l'entrée** — aucune branche de capacité ne peut plus l'avaler.
+
+⚠️ Le palier, lui, ne change pas : ADR-0003 fait de `reduced-motion` une condition de palier à part
+entière, parce que la préférence coupe aussi l'ambiance et pas seulement les transitions. Un poste
+capable qui la demande reste donc en `reduced`. Rien n'est amendé dans l'ADR : un axe est **ajouté**
+à côté du sien, là où le sien ne pouvait pas porter l'information.
+
+⭐ L'ordre d'arbitrage du projet — *accessibilité > indexabilité > performance > richesse de la
+scène* — tranchait déjà la question ; encore fallait-il que le type puisse l'exprimer.
+
+### 4.4 Les seuils, posés faute d'être écrits ailleurs
+
+ADR-0003 dit « mémoire faible » et « appareil moyen » sans les chiffrer. Les valeurs retenues, à
+l'endroit où elles s'appliquent : **≤ 2 Go** pour faible, **≤ 4 Go** ou **≤ 4 cœurs** pour moyen.
+
+⚠️ Elles ne peuvent pas être plus fines : la spécification borne `deviceMemory` à [0,25 ; 8] et
+l'**arrondit à une puissance de deux**, délibérément, pour ne pas offrir un signal d'empreinte. Un
+seuil intermédiaire ne mesurerait rien de plus.
+
+### 4.5 Un détail qui n'en est pas un
+
+⛔ **Le contexte WebGL obtenu pour la détection est rendu aussitôt.** Un navigateur en tolère un
+nombre limité — de l'ordre de 16 — et sur mobile, en réserver un pour savoir s'il en existe revient
+à le retirer à la scène qu'on s'apprête à monter. Un test vérifie que `loseContext` est bien appelé.
+
+### 4.6 Ce que P5-03 laisse ouvert
+
+| Sujet | État |
+|---|---|
+| Le palier est calculé, **personne ne le consomme** | P5-04 : c'est le montage du canvas qui le lira |
+| La lecture est un **instantané** | `matchMedia` est interrogé une fois, la `MediaQueryList` n'est pas conservée : une préférence basculée **en cours de session** n'est pas observée. Acceptable pour un montage qui a lieu une fois ; les requêtes sont **exportées** (`MEDIA_QUERIES`) pour que P5-04 puisse s'abonner à `change` sans recopier les chaînes — une chaîne recopiée continuerait d'écouter l'ancienne le jour où elle change, en silence |
+| `none` par **échec de chargement** ou perte de contexte | **P5-07**, error boundary — la fonction ne peut pas voir un import qui échoue |
+| `none` par **absence de JavaScript** | Hors de portée par construction : sans JS, rien de tout ceci ne s'exécute, et c'est exactement le comportement voulu |
+| Le seuil « appareil moyen » | Posé ici, jamais mesuré sur un vrai parc. *Déclencheur de réexamen* : un relevé de performance réelle en Phase 11 |
