@@ -433,6 +433,31 @@ modification et en rejouant chacun : la 404 du **serveur de développement** ser
 production ne disent pas la même chose**, et personne ne le savait avant d'y regarder. Consigné ici
 plutôt que corrigé dans une tâche qui n'en a pas le périmètre.
 
+### 5.4 bis ⛔⛔ Le gate de production a refusé ce que le banc local acceptait
+
+La CI a fait échouer la tâche là où `make e2e` la déclarait bonne — **148 parcours passés, puis
+`valid-source-maps` en échec** sur les quatre audits Lighthouse.
+
+La cause est nette : l'audit signale tout **gros JavaScript de première partie** servi sans carte de
+sources, et le chunk 3D de 864 Ko franchit ce seuil que l'applicatif seul n'atteignait pas. Le site
+n'émettait aucune carte — ce qui était sans conséquence tant qu'aucun script n'était assez gros
+pour être regardé.
+
+⭐⭐⭐ **C'est le premier refus produit par une décision prise quatre tâches plus tôt.** P4-13 avait
+choisi de juger « bonnes pratiques » sur ses **audits** plutôt que sur son score, précisément pour
+qu'un constat réel ne puisse pas être noyé dans une moyenne. Le score, ici, valait **100** : jugée
+sur lui, la régression serait passée sans un mot.
+
+Correctif : `productionBrowserSourceMaps: true`. L'image passe de 274 à **281 Mo** (sous le seuil
+bloquant de 400), et **les visiteurs ne paient rien** — une carte n'est téléchargée que par un
+navigateur dont les outils de développement sont ouverts. Vérifié en rejouant l'audit contre l'image
+de production : *« aucun autre audit en échec »*.
+
+⭐ Et une leçon d'exploitation locale : ce contrôle **ne tourne pas** dans `make e2e`. Il fallait
+lancer Lighthouse contre l'image de production, ce que le conflit de port documenté rend malaisé —
+d'où une surcharge `ports: !override []` pour y parvenir. Un gate qu'on ne sait pas rejouer chez soi
+se découvre en CI, c'est-à-dire tard.
+
 ### 5.5 Ce que P5-04 laisse ouvert
 
 | Sujet | État |

@@ -1,6 +1,20 @@
 import type { NextConfig } from 'next'
 
 const nextConfig: NextConfig = {
+  /**
+   * ⛔ **Émises parce qu'un gate le demande, pas par confort.** Depuis que le
+   * chunk 3D existe (P5-04), Lighthouse fait échouer `valid-source-maps` : son
+   * audit signale tout gros JavaScript de première partie servi **sans** carte
+   * de sources, et 864 Ko franchissent son seuil là où l'applicatif seul ne
+   * l'atteignait pas. Le dépôt juge « bonnes pratiques » sur ses AUDITS et non
+   * sur son score (P4-13), précisément pour ne pas pouvoir excuser un constat.
+   *
+   * ⭐ Le coût n'est pas payé par les visiteurs : une carte n'est téléchargée
+   * que par un navigateur dont les outils de développement sont ouverts. Elle
+   * pèse en revanche dans l'image, et ce poids est mesuré ci-dessous.
+   */
+  productionBrowserSourceMaps: true,
+
   // Sortie autonome : Next produit un serveur avec ses seules dépendances
   // réellement utilisées. C'est ce qui permet à l'étage `runner` de ne contenir
   // ni `node_modules` complet, ni gestionnaire de paquets (ADR-0008).
