@@ -21,6 +21,10 @@
  * `src/ui/brand-palette.ts`, où les valeurs vivent désormais une seule fois.
  *
  * ⚠️ **Ce que ce test ne peut pas voir**, et qui a justifié le palette partagé :
+ * ⚠️ Il ignore `src/scene/**` depuis P5-05 — la raison est écrite à l'endroit du
+ * filtre : la palette d'une scène qui décrit un bureau photographié n'est pas
+ * une palette d'interface, et aucun token ne peut porter le bois d'un plateau.
+ *
  * il vérifie que chaque littéral **est** un token, jamais que deux fichiers
  * désignent le **même**. Deux images qui se contredisent sur l'accent le
  * laisseraient vert. C'est la duplication qu'il fallait supprimer, pas
@@ -65,6 +69,24 @@ async function colouredSources(): Promise<{ file: string; colour: string }[]> {
     if (!entry.isFile() || !/\.tsx?$/.test(entry.name)) continue
 
     const path = join(entry.parentPath, entry.name)
+    /*
+     * ⛔⛔ **`src/scene` est hors de portée, et ce n'est pas une exemption de
+     * confort.** Ce garde tient une règle précise : *un rendu hors navigateur ne
+     * doit pas inventer une couleur d'INTERFACE*, parce qu'un token qui change
+     * laisserait l'image de partage dans l'ancienne teinte, en silence.
+     *
+     * La palette de la scène 3D ne relève pas de cette règle : elle décrit un
+     * **objet physique** — le bois d'un plateau, le beige d'un mur, le corail
+     * d'un abat-jour — relevé sur des photographies. Aucun token du site ne
+     * peut l'exprimer, et l'y forcer produirait quatorze variables CSS que rien
+     * dans l'interface n'emploierait. Le lien à surveiller n'existe pas : la
+     * scène ne redit pas ce que dit `globals.css`, elle dit autre chose.
+     *
+     * ⭐ La règle du dossier de scène tient ce que ce garde tiendrait mal : le
+     * mur est **assombri** de `#D9CDB8` à `#C2B49B` par rapport à la photo, et
+     * cet écart est justifié par une mesure de contraste, pas par un token.
+     */
+    if (path.slice(SOURCE_DIR.length + 1).startsWith('scene/')) continue
     for (const colour of hexColours(await readFile(path, 'utf8'))) {
       found.push({ file: path.slice(SOURCE_DIR.length + 1), colour })
     }
