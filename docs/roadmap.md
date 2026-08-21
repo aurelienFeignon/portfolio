@@ -1134,13 +1134,38 @@ le 2026-08-18, jugé sur le corps : aller-retour par le même verbe, **~1 s d'or
 | P5-01 | Vérification de la matrice de compatibilité React / R3F / drei (risque R-08) — **DONE** *(2026-08-20)* | P4-12 |
 | P5-02 | Installation justifiée de `three`, `@react-three/fiber`, `@react-three/drei` — **DONE** *(2026-08-20)* | P5-01 |
 | P5-03 | `resolveCapabilityTier` (fonction pure) + adaptateur navigateur — **DONE** *(2026-08-20)* | P5-02 |
-| P5-04 | Montage du canvas : dynamique, `ssr:false`, après idle, `aria-hidden` | P5-03 |
+| P5-04 | Montage du canvas : dynamique, `ssr:false`, après idle, `aria-hidden` — **DONE** *(2026-08-20)* | P5-03 |
 | P5-05 | Scène primitive : bureau, **deux moniteurs et un portable** en géométries de base (D10) | P5-04 |
 | P5-06 | Caméra, éclairage, environnement minimal | P5-05 |
 | P5-07 | Error boundary du canvas + gestion de `webglcontextlost` → palier `none` | P5-04 |
 | P5-08 | Panneau de diagnostic : FPS, draw calls, triangles, mémoire | P5-06 |
 | P5-09 | Test de non-régression : aucun module `three` dans les chunks initiaux | P5-04 |
 | P5-10 | Boucle de rendu à la demande, pause hors écran / onglet masqué | P5-06 |
+
+**P5-04 — Montage du canvas**
+Status: **DONE** (2026-08-20) — `SceneMount` monte un canvas R3F **après `idle`**, par import
+dynamique `ssr: false`, `aria-hidden`, sans rien de focusable ni un caractère de texte. Au palier
+`none`, **rien n'est chargé** : le banc `no-webgl` vérifie qu'aucun chunk servi ne contient
+`WebGLRenderer`.
+⭐⭐ **Le budget de D9 cesse d'être théorique** : le chunk 3D différé pèse **226 Ko gzip** — contre
+237,5 estimés en bac à sable, donc le vrai bundler fait **mieux** que l'estimation, ce qui est la
+bonne direction pour une borne. Socle 127,0 Ko (+0,6), JS par route inchangé à 8,2 Ko.
+⛔ **Une couche `fixed; inset: 0` avale chaque clic du site** sans `pointer-events: none` — tenu par
+un test dédié, parce que rien ne le signalerait : la page reste normale à l'œil.
+⛔⛔ **Un banc qui affirme une présence ne peut pas être partagé avec le profil qui prouve l'absence** :
+écrit dans `shared/`, il s'exécutait sous `no-webgl`. Déplacé en `profiles/desktop-chromium/`.
+⭐ `requestIdleCallback` manque à Safari avant la 18.2 : sans repli, la scène ne s'y monterait
+**jamais**, et rien ne le dirait.
+⚠️ **Trois rouges du banc LOCAL préexistent à cette tâche**, vérifié en remisant la modification : la
+404 du serveur de développement sert deux `meta[name="robots"]`, et deux parcours de cibles tactiles
+échouent aussi sans elle. La CI joue l'E2E contre l'image de **production**, où les trois passent.
+· Depends on: P5-03
+Acceptance:
+- Three.js **absent des chunks du socle**, mesuré dans les fichiers produits.
+- Montage après `idle`, jamais dans le chemin critique.
+- `aria-hidden`, rien de focusable, aucun texte — vérifié par le banc.
+- Palier `none` : aucun canvas et **aucun octet de three téléchargé**.
+- Le décor n'intercepte aucun clic.
 
 **P5-03 — Paliers de capacité : fonction pure et adaptateur**
 Status: **DONE** (2026-08-20) — `src/scene/capability/`, **30 cas, 100 % de couverture**.

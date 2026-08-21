@@ -18,6 +18,7 @@ import {
   type CapabilityInput,
   resolveCapability,
   resolveCapabilityTier,
+  shouldMountScene,
 } from '@/scene/capability/resolve'
 
 /** Un appareil de bureau capable : le point de départ de chaque cas. */
@@ -142,5 +143,21 @@ describe('⛔⛔ resolveCapability — le mouvement ne se déduit pas du palier'
       tier: 'reduced',
       motion: 'instant',
     })
+  })
+})
+
+describe('shouldMountScene', () => {
+  it.each(['full', 'reduced', 'lite'] as const)('monte au palier « %s »', (tier) => {
+    expect(shouldMountScene({ tier, motion: 'animated' })).toBe(true)
+  })
+
+  it('⛔ ne monte RIEN au palier « none » — pas même un canvas vide', () => {
+    // Le sens du palier est qu'aucun octet de three ne soit téléchargé : un
+    // appareil qui a demandé `save-data` ne paie pas un chunk pour ne rien voir.
+    expect(shouldMountScene({ tier: 'none', motion: 'instant' })).toBe(false)
+  })
+
+  it('ne regarde pas la préférence de mouvement — elle ne décide pas du montage', () => {
+    expect(shouldMountScene({ tier: 'full', motion: 'instant' })).toBe(true)
   })
 })

@@ -15,6 +15,7 @@ import type { ReactNode } from 'react'
 
 import { LOCALES } from '@/i18n/locales'
 import { getMessages } from '@/i18n/messages'
+import { SceneMount } from '@/scene/components/scene-mount'
 import { getSiteUrl } from '@/seo/site-url'
 import { SiteFooter } from '@/ui/site-footer'
 
@@ -105,6 +106,11 @@ export default async function LocaleLayout({
             savoir de la page. L'année est lue au build — toutes les routes sont
             prérendues, elle est donc gravée à chaque déploiement. */}
         <SiteFooter locale={locale} year={new Date().getFullYear()} />
+        {/* La scène (P5-04). Placée en DERNIER et hors du flux : elle est un
+            décor, `aria-hidden`, sans rien de focusable, et elle ne se monte
+            qu'après `idle` — jamais dans le chemin critique du LCP (ADR-0003).
+            Au palier `none`, elle ne charge rien du tout. */}
+        <SceneMount />
       </body>
     </html>
   )

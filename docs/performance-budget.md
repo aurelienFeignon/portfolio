@@ -323,6 +323,20 @@ est transférée, soit **41 Mo**, l'image de base étant déjà présente sur le
 **À trancher en Phase 11** (avec la mesure de consommation réelle du VPS) : remplacer cette ligne de
 budget par « couche applicative par déploiement ≤ 60 Mo », qui est la quantité pilotable.
 
+**Relevé 2026-08-20 (P5-04)** : **281 Mo**, contre 273 avant l'entrée de la scène. Les +8 Mo se
+décomposent en ~1 Mo de moteur 3D dans la sortie `standalone` et **~7 Mo de cartes de sources**,
+émises depuis cette tâche.
+
+⛔ **Elles ne sont pas un confort : un gate les exige.** Le chunk 3D pèse 864 Ko minifié, ce qui
+franchit le seuil de « gros JavaScript de première partie » de Lighthouse — et son audit
+`valid-source-maps` échoue pour tout script de cette taille servi **sans** carte. L'applicatif seul
+n'atteignait pas ce seuil ; la scène l'y amène. ⭐⭐ Comme « bonnes pratiques » est jugée sur ses
+**audits** et non sur son score (§3, décision de P4-13), le constat ne pouvait pas être excusé — et
+c'est exactement ce que cette décision cherchait à obtenir : elle a produit son premier refus.
+
+⭐ **Le coût n'est pas payé par les visiteurs** : une carte n'est téléchargée que par un navigateur
+dont les outils de développement sont ouverts. Elle pèse dans l'image, pas dans le transfert.
+
 Ces chiffres sont dimensionnants pour H-01a (2 vCPU / 2 Go). L'optimisation d'images `next/image`
 consomme le CPU du VPS : les visuels sont donc pré-dimensionnés au build et le cache d'images est
 placé sur un volume persistant, pour ne pas recalculer après chaque déploiement.

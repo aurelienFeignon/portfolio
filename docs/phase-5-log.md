@@ -365,3 +365,104 @@ nombre limité — de l'ordre de 16 — et sur mobile, en réserver un pour savo
 | `none` par **échec de chargement** ou perte de contexte | **P5-07**, error boundary — la fonction ne peut pas voir un import qui échoue |
 | `none` par **absence de JavaScript** | Hors de portée par construction : sans JS, rien de tout ceci ne s'exécute, et c'est exactement le comportement voulu |
 | Le seuil « appareil moyen » | Posé ici, jamais mesuré sur un vrai parc. *Déclencheur de réexamen* : un relevé de performance réelle en Phase 11 |
+
+---
+
+## 5. P5-04 — le canvas monté, et le budget qui cesse d'être théorique
+
+### 5.1 Ce que le montage garantit, et par quoi
+
+Quatre propriétés d'ADR-0003, chacune tenue par quelque chose plutôt que par une intention :
+
+| Propriété | Ce qui la tient |
+|---|---|
+| Import **dynamique**, `ssr: false` | Mesuré : les cinq chunks du socle ne portent **aucune** occurrence de `WebGLRenderer` |
+| Monté **après `idle`** | `requestIdleCallback`, avec un repli `setTimeout` — Safari ne l'implémente qu'à partir de la 18.2, et sans repli la scène ne se monterait **jamais** sur ces navigateurs, sans que rien ne le dise. ⛔ Le repli attend **la même échéance de 2 s**, et non 200 ms comme d'abord écrit : un repli dix fois plus pressé que ce qu'il remplace, sur les appareils les plus lents, n'est pas un repli |
+| La **lecture** attend aussi | ⛔⛔ Elle **crée un vrai contexte WebGL** : la faire pendant l'hydratation coûtait des dizaines de millisecondes d'initialisation pilote, y compris à qui a demandé `save-data` et ne verra jamais la scène. Les deux promesses de la tâche n'étaient donc vraies qu'à moitié |
+| `aria-hidden`, rien de focusable, aucun texte | Trois assertions du banc E2E, sur la racine désignée par `data-scene-root` |
+| Au palier `none`, **rien** n'est chargé | `profiles/no-webgl/scene-absente.spec.ts` : aucun canvas, et **aucun chunk servi ne contient `WebGLRenderer`** |
+
+### 5.2 ⭐⭐ Le budget de D9, mesuré pour de vrai
+
+D9 avait arrêté 260 Ko de cible et 320 de seuil bloquant sur une estimation de bac à sable. Le
+premier chunk réel les confronte :
+
+| | Estimation P5-01 | **Mesuré ici** |
+|---|---|---|
+| Chunk 3D différé, gzip | 237,5 Ko | **226 Ko** |
+| Socle partagé | 126,4 Ko | **127,0 Ko** (+0,6) |
+| JS par route | 8,2 Ko | 8,2 Ko |
+
+⭐ **Le vrai bundler fait mieux que l'estimation** — 226 contre 237,5. Le bac à sable était donc une
+**borne haute**, ce qui est la bonne direction pour un budget : il aurait été fâcheux qu'il flatte.
+La cible de 260 laisse aujourd'hui **34 Ko** pour `drei` et la scène, soit largement de quoi loger la
+poignée de composants qu'elle demandera.
+
+### 5.3 Deux corrections de conception, payées au banc
+
+⛔ **Le décor plein écran pourrait tout intercepter.** Une couche `position: fixed; inset: 0`
+couvre la fenêtre : sans `pointer-events: none`, elle avalerait **chaque clic du site documentaire**.
+
+⛔⛔ **Et le test qui prétendait le garder ne gardait rien** — relevé en revue. Il cliquait un lien
+et vérifiait la navigation ; or `z-index: -1` place déjà le décor sous tout élément dans le flux,
+donc le clic aboutissait **avec ou sans** la ligne de CSS. Retirer ce qu'il protégeait l'aurait
+laissé vert. ⭐⭐⭐ **Un test qui passe pour deux raisons possibles n'en garde aucune** : il faut
+affirmer la propriété, pas son symptôme. Les deux sont maintenant vérifiées séparément —
+`pointer-events` et l'empilement —, parce qu'elles protègent contre deux choses différentes : un
+futur contexte de superposition peut annuler la seconde, jamais la première. **Vu rouge par
+mutation** avant d'être cru : la ligne retirée, le test échoue sur `Received: "auto"`.
+
+⛔⛔ **Mon banc partagé s'exécutait sous `no-webgl`.** Écrit dans `shared/`, il affirmait « le canvas
+est là » — et `shared/` est joué par les quatre profils, dont celui dont **tout l'objet est qu'il n'y
+soit pas**. ⭐⭐ *Un banc qui affirme une présence ne peut pas être partagé avec le profil qui prouve
+l'absence.* Déplacé en `profiles/desktop-chromium/`, l'absence restant vérifiée en face.
+
+⭐ Et un sélecteur trop large : `[aria-hidden="true"]` attrape d'autres éléments de la page. Le
+contrôle « la scène n'écrit aucun texte » regardait donc autre chose qu'elle — vert pour une raison
+fausse. La racine porte désormais `data-scene-root`, et le banc ne désigne plus qu'elle.
+
+### 5.4 ⚠️ Trois échecs du banc local qui ne viennent pas de cette tâche
+
+`make e2e` rend trois rouges sur cette branche. **Les trois préexistent**, vérifié en remisant la
+modification et en rejouant chacun : la 404 du **serveur de développement** sert **deux**
+`meta[name="robots"]` (`noindex` et `noindex, follow`), et les deux parcours de cibles tactiles
+échouent également sans une ligne de cette tâche.
+
+⭐ La CI, elle, joue l'E2E contre **l'image de production**, où ces trois-là passent — c'est pourquoi
+`main` est vert. La dette est donc réelle mais locale : **le banc de développement et le banc de
+production ne disent pas la même chose**, et personne ne le savait avant d'y regarder. Consigné ici
+plutôt que corrigé dans une tâche qui n'en a pas le périmètre.
+
+### 5.4 bis ⛔⛔ Le gate de production a refusé ce que le banc local acceptait
+
+La CI a fait échouer la tâche là où `make e2e` la déclarait bonne — **148 parcours passés, puis
+`valid-source-maps` en échec** sur les quatre audits Lighthouse.
+
+La cause est nette : l'audit signale tout **gros JavaScript de première partie** servi sans carte de
+sources, et le chunk 3D de 864 Ko franchit ce seuil que l'applicatif seul n'atteignait pas. Le site
+n'émettait aucune carte — ce qui était sans conséquence tant qu'aucun script n'était assez gros
+pour être regardé.
+
+⭐⭐⭐ **C'est le premier refus produit par une décision prise quatre tâches plus tôt.** P4-13 avait
+choisi de juger « bonnes pratiques » sur ses **audits** plutôt que sur son score, précisément pour
+qu'un constat réel ne puisse pas être noyé dans une moyenne. Le score, ici, valait **100** : jugée
+sur lui, la régression serait passée sans un mot.
+
+Correctif : `productionBrowserSourceMaps: true`. L'image passe de 274 à **281 Mo** (sous le seuil
+bloquant de 400), et **les visiteurs ne paient rien** — une carte n'est téléchargée que par un
+navigateur dont les outils de développement sont ouverts. Vérifié en rejouant l'audit contre l'image
+de production : *« aucun autre audit en échec »*.
+
+⭐ Et une leçon d'exploitation locale : ce contrôle **ne tourne pas** dans `make e2e`. Il fallait
+lancer Lighthouse contre l'image de production, ce que le conflit de port documenté rend malaisé —
+d'où une surcharge `ports: !override []` pour y parvenir. Un gate qu'on ne sait pas rejouer chez soi
+se découvre en CI, c'est-à-dire tard.
+
+### 5.5 Ce que P5-04 laisse ouvert
+
+| Sujet | État |
+|---|---|
+| La scène est **vide** | P5-05 la remplira ; ce qui est livré ici est le montage |
+| Aucun garde n'interdit `three` dans le socle | **P5-09** : la mesure existe (les cinq chunks sont propres), le **garde** reste à écrire |
+| Le divorce banc dev / banc prod | **Ouvert**, §5.4 — trois tests rouges en dev, verts en production |
+| `matchMedia` lu une seule fois | Toujours vrai : basculer « Réduire les animations » en cours de session ne se voit qu'au rechargement. Les requêtes sont exportées pour qu'un abonnement soit possible sans recopier les chaînes |
