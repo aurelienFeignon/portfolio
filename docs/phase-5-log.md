@@ -466,3 +466,133 @@ se découvre en CI, c'est-à-dire tard.
 | Aucun garde n'interdit `three` dans le socle | **P5-09** : la mesure existe (les cinq chunks sont propres), le **garde** reste à écrire |
 | Le divorce banc dev / banc prod | **Ouvert**, §5.4 — trois tests rouges en dev, verts en production |
 | `matchMedia` lu une seule fois | Toujours vrai : basculer « Réduire les animations » en cours de session ne se voit qu'au rechargement. Les requêtes sont exportées pour qu'un abonnement soit possible sans recopier les chaînes |
+
+---
+
+## 6. P5-05 — la scène primitive, et une contradiction entre deux documents
+
+### 6.1 Ce qui entre, et comment on sait qu'il est arrivé intact
+
+Seul `layout.ts` rejoint le dépôt (D10). Il a fallu le **transcrire** — aucun outil ne l'écrit sur
+disque — et une transcription se vérifie.
+
+⛔ **Pas par sa taille.** Les raccords de blocs déplacent des sauts de ligne : deux octets d'écart
+subsistaient, et la mise en forme n'est pas la donnée. ⭐⭐ **Une transcription se vérifie par ce
+qu'elle PRODUIT** : le banc recompte, depuis les données seules, les chiffres que le dossier annonce.
+
+| Relevé | Dossier | Recompté ici |
+|---|---|---|
+| Draw calls desktop / mobile | 30 / 20 | **30 / 20** |
+| Triangles desktop / mobile | 4 114 / 1 966 | **4 114 / 1 966** |
+| Touches clavier / portable | 104 / 76 | **104 / 76** |
+
+Une seule cote mal recopiée, une rangée omise, et l'un d'eux tombe.
+
+### 6.2 ⛔⛔ Deux documents se contredisaient, et le raisonnement a tranché
+
+`layout.ts` affirmait, à deux endroits, que les champs de touches sont rendus en **`InstancedMesh`**.
+Le dossier de scène, lui, dit **« fusionné en une seule géométrie »** — et dit *pourquoi* :
+l'instanciation partage une géométrie et ne fait varier qu'une matrice, or le **fruit** du capuchon
+est une *longueur absolue*. Une barre d'espace de 6,25 u instanciée depuis un capuchon de 1 u en
+hériterait un six fois trop large.
+
+⭐⭐⭐ **Entre deux documents qui se contredisent, celui qui porte le raisonnement l'emporte — et ici
+le raisonnement est vérifiable.** Le banc le mesure : la plus large et la plus étroite des touches
+diffèrent d'un facteur 5, et leur retrait vaut **1,2 mm dans les deux cas**. Les commentaires de
+`layout.ts` sont corrigés, avec la raison à côté.
+
+⭐ La fusion ne coûte d'ailleurs rien de plus : **un draw call par champ**, comme l'instanciation. Sa
+mémoire supplémentaire est payée une fois au montage.
+
+### 6.3 Ce que les géométries maison prouvent en pur
+
+`chamferBox` et `taperedCap` sont écrites **sans un import de `three`**, en positions et indices. Ce
+n'est pas un raffinement : une face retournée, un solide percé, un triangle dégénéré ne produisent
+**aucune erreur** et ne se voient qu'à l'œil, sur un rendu, une fois la scène montée et éclairée.
+
+Le banc en fait des assertions, avec les chiffres du dossier :
+
+- **44 triangles** — 6 faces réduites, 12 facettes d'arête, 8 facettes de coin ;
+- **24 sommets** : trois par coin, un par face adjacente — un sommet unique les lisserait et
+  effacerait le chanfrein qu'on cherche à créer ;
+- ⛔ **132 arêtes dirigées, chacune parcourue une fois dans chaque sens** : le solide est étanche ;
+- ⛔ **aucune face retournée** — le contrôle que, selon le dossier, **22 triangles sur 44** avaient
+  échoué à la première écriture. L'orientation n'est pas écrite à la main : elle est **calculée**,
+  les deux solides étant convexes et contenant leur centre ;
+- **10 triangles par capuchon**, la face inférieure étant plaquée contre le corps du clavier et
+  jamais visible — 360 triangles économisés sur 180 touches ;
+- ⚠️ et le capuchon **n'est pas étanche**, ce qui est dit explicitement pour qu'un futur contrôle
+  générique ne le prenne pas pour un défaut.
+
+### 6.4 Deux décisions de rendu, prises pour une raison mesurable
+
+⭐ **Géométrie non indexée, normales recalculées.** Des sommets partagés feraient moyenner les
+normales entre une face et la facette de son chanfrein — exactement le lissage que le chanfrein
+existe pour éviter. ⚠️ Ce n'est **pas** `flatShading` sur le matériau : celui-ci est mutualisé, et
+facetterait aussi la souris et l'abat-jour, dont le galbe est tout ce qui les rend reconnaissables.
+
+⛔ **Les ombres sont coupées au palier `lite`.** Le dossier le dit après mesure : 4 114 triangles,
+c'est 3 % du budget, et *« la contrainte réelle sera le coût des ombres, pas la géométrie »*.
+
+### 6.5 Ce que la scène coûte, mesuré
+
+| Relevé | Canvas vide (P5-04) | **Avec la scène** |
+|---|---|---|
+| Chunk 3D différé, gzip | 226 Ko | **229 Ko** |
+| Socle partagé | 127,0 Ko | **127,1 Ko** |
+| JS par route | 8,2 Ko | 8,2 Ko |
+
+⭐⭐ **Le bureau entier coûte 3 Ko** — trente meshes, deux claviers fusionnés, quatorze matériaux,
+trois lumières et deux géométries construites au montage. C'est ce que vaut une scène **en
+primitives, sans un seul asset** : il n'y a ni texture, ni modèle, ni fichier à télécharger. La cible
+de 260 Ko garde 31 Ko de marge.
+
+### 6.6 Ce que P5-05 laisse ouvert
+
+| Sujet | État |
+|---|---|
+| Les quatre intensités d'éclairage | **Non réglées** : elles se règlent au curseur dans la preview du dossier, seul endroit où elles sont observables, puis se recopient. Les valeurs en place sont celles du dossier |
+| Le rig de caméra | **N'existe pas** : la caméra est posée sur la vue d'ensemble, sans animation — c'est P6-04, et c'est déjà le comportement attendu en `prefers-reduced-motion` |
+| `<ContactShadows>`, `RoomEnvironment` | Palier suivant possible, débloqué par ADR-0016. Non pris : chaque composant `drei` se paie, et rien ne le demande encore |
+| Les huit hypothèses de cotes | **Ouvertes**, dont une seule est décisive : la largeur du plateau au mètre ruban |
+| Le banc E2E local | Toujours **3 rouges préexistants** (§5.4), plus une instabilité du même genre sur les canoniques — verte en isolation, rouge sous charge |
+
+### 6.6 bis ⛔⛔ Une défense inatteignable fait tomber une porte
+
+La CI a refusé la première version : **couverture de branches à 55,88 %** sur `src/scene/state`, où
+le seuil est de 95. Je n'avais lancé que `make test`, jamais `make coverage`.
+
+La cause n'est pas un trou de test, c'est du code que rien ne peut atteindre. Sous
+`noUncheckedIndexedAccess`, `positions[i]` vaut `number | undefined` : chaque lecture indexée
+réclamait un `?? 0`, et ce repli est **inatteignable** — les indices sont fabriqués deux lignes plus
+haut. ⭐⭐ **Une branche inatteignable n'est pas inoffensive : la porte la compte, et elle a raison de
+la compter.**
+
+Le correctif n'ajoute aucun test : il **supprime la défense**. Les positions se lisent par `slice`,
+qui ne rend pas d'`undefined` ; et les index de sommets, au lieu d'être cherchés dans une table, se
+**calculent** — chaque coin pousse trois sommets dans l'ordre des axes, donc celui du coin `c` sur
+l'axe `a` est `c * 3 + a`. ⭐ Les quinze invariants de la boîte chanfreinée, étanchéité à 132 arêtes
+comprise, passent à l'identique : la réécriture est équivalente, et c'est le banc qui le dit.
+
+### 6.7 ⛔⛔ Le profil mobile laisse deux objets sans ce qui les porte
+
+Trouvé en revue, **mesuré**, et **non corrigé** — pour une raison qui vaut d'être dite.
+
+| Ce qui est écarté sur mobile | Ce qui reste | Effet |
+|---|---|---|
+| `brasGauche`, `brasCentre` | `matBras` | un mât nu, et **deux moniteurs qui ne tiennent à rien** |
+| `lampeSocle`, qui occupe `y ∈ [0 ; 0,030]` | `lampeTige`, qui **commence à `y = 0,030`** | une lampe **flottant à 3 cm** du plateau |
+
+Le second est arithmétique : la tige commence exactement là où finit le socle qu'on retire.
+
+⭐⭐ **Ce n'est pas un défaut de rendu mais une décision de plan**, et elle appartient à l'auteur de
+la scène : les huit objets `desktopOnly` sont exactement ceux que le dossier énumère. Les corriger
+demanderait d'en marquer d'autres — et **déplacerait les chiffres que le banc certifie** (20 draw
+calls, 1 966 triangles), c'est-à-dire la preuve même que la transcription est fidèle.
+
+⭐ **Il n'a probablement jamais été regardé** : le dossier documente quatre cadrages de navigation et
+deux cadrages de contrôle, tous en profil desktop. Un profil qu'on n'a pas rendu est un profil dont
+on ne sait rien — c'est le motif que ce dépôt rencontre depuis la Phase 4, ici appliqué à une scène.
+
+*Ce qui le tranchera* : rendre la scène en profil `lite` et regarder. À faire avant P5-10, qui règle
+la boucle de rendu, et avant toute mesure de performance mobile.

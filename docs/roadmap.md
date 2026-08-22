@@ -1135,12 +1135,39 @@ le 2026-08-18, jugé sur le corps : aller-retour par le même verbe, **~1 s d'or
 | P5-02 | Installation justifiée de `three`, `@react-three/fiber`, `@react-three/drei` — **DONE** *(2026-08-20)* | P5-01 |
 | P5-03 | `resolveCapabilityTier` (fonction pure) + adaptateur navigateur — **DONE** *(2026-08-20)* | P5-02 |
 | P5-04 | Montage du canvas : dynamique, `ssr:false`, après idle, `aria-hidden` — **DONE** *(2026-08-20)* | P5-03 |
-| P5-05 | Scène primitive : bureau, **deux moniteurs et un portable** en géométries de base (D10) | P5-04 |
+| P5-05 | Scène primitive : bureau, **deux moniteurs et un portable** en géométries de base (D10) — **DONE** *(2026-08-21)* | P5-04 |
 | P5-06 | Caméra, éclairage, environnement minimal | P5-05 |
 | P5-07 | Error boundary du canvas + gestion de `webglcontextlost` → palier `none` | P5-04 |
 | P5-08 | Panneau de diagnostic : FPS, draw calls, triangles, mémoire | P5-06 |
 | P5-09 | Test de non-régression : aucun module `three` dans les chunks initiaux | P5-04 |
 | P5-10 | Boucle de rendu à la demande, pause hors écran / onglet masqué | P5-06 |
+
+**P5-05 — Scène primitive**
+Status: **DONE** (2026-08-21) — le bureau réel est rendu : 30 meshes, 4 114 triangles, deux claviers
+fusionnés, quatorze matériaux, trois lumières. Seul `layout.ts` est entré au dépôt (D10) ; le dossier
+de référence reste dehors. Journal : [`phase-5-log.md`](./phase-5-log.md) §6.
+⭐⭐ **Une transcription se vérifie par ce qu'elle PRODUIT, pas par sa taille** : le banc recompte
+depuis les données les chiffres du dossier — 30/20 draw calls, 4 114/1 966 triangles, 104 et 76
+touches. Une cote mal recopiée les fait tomber.
+⛔⛔ **Deux documents se contredisaient** : `layout.ts` disait `InstancedMesh`, le dossier disait
+« fusionné », **et disait pourquoi** — le fruit du capuchon est une longueur absolue, une barre
+d'espace de 6,25 u en hériterait un six fois trop large. ⭐⭐⭐ **Celui qui porte le raisonnement
+l'emporte**, et ici le raisonnement se mesure : retrait de 1,2 mm sur la plus large comme sur la plus
+étroite. Commentaires corrigés.
+⭐⭐ **Les géométries maison sont écrites en pur, sans un import de `three`** — c'est ce qui permet
+d'affirmer par assertion ce qu'aucun rendu ne montre : 44 triangles, 24 sommets, **132 arêtes
+dirigées** (étanchéité), aucune face retournée — le contrôle que 22 triangles sur 44 avaient échoué
+selon le dossier —, 10 triangles par capuchon.
+⭐⭐ **Le bureau entier coûte 3 Ko** : chunk 3D de 226 à **229 Ko gzip**, socle +0,1 Ko. C'est ce que
+vaut une scène en primitives, sans un seul asset. La cible de 260 garde 31 Ko de marge.
+⚠️ Restent ouverts : les quatre intensités d'éclairage (réglables au curseur seulement), le rig de
+caméra (P6-04), et les huit hypothèses de cotes du dossier.
+· Depends on: P5-04
+Acceptance:
+- Scène rendue **en primitives**, aucun asset, aucune texture, aucun modèle importé.
+- Budgets du dossier **recomptés depuis les données**, pas recopiés.
+- Propriétés invisibles au rendu (étanchéité, orientation) tenues par assertion.
+- Coût mesuré avant/après, et tenu sous la cible.
 
 **P5-04 — Montage du canvas**
 Status: **DONE** (2026-08-20) — `SceneMount` monte un canvas R3F **après `idle`**, par import
