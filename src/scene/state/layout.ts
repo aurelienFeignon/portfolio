@@ -99,9 +99,8 @@ export const MATERIALS: Readonly<Record<MaterialId, MaterialSpec>> = {
  */
 export type Primitive = 'box' | 'chamferBox' | 'cylinder' | 'sphere' | 'plane'
 
-export interface Node {
+interface NodeBase {
   readonly id: string
-  readonly shape: Primitive
   /** (largeur, hauteur, profondeur) avant rotation. */
   readonly size: Vec3
   readonly position: Vec3
@@ -109,14 +108,25 @@ export interface Node {
   readonly material: MaterialId
   readonly castShadow: boolean
   readonly receiveShadow: boolean
-  /**
-   * Largeur du chanfrein en mètres, pour `chamferBox` uniquement.
-   * Doit rester strictement inférieure à la moitié de la plus petite dimension.
-   */
-  readonly chamfer?: number
   /** Écarté du rendu mobile, pour tenir le budget de 30 draw calls. */
   readonly desktopOnly?: true
 }
+
+/**
+ * ⛔⛔ **Le chanfrein n'est pas optionnel « pour `chamferBox` uniquement » : il
+ * est REQUIS là, et interdit ailleurs.** Écrit `chamfer?: number` sur un nœud
+ * unique, il obligeait le rendu à un repli — `node.chamfer ?? 0` —, et un
+ * chanfrein nul produit une boîte à arêtes vives **plus 32 triangles
+ * dégénérés**, sans une erreur. Un repli qui masque un état impossible est le
+ * défaut que ce dépôt traque ailleurs ; ici, le type le rend inexprimable.
+ * Relevé en revue (P5-05).
+ *
+ * Largeur en mètres, strictement inférieure à la moitié de la plus petite
+ * dimension — au-delà, les facettes se croisent et la boîte se retourne.
+ */
+export type Node =
+  | (NodeBase & { readonly shape: 'chamferBox'; readonly chamfer: number })
+  | (NodeBase & { readonly shape: Exclude<Primitive, 'chamferBox'>; readonly chamfer?: never })
 
 const ZERO: Vec3 = [0, 0, 0]
 

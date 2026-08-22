@@ -36,7 +36,7 @@ export default function SceneCanvas({ capability }: { readonly capability: Capab
        * palier `lite`, où l'écran ne les montrerait de toute façon pas.
        */
       shadows={capability.tier === 'lite' ? false : { type: PCFSoftShadowMap }}
-      onCreated={({ gl }) => {
+      onCreated={({ gl, camera }) => {
         /*
          * Sans courbe de tonalité, les hautes lumières de la dalle blanche
          * écrêtent net et tout le reste s'écrase vers le gris : c'est la
@@ -47,6 +47,15 @@ export default function SceneCanvas({ capability }: { readonly capability: Capab
         gl.toneMappingExposure = 1.15
         // Sans lui, tout le travail de palette est faux d'une conversion gamma.
         gl.outputColorSpace = SRGBColorSpace
+        /*
+         * ⛔ **La cible du cadrage était lue puis ignorée.** `CameraSpec` porte
+         * trois champs et ce fichier n'en employait que deux : sans `lookAt`,
+         * R3F vise l'origine du monde, ce qui donne 26,6° de plongée au lieu des
+         * 17,9° demandés — un quart du champ vertical. Le rig de caméra est
+         * P6-04 ; le cadrage INITIAL, lui, doit être celui qu'on a calculé.
+         * Relevé en revue.
+         */
+        camera.lookAt(...(CAMERAS.accueil.target as unknown as [number, number, number]))
       }}
       camera={{
         position: CAMERAS.accueil.position as unknown as [number, number, number],

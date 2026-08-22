@@ -21,14 +21,14 @@
  * `src/ui/brand-palette.ts`, où les valeurs vivent désormais une seule fois.
  *
  * ⚠️ **Ce que ce test ne peut pas voir**, et qui a justifié le palette partagé :
- * ⚠️ Il ignore `src/scene/**` depuis P5-05 — la raison est écrite à l'endroit du
- * filtre : la palette d'une scène qui décrit un bureau photographié n'est pas
- * une palette d'interface, et aucun token ne peut porter le bois d'un plateau.
- *
  * il vérifie que chaque littéral **est** un token, jamais que deux fichiers
  * désignent le **même**. Deux images qui se contredisent sur l'accent le
  * laisseraient vert. C'est la duplication qu'il fallait supprimer, pas
  * surveiller. Relevé en revue.
+ *
+ * ⚠️ **Il ignore `src/scene/**` depuis P5-05.** La raison est écrite à l'endroit
+ * du filtre : la palette d'une scène qui décrit un bureau photographié n'est pas
+ * une palette d'interface, et aucun token ne peut porter le bois d'un plateau.
  */
 import { readFile, readdir } from 'node:fs/promises'
 import { join } from 'node:path'

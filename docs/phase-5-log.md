@@ -556,3 +556,26 @@ de 260 Ko garde 31 Ko de marge.
 | `<ContactShadows>`, `RoomEnvironment` | Palier suivant possible, débloqué par ADR-0016. Non pris : chaque composant `drei` se paie, et rien ne le demande encore |
 | Les huit hypothèses de cotes | **Ouvertes**, dont une seule est décisive : la largeur du plateau au mètre ruban |
 | Le banc E2E local | Toujours **3 rouges préexistants** (§5.4), plus une instabilité du même genre sur les canoniques — verte en isolation, rouge sous charge |
+
+### 6.7 ⛔⛔ Le profil mobile laisse deux objets sans ce qui les porte
+
+Trouvé en revue, **mesuré**, et **non corrigé** — pour une raison qui vaut d'être dite.
+
+| Ce qui est écarté sur mobile | Ce qui reste | Effet |
+|---|---|---|
+| `brasGauche`, `brasCentre` | `matBras` | un mât nu, et **deux moniteurs qui ne tiennent à rien** |
+| `lampeSocle`, qui occupe `y ∈ [0 ; 0,030]` | `lampeTige`, qui **commence à `y = 0,030`** | une lampe **flottant à 3 cm** du plateau |
+
+Le second est arithmétique : la tige commence exactement là où finit le socle qu'on retire.
+
+⭐⭐ **Ce n'est pas un défaut de rendu mais une décision de plan**, et elle appartient à l'auteur de
+la scène : les huit objets `desktopOnly` sont exactement ceux que le dossier énumère. Les corriger
+demanderait d'en marquer d'autres — et **déplacerait les chiffres que le banc certifie** (20 draw
+calls, 1 966 triangles), c'est-à-dire la preuve même que la transcription est fidèle.
+
+⭐ **Il n'a probablement jamais été regardé** : le dossier documente quatre cadrages de navigation et
+deux cadrages de contrôle, tous en profil desktop. Un profil qu'on n'a pas rendu est un profil dont
+on ne sait rien — c'est le motif que ce dépôt rencontre depuis la Phase 4, ici appliqué à une scène.
+
+*Ce qui le tranchera* : rendre la scène en profil `lite` et regarder. À faire avant P5-10, qui règle
+la boucle de rendu, et avant toute mesure de performance mobile.

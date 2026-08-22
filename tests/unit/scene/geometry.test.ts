@@ -199,7 +199,18 @@ describe('champ de touches fusionné', () => {
     }
   })
 
-  it('n’a aucune face retournée, touche par touche', () => {
-    for (let t = 0; t < clavier.indices.length; t += 3) expect(aire(clavier, t)).toBeGreaterThan(0)
+  it('⛔ n’a aucune face retournée, touche par touche', () => {
+    /*
+     * ⛔⛔ La première écriture de ce cas n'affirmait que `aire > 0` — or l'aire
+     * est une NORME : elle vaut la même chose à l'endroit et à l'envers. Un
+     * enroulement inversé dans la fusion serait passé au vert. Relevé en revue.
+     * Chaque capuchon est donc éprouvé contre SON propre point intérieur, à
+     * mi-hauteur au-dessus de sa position dans le champ.
+     */
+    const touches = KEY_FIELDS[0]?.keys ?? []
+    for (const key of touches) {
+      const cap = mergeKeyField([key], 0.006, 0.0012)
+      expect(toutesSortantes(cap, [key.x, 0.003, key.z])).toBe(true)
+    }
   })
 })

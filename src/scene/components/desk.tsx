@@ -122,9 +122,12 @@ export function Desk({ capability }: { readonly capability: Capability }) {
       nodes.map((node) => ({
         node,
         // Le chanfrein est une longueur absolue : chaque boîte porte la sienne.
+        // ⭐ Aucun repli ici : le type rend `chamfer` obligatoire sur ce nœud, et
+        // un `?? 0` aurait produit une boîte à arêtes vives plus 32 triangles
+        // dégénérés, sans une erreur.
         geometrie:
           node.shape === 'chamferBox'
-            ? versGeometrie(chamferBox(node.size, node.chamfer ?? 0))
+            ? versGeometrie(chamferBox(node.size, node.chamfer))
             : partagees[node.shape],
       })),
     [nodes, partagees],
@@ -150,6 +153,19 @@ export function Desk({ capability }: { readonly capability: Capability }) {
         ) : light.kind === 'directional' ? (
           <directionalLight
             key={index}
+            ref={(instance) => {
+              /*
+               * ⛔⛔ **`target` n'est pas une propriété, c'est un objet de la
+               * scène.** Sans ce branchement, three vise l'origine du monde et
+               * non le point demandé — et le frustum d'ombre, dont l'étendue est
+               * certifiée par le banc, se mesurait alors le long d'un axe que le
+               * moteur n'employait pas. La cible était lue dans les données et
+               * jetée en silence. Relevé en revue (P5-05).
+               */
+              if (instance === null) return
+              instance.target.position.set(...(light.target as unknown as [number, number, number]))
+              instance.target.updateMatrixWorld()
+            }}
             color={light.color}
             intensity={light.intensity}
             position={light.position as unknown as [number, number, number]}
