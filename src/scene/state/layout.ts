@@ -393,7 +393,7 @@ export const NODES: readonly Node[] = [
     receiveShadow: true,
   },
   // La plaque de touches pleine a été remplacée par un vrai champ de capuchons,
-  // rendu en InstancedMesh : cf. KEY_FIELDS plus bas.
+  // fusionné en une seule géométrie : cf. KEY_FIELDS plus bas.
   {
     // Demi-ellipsoïde : la moitié basse passe sous le plateau, qui est opaque, si bien
     // que seule la coque bombée de 38 mm reste visible. C'est le seul enfoncement
@@ -473,8 +473,20 @@ export const NODES: readonly Node[] = [
 
 /*
  * Un clavier complet compte 104 touches, un portable 76 : en meshes séparés, cela
- * ferait 180 draw calls pour un budget de 60. Ils sont donc rendus en deux
- * InstancedMesh — un par clavier — soit 2 draw calls au total. Les plans sont
+ * ferait 180 draw calls pour un budget de 60. Chaque clavier est donc **fusionné
+ * en une seule géométrie**, soit 2 draw calls au total.
+ *
+ * ⛔⛔ **Et non en `InstancedMesh`, comme ce commentaire l'affirmait — corrigé en
+ * P5-05.** L'instanciation partage une géométrie et ne fait varier qu'une
+ * matrice ; or le **fruit** du capuchon est une *longueur absolue*, si bien
+ * qu'une barre d'espace de 6,25 u instanciée depuis un capuchon de 1 u en
+ * hériterait un six fois trop large. Le dossier de scène le disait déjà, ce
+ * fichier avait gardé la formulation antérieure, et le banc tranche :
+ * `geometry.test.ts` mesure le retrait sur la plus large et la plus étroite des
+ * touches — 1,2 mm dans les deux cas. La fusion coûte le **même** nombre de draw
+ * calls ; sa mémoire est payée une fois au montage.
+ *
+ * Les plans sont
  * exprimés en unités clavier (1 u = le pas entre deux touches, 19 mm en taille
  * réelle, 17 mm en chiclet portable), puis convertis une seule fois au chargement
  * du module par `buildKeys`, qui est une fonction pure et testable sans WebGL.
