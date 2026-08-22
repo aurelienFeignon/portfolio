@@ -41,11 +41,12 @@ Les Phases 0 à 4 sont TERMINÉES et validées. Ne les refais pas, ne les redisc
 
 ## État
 
-Phases 0 à 3 : **DONE**. **Phase 4 (Portfolio HTML) : CLOSE — 17 tâches sur 17, jalon T1 atteint.**
+Phases 0 à 4 : **DONE** — le jalon T1 est atteint, le portfolio documentaire est en ligne,
+supervisé, avec une checklist de mise en ligne et un rollback rejoué.
+**Phase 5 (Fondation Three.js) : en cours, 5 tâches sur 10.**
 **Tout ce qui suit est fusionné sur `main` et déployé**, les cinq jobs verts à chaque fois —
-publication GHCR et déploiement VPS compris. ⛔ **Sauf la dernière ligne du tableau tant que sa PR
-n'est pas fusionnée.** ⭐ L'état réellement déployé ne se recopie pas ici, il **se lit** — trois SHA
-successifs ont pourri à cet endroit :
+publication GHCR et déploiement VPS compris. ⭐ L'état réellement déployé ne se recopie pas ici, il
+**se lit** — trois SHA successifs ont pourri à cet endroit :
 
 ```bash
 gh run list --branch main --limit 1                                   # ce que la CI a conclu
@@ -54,27 +55,15 @@ ssh portfolio 'SSH_ORIGINAL_COMMAND="status" /srv/portfolio/deploy.sh' # ce que 
 
 | Tâche | Ce qu'elle a livré |
 |---|---|
-| P4-01 | ADR-0010 : CSS Modules + tokens, décidé sur une exécution |
-| P4-02 | Layout documentaire, `aria-current`, identité « Aurélien Feignon » |
-| P4-03 | Accueil : `SectionGuide` qui **dit** ce que chaque section contient |
-| P4-04 | Liste et fiche des expériences |
-| P4-17 | **Précision variable des dates** (`AAAA` / `AAAA-MM` / `AAAA-MM-JJ`) |
-| P4-06 | Compétences groupées par catégorie, **niveaux non publiés** (D2) |
-| P4-05 | Liste et fiche des projets, **premier corps MDX rendu** |
-| P4-07 | 404 et pages d'erreur **localisées**, servies par réécriture du proxy |
-| P4-08 | Gabarit de titre, OpenGraph, image de partage, icône |
-| P4-09 | JSON-LD : `Person`, `WebSite`, `CreativeWork`, `BreadcrumbList` |
-| P4-10 | Passe accessibilité, **périmètre dérivé du sitemap** ; plancher `globalNotFound` |
-| P4-11 | Responsive : débordement, cibles tactiles et rognage sur 16 pages × 5 largeurs |
-| P4-12 | Parcours complets, et l'**inventaire des 14 scénarios devenu un garde** |
-| P4-13 | **Jalon T1** : Lighthouse mesuré et appliqué, prérequis vérifiés **sur le serveur** |
-| P4-14 | **Supervision** : sonde externe, vue rouge sur un **arrêt réel** de la production |
-| P4-15 | Checklist de mise en ligne (`deploy/README.md` §8) et **rollback rejoué** sur la production |
-| P4-16 | Vérification **depuis l'extérieur**, Access levé : 0 écart sur 14 pages, Lighthouse contre le site réel |
+| P5-01 | **Matrice R3F vérifiée par exécution** — installation, types sous TS 6, scène montée sans WebGL. Verdict GO |
+| P5-02 | `three` + R3F + `drei` **épinglés** (ADR-0016), garde ESLint sur l'import global de `drei` |
+| P5-03 | `resolveCapability` : quatre paliers, **pur**, et son adaptateur navigateur injectable |
+| P5-04 | Montage du canvas : dynamique, après `idle`, `aria-hidden`, **rien au palier `none`** |
+| P5-05 | **La scène primitive** : le bureau réel, 30 meshes, 4 114 triangles, pour **3 Ko** |
 
-**La Phase 4 est close.** Suite : **Phase 5 — Fondation Three.js**, qui commence par **P5-01**, la
-vérification de la matrice de compatibilité React / R3F / drei (risque R-08) — un préalable, pas une
-formalité : c'est lui qui autorise ou non l'installation de P5-02.
+La Phase 4 est close (17/17) ; son journal reste la meilleure lecture du dépôt. **Restent P5-06 à
+P5-10** : caméra et éclairage, error boundary et `webglcontextlost`, panneau de diagnostic, garde de
+non-régression sur les chunks, boucle de rendu à la demande.
 
 ### ⛔⛔ Ce qui fait foi pour juger d'un déploiement
 
@@ -87,26 +76,35 @@ la conclusion du workflow — les cinq jobs, publication GHCR et déploiement VP
 gh run list --branch main --limit 1
 ```
 
-Conséquence pour **P4-16** : la vérification post-déploiement — indexation, `canonical`, `hreflang`,
-`sitemap.xml` observés **depuis l'extérieur** — est impossible tant qu'Access est actif. Lever Access
-fait partie de la mise en ligne réelle. Détail : `deploy/README.md` §4.2.
+⭐ **P4-16 a été faite dans une fenêtre ouverte exprès** : Access levé le 2026-08-20 le temps de la
+mesure, puis refermé le jour même à la demande de l'exploitant. Les relevés sont en
+`deploy/README.md` §9 — 14 URL sans écart, Lighthouse contre le site réel. ⛔ Ne redemande pas cette
+levée sans raison : elle rend le portfolio publiquement visible, et c'est une décision de mise en
+ligne, pas une étape technique. `make check-public-seo` échoue en **nommant** la fermeture, ce qui
+n'est pas un défaut.
 
 ⭐ **Une exception depuis P4-14** : `/robots.txt` porte une application Access en **Bypass**, pour que
 la sonde atteigne l'origine (`deploy/README.md` §7.2). C'est le seul chemin public — vérifié URL par
 URL, tout le reste rend toujours 302.
 
-### Ce que la Phase 4 coûte
+### Ce que le site coûte aujourd'hui
 
 | Relevé | Valeur | Seuil |
 |---|---|---|
 | JS propre à chaque route | **8,2 Ko** — le seul JavaScript applicatif du site | cible 25 · bloquant 40 |
 | Socle partagé | **126,4 Ko** | cible 136 · bloquant 146 |
 | Image de production | **273 Mo** | cible 250 · bloquant 400 |
-| Tests | **646** verts *(632 après P4-12)*, couverture **100 %** | ≥ 80 % |
-| E2E | **144** verts sur 5 profils, 0 violation axe sur les **16 pages servies** | — |
+| **Chunk 3D différé** | **229 Ko** — hors du chemin critique, chargé après `idle` | cible 260 · bloquant 320 |
+| Image de production | **281 Mo** | cible 250 · bloquant 400 |
+| Tests | **733** verts, couverture **100 %** sur les quatre métriques | ≥ 80 % |
+| E2E | **148** verts sur 5 profils | — |
 
-⚠️ Trois premiers relevés et E2E : mesurés le **2026-08-16** (P4-12). Tests et couverture : le
-**2026-08-17** (P4-14). P4-14 ne touche pas `src/`, le poids servi n'a donc pas bougé.
+⚠️ Relevés du **2026-08-22**, après P5-05. Les trois premiers sont ceux du site documentaire : la
+scène n'ajoute que **0,1 Ko au socle**, tout son poids étant dans le chunk différé.
+
+⭐⭐ **Le bureau entier coûte 3 Ko** (226 → 229 Ko) : trente meshes, deux claviers fusionnés,
+quatorze matériaux, trois lumières. C'est ce que vaut une scène **en primitives, sans un seul
+asset** — ni texture, ni modèle, ni fichier à télécharger.
 
 ⛔ **Le profil `no-js` n'est plus vrai *par construction*** : il l'est **par vérification**. Les
 frontières d'erreur sont des composants client, et c'est tout le JavaScript applicatif du site.
@@ -155,6 +153,10 @@ ADR-0007  Environnement de développement 100 % dockerisé
 ADR-0008  Auto-hébergement VPS — **amendé le 2026-08-14** : `SITE_URL` est un argument de build
 ADR-0009  Compilation MDX par @mdx-js/mdx appelé directement (next-mdx-remote = repli désigné)
 ADR-0010  CSS Modules + tokens en variables CSS (P4-01) — décidé sur une exécution
+ADR-0016  `three` + React Three Fiber + drei, **drei importé composant par composant** (P5-02)
+
+⭐ Le saut de 0010 à 0016 est délibéré : 0011 à 0015 sont **réservés** à des décisions déjà
+planifiées, dont l'une est nommée par la tâche P8-01. Un numéro réservé ne se reprend pas.
 
 Si une de ces décisions doit changer : signale-le, explique pourquoi, identifie les conséquences,
 mets l'ADR à jour et ajoute une ligne au journal des révisions. Jamais de changement silencieux.
@@ -189,28 +191,38 @@ mets l'ADR à jour et ajoute une ligne au journal des révisions. Jamais de chan
 
 ## Ta mission cette session
 
-**Enchaîne sur P5-02** — l'installation justifiée de `three`, `@react-three/fiber` et
-`@react-three/drei`. P5-01 a rendu son verdict : **GO**, aux versions `three@0.185.1`,
-`@react-three/fiber@9.7.0`, `@react-three/drei@10.7.8`, `@types/three@0.185.4`, vérifiées par
-exécution (`phase-5-log.md` §1). Il reste à les installer, à l'écrire dans un ADR — c'est une
-dépendance structurante — et à poser le garde du budget.
+**Enchaîne sur P5-06** — caméra, éclairage et environnement minimal. La scène est rendue depuis
+P5-05, mais deux choses y manquent, et le dossier dit lesquelles :
 
-⛔⛔ **Les deux contraintes que P5-01 laisse, et qui gouvernent toute la phase :**
-1. **`drei` s'importe par composant nommé, jamais en entier** : en entier il pèse 802,8 Ko gzip, soit
-   **2,5 fois le seuil bloquant**. ⚠️ Mais interdire `export *` ne suffit pas — **quatre composants
-   courants coûtent déjà +65,3 Ko** et ne laissent que 16 Ko sous le seuil. Le garde doit **compter**.
-2. **Le budget est chiffré, et D9 l'a tranché le 2026-08-20** : **cible 260 Ko, seuil bloquant 320**
-   (`performance-budget.md` §4.3). Le plancher mesuré étant 237,5 Ko, la cible laisse ~22 Ko — un à
-   deux composants `drei`. Le garde de P5-02 s'appuie sur ces deux nombres, et sur eux seuls.
+1. **Les quatre intensités d'éclairage ne sont pas réglées.** Les valeurs en place sont celles du
+   dossier, et ce sont *les seules de tout le plan que ni le calcul ni Blender ne peuvent trancher* —
+   elles dépendent de la courbe de tonalité et se règlent **au curseur**, dans la preview du dossier,
+   puis se recopient. ⛔ Ne les ajuste pas au jugé dans le code : c'est la seule mesure du projet qui
+   demande un œil, et l'outil pour la faire existe déjà.
+2. **La caméra est posée, pas dirigée.** Elle prend le cadrage d'ensemble au montage et n'en bouge
+   plus. Le rig — interpolation simultanée de la position et de la cible, 700 ms, `easeInOutCubic` —
+   est **P6-04**, pas P5-06.
 
-⭐ **Le harnais qui a rendu ces chiffres est versionné** (`tools/compat-3d/`) : rejoue-le plutôt que
-de refaire les mesures, et ajoute-lui un cas si tu mesures autre chose.
+⛔⛔ **Et le piège qui attend P6-04, écrit ici pour qu'il ne se découvre pas à l'usage** : le `fov`
+varie de **16° à 36°** selon l'état, parce que le cadrage *Compétences* vise un écran monté sur un
+corps profond. **Il doit être interpolé avec la position**, sinon la transition produit un zoom sec.
+
+⭐⭐ **Ce que la Phase 5 laisse et qu'il faut employer plutôt que refaire** :
+`src/scene/state/layout.ts` porte **toutes** les cotes — aucune valeur de scène ne s'écrit ailleurs ;
+`geometry.ts` construit les deux géométries que `three` ne fournit pas, en pur ; et
+`tests/unit/scene/` recompte les budgets depuis les données. Un chiffre changé dans `layout.ts` fait
+rougir le banc, ce qui est exactement l'effet voulu.
 
 ⭐⭐ **Ce que la Phase 4 laisse, et qu'il faut employer plutôt que refaire** : `deploy/README.md` §8
 (checklist de mise en ligne, jouée), `make check-uptime` (sonde externe), `make check-public-seo`
 (canonical / hreflang / sitemap sur le site public). Aucun de ces trois ne s'imagine à nouveau.
 
-⛔⛔⛔ **Les deux leçons de fin de phase, et elles visent tout ce qui suit :**
+⛔ **Trois portes ne tournent PAS dans `make e2e`, et se découvrent donc en CI** : la couverture
+(`make coverage` — seuil de **95 %** sur `src/scene/state`), le budget de bundle (`make bundle`) et
+Lighthouse (contre l'image de production, ce que le conflit de port local rend malaisé). Chacune a
+refusé une tâche de cette phase après que `make test` l'eut déclarée bonne.
+
+⛔⛔⛔ **Les cinq leçons que ces deux phases ont payées, et qui visent tout ce qui suit :**
 1. **Une preuve d'exploitation peut se périmer sans jamais devenir fausse** (P4-15). Le rollback était
    « prouvé » depuis P1-15 — mesure prise proxy en *DNS only*, honnête ce jour-là, vide de sens depuis
    la bascule en *Full (strict)*. Rejoué en jugeant le corps : **~1 s d'origine absente sous un 200
@@ -218,8 +230,23 @@ de refaire les mesures, et ajoute-lui un cas si tu mesures autre chose.
 2. **Une absence et un instrument aveugle se lisent exactement pareil** (P4-16). Une lecture sensible
    à la casse a rendu « aucun hreflang » sur quatorze pages qui en portent trois. Vérifie l'instrument
    avant de conclure au vide.
+3. **Deux mesures ne se comparent que si leurs entrées ne diffèrent QUE par ce qu'on mesure** (P5-01).
+   Un tableau de poids comparait un `export *` à cinq imports nommés : le sur-ensemble y pesait
+   **moins** que son sous-ensemble, ce qui est impossible — et le budget de toute la phase allait s'y
+   appuyer.
+4. **Une préférence d'accessibilité et un coût matériel sont deux axes ORTHOGONAUX** (P5-03) ; les
+   projeter sur un seul ordinal en perd un. Un mobile tombait en `lite` et `prefers-reduced-motion`
+   n'était jamais évalué : la préférence était honorée sur un poste fixe, pas sur un téléphone.
+5. **Un test qui passe pour deux raisons possibles n'en garde aucune** (P5-04). « N'intercepte aucun
+   clic » cliquait un lien ; `z-index: -1` suffisait déjà à le faire aboutir, donc retirer la ligne de
+   CSS qu'il protégeait l'aurait laissé vert. Affirme la propriété, jamais son symptôme.
 
-⛔⛔⛔ **Et la leçon de P4-14, qui vaut pour toute vérification depuis l'extérieur — donc pour P4-16 :
+⭐⭐⭐ **Et celle qui décide des conflits, née de P5-05** : *entre deux documents qui se contredisent,
+celui qui porte le RAISONNEMENT l'emporte — surtout quand ce raisonnement se mesure.* `layout.ts`
+disait `InstancedMesh`, le dossier de scène disait « fusionné » **et disait pourquoi**. Le banc a
+tranché en 1,2 mm.
+
+⛔⛔⛔ **Et la leçon de P4-14, qui vaut pour toute vérification depuis l'extérieur :
 interposer un CDN change ce qu'un code de retour SIGNIFIE.** Conteneur arrêté, `/robots.txt` rend
 **200 quand même** : Cloudflare compose la réponse à sa périphérie. Un contrôle jugé sur le statut
 aurait été vert sur un site éteint. Ne juge jamais l'origine sur un code de retour seul — juge sur
@@ -290,7 +317,7 @@ Format des réponses : « D2 = …, défaut partout ailleurs » suffit. Aucune n
 
 ⭐ **Ce bloc ne contient QUE des questions vivantes**, et c'est ce qui lui donne sa valeur. Les
 décisions tranchées sont reportées dans `phase-0-questions.md` ; elles n'ont plus à être lues ici.
-**Closes : D1, D3, D4, D7** (le 2026-08-16 pour les deux dernières), **D9** (le 2026-08-20).
+**Closes : D1, D3, D4, D7** (le 2026-08-16 pour les deux dernières), **D9 et D10** (le 2026-08-20).
 
 **D2 🟠 — Relire les 40 niveaux de compétence (1 à 5).** *La seule qui ait un effet visible : les
 niveaux **ne sont ni affichés ni publiés** tant que tu ne les as pas relus.* Les publier afficherait
@@ -313,6 +340,26 @@ que des travaux scolaires de 2021, et la page Projets ne contient que ce portfol
 pas d'ajouter du volume — c'est **un** projet récent, décrit pour lui-même.
 → *Si tu en as un à montrer, c'est un fichier par locale dans `content/*/projects/`. Sinon, dis-le :
 la page reste à un projet, assumé, et je ne la rouvre plus.*
+
+**D11 🟠 — Le profil mobile de la scène, que personne n'a jamais regardé.** *Mesuré en P5-05, non
+corrigé.* Les objets `desktopOnly` sont écartés au palier `lite`, et deux d'entre eux emportaient ce
+qui tenait un autre : les **bras d'écran** partent mais le **mât reste** — un mât nu, et deux
+moniteurs qui ne tiennent à rien ; le **socle de lampe** part mais la **tige reste**, et elle
+commence exactement là où finissait le socle, donc la lampe **flotte à 3 cm** du plateau.
+⭐ Les huit objets écartés sont exactement ceux que ton dossier énumère, et les changer déplacerait
+les chiffres que le banc certifie — c'est-à-dire la preuve que la transcription est fidèle. C'est
+donc ta décision, pas la mienne.
+→ *Le plus court chemin : rendre la scène en profil `lite` et regarder. Réponds « D11 = corrige » et
+je marque le mât et la tige `desktopOnly` en ajustant les budgets du banc, ou « D11 = laisse » et je
+l'écris comme assumé.* Détail : `phase-5-log.md` §6.7.
+
+**D12 🟢 — La largeur du plateau, au mètre ruban.** *Une seule mesure, et toute la scène se
+verrouille.* La photo donne **1,37 m**, la valeur retenue **1,40 m** ; toutes les cotes en découlent
+par un facteur d'échelle. Sept autres hypothèses attendent avec elle — profondeur et hauteur du
+plateau, diagonales des deux moniteurs, angle de l'écran gauche — mais celle-ci est la seule qui les
+gouverne toutes.
+→ *Mesure le chant avant du plateau et donne-moi le chiffre. Si tu n'as pas de mètre sous la main,
+dis-le : 1,40 reste, et je l'écris comme assumé plutôt que comme provisoire.*
 
 ## Contexte de planning
 
