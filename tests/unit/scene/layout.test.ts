@@ -14,7 +14,7 @@
  */
 import { describe, expect, it } from 'vitest'
 
-import { CAMERAS, KEY_FIELDS, LIGHTS, MATERIALS, NODES } from '@/scene/state/layout'
+import { CAMERAS, KEY_FIELDS, LIGHTS, MATERIALS, NODES, transitionMs } from '@/scene/state/layout'
 
 /** Triangles par primitive, tels que three.js les construit (§7 du dossier). */
 const TRIANGLES = { plane: 2, box: 12, chamferBox: 44, cylinder: 96, sphere: 720 } as const
@@ -145,5 +145,20 @@ describe('invariants que le type ne peut pas exprimer', () => {
     const ponctuelle = LIGHTS.find((light) => light.kind === 'point')
 
     expect(ponctuelle?.kind === 'point' ? ponctuelle.decay : undefined).toBe(2)
+  })
+})
+
+describe('durée de transition', () => {
+  it('coupe le mouvement à zéro quand il est refusé, plutôt que de l’accélérer', () => {
+    /*
+     * ⭐ La variante `reduced-motion` est un PARAMÈTRE de durée, pas un second
+     * chemin de code : c'est ce qui l'empêche de diverger du chemin nominal, où
+     * une branche séparée finirait par oublier une interpolation.
+     */
+    expect(transitionMs(true)).toBe(0)
+  })
+
+  it('laisse 700 ms sinon', () => {
+    expect(transitionMs(false)).toBe(700)
   })
 })

@@ -44,11 +44,16 @@ function orienter(
   triangle: readonly [number, number, number],
   interieur: readonly [number, number, number],
 ): [number, number, number] {
-  const point = (index: number): [number, number, number] => [
-    positions[index * 3] ?? 0,
-    positions[index * 3 + 1] ?? 0,
-    positions[index * 3 + 2] ?? 0,
-  ]
+  /*
+   * ⭐ `slice` plutôt qu'une lecture indexée avec repli. Sous
+   * `noUncheckedIndexedAccess`, `positions[i]` vaut `number | undefined`, et le
+   * `?? 0` qu'il impose est une branche **inatteignable** — les indices viennent
+   * d'ici même. Une branche inatteignable n'est pas seulement inutile : elle fait
+   * tomber la porte de couverture, qui a raison de la compter. Relevé par la CI.
+   */
+  const point = (index: number): [number, number, number] =>
+    positions.slice(index * 3, index * 3 + 3) as [number, number, number]
+
   const [a, b, c] = [point(triangle[0]), point(triangle[1]), point(triangle[2])]
   const ab: [number, number, number] = [b[0] - a[0], b[1] - a[1], b[2] - a[2]]
   const ac: [number, number, number] = [c[0] - a[0], c[1] - a[1], c[2] - a[2]]
@@ -84,79 +89,84 @@ function orienter(
 export function chamferBox(size: readonly [number, number, number], chamfer: number): Mesh {
   const [hx, hy, hz] = [size[0] / 2, size[1] / 2, size[2] / 2]
   const positions: number[] = []
-  /** Index du sommet du coin `c` porté par l'axe `axe`. */
-  const sommet: number[][] = []
 
-  CORNERS.forEach(([sx, sy, sz], c) => {
-    sommet[c] = []
-    const trio: readonly (readonly [number, number, number])[] = [
-      [sx * hx, sy * (hy - chamfer), sz * (hz - chamfer)],
-      [sx * (hx - chamfer), sy * hy, sz * (hz - chamfer)],
-      [sx * (hx - chamfer), sy * (hy - chamfer), sz * hz],
-    ]
-    for (const [x, y, z] of trio) {
-      sommet[c]?.push(positions.length / 3)
-      positions.push(x, y, z)
-    }
-  })
+  /*
+   * ⭐ **Les index sont ARITHMÉTIQUES, pas cherchés dans une table.** Chaque coin
+   * pousse exactement trois sommets, dans l'ordre des axes : celui du coin `c`
+   * porté par l'axe `a` est donc `c * 3 + a`, et celui du coin de signes
+   * `(sx, sy, sz)` se déduit de l'ordre de `CORNERS`. Aucune recherche, donc
+   * aucun `undefined` à défendre.
+   */
+  for (const [sx, sy, sz] of CORNERS) {
+    positions.push(
+      sx * hx,
+      sy * (hy - chamfer),
+      sz * (hz - chamfer),
+      sx * (hx - chamfer),
+      sy * hy,
+      sz * (hz - chamfer),
+      sx * (hx - chamfer),
+      sy * (hy - chamfer),
+      sz * hz,
+    )
+  }
 
-  const indexDe = (corner: number, axe: 0 | 1 | 2): number => sommet[corner]?.[axe] ?? 0
-  const centre = CORNERS.findIndex.bind(CORNERS)
+  const sommetDe = (corner: number, axe: number): number => corner * 3 + axe
   const coin = (sx: number, sy: number, sz: number): number =>
-    centre(([x, y, z]) => x === sx && y === sy && z === sz)
+    (sx > 0 ? 4 : 0) + (sy > 0 ? 2 : 0) + (sz > 0 ? 1 : 0)
 
   const triangles: [number, number, number][] = []
   const quad = (a: number, b: number, c: number, d: number): void => {
     triangles.push([a, b, c], [a, c, d])
   }
 
-  // Les 6 faces réduites : les quatre sommets portés par l'axe de la face.
-  for (const axe of [0, 1, 2] as const) {
+  const AXES: readonly (readonly [number, number, number])[] = [
+    [0, 1, 2],
+    [1, 2, 0],
+    [2, 0, 1],
+  ]
+
+  for (const [axe, u, v] of AXES) {
     for (const signe of [-1, 1] as const) {
-      const autres = ([0, 1, 2] as const).filter((a) => a !== axe) as [0 | 1 | 2, 0 | 1 | 2]
-      const sommets = [
-        [-1, -1],
-        [-1, 1],
-        [1, 1],
-        [1, -1],
-      ].map(([u, v]) => {
+      // Les 6 faces réduites : les quatre sommets portés par l'axe de la face.
+      const face = (
+        [
+          [-1, -1],
+          [-1, 1],
+          [1, 1],
+          [1, -1],
+        ] as const
+      ).map(([su, sv]) => {
         const s: [number, number, number] = [0, 0, 0]
         s[axe] = signe
-        s[autres[0]] = u ?? 0
-        s[autres[1]] = v ?? 0
-        return indexDe(coin(s[0], s[1], s[2]), axe)
+        s[u] = su
+        s[v] = sv
+        return sommetDe(coin(s[0], s[1], s[2]), axe)
       })
-      quad(sommets[0] ?? 0, sommets[1] ?? 0, sommets[2] ?? 0, sommets[3] ?? 0)
+      quad(face[0] as number, face[1] as number, face[2] as number, face[3] as number)
     }
-  }
 
-  // Les 12 facettes d'arête : chacune relie deux coins voisins le long d'un axe.
-  for (const axe of [0, 1, 2] as const) {
-    const autres = ([0, 1, 2] as const).filter((a) => a !== axe) as [0 | 1 | 2, 0 | 1 | 2]
-    for (const u of [-1, 1] as const) {
-      for (const v of [-1, 1] as const) {
-        const base: [number, number, number] = [0, 0, 0]
-        base[autres[0]] = u
-        base[autres[1]] = v
-        const bas: [number, number, number] = [...base]
-        const haut: [number, number, number] = [...base]
+    // Les 4 facettes d'arête parallèles à cet axe.
+    for (const su of [-1, 1] as const) {
+      for (const sv of [-1, 1] as const) {
+        const bas: [number, number, number] = [0, 0, 0]
+        const haut: [number, number, number] = [0, 0, 0]
+        bas[u] = su
+        bas[v] = sv
+        haut[u] = su
+        haut[v] = sv
         bas[axe] = -1
         haut[axe] = 1
         const cBas = coin(bas[0], bas[1], bas[2])
         const cHaut = coin(haut[0], haut[1], haut[2])
-        quad(
-          indexDe(cBas, autres[0]),
-          indexDe(cBas, autres[1]),
-          indexDe(cHaut, autres[1]),
-          indexDe(cHaut, autres[0]),
-        )
+        quad(sommetDe(cBas, u), sommetDe(cBas, v), sommetDe(cHaut, v), sommetDe(cHaut, u))
       }
     }
   }
 
   // Les 8 facettes de coin : le triangle des trois sommets d'un même coin.
   for (let c = 0; c < CORNERS.length; c += 1) {
-    triangles.push([indexDe(c, 0), indexDe(c, 1), indexDe(c, 2)])
+    triangles.push([sommetDe(c, 0), sommetDe(c, 1), sommetDe(c, 2)])
   }
 
   const indices = triangles.flatMap((triangle) => orienter(positions, triangle, [0, 0, 0]))
@@ -253,11 +263,8 @@ export function mergeKeyField(
     const base = positions.length / 3
     const cap = taperedCap(key.width, key.depth, height, taper)
     for (let v = 0; v < cap.positions.length; v += 3) {
-      positions.push(
-        (cap.positions[v] ?? 0) + key.x,
-        cap.positions[v + 1] ?? 0,
-        (cap.positions[v + 2] ?? 0) + key.z,
-      )
+      const [x, y, z] = cap.positions.slice(v, v + 3) as [number, number, number]
+      positions.push(x + key.x, y, z + key.z)
     }
     for (const index of cap.indices) indices.push(index + base)
   }

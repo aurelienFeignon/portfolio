@@ -557,6 +557,23 @@ de 260 Ko garde 31 Ko de marge.
 | Les huit hypothèses de cotes | **Ouvertes**, dont une seule est décisive : la largeur du plateau au mètre ruban |
 | Le banc E2E local | Toujours **3 rouges préexistants** (§5.4), plus une instabilité du même genre sur les canoniques — verte en isolation, rouge sous charge |
 
+### 6.6 bis ⛔⛔ Une défense inatteignable fait tomber une porte
+
+La CI a refusé la première version : **couverture de branches à 55,88 %** sur `src/scene/state`, où
+le seuil est de 95. Je n'avais lancé que `make test`, jamais `make coverage`.
+
+La cause n'est pas un trou de test, c'est du code que rien ne peut atteindre. Sous
+`noUncheckedIndexedAccess`, `positions[i]` vaut `number | undefined` : chaque lecture indexée
+réclamait un `?? 0`, et ce repli est **inatteignable** — les indices sont fabriqués deux lignes plus
+haut. ⭐⭐ **Une branche inatteignable n'est pas inoffensive : la porte la compte, et elle a raison de
+la compter.**
+
+Le correctif n'ajoute aucun test : il **supprime la défense**. Les positions se lisent par `slice`,
+qui ne rend pas d'`undefined` ; et les index de sommets, au lieu d'être cherchés dans une table, se
+**calculent** — chaque coin pousse trois sommets dans l'ordre des axes, donc celui du coin `c` sur
+l'axe `a` est `c * 3 + a`. ⭐ Les quinze invariants de la boîte chanfreinée, étanchéité à 132 arêtes
+comprise, passent à l'identique : la réécriture est équivalente, et c'est le banc qui le dit.
+
 ### 6.7 ⛔⛔ Le profil mobile laisse deux objets sans ce qui les porte
 
 Trouvé en revue, **mesuré**, et **non corrigé** — pour une raison qui vaut d'être dite.
