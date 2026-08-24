@@ -596,3 +596,181 @@ on ne sait rien — c'est le motif que ce dépôt rencontre depuis la Phase 4, i
 
 *Ce qui le tranchera* : rendre la scène en profil `lite` et regarder. À faire avant P5-10, qui règle
 la boucle de rendu, et avant toute mesure de performance mobile.
+
+---
+
+## 7. P5-07 — la frontière d'erreur, et le défaut qu'elle a révélé en production
+
+### 7.1 ⛔⛔⛔ Ce n'était pas une précaution : c'était un défaut livré
+
+La tâche s'annonçait comme une ceinture de sécurité — ADR-0003 point 5, *« toute défaillance fait
+basculer en `none` »*. La mutation qui devait la voir rouge a dit autre chose.
+
+**Sans frontière de scène, un chunk 3D manquant fait afficher « Une erreur est survenue » sur tout
+le site.** L'import dynamique jette au rendu ; à défaut d'une frontière de scène, l'erreur remonte à
+`src/app/[locale]/error.tsx`, la frontière de **page**, qui remplace le contenu par un avis
+d'erreur. Un enrichissement raté devenait donc une panne visible du portfolio documentaire —
+exactement ce que l'ADR interdit, et le contraire de ce que la Phase 4 a construit.
+
+⭐⭐⭐ **Le défaut existait depuis P5-04**, c'est-à-dire depuis que le canvas est importé
+dynamiquement, et rien ne pouvait le signaler : il ne se produit que lorsqu'un chunk manque, ce qui
+n'arrive jamais sur une machine de développement. Il aurait fallu un déploiement laissant un chunk
+derrière lui, ou un réseau qui coupe au mauvais moment. La mutation l'a produit en trois secondes.
+
+⭐⭐ **Une frontière d'erreur ne se juge pas sur ce qu'elle attrape, mais sur ce qui l'attraperait à
+sa place.** C'est la question qui a transformé cette tâche : il y avait déjà une frontière au-dessus,
+et elle faisait précisément ce qu'il ne fallait pas.
+
+### 7.2 Trois défaillances, trois endroits — et l'une n'est pas là où on la cherche
+
+| Défaillance | Où elle se voit | Éprouvée par |
+|---|---|---|
+| Le chunk du canvas ne se charge pas | Le composant paresseux **jette au rendu** → frontière d'erreur | E2E, chunk refusé par le réseau |
+| La scène jette pendant son rendu | Même frontière, autre origine | Vitest, sur la frontière elle-même |
+| Le contexte WebGL est perdu | ⛔⛔ **Un événement du DOM — aucune frontière ne le verra jamais** | E2E, `WEBGL_lose_context` sur le contexte réel |
+
+⛔⛔ **La troisième est celle qui se serait oubliée.** Une error boundary attrape des exceptions de
+rendu ; `webglcontextlost` n'en est pas une. Sans écoute explicite, la scène resterait montée sur un
+canvas définitivement noir — un décor mort que rien ne signale, et un contexte WebGL retenu de plus
+sur un appareil qui vient justement d'en manquer.
+
+### 7.3 ⛔⛔ Une scène abandonnée ne remonte jamais, et c'est tout l'objet du module
+
+`mount-state.ts` porte trois états et deux transitions. La seule règle qui compte est que
+`abandoned` est **terminal** : `sceneReady` appliqué à un état abandonné rend cet état, inchangé.
+
+Sans elle, l'appareil dont le contexte se perd en boucle — celui-là même qu'ADR-0003 protège —
+reçoit un cycle montage / perte / montage sans fin, parce que la lecture de capacité est différée
+par `requestIdleCallback` et que React rejoue l'effet à chaque remontage, StrictMode compris.
+
+⭐ **La décision vit dans `capability/` et non dans le composant**, pour la raison déjà donnée en
+P5-03 : `src/scene/components/**` est exclu de la mesure de couverture et n'est tenu que par le banc
+E2E — or cette propriété-ci protège d'un cycle qu'aucun banc ne produit sur commande.
+
+⭐ **La première cause est conservée, pas la dernière.** Une perte de contexte suit souvent l'erreur
+qui l'a provoquée ; c'est la première qui explique quelque chose.
+
+⚠️ Ce n'est pas une renonciation définitive : un rechargement repart d'un état neuf. Ce qui est
+refusé, c'est de réessayer **tout seul**, sans que rien n'ait changé.
+
+### 7.4 ⭐ `ChunkLoadError` est mesuré, et le reste a été coupé
+
+La distinction entre « le chunk n'est pas arrivé » et « la scène a jeté » ne change rien pour le
+visiteur — même bascule, même absence de message. Elle change ce qu'on pourra dire le jour où un
+déploiement laisse un chunk derrière lui.
+
+Le nom n'a pas été deviné : le banc qui refuse le chunk du moteur l'a fait écrire par Turbopack dans
+la console du navigateur — *« ChunkLoadError: Failed to load chunk … It was handled by the
+`<SceneBoundary>` error boundary »*. C'est aussi la preuve que la frontière attrape réellement.
+
+⛔ **Une première écriture ajoutait trois motifs de message** glanés d'autres écosystèmes (webpack,
+import natif, Safari). Aucun banc ne les atteint et aucune mesure ne les fonde : du code défensif qui
+prétend un diagnostic qu'on ne saurait pas vérifier. Coupé. La limite est écrite à côté du critère :
+un moteur qui nommerait l'erreur autrement verrait sa défaillance classée `render`.
+
+### 7.5 ⛔⛔⛔ Le banc s'est trompé trois fois de repère, et chaque fois il accusait le code
+
+C'est la partie la plus instructive de la tâche, et elle ne concerne pas le produit.
+
+1. **Lire le corps de chaque chunk dans l'intercepteur** — `Response has been disposed` : la lecture
+   d'une réponse court après la vie de la requête qui l'a produite. On repère d'abord, on refuse
+   ensuite, en deux chargements.
+2. **Attendre que le canvas soit ATTACHÉ** — R3F pose le `<canvas>` dans le DOM *avant* de créer son
+   contexte. Un `getContext('webgl2')` lancé dans cette fenêtre **crée un contexte à lui** et le
+   perd ; celui de la scène, créé juste après, n'a rien vu. Le décor restait, et le parcours accusait
+   le code.
+3. **Attendre que le canvas ait une taille non nulle** — ⛔⛔ **un `<canvas>` sans attribut mesure
+   300 × 150 par spécification.** Le repère était donc vrai dès l'attachement : il n'attendait
+   rigoureusement rien. Corrigé en le comparant à la largeur de la fenêtre, que le décor couvre
+   entièrement — un chiffre que seule la mise à l'échelle du renderer peut produire.
+
+⭐⭐⭐ **Ce qui a permis de ne pas conclure trop vite est la forme de l'échec : il se DÉPLAÇAIT.**
+Vert en isolation, rouge en suite complète, puis rouge sur l'autre test au run suivant. Un défaut
+déterministe ne se déplace pas ; une course, si. Sans cette lecture, la conclusion naturelle était
+« la bascule ne marche pas » — et le correctif aurait porté sur du code sain.
+
+⭐⭐ **Et une valeur par défaut peut rendre un repère vrai avant l'événement qu'il attend.** C'est la
+même famille que le test de P5-04 qui passait pour deux raisons possibles : ici, il passait pour
+zéro raison.
+
+### 7.6 L'écoute a fini dans `onCreated`, et le test n'y est pour rien
+
+Première écriture : un composant enfant du canvas, `useEffect` puis `useLayoutEffect`. Les deux
+laissent une fenêtre — un enfant du canvas n'attache son écouteur qu'au **rendu de l'arbre R3F**,
+c'est-à-dire après la création du contexte.
+
+L'écoute est donc posée dans `onCreated`, qui s'exécute dans la même passe synchrone que la création
+du renderer : aucun événement ne peut s'y glisser. ⭐ **La fenêtre a été fermée dans le code, pas
+dans le banc** — la rendre patiente aurait laissé le trou pour un visiteur réel, et le banc n'aurait
+plus rien gardé.
+
+⭐ `once: true` remplace le nettoyage, et le remplace exactement : la bascule est terminale, donc une
+seconde perte n'aurait rien à dire ; l'écouteur se retire de lui-même après la première, et si le
+canvas meurt sans avoir rien perdu il meurt avec lui — R3F en construit un neuf à chaque montage.
+
+⚠️ `three` installe son propre écouteur et y appelle `preventDefault()`, ce qui demande au navigateur
+de préparer une restauration. Nous ne l'attendons pas : le parent démonte le canvas, ce qui libère le
+renderer et rend la restauration sans objet.
+
+### 7.7 Les arbitrages, posés pendant la tâche
+
+| # | Sujet | Décision | Ce qui la rouvre |
+|---|---|---|---|
+| 1 | Que voit le visiteur quand la scène tombe ? | **Rien.** Pas de message, pas de cadre, pas de bouton : le décor disparaît, enveloppe comprise. ADR-0003 point 5 le dit, et le contraire ferait d'un enrichissement raté un incident visible | Rien d'envisagé : ce serait changer l'ADR |
+| 2 | Réessayer après une perte de contexte ? | **Non**, dans la session. Un rechargement repart d'un état neuf ; réessayer tout seul sur un appareil qui vient de perdre son contexte est le cycle qu'ADR-0003 évite | Un signal fiable de restauration (`webglcontextrestored`) *et* un cas d'usage mesuré — un réveil de veille, par exemple |
+| 3 | Distinguer les causes de défaillance ? | **Oui, mais seulement là où c'est mesuré** : `ChunkLoadError`. Le comportement, lui, est le même pour les trois | Un second nom d'erreur observé sur un moteur réel |
+
+### 7.8 Relevés — et un chiffre périmé de plus
+
+Mesures prises dans le même conteneur, par le même geste (`gzip -9`), sur `main` puis sur la branche :
+deux mesures ne se comparent qu'à ce prix.
+
+| Relevé | `main` | **Avec P5-07** | Seuil |
+|---|---|---|---|
+| Socle partagé | 127,1 Ko | **127,1 Ko** | cible 136 · bloquant 146 |
+| JS propre à chaque route | 10,5 Ko | **10,8 Ko** | cible 25 · bloquant 40 |
+| Chunk 3D différé | 229,9 Ko | **230,0 Ko** | cible 260 · bloquant 320 |
+| Tests | 733 | **742** | — |
+| Couverture | 100 % | **100 %** sur les quatre métriques | ≥ 80 % |
+| E2E | 148 | **150** | — |
+
+⛔⛔ **Le « 8,2 Ko par route » que portent tous les documents est périmé : la mesure d'aujourd'hui sur
+`main`, sans une ligne de cette tâche, est 10,5 Ko.** C'est la deuxième fois que ce chiffre dérive —
+P4-12 avait déjà relevé 7,3 → 8,2 — et pour la même raison : il est **recopié** de tâche en tâche
+avec la mention « inchangé ». La frontière d'erreur, elle, coûte **+0,3 Ko**, ce qui est la seule
+chose que cette tâche a le droit d'affirmer.
+
+⚠️ Le banc E2E local rend toujours **3 rouges préexistants** (§5.4), vérifiés inchangés : la 404 du
+serveur de développement et les deux parcours de cibles tactiles. La CI, qui joue contre l'image de
+production, ne les voit pas.
+
+### 7.9 Ce que P5-07 laisse ouvert
+
+| Sujet | État |
+|---|---|
+| Le palier `none` par échec est-il observable ? | **Non**, et c'est voulu : rien ne distingue à l'écran une scène qui n'a jamais monté d'une scène tombée. P5-08, le panneau de diagnostic, sera le premier endroit où la cause pourra se lire |
+| Un moteur qui nommerait autrement l'échec de chunk | Classé `render`. Sans conséquence pour le visiteur ; à corriger le jour où un second nom est **observé** |
+| `webglcontextrestored` | Jamais écouté (arbitrage 2). Le jour où on le voudrait, c'est la terminalité de `mount-state` qu'il faudrait rouvrir, pas le composant |
+| La frontière ne couvre pas le layout | Une erreur du layout racine reste l'affaire de `global-error.tsx` : la scène n'y change rien |
+
+### 7.10 ⭐⭐ D11 rendu — et ce que le profil `lite` a montré en plus
+
+Le profil `lite` a été **rendu pour la première fois** (sonde jetable, Playwright + SwiftShader,
+trois captures : `full` en référence, `lite` au même cadrage, `lite` sur iPhone 14 en portrait).
+
+Ce que §6.7 annonçait est exact, et visible sans effort : le mât nu portant deux moniteurs qui ne
+tiennent à rien, la tige de lampe s'arrêtant franchement au-dessus du plateau.
+
+⭐ **Un troisième effet, que le journal n'avait pas prévu** : les ombres étant coupées au palier
+`lite`, plus rien n'ancre les objets au plateau — la lampe flottante n'est même pas trahie par son
+ombre. Les deux défauts se renforcent au lieu de se compenser.
+
+⛔⛔ **Et une découverte qui dépasse D11 : sur un téléphone en portrait, le cadrage d'accueil est
+perdu.** Le `fov` est vertical et les cadrages sont calculés pour 16:9 ; à 9:19,5 le champ horizontal
+se referme et il ne reste qu'un morceau d'écran central et le portable. Ni bureau, ni lampe, ni écran
+gauche. Le dossier de scène §6 l'avait écrit — *« si le format descend sous 16:9, augmenter le `fov`
+plutôt que reculer »* — et cela n'a jamais été implémenté. **C'est de la caméra, donc P5-06**, et
+c'est consigné ici plutôt que corrigé au passage dans une tâche qui n'en a pas le périmètre.
+
+⭐⭐ *Un profil qu'on n'a pas rendu est un profil dont on ne sait rien* — le motif de §6.7, confirmé
+au-delà de ce qu'il annonçait : le regard a trouvé un défaut de plus que la lecture.
