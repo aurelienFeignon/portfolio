@@ -215,11 +215,16 @@ Le reste de P5-06 est cadré et t'attend : « environnement minimal » est **tra
 le décor actuel** (le dossier dit « trois sources, pas une de plus »), et le volet caméra porte un
 défaut **mesuré**, décrit ci-dessous.
 
-**Enchaîne sur P5-08 ou P5-10** — P5-09 est close depuis le 2026-08-25. ⚠️ **Les deux déclarent
-dépendre de P5-06**, et cette dépendance ne résiste pas à l'examen : un panneau de diagnostic et une
-boucle de rendu ont besoin d'une scène **rendue** (P5-05), pas d'un éclairage réglé. La roadmap n'a
-pas été modifiée sans décision — **tranche-le d'un mot**, faute de quoi la phase est bloquée par une
-dépendance que personne ne croit.
+**Enchaîne sur P5-08** — c'est la seule tâche de la Phase 5 qui reste ouverte et faisable.
+✅ **Trois arbitrages tranchés le 2026-08-25** : la dépendance de P5-08 et P5-10 passe de P5-06 à
+**P5-05** (une scène *rendue* suffit, un éclairage *réglé* n'y change rien) ; **P5-10 est reportée
+après P6-04** ; **D11 est close en « laisser »**.
+
+⭐⭐ **Pourquoi P5-10 est reportée, et ce que ça apprend** : `frameloop="demand"` est en place depuis
+P5-04 et **rien n'appelle `invalidate()`**, faute d'animation. « Pause hors écran / onglet masqué »
+suppose une boucle à mettre en pause — une boucle qui ne tourne pas ne se suspend pas. L'écrire
+aujourd'hui produirait un mécanisme sans effet mesurable, donc **un garde qu'aucun banc ne pourrait
+voir rouge**. Son contenu naît avec P6-04, quand la transition devra invalider image par image.
 
 ⭐ **P5-08 hérite d'un manque nommé par P5-07** : rien ne distingue à l'écran une scène qui n'a jamais
 monté d'une scène tombée. Le panneau de diagnostic est le premier endroit où la **cause** pourra se
@@ -372,7 +377,8 @@ Format des réponses : « D2 = …, défaut partout ailleurs » suffit. Aucune n
 
 ⭐ **Ce bloc ne contient QUE des questions vivantes**, et c'est ce qui lui donne sa valeur. Les
 décisions tranchées sont reportées dans `phase-0-questions.md` ; elles n'ont plus à être lues ici.
-**Closes : D1, D3, D4, D7** (le 2026-08-16 pour les deux dernières), **D9 et D10** (le 2026-08-20).
+**Closes : D1, D3, D4, D7** (le 2026-08-16 pour les deux dernières), **D9 et D10** (le 2026-08-20),
+**D11** (le 2026-08-25, « laisser » — `phase-5-log.md` §6.7).
 
 **D2 🟠 — Relire les 40 niveaux de compétence (1 à 5).** *La seule qui ait un effet visible : les
 niveaux **ne sont ni affichés ni publiés** tant que tu ne les as pas relus.* Les publier afficherait
@@ -395,21 +401,6 @@ que des travaux scolaires de 2021, et la page Projets ne contient que ce portfol
 pas d'ajouter du volume — c'est **un** projet récent, décrit pour lui-même.
 → *Si tu en as un à montrer, c'est un fichier par locale dans `content/*/projects/`. Sinon, dis-le :
 la page reste à un projet, assumé, et je ne la rouvre plus.*
-
-**D11 🟠 — Le profil mobile de la scène, que personne n'a jamais regardé.** *Mesuré en P5-05, non
-corrigé.* Les objets `desktopOnly` sont écartés au palier `lite`, et deux d'entre eux emportaient ce
-qui tenait un autre : les **bras d'écran** partent mais le **mât reste** — un mât nu, et deux
-moniteurs qui ne tiennent à rien ; le **socle de lampe** part mais la **tige reste**, et elle
-commence exactement là où finissait le socle, donc la lampe **flotte à 3 cm** du plateau.
-⭐ Les huit objets écartés sont exactement ceux que ton dossier énumère, et les changer déplacerait
-les chiffres que le banc certifie — c'est-à-dire la preuve que la transcription est fidèle. C'est
-donc ta décision, pas la mienne.
-✅ **Le rendu a été fait le 2026-08-24** (trois captures : `full` de référence, `lite` au même
-cadrage, `lite` sur iPhone 14). Il confirme les deux défauts, et en ajoute un troisième : **les ombres
-étant coupées au palier `lite`, plus rien n'ancre les objets au plateau** — la lampe flottante n'est
-même pas trahie par son ombre.
-→ *Réponds « D11 = corrige » et je marque le mât et la tige `desktopOnly` en ajustant les budgets du
-banc, ou « D11 = laisse » et je l'écris comme assumé.* Détail : `phase-5-log.md` §6.7 et §7.10.
 
 **D12 🟢 — La largeur du plateau, au mètre ruban.** *Une seule mesure, et toute la scène se
 verrouille.* La photo donne **1,37 m**, la valeur retenue **1,40 m** ; toutes les cotes en découlent

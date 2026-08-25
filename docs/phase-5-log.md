@@ -594,8 +594,22 @@ calls, 1 966 triangles), c'est-à-dire la preuve même que la transcription est 
 deux cadrages de contrôle, tous en profil desktop. Un profil qu'on n'a pas rendu est un profil dont
 on ne sait rien — c'est le motif que ce dépôt rencontre depuis la Phase 4, ici appliqué à une scène.
 
-*Ce qui le tranchera* : rendre la scène en profil `lite` et regarder. À faire avant P5-10, qui règle
-la boucle de rendu, et avant toute mesure de performance mobile.
+✅ **D11 tranchée le 2026-08-25, après avoir regardé : LAISSER, et c'est assumé.** Le profil `lite` a
+été rendu (§7.10) ; les trois défauts sont réels et visibles. Ils restent.
+
+⭐ **La raison n'est pas l'indifférence, c'est ce que la correction coûterait à la preuve.** Les huit
+objets `desktopOnly` sont exactement ceux que le dossier énumère, et le banc certifie depuis P5-05 les
+chiffres qui en découlent — **20 draw calls, 1 966 triangles**. En marquer deux de plus les
+déplacerait, c'est-à-dire ferait tomber le contrôle de transcription lui-même. On échangerait un
+défaut visuel sur un profil contre la perte de ce qui prouve que le plan est arrivé intact.
+
+⚠️ **Ce que cette décision N'AUTORISE PAS** : conclure que le profil `lite` est bon. Il est **connu**,
+ce qui n'est pas pareil. Trois défauts y sont nommés et datés — le mât nu, la lampe à 3 cm du plateau,
+et l'absence d'ombres qui retire le dernier indice d'ancrage.
+
+*Ce qui la rouvrirait* : la Phase 8, qui reprendra la direction artistique et pourra déplacer les
+budgets du banc en connaissance de cause ; ou une mesure de performance mobile qui rendrait la coupe
+d'ombres discutable pour une autre raison que l'esthétique.
 
 ---
 

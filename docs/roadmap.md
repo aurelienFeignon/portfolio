@@ -1140,9 +1140,9 @@ le 2026-08-18, jugé sur le corps : aller-retour par le même verbe, **~1 s d'or
 | P5-05 | Scène primitive : bureau, **deux moniteurs et un portable** en géométries de base (D10) — **DONE** *(2026-08-21)* | P5-04 |
 | P5-06 | Caméra, éclairage, environnement minimal — **REPORTÉE** *(2026-08-24)*, voir ci-dessous | P5-05 |
 | P5-07 | Error boundary du canvas + gestion de `webglcontextlost` → palier `none` — **DONE** *(2026-08-24)* | P5-04 |
-| P5-08 | Panneau de diagnostic : FPS, draw calls, triangles, mémoire | P5-06 |
+| P5-08 | Panneau de diagnostic : FPS, draw calls, triangles, mémoire | P5-05 |
 | P5-09 | Test de non-régression : aucun module `three` dans les chunks initiaux — **DONE** *(2026-08-25)* | P5-04 |
-| P5-10 | Boucle de rendu à la demande, pause hors écran / onglet masqué | P5-06 |
+| P5-10 | Boucle de rendu à la demande, pause hors écran / onglet masqué — **REPORTÉE après P6-04** *(2026-08-25)* | P5-05 |
 
 **P5-06 — Caméra, éclairage, environnement minimal**
 Status: **REPORTÉE** (2026-08-24), et pour une raison qui ne se lève pas en écrivant du code : ses
@@ -1159,10 +1159,28 @@ de plus » ; les métaux resteront sourds jusqu'à la Phase 8, et c'est écrit.
 lampe, ni l'écran gauche** — seulement un morceau d'écran central. Le dossier §6 prescrit d'augmenter
 le `fov` sous 16:9 plutôt que de reculer ; personne ne l'a implémenté. Preuve en `phase-5-log.md`
 §7.10.
-⚠️ **Conséquence sur l'ordonnancement, à trancher** : P5-08 et P5-10 déclarent dépendre de P5-06.
-Cette dépendance ne résiste pas à l'examen — le panneau de diagnostic et la boucle de rendu ont
-besoin d'une scène **rendue** (P5-05), pas d'un éclairage réglé. Les enchaîner sans attendre paraît
-juste ; la roadmap n'a pas été modifiée sur ce point sans décision.
+✅ **Ordonnancement tranché le 2026-08-25 : la dépendance de P5-08 et P5-10 passe de P5-06 à
+P5-05.** Elle ne résistait pas à l'examen — un panneau de diagnostic et une boucle de rendu ont
+besoin d'une scène **rendue**, pas d'un éclairage **réglé**. La Phase 5 cesse d'être bloquée derrière
+une condition que rien ne justifie.
+· Depends on: P5-05
+
+**P5-10 — Boucle de rendu à la demande**
+Status: **REPORTÉE après P6-04** (2026-08-25), et pas faute de temps : **la moitié est déjà livrée et
+l'autre est sans objet.**
+⭐ `frameloop="demand"` est en place depuis P5-04, et **rien n'appelle `invalidate()`** — parce que
+rien n'anime. La scène rend une image au montage, puis se tait.
+⛔⛔ **« Pause hors écran / onglet masqué » suppose une boucle à mettre en pause.** Une boucle qui ne
+tourne pas ne se suspend pas : écrire ce code aujourd'hui produirait un mécanisme sans effet
+mesurable, donc un garde qu'aucun banc ne pourrait voir rouge — exactement la forme de faux vert que
+cette phase traque.
+⭐⭐ **Son contenu réel naît avec P6-04** : c'est la transition de caméra qui devra invalider image
+par image, et c'est là qu'une boucle restée en `always` deviendrait un coût réel — une batterie vidée
+par une scène immobile, sans que rien ne le signale. La tâche est donc **déplacée derrière P6-04**,
+avec ce qui est acquis écrit ici plutôt que réputé fait.
+⚠️ **Ce qui reste vrai et non gardé** : rien ne vérifie que le canvas est en `demand`. Un passage à
+`always` par mégarde ne ferait rougir aucune porte. À traiter avec P6-04, quand le garde aura une
+boucle à observer.
 · Depends on: P5-05
 
 **P5-09 — Le garde d'isolation de la scène**
