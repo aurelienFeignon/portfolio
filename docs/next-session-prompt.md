@@ -43,7 +43,9 @@ Les Phases 0 à 4 sont TERMINÉES et validées. Ne les refais pas, ne les redisc
 
 Phases 0 à 4 : **DONE** — le jalon T1 est atteint, le portfolio documentaire est en ligne,
 supervisé, avec une checklist de mise en ligne et un rollback rejoué.
-**Phase 5 (Fondation Three.js) : 8 tâches sur 10.** Les deux qui restent n'attendent pas du code.
+**Phase 5 (Fondation Three.js) : CLOSE le 2026-08-25**, 8 tâches sur 10, **les quatre critères de
+sortie vérifiés par mesure** (bilan complet : `phase-5-log.md` §10). Les deux tâches restantes
+n'attendent pas du code : P5-06 attend ton œil, P5-10 attend P6-04.
 **Tout ce qui suit est fusionné sur `main` et déployé**, les cinq jobs verts à chaque fois —
 publication GHCR et déploiement VPS compris. ⭐ L'état réellement déployé ne se recopie pas ici, il
 **se lit** — trois SHA successifs ont pourri à cet endroit :
@@ -218,8 +220,23 @@ Le reste de P5-06 est cadré et t'attend : « environnement minimal » est **tra
 le décor actuel** (le dossier dit « trois sources, pas une de plus »), et le volet caméra porte un
 défaut **mesuré**, décrit ci-dessous.
 
-**La Phase 5 n'a plus de tâche exécutable : ouvre la Phase 6.** P5-06 attend ton œil devant
-`preview.html` (quatre intensités), P5-10 attend P6-04. Tout le reste est livré.
+**La Phase 5 est close : ouvre la Phase 6.** P5-06 attend ton œil devant `preview.html` (quatre
+intensités), P5-10 attend P6-04. Tout le reste est livré et mesuré.
+
+⛔⛔ **La dette que la Phase 5 lègue, et qu'il ne faut pas maquiller** : le **TBT est passé de 640 à
+2 090 ms** (×3,3), et le score Lighthouse « performance » de ~97 à ~74. ✅ Le critère de sortie est
+tenu au sens strict — **LCP 1,7 → 1,6 s, CLS 0 → 0**, les deux métriques qu'il nomme — et c'est un
+arbitrage daté, pas un oubli. La dette est chiffrée dans `performance-budget.md` §6.2, à traiter en
+Phase 11 **sur du matériel réel** : ces relevés sont pris **sans GPU**.
+⛔ **Ne repousse PAS l'échéance du `requestIdleCallback` pour « améliorer » ce score** : le coût ne
+disparaîtrait pas, seul l'instrument cesserait de le voir. C'est la classe de faux vert que toute
+cette phase a traquée.
+
+⭐⭐⭐ **Et la méthode qui a rendu ce verdict possible, parce qu'elle resservira** : le seul relevé de
+la Phase 4 venait du **site réel** (P4-16, 98/100), donc incomparable à un relevé local. Il a fallu
+**construire une image depuis `67e6ff0`**, le commit de clôture de la Phase 4, et lancer le **même**
+Lighthouse contre les deux, sur la même machine, à quelques minutes d'écart. C'est cette mesure qui a
+montré que la chute de 23 points ne touche **ni le LCP ni le CLS**.
 
 ⭐ **P6-01 est le point d'entrée** — `resolveSceneState(pathname)`, pur, sans Three.js. La Phase 6
 fait suivre la scène à l'URL (ADR-0002), et `layout.ts` porte déjà les quatre cadrages avec leurs
