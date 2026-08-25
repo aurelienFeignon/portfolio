@@ -774,3 +774,144 @@ c'est consigné ici plutôt que corrigé au passage dans une tâche qui n'en a p
 
 ⭐⭐ *Un profil qu'on n'a pas rendu est un profil dont on ne sait rien* — le motif de §6.7, confirmé
 au-delà de ce qu'il annonçait : le regard a trouvé un défaut de plus que la lecture.
+
+---
+
+## 8. P5-09 — le garde d'isolation, et le témoin sans lequel il ne prouverait rien
+
+### 8.1 Ce que P5-04 avait laissé, et ce qui manquait
+
+P5-04 avait **mesuré** que les chunks du socle ne portaient aucune occurrence de `WebGLRenderer`, et
+consigné en toutes lettres ce qui restait : *« la mesure existe, le garde reste à écrire »*.
+`performance-budget.md` §4 le demandait depuis la Phase 0, et dans une forme précise — « dans le
+**graphe de dépendances** des chunks initiaux, plus fiable qu'un simple contrôle de taille ».
+
+Une mesure prise une fois est une photographie. Ce qu'ADR-0003 promet — *le chunk 3D n'entre jamais
+dans le chemin critique* — est une propriété permanente, et un import statique de `three` dans
+n'importe quel composant du socle suffit à la rompre sans qu'aucune porte existante ne bronche : le
+budget ne verrait qu'un poids, et 875 Ko de moteur passent sous les seuils de route seulement parce
+que rien ne les y met.
+
+### 8.2 ⛔⛔ Trois repères, tous mesurés — et le plus évident est faux
+
+Le garde lit le graphe dans les **source maps**. ⭐⭐ Elles n'existent que par un enchaînement
+heureux : `productionBrowserSourceMaps` a été activé en **P5-04** pour satisfaire l'audit Lighthouse
+`valid-source-maps`, que le chunk 3D venait de faire rougir. *Le correctif d'une tâche est devenu
+l'instrument d'une autre.*
+
+| Repère candidat | Sur le chunk 3D (875 Ko) | Sur les scripts de première visite | Verdict |
+|---|---|---|---|
+| `sources[]` de la source map | **4 modules `three` / `@react-three`** | 0 | ✅ retenu |
+| chaîne `node_modules/three/` dans le js | **« non »** | non | ⛔ **faux négatif** |
+| chaîne `WebGLRenderer` dans le js | OUI | non | repli seulement |
+
+⛔⛔ **Le repère apparemment évident — chercher `node_modules/three/` dans le code — rend « aucun
+three » sur le chunk qui EST fait de three.** Turbopack ne laisse pas les chemins de modules dans le
+code minifié. Un garde bâti dessus aurait été vert pour toujours, y compris le jour où il aurait dû
+crier, et rien ne l'aurait signalé.
+
+⛔⛔ **Et le nom d'une map ne se déduit pas de celui de son `.js`.** Turbopack les nomme séparément :
+`1x3c9u4au-lzc.js` pointe vers `01b4c-1byoj-u.js.map`. Chercher `<script>.map` à côté du script rend
+« aucune map » sur un répertoire qui en contient quinze — c'est la première chose que j'ai écrite, et
+elle m'a fait croire un instant que le site n'émettait plus de source maps du tout. Le lien se lit
+**dans le fichier**, `sourceMappingURL`.
+
+⚠️ **Tous les scripts n'ont pas de map** : le bundle de polyfills n'en a aucune. Exiger une map
+partout aurait rendu le garde rouge en permanence ; les ignorer en silence l'aurait rendu aveugle sur
+110 Ko. Ils sont donc jugés par le repli, **et le garde l'affiche** — une limite d'instrument qui
+s'écrit n'est plus un angle mort.
+
+### 8.3 ⭐⭐⭐ Le témoin, qui est le cœur du garde
+
+« Zéro module `three` dans la première visite » ne veut **rien dire** tant qu'on n'a pas montré que
+l'instrument sait en voir. C'est la leçon de P4-16, appliquée à un garde neuf : *une absence et un
+instrument aveugle se lisent exactement pareil.*
+
+Le même détecteur est donc passé sur **tous** les chunks produits, et il doit trouver la scène
+quelque part. S'il ne la trouve nulle part, le garde échoue **en s'accusant lui-même** :
+
+```text
+✗ Témoin absent : aucun des 13 chunks produits ne porte de module 3D.
+  Ce garde ne peut donc rien affirmer — il ne sait pas s'il regarde une scène
+  absente ou s'il est devenu aveugle […]. Corriger le détecteur avant de conclure.
+```
+
+C'est la seule partie du garde qui protège contre son propre pourrissement : source maps
+désactivées, paquet renommé, bundler changé.
+
+### 8.4 Une seule énumération, deux gardes — et la preuve que la refonte est neutre
+
+La liste des scripts de première visite existait déjà, dans `check-bundle-budget.mts`, avec deux
+corrections chèrement payées : le parcours **récursif** (4 pages mesurées sur 20 en Phase 3) et le
+**contrôle de complétude** contre le manifeste de prérendu. La recopier aurait produit deux dérivées
+d'une même vérité — et quand elles divergent, le message accuse celle qui n'a pas tort
+(`phase-4-log.md` §14.3).
+
+Elle est donc **extraite** dans `first-visit-scripts.mts`, que les deux gardes importent. Le nouveau
+garde hérite gratuitement des deux corrections ci-dessus.
+
+⭐ **La refonte est prouvée neutre par identité de sortie** : `pnpm bundle` avant et après rend
+exactement les mêmes lignes, `diff` vide. C'était le seul risque de la tâche — toucher à un gate
+existant pour en écrire un autre.
+
+### 8.5 Ce que le garde examine, et qui déborde le budget
+
+Les scripts `nomodule` sont **inclus**, alors que le budget les laisse dehors (vision.md §5.6,
+navigateurs hors périmètre). Un budget parle de poids ; ADR-0003 parle de ce qui est **chargé**, et
+« chargé » ne dépend pas du navigateur qui charge. C'est accessoirement la seule population sans
+source map, donc celle où le repli se voit.
+
+### 8.6 Vu rouge deux fois, sur les deux propriétés
+
+⭐ Un garde qui n'a jamais échoué n'est pas un garde. Les deux mutations portent sur les deux choses
+distinctes qu'il prétend tenir :
+
+| Mutation | Attendu | Obtenu |
+|---|---|---|
+| `import { Vector3 } from 'three'` dans `scene-mount.tsx`, **valeur réellement utilisée** | le garde nomme le script fautif et le module | ✗ `0ngdypn_hoq6x.js` → `…/three/build/three.core.js`, sortie 1 |
+| Détecteur aveuglé (les deux motifs remplacés par un motif introuvable) | le **témoin** crie | ✗ « Témoin absent : aucun des 13 chunks… », sortie 1 |
+
+⛔ **La valeur importée devait être employée pour de bon.** Un `import` inutilisé aurait été élagué
+par Turbopack : la mutation n'aurait rien produit, et j'en aurais conclu que le garde ne voit pas —
+un faux négatif qui se lit exactement comme un défaut du garde.
+
+⚠️ **Ce garde n'a pas de test Vitest, et c'est délibéré** : il lit un artefact de `next build`, que
+Vitest n'a pas sous la main. Ce qui l'éprouve est la mutation ci-dessus, rejouable en trois gestes —
+c'est écrit dans le fichier.
+
+### 8.7 Relevés
+
+| Relevé | Valeur | Seuil |
+|---|---|---|
+| Scripts de première visite examinés | **11** distincts, sur 18 routes | — |
+| dont jugés par repli, faute de map | **1** (les polyfills `nomodule`) | — |
+| Modules 3D trouvés | **0** | 0 |
+| Témoin — chunk différé porteur | **1**, `1x3c9u4au-lzc.js`, 4 modules | ≥ 1 |
+| Socle partagé | 127,1 Ko | cible 136 · bloquant 146 |
+| JS propre à chaque route | 10,8 Ko | cible 25 · bloquant 40 |
+| Tests | 742, couverture **100 %** | ≥ 80 % |
+
+⭐ **Aucun octet servi ne change** : le diff de cette tâche ne contient pas un fichier de `src/`.
+C'est vérifiable d'un `git diff --stat src/`, et c'est plus solide que de comparer deux mesures.
+
+⚠️ **Un écart de méthode à connaître avant de comparer** : le chunk 3D pèse **230,8 Ko** quand on
+gzippe le seul chunk porteur, là où §7.8 annonce 230,0 pour le même code. Les deux sont justes ; ils
+ne comptent pas la même chose. *Deux mesures ne se comparent que si leurs entrées ne diffèrent que
+par ce qu'on mesure* — ici, elles diffèrent par autre chose.
+
+### 8.8 Les arbitrages, posés pendant la tâche
+
+| # | Sujet | Décision | Ce qui la rouvre |
+|---|---|---|---|
+| 1 | Où le garde tourne | **Dans `pnpm bundle`**, à la suite du budget. La CI l'exécute déjà (`pnpm build && pnpm bundle`) : aucune porte neuve à câbler, donc aucune porte neuve à oublier | Un besoin de le jouer sans construire — impossible aujourd'hui, il lit `.next` |
+| 2 | Les scripts `nomodule` | **Examinés**, bien qu'ils soient hors budget (§8.5) | — |
+| 3 | Les scripts sans source map | **Repli sur une chaîne, affiché**, plutôt qu'exiger une map partout | Le jour où Next émettrait une map pour les polyfills |
+| 4 | Pas de test Vitest | **Assumé** (§8.6) : l'objet du garde est un artefact de build | — |
+
+### 8.9 Ce que P5-09 laisse ouvert
+
+| Sujet | État |
+|---|---|
+| Le garde ne compte pas les composants `drei` | **Toujours vrai.** P5-01 avait établi que quatre composants coûtent 65,3 Ko ; le garde d'ADR-0016 reste **syntaxique** et celui-ci ne juge que la présence, jamais la quantité. Un budget du chunk différé lui-même n'existe pas encore |
+| Le chunk 3D n'a pas de seuil appliqué | Sa cible (260) et son seuil (320) sont écrits dans `performance-budget.md` et **mesurés à la main** à chaque tâche. Rien ne les applique |
+| `next-env.d.ts` oscille selon la dernière commande | Il pointe `.next/dev/types` après un `make up`, `.next/types` après un build — **et il est versionné**. Non corrigé ici : ce n'est pas le périmètre, mais c'est une divergence qui salit l'arbre d'une tâche sur deux |

@@ -1,25 +1,19 @@
 /**
  * Mesure du JavaScript de première visite et application des seuils (P1-12).
  *
- * **Ce que l'on mesure, et pourquoi comme ça.** La première version lisait
- * `rootMainFiles` dans le manifeste de build. C'était faux : ce champ ne contient
- * que le socle du framework, et pas les chunks propres à une route. Vérifié en
- * ajoutant un composant client au layout racine — la mesure n'avait pas bougé
- * d'un octet. Un gate incapable d'échouer.
- *
- * On lit donc les scripts réellement référencés par le HTML prérendu de chaque
- * route : c'est exactement ce qu'un navigateur télécharge. Les tailles sont en
+ * **Ce que l'on mesure.** Les scripts réellement référencés par le HTML prérendu
+ * de chaque route — c'est-à-dire ce qu'un navigateur télécharge. L'énumération
+ * vit dans `first-visit-scripts.mts` depuis P5-09, parce que le garde
+ * d'isolation de la scène lit exactement la même liste. Les tailles sont en
  * transfert gzip, conformément à `performance-budget.md` §4.
  *
  * Les scripts marqués `nomodule` ne sont servis qu'aux navigateurs anciens : ils
  * sont mesurés et affichés, mais hors budget (vision.md §5.6).
  */
 import { gzipSync } from 'node:zlib'
-import { readFileSync, readdirSync } from 'node:fs'
-import { join } from 'node:path'
+import { readFileSync } from 'node:fs'
 
-const NEXT_DIR = '.next'
-const APP_DIR = join(NEXT_DIR, 'server', 'app')
+import { firstVisitScripts, onDisk } from './first-visit-scripts.mts'
 
 /**
  * Socle du framework mesuré le 2026-08-11 (Next 16.3.0 + React 19.2.8) sur une
@@ -44,79 +38,10 @@ const ROUTE_TARGET_KB = 25
 const ROUTE_BLOCKING_KB = 40
 
 function gzipKilobytes(staticPath: string): number {
-  const relative = staticPath.replace(/^\/_next\//, '')
-  return gzipSync(readFileSync(join(NEXT_DIR, relative)), { level: 9 }).byteLength / 1024
+  return gzipSync(readFileSync(onDisk(staticPath)), { level: 9 }).byteLength / 1024
 }
 
-/** Scripts d'une page, séparés selon qu'ils ciblent ou non les navigateurs modernes. */
-function scriptsOf(html: string): { modern: string[]; legacy: string[] } {
-  const modern = new Set<string>()
-  const legacy = new Set<string>()
-
-  for (const tag of html.match(/<script[^>]*>/g) ?? []) {
-    const src = /src="([^"]+\.js)"/.exec(tag)?.[1]
-    if (src === undefined || !src.startsWith('/_next/')) continue
-    // React émet l'attribut en casse mixte (`noModule=""`) : une comparaison
-    // sensible à la casse compte les polyfills comme du JS moderne et gonfle le
-    // socle de 38 Ko. Constaté en P1-12.
-    ;(/nomodule/i.test(tag) ? legacy : modern).add(src)
-  }
-  return { modern: [...modern], legacy: [...legacy] }
-}
-
-/**
- * ⚠️ **Le parcours est récursif, et il ne l'était pas.** Jusqu'en Phase 3, le
- * site n'avait qu'une route : `readdirSync(APP_DIR)` sans option la trouvait, et
- * rien ne signalait qu'il ne descendait pas. À l'arrivée du segment `[locale]`,
- * 4 pages sur 20 étaient mesurées — `/fr` et `/en`, jamais `/fr/projects` ni
- * `/fr/projects/augure`. Une page de détail qui aurait embarqué du JavaScript
- * client serait passée sous le budget sans être vue.
- *
- * Constaté en lisant la sortie du gate (« Socle partagé par les 4 routes ») avec
- * 20 pages au build. Le mode de panne est celui de tous les gates de ce dépôt :
- * il passait au vert en mesurant moins que ce qui existe.
- */
-const routes = readdirSync(APP_DIR, { recursive: true })
-  .map(String)
-  .filter((name) => name.endsWith('.html'))
-  .map((name) => ({
-    name: name === 'index.html' ? '/' : `/${name.replace(/\.html$/, '')}`,
-    ...scriptsOf(readFileSync(join(APP_DIR, name), 'utf8')),
-  }))
-
-/**
- * **Le compte est confronté à ce qui existe, et non à zéro.**
- *
- * La sentinelle historique — « si je n'ai rien trouvé, j'échoue » — n'aurait pas
- * vu le défaut réellement rencontré : un sous-comptage **non nul**, 4 pages
- * mesurées sur 20. Le `{ recursive: true }` ci-dessus corrige l'instance ; ceci
- * ferme la classe. Le prochain changement de disposition de sortie de Next
- * (niveau de dossier supplémentaire, route group, page émise ailleurs) fera
- * échouer la mesure au lieu de la laisser passer au vert en mesurant moins.
- *
- * La liste faisant autorité est le manifeste de prérendu : Next y déclare une
- * entrée `routeType: 'page'` par page HTML produite.
- */
-const prerendered = JSON.parse(readFileSync(join(NEXT_DIR, 'prerender-manifest.json'), 'utf8')) as {
-  routes: Record<string, { routeType?: string }>
-}
-
-const expectedPages = Object.values(prerendered.routes).filter(
-  (route) => route.routeType === 'page',
-).length
-
-if (routes.length !== expectedPages) {
-  console.error(
-    `✗ ${routes.length} page(s) HTML mesurée(s) pour ${expectedPages} déclarée(s) par Next.\n` +
-      `  Une page non mesurée peut embarquer du JavaScript client sans être vue.`,
-  )
-  process.exit(1)
-}
-
-if (routes.length === 0) {
-  console.error('Aucune route prérendue trouvée : exécuter le build avant la mesure.')
-  process.exit(1)
-}
+const routes = firstVisitScripts()
 
 // Socle partagé = scripts présents sur TOUTES les routes. Déduit des pages
 // réelles, jamais d'un champ de manifeste dont le sens peut changer.

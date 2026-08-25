@@ -5,15 +5,16 @@
 > ligne, un rollback rejoué et une vérification **depuis l'extérieur** (14 URL, `canonical`,
 > `hreflang` et `lang` concordants, Lighthouse contre le site réel — a11y 100, SEO 100, bonnes
 > pratiques 100).
-> **PHASE 5 ENGAGÉE — 6 tâches sur 10** : P5-01 à P5-05 et **P5-07** closes ; budget arrêté à
-> **260 / 320 Ko** (D9), et la scène décrit **le bureau réel — deux moniteurs et un portable** (D10).
+> **PHASE 5 ENGAGÉE — 7 tâches sur 10** : P5-01 à P5-05, **P5-07** et **P5-09** closes ; budget
+> arrêté à **260 / 320 Ko** (D9), et la scène décrit **le bureau réel — deux moniteurs et un
+> portable** (D10).
 > ⚠️ **P5-06 est REPORTÉE** : ses quatre intensités d'éclairage ne se règlent qu'à l'œil, au curseur,
-> dans la preview du dossier de scène. Suite : **P5-08**, **P5-09**, **P5-10**.
+> dans la preview du dossier de scène. Suite : **P5-08** et **P5-10**.
 > Journal : [`phase-5-log.md`](./phase-5-log.md).
 > Journal de la Phase 4 : [`phase-4-log.md`](./phase-4-log.md) — phases précédentes :
 > [`phase-3-log.md`](./phase-3-log.md), [`phase-2-log.md`](./phase-2-log.md),
 > [`phase-1-log.md`](./phase-1-log.md)
-> Dernière mise à jour : 2026-08-24 (P5-07 close, P5-06 reportée)
+> Dernière mise à jour : 2026-08-25 (P5-09 close ; P5-06 reportée)
 
 Ce document est la **source de vérité unique des tâches**. Les identifiants sont stables et ne
 sont jamais réutilisés, même si une tâche est abandonnée.
@@ -1140,7 +1141,7 @@ le 2026-08-18, jugé sur le corps : aller-retour par le même verbe, **~1 s d'or
 | P5-06 | Caméra, éclairage, environnement minimal — **REPORTÉE** *(2026-08-24)*, voir ci-dessous | P5-05 |
 | P5-07 | Error boundary du canvas + gestion de `webglcontextlost` → palier `none` — **DONE** *(2026-08-24)* | P5-04 |
 | P5-08 | Panneau de diagnostic : FPS, draw calls, triangles, mémoire | P5-06 |
-| P5-09 | Test de non-régression : aucun module `three` dans les chunks initiaux | P5-04 |
+| P5-09 | Test de non-régression : aucun module `three` dans les chunks initiaux — **DONE** *(2026-08-25)* | P5-04 |
 | P5-10 | Boucle de rendu à la demande, pause hors écran / onglet masqué | P5-06 |
 
 **P5-06 — Caméra, éclairage, environnement minimal**
@@ -1163,6 +1164,31 @@ Cette dépendance ne résiste pas à l'examen — le panneau de diagnostic et la
 besoin d'une scène **rendue** (P5-05), pas d'un éclairage réglé. Les enchaîner sans attendre paraît
 juste ; la roadmap n'a pas été modifiée sur ce point sans décision.
 · Depends on: P5-05
+
+**P5-09 — Le garde d'isolation de la scène**
+Status: **DONE** (2026-08-25) — `pnpm bundle` refuse désormais un build dont le JavaScript de
+première visite porterait un module `three` ou `@react-three`. La promesse d'ADR-0003 cesse d'être
+une mesure prise une fois (P5-04) pour devenir une porte. Journal :
+[`phase-5-log.md`](./phase-5-log.md) §8.
+⭐⭐⭐ **Le garde porte un TÉMOIN, et c'est sa partie essentielle** : le même détecteur est passé sur
+tous les chunks produits et doit y trouver la scène. Sans lui, « zéro module 3D » ne distingue pas une
+absence d'un instrument aveugle (leçon de P4-16). Aveuglé exprès, le garde échoue **en s'accusant
+lui-même** au lieu de rendre un vert.
+⛔⛔ **Le repère évident est un faux négatif** : la chaîne `node_modules/three/` **n'existe pas** dans
+le code minifié, y compris dans le chunk qui est fait de `three`. Le graphe se lit dans les source
+maps — qui n'existent que parce que P5-04 les a activées pour Lighthouse, *le correctif d'une tâche
+devenu l'instrument d'une autre*.
+⛔ **Et le nom d'une map ne se déduit pas de celui de son `.js`** : Turbopack les nomme séparément, le
+lien se lit dans le fichier (`sourceMappingURL`).
+⭐ L'énumération des scripts de première visite est **extraite**, pas recopiée : les deux gardes
+lisent la même liste, et la refonte est prouvée neutre par **identité de sortie** de `pnpm bundle`.
+· Depends on: P5-04
+Acceptance:
+- La propriété est tenue par une **porte**, pas par une mesure consignée.
+- Le graphe de dépendances est lu, et non la taille ou une chaîne dans du code minifié.
+- Le garde est **vu rouge** sur les deux propriétés qu'il tient : un import statique de `three`, et
+  son propre détecteur aveuglé.
+- Ses limites sont écrites : il juge une présence, jamais une quantité.
 
 **P5-07 — Frontière d'erreur du canvas et perte de contexte**
 Status: **DONE** (2026-08-24) — les trois défaillances d'ADR-0003 point 5 mènent au palier `none`, et
