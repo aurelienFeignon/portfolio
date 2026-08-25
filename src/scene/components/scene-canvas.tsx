@@ -18,7 +18,13 @@ import { CAMERAS } from '@/scene/state/layout'
 
 import { Desk } from './desk'
 
-export default function SceneCanvas({ capability }: { readonly capability: Capability }) {
+export default function SceneCanvas({
+  capability,
+  onContextLost,
+}: {
+  readonly capability: Capability
+  readonly onContextLost: () => void
+}) {
   return (
     <Canvas
       // ⭐ `demand` : la scène est immobile entre deux transitions. Une boucle
@@ -56,6 +62,38 @@ export default function SceneCanvas({ capability }: { readonly capability: Capab
          * Relevé en revue.
          */
         camera.lookAt(...(CAMERAS.accueil.target as unknown as [number, number, number]))
+        /*
+         * La perte du contexte WebGL — P5-07, ADR-0003 point 5.
+         *
+         * ⛔⛔ **Aucune frontière d'erreur ne peut voir ceci** : le navigateur
+         * retire le contexte par un **événement du DOM**, jamais par une
+         * exception de rendu. Sans cette écoute, la scène resterait montée sur
+         * un canvas définitivement noir — un décor mort que rien ne signale, et
+         * un contexte retenu de plus sur un appareil qui vient d'en manquer.
+         *
+         * ⛔⛔ **Ici, et non dans un composant enfant.** Un enfant du canvas
+         * n'attache son écouteur qu'au rendu de l'arbre R3F, c'est-à-dire APRÈS
+         * la création du contexte : il reste une fenêtre pendant laquelle le
+         * contexte existe et personne ne l'écoute. Mesurée — le banc E2E la
+         * traversait sous charge, et l'échec **se déplaçait**, signature d'une
+         * course. `onCreated` s'exécute dans la même passe synchrone que la
+         * création du renderer : aucun événement ne peut s'y glisser.
+         *
+         * ⭐ `once` remplace le nettoyage, et le remplace exactement : la
+         * bascule en `none` est terminale (`mount-state.ts`), donc une seconde
+         * perte n'aurait rien à dire. L'écouteur se retire de lui-même après la
+         * première, et si le canvas meurt sans avoir rien perdu, il meurt avec
+         * lui — R3F en construit un neuf à chaque montage, jamais deux écoutes
+         * sur le même élément.
+         *
+         * ⚠️ `three` installe son propre écouteur et y appelle
+         * `preventDefault()`, ce qui demande au navigateur de préparer une
+         * restauration. Nous ne l'attendons pas : le parent démonte le canvas,
+         * ce qui libère le renderer et rend la restauration sans objet.
+         * Réessayer tout seul sur un appareil qui vient de perdre son contexte
+         * est exactement le cycle qu'ADR-0003 cherche à éviter.
+         */
+        gl.domElement.addEventListener('webglcontextlost', onContextLost, { once: true })
       }}
       camera={{
         position: CAMERAS.accueil.position as unknown as [number, number, number],

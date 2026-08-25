@@ -5,14 +5,15 @@
 > ligne, un rollback rejoué et une vérification **depuis l'extérieur** (14 URL, `canonical`,
 > `hreflang` et `lang` concordants, Lighthouse contre le site réel — a11y 100, SEO 100, bonnes
 > pratiques 100).
-> **PHASE 5 ENGAGÉE** : P5-01 (matrice R3F vérifiée **par exécution**, GO) et P5-02 (installation)
-> closes ; budget arrêté à **260 / 320 Ko** (D9), et la scène décrit **le bureau réel — deux moniteurs
-> et un portable** (D10). Suite : **P5-03**, `resolveCapabilityTier`.
+> **PHASE 5 ENGAGÉE — 6 tâches sur 10** : P5-01 à P5-05 et **P5-07** closes ; budget arrêté à
+> **260 / 320 Ko** (D9), et la scène décrit **le bureau réel — deux moniteurs et un portable** (D10).
+> ⚠️ **P5-06 est REPORTÉE** : ses quatre intensités d'éclairage ne se règlent qu'à l'œil, au curseur,
+> dans la preview du dossier de scène. Suite : **P5-08**, **P5-09**, **P5-10**.
 > Journal : [`phase-5-log.md`](./phase-5-log.md).
 > Journal de la Phase 4 : [`phase-4-log.md`](./phase-4-log.md) — phases précédentes :
 > [`phase-3-log.md`](./phase-3-log.md), [`phase-2-log.md`](./phase-2-log.md),
 > [`phase-1-log.md`](./phase-1-log.md)
-> Dernière mise à jour : 2026-08-20 (Phase 4 close, Phase 5 engagée)
+> Dernière mise à jour : 2026-08-24 (P5-07 close, P5-06 reportée)
 
 Ce document est la **source de vérité unique des tâches**. Les identifiants sont stables et ne
 sont jamais réutilisés, même si une tâche est abandonnée.
@@ -1136,11 +1137,59 @@ le 2026-08-18, jugé sur le corps : aller-retour par le même verbe, **~1 s d'or
 | P5-03 | `resolveCapabilityTier` (fonction pure) + adaptateur navigateur — **DONE** *(2026-08-20)* | P5-02 |
 | P5-04 | Montage du canvas : dynamique, `ssr:false`, après idle, `aria-hidden` — **DONE** *(2026-08-20)* | P5-03 |
 | P5-05 | Scène primitive : bureau, **deux moniteurs et un portable** en géométries de base (D10) — **DONE** *(2026-08-21)* | P5-04 |
-| P5-06 | Caméra, éclairage, environnement minimal | P5-05 |
-| P5-07 | Error boundary du canvas + gestion de `webglcontextlost` → palier `none` | P5-04 |
+| P5-06 | Caméra, éclairage, environnement minimal — **REPORTÉE** *(2026-08-24)*, voir ci-dessous | P5-05 |
+| P5-07 | Error boundary du canvas + gestion de `webglcontextlost` → palier `none` — **DONE** *(2026-08-24)* | P5-04 |
 | P5-08 | Panneau de diagnostic : FPS, draw calls, triangles, mémoire | P5-06 |
 | P5-09 | Test de non-régression : aucun module `three` dans les chunks initiaux | P5-04 |
 | P5-10 | Boucle de rendu à la demande, pause hors écran / onglet masqué | P5-06 |
+
+**P5-06 — Caméra, éclairage, environnement minimal**
+Status: **REPORTÉE** (2026-08-24), et pour une raison qui ne se lève pas en écrivant du code : ses
+**quatre intensités** — exposition, hémisphérique, directionnelle, ponctuelle — sont *les seules
+valeurs du dossier de scène que ni le calcul ni Blender ne peuvent trancher*. Elles se règlent au
+curseur dans `preview.html`, qui sait recracher les lignes à recopier. ⛔ Les ajuster au jugé dans le
+code reviendrait à inventer la mesure que l'outil existe pour prendre.
+⭐ **Le périmètre restant est plus mince qu'il n'y paraît** : P5-05 a déjà livré les trois sources,
+le cadrage initial avec son `lookAt`, la courbe de tonalité et l'espace colorimétrique. « Environnement
+minimal » est tranché — *rien de plus que le décor actuel*, le dossier disant « trois sources, pas une
+de plus » ; les métaux resteront sourds jusqu'à la Phase 8, et c'est écrit.
+⛔⛔ **Ce qui reste, en revanche, est un défaut mesuré** : les cadrages sont calculés pour 16:9 et le
+`fov` est vertical. Rendu sur un iPhone 14 en portrait, l'accueil ne montre **ni le bureau, ni la
+lampe, ni l'écran gauche** — seulement un morceau d'écran central. Le dossier §6 prescrit d'augmenter
+le `fov` sous 16:9 plutôt que de reculer ; personne ne l'a implémenté. Preuve en `phase-5-log.md`
+§7.10.
+⚠️ **Conséquence sur l'ordonnancement, à trancher** : P5-08 et P5-10 déclarent dépendre de P5-06.
+Cette dépendance ne résiste pas à l'examen — le panneau de diagnostic et la boucle de rendu ont
+besoin d'une scène **rendue** (P5-05), pas d'un éclairage réglé. Les enchaîner sans attendre paraît
+juste ; la roadmap n'a pas été modifiée sur ce point sans décision.
+· Depends on: P5-05
+
+**P5-07 — Frontière d'erreur du canvas et perte de contexte**
+Status: **DONE** (2026-08-24) — les trois défaillances d'ADR-0003 point 5 mènent au palier `none`, et
+le décor disparaît **enveloppe comprise**, sans un mot au visiteur. Journal :
+[`phase-5-log.md`](./phase-5-log.md) §7.
+⛔⛔⛔ **Ce n'était pas une précaution mais un défaut livré** : sans frontière de scène, un chunk 3D
+manquant faisait afficher « Une erreur est survenue » **sur tout le site** — l'erreur remontait à la
+frontière de *page*. Le défaut datait de P5-04 et rien ne pouvait le signaler, un chunk ne manquant
+jamais en développement. ⭐⭐ **Une frontière d'erreur ne se juge pas sur ce qu'elle attrape, mais sur
+ce qui l'attraperait à sa place.**
+⛔⛔ **La perte de contexte n'est pas une exception de rendu** : aucune frontière ne la verra jamais.
+Elle est écoutée dans `onCreated`, seul endroit sans fenêtre — un composant enfant n'attache son
+écouteur qu'après la création du contexte.
+⛔⛔ **La bascule est terminale** (`mount-state.ts`, pur, 100 % couvert) : sans cela, un appareil dont
+le contexte se perd en boucle reçoit un cycle montage / perte / montage sans fin.
+⛔⛔⛔ **Le banc s'est trompé trois fois de repère, et chaque fois il accusait le code** — réponse
+disposée, canvas attaché avant que son contexte n'existe, et surtout **un `<canvas>` sans attribut
+mesure 300 × 150**, donc « taille non nulle » était vrai d'emblée. ⭐⭐⭐ Ce qui a évité la fausse
+conclusion est la **forme** de l'échec : il se **déplaçait** d'un test à l'autre — signature d'une
+course, jamais d'un défaut déterministe.
+⭐ Coût : **+0,3 Ko** par route, socle et chunk 3D inchangés (127,1 Ko et 230,0 Ko).
+· Depends on: P5-04
+Acceptance:
+- Les trois défaillances mènent au palier `none`, chacune éprouvée là où elle se produit.
+- Aucun message, aucun résidu : l'enveloppe du décor disparaît avec la scène.
+- La bascule est **terminale**, et cette propriété est tenue par assertion, pas par un banc.
+- Coût mesuré avant/après, par le même geste sur les deux versions.
 
 **P5-05 — Scène primitive**
 Status: **DONE** (2026-08-21) — le bureau réel est rendu : 30 meshes, 4 114 triangles, deux claviers

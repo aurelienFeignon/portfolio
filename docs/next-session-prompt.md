@@ -43,7 +43,7 @@ Les Phases 0 à 4 sont TERMINÉES et validées. Ne les refais pas, ne les redisc
 
 Phases 0 à 4 : **DONE** — le jalon T1 est atteint, le portfolio documentaire est en ligne,
 supervisé, avec une checklist de mise en ligne et un rollback rejoué.
-**Phase 5 (Fondation Three.js) : en cours, 5 tâches sur 10.**
+**Phase 5 (Fondation Three.js) : en cours, 6 tâches sur 10.**
 **Tout ce qui suit est fusionné sur `main` et déployé**, les cinq jobs verts à chaque fois —
 publication GHCR et déploiement VPS compris. ⭐ L'état réellement déployé ne se recopie pas ici, il
 **se lit** — trois SHA successifs ont pourri à cet endroit :
@@ -60,10 +60,11 @@ ssh portfolio 'SSH_ORIGINAL_COMMAND="status" /srv/portfolio/deploy.sh' # ce que 
 | P5-03 | `resolveCapability` : quatre paliers, **pur**, et son adaptateur navigateur injectable |
 | P5-04 | Montage du canvas : dynamique, après `idle`, `aria-hidden`, **rien au palier `none`** |
 | P5-05 | **La scène primitive** : le bureau réel, 30 meshes, 4 114 triangles, pour **3 Ko** |
+| P5-07 | **La frontière d'erreur** — et le défaut livré qu'elle a révélé : sans elle, un chunk 3D manquant affichait « Une erreur est survenue » **sur tout le site**. ⚠️ **En PR, pas encore fusionnée** au moment où ceci est écrit : c'est la seule ligne du tableau dont la phrase ci-dessus ne réponde pas |
 
-La Phase 4 est close (17/17) ; son journal reste la meilleure lecture du dépôt. **Restent P5-06 à
-P5-10** : caméra et éclairage, error boundary et `webglcontextlost`, panneau de diagnostic, garde de
-non-régression sur les chunks, boucle de rendu à la demande.
+La Phase 4 est close (17/17) ; son journal reste la meilleure lecture du dépôt. **Restent P5-06,
+P5-08, P5-09 et P5-10** : caméra et éclairage (⚠️ **reportée**, voir la mission), panneau de
+diagnostic, garde de non-régression sur les chunks, boucle de rendu à la demande.
 
 ### ⛔⛔ Ce qui fait foi pour juger d'un déploiement
 
@@ -91,16 +92,22 @@ URL, tout le reste rend toujours 302.
 
 | Relevé | Valeur | Seuil |
 |---|---|---|
-| JS propre à chaque route | **8,2 Ko** — le seul JavaScript applicatif du site | cible 25 · bloquant 40 |
-| Socle partagé | **126,4 Ko** | cible 136 · bloquant 146 |
-| Image de production | **273 Mo** | cible 250 · bloquant 400 |
-| **Chunk 3D différé** | **229 Ko** — hors du chemin critique, chargé après `idle` | cible 260 · bloquant 320 |
+| JS propre à chaque route | **10,8 Ko** — le seul JavaScript applicatif du site | cible 25 · bloquant 40 |
+| Socle partagé | **127,1 Ko** | cible 136 · bloquant 146 |
+| **Chunk 3D différé** | **230,0 Ko** — hors du chemin critique, chargé après `idle` | cible 260 · bloquant 320 |
 | Image de production | **281 Mo** | cible 250 · bloquant 400 |
-| Tests | **733** verts, couverture **100 %** sur les quatre métriques | ≥ 80 % |
-| E2E | **148** verts sur 5 profils | — |
+| Tests | **742** verts, couverture **100 %** sur les quatre métriques | ≥ 80 % |
+| E2E | **150** verts sur 5 profils | — |
 
-⚠️ Relevés du **2026-08-22**, après P5-05. Les trois premiers sont ceux du site documentaire : la
-scène n'ajoute que **0,1 Ko au socle**, tout son poids étant dans le chunk différé.
+⚠️ Relevés du **2026-08-24**, après P5-07, mesurés dans le même conteneur et par le même geste
+(`gzip -9`) que la référence à laquelle ils sont comparés.
+
+⛔⛔ **Le « 8,2 Ko par route » qu'annonçait ce tableau était périmé de 2,3 Ko** : remesuré sur `main`
+sans une ligne de P5-07, il vaut **10,5**. C'est la **deuxième** dérive du même chiffre — P4-12 avait
+déjà relevé 7,3 → 8,2 — et toujours pour la même raison : il est recopié de tâche en tâche avec la
+mention « inchangé ». P5-07 y ajoute **+0,3 Ko**, et c'est tout ce qu'elle a le droit d'affirmer.
+⭐ La ligne « Image de production » figurait **deux fois**, à deux valeurs différentes (273 et 281),
+sous un tableau qui se disait unique. Il n'en reste qu'une, la mesurée.
 
 ⭐⭐ **Le bureau entier coûte 3 Ko** (226 → 229 Ko) : trente meshes, deux claviers fusionnés,
 quatorze matériaux, trois lumières. C'est ce que vaut une scène **en primitives, sans un seul
@@ -191,27 +198,40 @@ mets l'ADR à jour et ajoute une ligne au journal des révisions. Jamais de chan
 
 ## Ta mission cette session
 
-**Enchaîne sur P5-06** — caméra, éclairage et environnement minimal. La scène est rendue depuis
-P5-05, mais deux choses y manquent, et le dossier dit lesquelles :
+**P5-06 est REPORTÉE, et ce n'est pas un retard : c'est une décision du 2026-08-24.** Ses quatre
+intensités — exposition, hémisphérique, directionnelle, ponctuelle — sont *les seules valeurs du
+dossier de scène que ni le calcul ni Blender ne tranchent*. Elles se règlent au curseur dans
+`preview.html`, qui recrache les lignes à recopier. ⛔ **Ne les ajuste pas au jugé dans le code** :
+c'est la seule mesure du projet qui demande un œil, et l'outil pour la prendre existe déjà.
+Le reste de P5-06 est cadré et t'attend : « environnement minimal » est **tranché — rien de plus que
+le décor actuel** (le dossier dit « trois sources, pas une de plus »), et le volet caméra porte un
+défaut **mesuré**, décrit ci-dessous.
 
-1. **Les quatre intensités d'éclairage ne sont pas réglées.** Les valeurs en place sont celles du
-   dossier, et ce sont *les seules de tout le plan que ni le calcul ni Blender ne peuvent trancher* —
-   elles dépendent de la courbe de tonalité et se règlent **au curseur**, dans la preview du dossier,
-   puis se recopient. ⛔ Ne les ajuste pas au jugé dans le code : c'est la seule mesure du projet qui
-   demande un œil, et l'outil pour la faire existe déjà.
-2. **La caméra est posée, pas dirigée.** Elle prend le cadrage d'ensemble au montage et n'en bouge
-   plus. Le rig — interpolation simultanée de la position et de la cible, 700 ms, `easeInOutCubic` —
-   est **P6-04**, pas P5-06.
+**Enchaîne donc sur P5-08, P5-09 ou P5-10.** ⚠️ P5-08 et P5-10 déclarent dépendre de P5-06 ; cette
+dépendance ne résiste pas à l'examen — un panneau de diagnostic et une boucle de rendu ont besoin
+d'une scène **rendue** (P5-05), pas d'un éclairage réglé. La roadmap n'a pas été modifiée sans
+décision : tranche-le d'un mot. P5-09 (garde « aucun `three` dans les chunks initiaux ») ne dépend
+que de P5-04 et est libre de toute façon.
 
-⛔⛔ **Et le piège qui attend P6-04, écrit ici pour qu'il ne se découvre pas à l'usage** : le `fov`
-varie de **16° à 36°** selon l'état, parce que le cadrage *Compétences* vise un écran monté sur un
-corps profond. **Il doit être interpolé avec la position**, sinon la transition produit un zoom sec.
+⛔⛔ **Le défaut que P5-06 devra corriger, mesuré et photographié le 2026-08-24** : les cadrages sont
+calculés pour 16:9 et le `fov` est **vertical**. Rendu sur un iPhone 14 en portrait, l'accueil ne
+montre **ni le bureau, ni la lampe, ni l'écran gauche** — un morceau d'écran central et le portable.
+Le dossier de scène §6 prescrit d'augmenter le `fov` sous 16:9 plutôt que de reculer la caméra
+(38° sur *Expériences*, le cadrage le plus tendu). Jamais implémenté. C'est une fonction pure, donc
+elle vit dans `scene/state` sous le seuil de 95 %. Détail : `phase-5-log.md` §7.10.
+
+⛔⛔ **Et le piège qui attend P6-04** : le `fov` varie de **16° à 36°** selon l'état, parce que le
+cadrage *Compétences* vise un écran monté sur un corps profond. **Il doit être interpolé avec la
+position**, sinon la transition produit un zoom sec. Le rig lui-même — interpolation simultanée de la
+position et de la cible, 700 ms, `easeInOutCubic` — est **P6-04**, pas P5-06.
 
 ⭐⭐ **Ce que la Phase 5 laisse et qu'il faut employer plutôt que refaire** :
 `src/scene/state/layout.ts` porte **toutes** les cotes — aucune valeur de scène ne s'écrit ailleurs ;
 `geometry.ts` construit les deux géométries que `three` ne fournit pas, en pur ; et
 `tests/unit/scene/` recompte les budgets depuis les données. Un chiffre changé dans `layout.ts` fait
-rougir le banc, ce qui est exactement l'effet voulu.
+rougir le banc, ce qui est exactement l'effet voulu. ⭐ Et `capability/mount-state.ts` porte ce qu'une
+défaillance fait au montage : la bascule en `none` est **terminale**, donc toute idée de « réessayer »
+se discute là, jamais dans un composant.
 
 ⭐⭐ **Ce que la Phase 4 laisse, et qu'il faut employer plutôt que refaire** : `deploy/README.md` §8
 (checklist de mise en ligne, jouée), `make check-uptime` (sonde externe), `make check-public-seo`
@@ -237,7 +257,17 @@ refusé une tâche de cette phase après que `make test` l'eut déclarée bonne.
 4. **Une préférence d'accessibilité et un coût matériel sont deux axes ORTHOGONAUX** (P5-03) ; les
    projeter sur un seul ordinal en perd un. Un mobile tombait en `lite` et `prefers-reduced-motion`
    n'était jamais évalué : la préférence était honorée sur un poste fixe, pas sur un téléphone.
-5. **Un test qui passe pour deux raisons possibles n'en garde aucune** (P5-04). « N'intercepte aucun
+5. ⛔⛔⛔ **Un échec qui SE DÉPLACE est une course, jamais un défaut du code** (P5-07). Vert en
+   isolation, rouge en suite complète, puis rouge sur l'autre test au run suivant : la conclusion
+   naturelle — « la bascule ne marche pas » — aurait fait corriger du code sain. Trois repères de banc
+   étaient faux, dont un qui ne pouvait pas ne pas l'être : **un `<canvas>` sans attribut mesure
+   300 × 150**, donc « taille non nulle » était vrai avant même l'événement attendu. ⭐⭐ *Une valeur
+   par défaut peut rendre un repère vrai avant ce qu'il prétend attendre.*
+6. ⭐⭐ **Une frontière d'erreur ne se juge pas sur ce qu'elle attrape, mais sur ce qui l'attraperait à
+   sa place** (P5-07). Il y en avait déjà une au-dessus, et elle faisait exactement ce qu'il ne
+   fallait pas : afficher « Une erreur est survenue » sur tout le site parce qu'un décor n'avait pas
+   pu se charger.
+7. **Un test qui passe pour deux raisons possibles n'en garde aucune** (P5-04). « N'intercepte aucun
    clic » cliquait un lien ; `z-index: -1` suffisait déjà à le faire aboutir, donc retirer la ligne de
    CSS qu'il protégeait l'aurait laissé vert. Affirme la propriété, jamais son symptôme.
 
@@ -349,9 +379,12 @@ commence exactement là où finissait le socle, donc la lampe **flotte à 3 cm**
 ⭐ Les huit objets écartés sont exactement ceux que ton dossier énumère, et les changer déplacerait
 les chiffres que le banc certifie — c'est-à-dire la preuve que la transcription est fidèle. C'est
 donc ta décision, pas la mienne.
-→ *Le plus court chemin : rendre la scène en profil `lite` et regarder. Réponds « D11 = corrige » et
-je marque le mât et la tige `desktopOnly` en ajustant les budgets du banc, ou « D11 = laisse » et je
-l'écris comme assumé.* Détail : `phase-5-log.md` §6.7.
+✅ **Le rendu a été fait le 2026-08-24** (trois captures : `full` de référence, `lite` au même
+cadrage, `lite` sur iPhone 14). Il confirme les deux défauts, et en ajoute un troisième : **les ombres
+étant coupées au palier `lite`, plus rien n'ancre les objets au plateau** — la lampe flottante n'est
+même pas trahie par son ombre.
+→ *Réponds « D11 = corrige » et je marque le mât et la tige `desktopOnly` en ajustant les budgets du
+banc, ou « D11 = laisse » et je l'écris comme assumé.* Détail : `phase-5-log.md` §6.7 et §7.10.
 
 **D12 🟢 — La largeur du plateau, au mètre ruban.** *Une seule mesure, et toute la scène se
 verrouille.* La photo donne **1,37 m**, la valeur retenue **1,40 m** ; toutes les cotes en découlent

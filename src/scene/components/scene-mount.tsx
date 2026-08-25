@@ -23,11 +23,19 @@
  * par assertion — ce fichier-ci est hors couverture, tenu par le banc E2E.
  */
 import dynamic from 'next/dynamic'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 
 import { readCapability } from '@/scene/capability/adapter'
-import { type Capability, resolveCapability, shouldMountScene } from '@/scene/capability/resolve'
+import {
+  SCENE_WAITING,
+  type SceneFailure,
+  type SceneMountState,
+  sceneFailed,
+  sceneReady,
+} from '@/scene/capability/mount-state'
+import { resolveCapability, shouldMountScene } from '@/scene/capability/resolve'
 
+import { SceneBoundary } from './scene-boundary'
 import styles from './scene-mount.module.css'
 
 const SceneCanvas = dynamic(() => import('./scene-canvas'), { ssr: false })
@@ -55,7 +63,21 @@ function auRepos(callback: () => void): () => void {
 }
 
 export function SceneMount() {
-  const [capability, setCapability] = useState<Capability | null>(null)
+  const [etat, setEtat] = useState<SceneMountState>(SCENE_WAITING)
+
+  /*
+   * ⭐ La bascule est **une seule fonction pour les trois causes**, parce que le
+   * palier d'arrivée est le même (ADR-0003 point 5). Ce qui diffère est
+   * l'endroit où la défaillance se voit : la frontière d'erreur pour ce qui
+   * jette au rendu, un écouteur du DOM pour la perte de contexte.
+   */
+  const abandonner = useCallback((cause: SceneFailure) => {
+    setEtat((precedent) => sceneFailed(precedent, cause))
+  }, [])
+
+  const surPerteDeContexte = useCallback(() => {
+    abandonner('context-lost')
+  }, [abandonner])
 
   useEffect(
     () =>
@@ -71,16 +93,24 @@ export function SceneMount() {
        */
       auRepos(() => {
         const lu = resolveCapability(readCapability(window))
-        if (shouldMountScene(lu)) setCapability(lu)
+        if (shouldMountScene(lu)) setEtat((precedent) => sceneReady(precedent, lu))
       }),
     [],
   )
 
-  if (capability === null) return null
+  /*
+   * ⛔ Une scène abandonnée disparaît **entièrement**, enveloppe comprise : c'est
+   * ce que veut dire « basculer en `none` ». Laisser la couche vide en place
+   * donnerait un palier `none` qui ne ressemble pas à celui d'un visiteur sans
+   * WebGL — et le banc qui prouve l'absence désigne précisément cette enveloppe.
+   */
+  if (etat.phase !== 'mounted') return null
 
   return (
     <div aria-hidden="true" data-scene-root className={styles.decor}>
-      <SceneCanvas capability={capability} />
+      <SceneBoundary onFailure={abandonner}>
+        <SceneCanvas capability={etat.capability} onContextLost={surPerteDeContexte} />
+      </SceneBoundary>
     </div>
   )
 }
