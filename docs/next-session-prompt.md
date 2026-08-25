@@ -43,7 +43,7 @@ Les Phases 0 à 4 sont TERMINÉES et validées. Ne les refais pas, ne les redisc
 
 Phases 0 à 4 : **DONE** — le jalon T1 est atteint, le portfolio documentaire est en ligne,
 supervisé, avec une checklist de mise en ligne et un rollback rejoué.
-**Phase 5 (Fondation Three.js) : en cours, 6 tâches sur 10.**
+**Phase 5 (Fondation Three.js) : en cours, 7 tâches sur 10.**
 **Tout ce qui suit est fusionné sur `main` et déployé**, les cinq jobs verts à chaque fois —
 publication GHCR et déploiement VPS compris. ⭐ L'état réellement déployé ne se recopie pas ici, il
 **se lit** — trois SHA successifs ont pourri à cet endroit :
@@ -60,11 +60,12 @@ ssh portfolio 'SSH_ORIGINAL_COMMAND="status" /srv/portfolio/deploy.sh' # ce que 
 | P5-03 | `resolveCapability` : quatre paliers, **pur**, et son adaptateur navigateur injectable |
 | P5-04 | Montage du canvas : dynamique, après `idle`, `aria-hidden`, **rien au palier `none`** |
 | P5-05 | **La scène primitive** : le bureau réel, 30 meshes, 4 114 triangles, pour **3 Ko** |
-| P5-07 | **La frontière d'erreur** — et le défaut livré qu'elle a révélé : sans elle, un chunk 3D manquant affichait « Une erreur est survenue » **sur tout le site**. ⚠️ **En PR, pas encore fusionnée** au moment où ceci est écrit : c'est la seule ligne du tableau dont la phrase ci-dessus ne réponde pas |
+| P5-07 | **La frontière d'erreur** — et le défaut livré qu'elle a révélé : sans elle, un chunk 3D manquant affichait « Une erreur est survenue » **sur tout le site** |
+| P5-09 | **Le garde d'isolation** : `pnpm bundle` refuse un build dont la première visite porterait un module `three`. ⭐⭐⭐ Il porte un **témoin** — le détecteur doit voir la scène quelque part, sinon il s'accuse lui-même au lieu de rendre un vert |
 
 La Phase 4 est close (17/17) ; son journal reste la meilleure lecture du dépôt. **Restent P5-06,
-P5-08, P5-09 et P5-10** : caméra et éclairage (⚠️ **reportée**, voir la mission), panneau de
-diagnostic, garde de non-régression sur les chunks, boucle de rendu à la demande.
+P5-08 et P5-10** : caméra et éclairage (⚠️ **reportée**, voir la mission), panneau de diagnostic,
+boucle de rendu à la demande.
 
 ### ⛔⛔ Ce qui fait foi pour juger d'un déploiement
 
@@ -100,7 +101,14 @@ URL, tout le reste rend toujours 302.
 | E2E | **150** verts sur 5 profils | — |
 
 ⚠️ Relevés du **2026-08-24**, après P5-07, mesurés dans le même conteneur et par le même geste
-(`gzip -9`) que la référence à laquelle ils sont comparés.
+(`gzip -9`) que la référence à laquelle ils sont comparés. **P5-09 ne les déplace pas** : son diff ne
+contient aucun fichier de `src/`, ce qui se vérifie d'un `git diff --stat src/` plutôt que par une
+seconde mesure.
+
+⚠️ **Le chunk 3D vaut 230,8 Ko si l'on gzippe le seul chunk porteur**, contre les 230,0 ci-dessus.
+Les deux chiffres sont justes et ne comptent pas la même chose. Avant de conclure à une dérive de
+0,8 Ko, vérifier ce qui est compté : *deux mesures ne se comparent que si leurs entrées ne diffèrent
+que par ce qu'on mesure.*
 
 ⛔⛔ **Le « 8,2 Ko par route » qu'annonçait ce tableau était périmé de 2,3 Ko** : remesuré sur `main`
 sans une ligne de P5-07, il vaut **10,5**. C'est la **deuxième** dérive du même chiffre — P4-12 avait
@@ -207,11 +215,15 @@ Le reste de P5-06 est cadré et t'attend : « environnement minimal » est **tra
 le décor actuel** (le dossier dit « trois sources, pas une de plus »), et le volet caméra porte un
 défaut **mesuré**, décrit ci-dessous.
 
-**Enchaîne donc sur P5-08, P5-09 ou P5-10.** ⚠️ P5-08 et P5-10 déclarent dépendre de P5-06 ; cette
-dépendance ne résiste pas à l'examen — un panneau de diagnostic et une boucle de rendu ont besoin
-d'une scène **rendue** (P5-05), pas d'un éclairage réglé. La roadmap n'a pas été modifiée sans
-décision : tranche-le d'un mot. P5-09 (garde « aucun `three` dans les chunks initiaux ») ne dépend
-que de P5-04 et est libre de toute façon.
+**Enchaîne sur P5-08 ou P5-10** — P5-09 est close depuis le 2026-08-25. ⚠️ **Les deux déclarent
+dépendre de P5-06**, et cette dépendance ne résiste pas à l'examen : un panneau de diagnostic et une
+boucle de rendu ont besoin d'une scène **rendue** (P5-05), pas d'un éclairage réglé. La roadmap n'a
+pas été modifiée sans décision — **tranche-le d'un mot**, faute de quoi la phase est bloquée par une
+dépendance que personne ne croit.
+
+⭐ **P5-08 hérite d'un manque nommé par P5-07** : rien ne distingue à l'écran une scène qui n'a jamais
+monté d'une scène tombée. Le panneau de diagnostic est le premier endroit où la **cause** pourra se
+lire — `mount-state.ts` la porte déjà (`chunk`, `render`, `context-lost`), personne ne l'affiche.
 
 ⛔⛔ **Le défaut que P5-06 devra corriger, mesuré et photographié le 2026-08-24** : les cadrages sont
 calculés pour 16:9 et le `fov` est **vertical**. Rendu sur un iPhone 14 en portrait, l'accueil ne
@@ -238,11 +250,18 @@ se discute là, jamais dans un composant.
 (canonical / hreflang / sitemap sur le site public). Aucun de ces trois ne s'imagine à nouveau.
 
 ⛔ **Trois portes ne tournent PAS dans `make e2e`, et se découvrent donc en CI** : la couverture
-(`make coverage` — seuil de **95 %** sur `src/scene/state`), le budget de bundle (`make bundle`) et
-Lighthouse (contre l'image de production, ce que le conflit de port local rend malaisé). Chacune a
-refusé une tâche de cette phase après que `make test` l'eut déclarée bonne.
+(`make coverage` — seuil de **95 %** sur `src/scene/state`), `make bundle` — qui porte désormais
+**deux** contrôles, les budgets *et* l'isolation de la scène (P5-09) — et Lighthouse (contre l'image
+de production, ce que le conflit de port local rend malaisé). Chacune a refusé une tâche de cette
+phase après que `make test` l'eut déclarée bonne.
 
-⛔⛔⛔ **Les cinq leçons que ces deux phases ont payées, et qui visent tout ce qui suit :**
+⚠️ **`make bundle` reconstruit** (`pnpm build && pnpm bundle`) : compter deux à trois minutes, et ne
+pas s'étonner que l'arbre de travail en ressorte sali — voir `next-env.d.ts` dans les pièges
+d'environnement.
+
+⛔⛔⛔ **Les huit leçons que ces deux phases ont payées, et qui visent tout ce qui suit :**
+(⚠️ le titre annonçait « cinq » pour sept entrées — un compte écrit une fois puis jamais recompté,
+dans le document qui interdit précisément cela.)
 1. **Une preuve d'exploitation peut se périmer sans jamais devenir fausse** (P4-15). Le rollback était
    « prouvé » depuis P1-15 — mesure prise proxy en *DNS only*, honnête ce jour-là, vide de sens depuis
    la bascule en *Full (strict)*. Rejoué en jugeant le corps : **~1 s d'origine absente sous un 200
@@ -263,11 +282,17 @@ refusé une tâche de cette phase après que `make test` l'eut déclarée bonne.
    étaient faux, dont un qui ne pouvait pas ne pas l'être : **un `<canvas>` sans attribut mesure
    300 × 150**, donc « taille non nulle » était vrai avant même l'événement attendu. ⭐⭐ *Une valeur
    par défaut peut rendre un repère vrai avant ce qu'il prétend attendre.*
-6. ⭐⭐ **Une frontière d'erreur ne se juge pas sur ce qu'elle attrape, mais sur ce qui l'attraperait à
+6. ⭐⭐⭐ **Un garde qui cherche une absence doit porter un TÉMOIN** (P5-09). « Aucun module `three`
+   dans la première visite » ne veut rien dire tant qu'on n'a pas montré que le détecteur sait en
+   voir : le même instrument est donc passé sur tous les chunks et doit trouver la scène quelque
+   part. Aveuglé exprès, le garde s'accuse lui-même au lieu de rendre un vert. ⛔⛔ Et le repère
+   apparemment évident était **faux** : la chaîne `node_modules/three/` n'existe pas dans le code
+   minifié, jusque dans le chunk qui est fait de `three`.
+7. ⭐⭐ **Une frontière d'erreur ne se juge pas sur ce qu'elle attrape, mais sur ce qui l'attraperait à
    sa place** (P5-07). Il y en avait déjà une au-dessus, et elle faisait exactement ce qu'il ne
    fallait pas : afficher « Une erreur est survenue » sur tout le site parce qu'un décor n'avait pas
    pu se charger.
-7. **Un test qui passe pour deux raisons possibles n'en garde aucune** (P5-04). « N'intercepte aucun
+8. **Un test qui passe pour deux raisons possibles n'en garde aucune** (P5-04). « N'intercepte aucun
    clic » cliquait un lien ; `z-index: -1` suffisait déjà à le faire aboutir, donc retirer la ligne de
    CSS qu'il protégeait l'aurait laissé vert. Affirme la propriété, jamais son symptôme.
 
@@ -492,6 +517,13 @@ officielle n'atteint 250 Mo.
 - ⚠️ **Les types de routes générés par Next périment `tsc`** après l'ajout d'un layout : `make
   typecheck` échoue sur `.next/dev/types` tant qu'un build n'a pas eu lieu. Reconstruire, pas
   débugger.
+- ⚠️ **`next-env.d.ts` est VERSIONNÉ et il OSCILLE** : il importe `./.next/dev/types/…` après un
+  `make up`, `./.next/types/…` après un `make build` ou `make bundle`. Il ressort donc modifié d'une
+  tâche sur deux, sans que personne l'ait touché. **Ne pas le committer** au fil de l'eau — ce serait
+  un aller-retour permanent selon la dernière commande lancée. Relevé en P5-09.
+- ⚠️ **`.next` vit dans un volume Docker nommé**, pas sur l'hôte : `ls .next/…` depuis le dépôt rend
+  « No such file or directory », ce qui ressemble à un build absent. Passer par le conteneur
+  (`docker compose run --rm web sh -c '…'`).
 
 **Questions Q3 à Q6, Q8, Q9, Q11, Q14 à Q19** de `docs/phase-0-questions.md` : applique la
 recommandation par défaut et signale-le, ne me bloque pas dessus.

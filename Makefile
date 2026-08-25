@@ -123,7 +123,7 @@ check-uptime: ## Interroge le site EN LIGNE depuis l'extérieur, comme la sonde 
 check-content: ## Valide tout le contenu Markdown/MDX (CF-10) — inclus dans `build`
 	$(RUN) pnpm check-content
 
-bundle: ## Mesure le JS de première visite et applique les budgets
+bundle: ## Mesure le JS de première visite : budgets (P1-12) + isolation de la scène 3D (P5-09)
 	$(COMPOSE) run --rm -e NODE_ENV=production web \
 		sh -c 'pnpm build && pnpm bundle'
 

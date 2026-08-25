@@ -288,6 +288,7 @@ make ci
  ├── typecheck         tsc --noEmit
  ├── test              Vitest (unit + composants + intégration)
  ├── coverage          seuils ci-dessus
+ ├── bundle            budgets de première visite + isolation de la scène 3D (P1-12, P5-09)
  ├── build             next build dans l'image
  ├── e2e               Playwright sur le build de production
  ├── lighthouse        a11y 100 · SEO 100 · audits de bonnes pratiques (P4-13)
@@ -296,6 +297,11 @@ make ci
 
 Aucun gate n'est contournable sur une Pull Request. Un gate rouge = travail non terminé (§34 de la
 mission, Definition of Done).
+
+⚠️ **`bundle` manquait à cette liste jusqu'au 2026-08-25**, alors qu'il tourne dans `make ci` et en
+CI depuis la Phase 1. Un inventaire de gates qui en oublie un est faux **dans le sens rassurant** :
+il fait croire à moins de protection qu'il n'en existe, et c'est le sens dans lequel personne ne
+vérifie. Relevé en écrivant P5-09, qui ajoute un contrôle à cette même porte.
 
 ### Ce qui reste manuel, et assumé
 

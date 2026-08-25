@@ -104,8 +104,10 @@ Mesures en **transfert gzip/brotli**, telles que rapportées par l'analyse de bu
 | Chunk 3D après direction artistique | ≤ **300 Ko** | **350 Ko** | Phase 8 |
 
 Le chunk 3D **n'entre pas** dans le budget « avant interactivité » : c'est précisément ce que
-garantit l'ADR-0003. Un test de non-régression vérifie qu'aucun module `three` n'apparaît dans le
-graphe de dépendances des chunks initiaux — c'est plus fiable qu'un simple contrôle de taille.
+garantit l'ADR-0003. ✅ **Le test de non-régression existe depuis le 2026-08-25** (P5-09) :
+`scripts/check-scene-isolation.mts`, exécuté par `pnpm bundle` donc par la CI, lit le **graphe de
+dépendances** dans les source maps et refuse le build si un module `three` ou `@react-three` apparaît
+dans le JavaScript de première visite. Voir §4.4.
 
 Leviers prévus : import dynamique `ssr:false`, montage après idle, imports nommés depuis `drei`
 (jamais l'espace de noms entier), pas de `three/examples` non nécessaires.
@@ -221,6 +223,30 @@ qu'on ne peut pas descendre, pas celui qu'on n'a pas su tenir.
 
 *Ce qui rouvrirait la question* : une distribution de `three` sur mesure, ou une version amont qui
 allège la distribution standard.
+
+### 4.4 Le garde d'isolation de la scène — 2026-08-25 (P5-09)
+
+Ce document réclamait depuis la Phase 0 un contrôle sur le **graphe** plutôt que sur la taille. Il
+existe. Ce qu'il faut en savoir pour s'y fier — ou pour le réparer :
+
+| Ce qu'il lit | Les scripts réellement référencés par le HTML prérendu de chaque route, `nomodule` compris |
+|---|---|
+| Comment | Le graphe de modules, lu dans les **source maps** (`sourceMappingURL` → `sources[]`) |
+| Ce qu'il refuse | Tout module sous `node_modules/three/` ou `node_modules/@react-three/` |
+| Où il tourne | `pnpm bundle`, donc `make bundle` et la CI (`pnpm build && pnpm bundle`) |
+
+⭐⭐⭐ **Il porte un témoin, et c'est ce qui le distingue d'un contrôle décoratif.** Le même détecteur
+est passé sur **tous** les chunks produits et doit y trouver la scène ; s'il ne la trouve nulle part,
+le garde échoue en s'accusant lui-même. Sans cela, « zéro module 3D » ne distingue pas une absence
+d'un instrument devenu aveugle — la faute exacte relevée en P4-16.
+
+⛔⛔ **Deux repères écartés, tous deux mesurés** : la chaîne `node_modules/three/` **n'apparaît pas**
+dans le code minifié (faux négatif jusque sur le chunk qui est fait de `three`), et le nom d'une map
+**ne se déduit pas** de celui de son `.js` (Turbopack les nomme séparément).
+
+⚠️ **Ce qu’il ne fait pas, écrit noir sur blanc** : il juge une **présence**, jamais une quantité. Le
+poids du chunk différé — cible 260 Ko, seuil 320 — reste mesuré à la main à chaque tâche, et le
+compte des composants `drei` de la §4.3 n'est toujours gardé par rien de budgétaire.
 
 ---
 
