@@ -310,6 +310,39 @@ toute la géométrie**, pour trois lumières dont une seule projette.
 de 1 à 2 ms sous SwiftShader, sans GPU — ne vaut pas pour du matériel réel. Les seuils du tableau
 ci-dessus attendent toujours une mesure sur un vrai appareil (Phase 11, P11-08).
 
+### 6.2 ⛔ La dette de TBT ouverte par la Phase 5 — 2026-08-25
+
+Le critère de sortie de la Phase 5 — *« Core Web Vitals de la Phase 4 non dégradés »* — a été
+**mesuré pour la première fois** à la clôture, en construisant une image depuis le commit de fin de
+Phase 4 et en lançant le même Lighthouse contre les deux, sur la même machine.
+
+| Métrique | Phase 4 | Phase 5 | |
+|---|---|---|---|
+| **LCP** | 1,7 s | **1,6 s** | ✅ le critère porte sur ceci |
+| **CLS** | 0 | **0** | ✅ |
+| **TBT** | 640 ms | **2 090 ms** | ⛔ **×3,3** |
+| TTI | 2,9 s | 5,9 s | ⛔ ×2 |
+| Score Lighthouse « performance » | 91–100 | **70–79** | reflet du TBT |
+
+✅ **Le critère est tenu au sens strict** : LCP et CLS sont les métriques qu'il nomme, et les deux
+sont inchangés. ADR-0003 promettait que le canvas n'entre jamais dans le chemin critique du LCP —
+c'est désormais mesuré, pas seulement promis.
+
+⛔ **Mais le coût est réel et il est ici chiffré** : +1,45 s de blocage du thread principal, dus à la
+compilation de 875 Ko de JavaScript, à la création du contexte WebGL, aux shaders et aux géométries.
+
+⚠️ **Conditions de la mesure, sans lesquelles ces nombres ne veulent rien dire** : image de
+production locale, **sans GPU** (SwiftShader), sur une machine par ailleurs chargée. Le coût sur un
+appareil réel — GPU présent, CPU plus faible — n'est pas connu.
+
+**À traiter en Phase 11**, avec une mesure sur matériel réel. Pistes, dans l'ordre où elles se
+défendent : découper le chunk 3D pour étaler la compilation, différer la construction des géométries
+au premier rendu, réduire la carte d'ombre au montage.
+
+⛔⛔ **Ce qu'il ne faut PAS faire** : allonger l'échéance du `requestIdleCallback` pour sortir le
+montage de la fenêtre de mesure de Lighthouse. Le coût ne disparaîtrait pas — seul l'instrument
+cesserait de le voir.
+
 ---
 
 ## 7. Budget serveur (VPS)

@@ -1050,3 +1050,113 @@ c'est lui qui atteste que rien de tout cela n'a fui dans le socle.
 | Le coût d'une image, sur du matériel réel | **Non mesuré.** 1 à 2 ms sous SwiftShader, sans GPU, ne vaut rien comme prévision. Phase 11 |
 | Le panneau observe une scène qu'il modifie | Assumé et écrit : la sonde reprend la boucle de rendu. Sans `?debug=scene`, aucun visiteur n'est concerné |
 | Les seuils du §6 de `performance-budget.md` | Toujours **jamais mesurés** — FPS, durée d'image, allocations. Le panneau les rend mesurables ; il ne les mesure pas |
+
+---
+
+## 10. Clôture de la Phase 5 — bilan, et le critère que personne n'avait mesuré
+
+### 10.1 Les quatre critères de sortie, vérifiés par mesure le 2026-08-25
+
+Ils sont écrits depuis la Phase 0. Aucun n'avait été confronté au produit fini.
+
+| Critère | Verdict | Ce qui l'établit |
+|---|---|---|
+| Chunk 3D **≤ 320 Ko** | ✅ **234,5 Ko** | Somme gzip des deux chunks porteurs de `three`, mesurée dans l'image de production. Cible 260, seuil 320 |
+| Chunk 3D **absent du chemin critique (prouvé)** | ✅ | **P5-09**, et c'est une preuve permanente : le garde lit le graphe de dépendances et porte un témoin |
+| **Core Web Vitals** de la Phase 4 non dégradés | ✅ **au sens strict** — voir §10.2 | LCP 1,7 → **1,6 s** · CLS 0 → **0** |
+| Désactiver WebGL laisse le site intact | ✅ | **153 parcours verts** contre l'image de production, profil `no-webgl` compris |
+| Budgets de la scène primitive mesurés et consignés | ✅ | §6.5, §9.4, `performance-budget.md` §4.3 et §6.1 |
+
+### 10.2 ⭐⭐⭐ Le critère CWV, mesuré pour la première fois — et ce que la mesure a corrigé
+
+**La question ne pouvait pas se trancher sur les relevés existants.** Le seul chiffre disponible pour
+la Phase 4 — 98 mobile / 100 desktop — venait de **P4-16, contre le site réel** (VPS, Cloudflare, vrai
+GPU). Le comparer à un relevé local aurait été la faute du §1.3 : *deux mesures ne se comparent que si
+leurs entrées ne diffèrent QUE par ce qu'on mesure.*
+
+D'où le protocole : un **worktree sur `67e6ff0`** (P4-16, clôture de la Phase 4), une image de
+production construite depuis lui, et **le même script Lighthouse** lancé contre les deux images, sur
+la même machine, à quelques minutes d'intervalle. Deux tirs chacun.
+
+| Page | Phase 4 | Phase 5 |
+|---|---|---|
+| `/fr` mobile | 91 · 96 | 70 · 72 |
+| `/fr` desktop | 100 · 100 | 77 · 73 |
+| `askor` mobile | 95 · 96 | 73 · 71 |
+| `askor` desktop | 100 · 100 | 76 · 79 |
+
+⭐ **Les deux populations ne se recouvrent pas** — min Phase 4 = 91, max Phase 5 = 79. Ce n'est pas du
+bruit, et c'est ce qui autorisait à parler d'une dégradation de 23 points.
+
+**Puis le détail a renversé la lecture** :
+
+| Métrique | Phase 4 | Phase 5 | |
+|---|---|---|---|
+| **LCP** | 1,7 s | **1,6 s** | ✅ inchangé |
+| **CLS** | 0 | **0** | ✅ inchangé |
+| Speed Index | 1,0 s | 1,1 s | ✅ |
+| **TBT** | 640 ms | **2 090 ms** | ⛔ ×3,3 |
+| TTI | 2,9 s | 5,9 s | ⛔ ×2 |
+| Travail du thread principal | 1,9 s | 3,4 s | + 1,5 s |
+
+⭐⭐⭐ **Les Core Web Vitals proprement dits ne sont pas dégradés.** ADR-0003 promettait que le canvas
+*« n'entre jamais dans le chemin critique du LCP »* : c'est tenu, et c'est maintenant **mesuré**
+plutôt que promis. Ce qui s'effondre est le **temps de blocage** — compilation de 875 Ko de
+JavaScript, création du contexte, shaders, géométries.
+
+⚠️ **Et ces relevés sont pris sans GPU** (SwiftShader dans le conteneur), ce qui exagère le coût de la
+scène dans une proportion inconnue. Le score « performance » n'est ici que le reflet du TBT.
+
+✅ **Arbitrage de l'exploitant, 2026-08-25 : le critère est tenu au sens strict**, LCP et CLS étant
+les métriques qu'il nomme. **Le TBT devient une dette chiffrée**, portée en Phase 11 avec ses
+conditions de mesure (`performance-budget.md` §6.2).
+
+⛔ **Ce qu'il ne faut PAS faire en apprenant cela** : repousser l'échéance du `requestIdleCallback`
+pour sortir le montage de la fenêtre de mesure de Lighthouse. Le coût ne disparaîtrait pas, seul
+l'instrument cesserait de le voir — c'est-à-dire exactement la classe de faux vert que cette phase a
+passé son temps à traquer.
+
+### 10.3 Bilan : fait
+
+| | |
+|---|---|
+| **P5-01** | Matrice R3F vérifiée **par exécution** — installation, types sous TS 6, scène montée sans WebGL. GO |
+| **P5-02** | Trois dépendances épinglées (ADR-0016), garde ESLint sur l'import global de `drei` |
+| **P5-03** | `resolveCapability` : quatre paliers, **pur**, adaptateur injectable, 100 % de couverture |
+| **P5-04** | Montage dynamique après `idle`, `aria-hidden`, **rien au palier `none`** |
+| **P5-05** | La scène primitive : 30 meshes, 4 114 triangles, **3 Ko** |
+| **P5-07** | Frontière d'erreur et perte de contexte — **et le défaut livré qu'elle a révélé** |
+| **P5-08** | Panneau de diagnostic — **et les +73 % de la passe d'ombre**, jamais chiffrés avant |
+| **P5-09** | Garde d'isolation avec **témoin** : la promesse d'ADR-0003 devient une porte |
+| **D9 · D10 · D11** | Budget 260/320, le bureau réel assumé, le profil `lite` regardé puis assumé |
+
+### 10.4 Bilan : dérives
+
+- ⛔⛔ **Deux tâches ont été refusées par une porte que `make test` ne joue pas** : la couverture
+  (P5-05, branches inatteignables sous `noUncheckedIndexedAccess`) et Lighthouse (P5-04,
+  `valid-source-maps`). *Trois portes ne tournent pas dans `make e2e`, et se découvrent en CI.*
+- ⛔ **Le « 8,2 Ko par route » a dérivé deux fois** — 7,3 → 8,2 → 10,5, puis 11,0 avec le panneau.
+  Toujours pour la même raison : recopié de tâche en tâche avec la mention « inchangé ».
+- ⚠️ **Le banc de développement et le banc de production ne disent pas la même chose** : trois rouges
+  locaux depuis P5-04, verts contre l'image de production. Toujours ouvert.
+- ⚠️ **Deux `str.replace` ont échoué en silence** en P5-08, dont un que les tests n'ont pas vu.
+
+### 10.5 Bilan : reporté, avec la raison
+
+| Tâche | Reportée vers | Pourquoi ce n'est pas un retard |
+|---|---|---|
+| **P5-06** — caméra, éclairage, environnement | *En attente de l'exploitant* | Ses quatre intensités sont **les seules valeurs du dossier que ni le calcul ni Blender ne tranchent** : elles se règlent au curseur dans `preview.html`. Le volet « environnement » est tranché (rien de plus que le décor). ⛔ Reste un **défaut mesuré** : le `fov` n'est pas corrigé sous 16:9, et un téléphone en portrait perd le cadrage d'accueil (§7.10) |
+| **P5-10** — boucle de rendu à la demande | **Après P6-04** | `frameloop="demand"` est livré depuis P5-04 ; « pause hors écran » suppose une boucle à mettre en pause, et rien n'anime. L'écrire aujourd'hui produirait **un garde qu'aucun banc ne pourrait voir rouge** |
+
+### 10.6 Ce que la Phase 6 hérite, et qui est déjà chiffré
+
+1. ⛔⛔ **Le `fov` varie de 16° à 36° et doit être interpolé avec la position** (P6-04), sinon la
+   transition vers *Compétences* produit un zoom sec.
+2. ⛔ **Le `fov` n'est pas corrigé sous 16:9** — le dossier §6 prescrit de l'augmenter plutôt que de
+   reculer la caméra. Non implémenté, et photographié.
+3. ⚠️ **La transition devra invalider image par image sans rester en `always`** — c'est P5-10, et
+   c'est là que son garde deviendra observable.
+4. ⚠️ **Le TBT est à 2 090 ms** : toute animation de caméra s'ajoutera à un thread principal déjà
+   chargé au montage.
+5. ⭐ **`layout.ts` porte déjà les quatre cadrages**, position et cible calculées sur la normale de
+   chaque dalle. Rien n'est à réinventer.

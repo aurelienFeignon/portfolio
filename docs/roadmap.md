@@ -5,18 +5,20 @@
 > ligne, un rollback rejoué et une vérification **depuis l'extérieur** (14 URL, `canonical`,
 > `hreflang` et `lang` concordants, Lighthouse contre le site réel — a11y 100, SEO 100, bonnes
 > pratiques 100).
-> **PHASE 5 — 8 tâches sur 10** : P5-01 à P5-05, **P5-07**, **P5-08** et **P5-09** closes ; budget
-> arrêté à **260 / 320 Ko** (D9), et la scène décrit **le bureau réel — deux moniteurs et un
-> portable** (D10).
-> ⚠️ **Les deux qui restent ne sont pas en attente de code** : **P5-06** est REPORTÉE (ses quatre
-> intensités d'éclairage ne se règlent qu'à l'œil, au curseur, dans la preview du dossier de scène) et
-> **P5-10** est REPORTÉE après P6-04 (sa moitié est livrée, l'autre est sans objet tant que rien
-> n'anime).
+> **PHASE 5 CLOSE — 8 tâches sur 10, les quatre critères de sortie vérifiés PAR MESURE** : chunk 3D
+> **234,5 Ko** (seuil 320) et absent du chemin critique — prouvé par un garde, pas par un relevé —,
+> **153 parcours verts** contre l'image de production dont le profil `no-webgl`, et **LCP 1,7 → 1,6 s,
+> CLS 0 → 0**.
+> ⛔ **Le critère CWV a été mesuré pour la première fois**, en construisant une image depuis le commit
+> de clôture de la Phase 4 : il est **tenu au sens strict**, mais le **TBT triple** (640 → 2 090 ms).
+> Dette chiffrée, portée en Phase 11 (`performance-budget.md` §6.2).
+> ⚠️ **Les deux tâches restantes n'attendent pas du code** : **P5-06** attend l'œil de l'exploitant
+> (quatre intensités, au curseur dans la preview) et **P5-10** attend P6-04 (rien n'anime encore).
 > Journal : [`phase-5-log.md`](./phase-5-log.md).
 > Journal de la Phase 4 : [`phase-4-log.md`](./phase-4-log.md) — phases précédentes :
 > [`phase-3-log.md`](./phase-3-log.md), [`phase-2-log.md`](./phase-2-log.md),
 > [`phase-1-log.md`](./phase-1-log.md)
-> Dernière mise à jour : 2026-08-25 (P5-08 et P5-09 closes ; P5-06 et P5-10 reportées)
+> Dernière mise à jour : 2026-08-25 (**Phase 5 close** ; P5-06 et P5-10 reportées)
 
 Ce document est la **source de vérité unique des tâches**. Les identifiants sont stables et ne
 sont jamais réutilisés, même si une tâche est abandonnée.
@@ -39,7 +41,7 @@ silencieusement.
 | 2 | Content layer | **DONE** *(2026-08-12)* | Markdown → objets typés validés, build cassé si invalide |
 | 3 | Internationalisation | **DONE** *(2026-08-14)* | `/fr` et `/en` résolus indépendamment, hreflang exact |
 | 4 | Portfolio HTML | **DONE** *(2026-08-20)* | **Produit utilisable sans Three.js** (phase obligatoire) |
-| 5 | Fondation Three.js | **IN_PROGRESS** *(ouverte le 2026-08-20)* | Scène primitive : bureau + 3 écrans, budget tenu |
+| 5 | Fondation Three.js | **DONE** *(2026-08-25)* — 8/10, deux reportées avec raison | Scène primitive : le bureau réel, budget tenu, isolation gardée |
 | 6 | Navigation spatiale | TODO | Route ↔ scène, testé sans WebGL |
 | 7 | Interfaces des écrans | TODO | Contenu affiché sur les moniteurs, instance unique |
 | 8 | Modélisation et direction artistique | TODO | Scène crédible, budgets mesurés à chaque ajout |
@@ -1397,9 +1399,22 @@ Acceptance:
 - Poids réel du chunk mesuré et confronté au budget **avant** l'installation.
 - Verdict explicite GO / NO-GO, et contraintes d'usage écrites.
 
-**Critères de sortie** — Chunk 3D ≤ 320 Ko et absent du chemin critique (prouvé) ; Core Web Vitals
-de la Phase 4 **non dégradés** ; désactiver WebGL laisse le site intact ; budgets de la scène
-primitive mesurés et consignés.
+**Critères de sortie** — ✅ **tous vérifiés par mesure le 2026-08-25**, détail en
+[`phase-5-log.md`](./phase-5-log.md) §10.1 :
+
+| Critère | Verdict |
+|---|---|
+| Chunk 3D ≤ 320 Ko | ✅ **234,5 Ko** |
+| Absent du chemin critique, **prouvé** | ✅ par le garde de P5-09, qui porte un témoin |
+| Core Web Vitals non dégradés | ✅ **LCP 1,7 → 1,6 s · CLS 0 → 0** — ⛔ mais **TBT ×3,3**, dette en Phase 11 |
+| WebGL désactivé, site intact | ✅ 153 parcours contre l'image de production |
+| Budgets mesurés et consignés | ✅ |
+
+⭐⭐⭐ **Le critère CWV ne pouvait pas se trancher sur les relevés existants** : le seul chiffre de la
+Phase 4 venait du **site réel** (P4-16), et le comparer à un relevé local aurait comparé deux choses
+différentes. Il a donc fallu **construire une image depuis le commit de clôture de la Phase 4** et
+lancer le même Lighthouse contre les deux. C'est cette mesure qui a montré que la chute de 23 points
+du score ne touche **ni le LCP ni le CLS**, mais le temps de blocage.
 
 ---
 
