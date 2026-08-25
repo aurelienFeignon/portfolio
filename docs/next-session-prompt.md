@@ -43,9 +43,9 @@ Les Phases 0 à 4 sont TERMINÉES et validées. Ne les refais pas, ne les redisc
 
 Phases 0 à 4 : **DONE** — le jalon T1 est atteint, le portfolio documentaire est en ligne,
 supervisé, avec une checklist de mise en ligne et un rollback rejoué.
-**Phase 5 (Fondation Three.js) : CLOSE le 2026-08-25**, 8 tâches sur 10, **les quatre critères de
-sortie vérifiés par mesure** (bilan complet : `phase-5-log.md` §10). Les deux tâches restantes
-n'attendent pas du code : P5-06 attend ton œil, P5-10 attend P6-04.
+**Phase 5 (Fondation Three.js) : CLOSE le 2026-08-25**, **9 tâches sur 10**, les quatre critères de
+sortie vérifiés par mesure (bilan : `phase-5-log.md` §10). **Seule P5-10 reste**, reportée après
+P6-04 : rien n'anime encore.
 **Tout ce qui suit est fusionné sur `main` et déployé**, les cinq jobs verts à chaque fois —
 publication GHCR et déploiement VPS compris. ⭐ L'état réellement déployé ne se recopie pas ici, il
 **se lit** — trois SHA successifs ont pourri à cet endroit :
@@ -64,6 +64,7 @@ ssh portfolio 'SSH_ORIGINAL_COMMAND="status" /srv/portfolio/deploy.sh' # ce que 
 | P5-05 | **La scène primitive** : le bureau réel, 30 meshes, 4 114 triangles, pour **3 Ko** |
 | P5-07 | **La frontière d'erreur** — et le défaut livré qu'elle a révélé : sans elle, un chunk 3D manquant affichait « Une erreur est survenue » **sur tout le site** |
 | P5-09 | **Le garde d'isolation** : `pnpm bundle` refuse un build dont la première visite porterait un module `three`. ⭐⭐⭐ Il porte un **témoin** — le détecteur doit voir la scène quelque part, sinon il s'accuse lui-même au lieu de rendre un vert |
+| P5-06 | **L'éclairage réglé à l'œil** dans la preview puis recopié — et le cadrage corrigé sous 16:9. ⭐⭐ Le réglage a révélé le travail de P5-05 : **les touches du clavier existent enfin**, les chanfreins accrochent la lumière |
 | P5-08 | **Le panneau de diagnostic** (`?debug=scene`). ⭐⭐⭐ Il a chiffré ce que le dossier annonçait sans le mesurer : la scène rend **8 182 triangles** pour 4 114 de géométrie — l'écart est **entièrement la passe d'ombre**, +73 % |
 
 La Phase 4 est close (17/17) ; son journal reste la meilleure lecture du dépôt. **Restent P5-06 et
@@ -220,8 +221,17 @@ Le reste de P5-06 est cadré et t'attend : « environnement minimal » est **tra
 le décor actuel** (le dossier dit « trois sources, pas une de plus »), et le volet caméra porte un
 défaut **mesuré**, décrit ci-dessous.
 
-**La Phase 5 est close : ouvre la Phase 6.** P5-06 attend ton œil devant `preview.html` (quatre
-intensités), P5-10 attend P6-04. Tout le reste est livré et mesuré.
+**La Phase 5 est close : ouvre la Phase 6.** Seule P5-10 reste, reportée après P6-04. Tout le reste
+est livré et mesuré.
+
+⭐⭐ **Ce que P5-06 a appris, et qui vaut au-delà d'elle** : le travail de géométrie de P5-05 — les
+chanfreins portés de 3 à 8 mm, le fruit des capuchons — **ne se voyait pas**, faute d'un éclairage
+pour le révéler. Deux tâches séparées par la roadmap étaient une seule chose à l'écran. *Un détail
+modélisé mais non éclairé n'existe pas.*
+⚠️ **Et le cadrage portrait est BORNÉ, pas réparé** : le plafond de 50° empêche l'œil de poisson (la
+formule seule donnerait 103°), mais un téléphone vertical ne voit toujours pas tout le bureau — la
+lampe reste hors cadre. Le traiter vraiment demanderait des cadrages portrait dédiés, donc des
+**cotes**, qui viennent du dossier et ne s'inventent pas. C'est la **Phase 13**.
 
 ⛔⛔ **La dette que la Phase 5 lègue, et qu'il ne faut pas maquiller** : le **TBT est passé de 640 à
 2 090 ms** (×3,3), et le score Lighthouse « performance » de ~97 à ~74. ✅ Le critère de sortie est
@@ -261,12 +271,9 @@ voir rouge**. Son contenu naît avec P6-04, quand la transition devra invalider 
 monté d'une scène tombée. Le panneau de diagnostic est le premier endroit où la **cause** pourra se
 lire — `mount-state.ts` la porte déjà (`chunk`, `render`, `context-lost`), personne ne l'affiche.
 
-⛔⛔ **Le défaut que P5-06 devra corriger, mesuré et photographié le 2026-08-24** : les cadrages sont
-calculés pour 16:9 et le `fov` est **vertical**. Rendu sur un iPhone 14 en portrait, l'accueil ne
-montre **ni le bureau, ni la lampe, ni l'écran gauche** — un morceau d'écran central et le portable.
-Le dossier de scène §6 prescrit d'augmenter le `fov` sous 16:9 plutôt que de reculer la caméra
-(38° sur *Expériences*, le cadrage le plus tendu). Jamais implémenté. C'est une fonction pure, donc
-elle vit dans `scene/state` sous le seuil de 95 %. Détail : `phase-5-log.md` §7.10.
+✅ **Le défaut de cadrage sous 16:9 est corrigé** (P5-06, `framing.ts`) : la règle du dossier §6 est
+appliquée aux quatre cadrages, plafonnée à 50°. ⚠️ Elle **borne** le portrait extrême sans le
+réparer — voir la mission ci-dessus.
 
 ⛔⛔ **Et le piège qui attend P6-04** : le `fov` varie de **16° à 36°** selon l'état, parce que le
 cadrage *Compétences* vise un écran monté sur un corps profond. **Il doit être interpolé avec la

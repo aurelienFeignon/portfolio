@@ -1160,3 +1160,101 @@ passé son temps à traquer.
    chargé au montage.
 5. ⭐ **`layout.ts` porte déjà les quatre cadrages**, position et cible calculées sur la normale de
    chaque dalle. Rien n'est à réinventer.
+
+---
+
+## 11. P5-06 — l'éclairage réglé à l'œil, et le cadrage qui cesse de se perdre
+
+La tâche était **reportée depuis le 2026-08-24** faute de la seule chose qu'aucun outil du dépôt ne
+sait produire : un regard. Elle se ferme le 2026-08-25.
+
+### 11.1 Les quatre intensités, réglées au curseur puis recopiées
+
+| Valeur | Avant | **Après** | |
+|---|---|---|---|
+| Exposition (`scene-canvas.tsx`) | 1,15 | **1,89** | ⭐ le seul cadran sans contrainte physique |
+| Hémisphérique | 0,50 | **1,46** | ×2,9 |
+| Directionnelle | 1,60 | **1,00** | −37 % |
+| Ponctuelle (appoint) | 0,080 | **0,200** | ×2,5 |
+
+⛔ **Aucune de ces valeurs n'a été calculée, et c'est le fond de la tâche.** Elles dépendent du
+moteur et de la courbe de tonalité ; le dossier de scène les nomme *« les seules valeurs que ni le
+calcul ni Blender ne peuvent trancher »*. Elles ont été posées à l'œil dans `preview.html` — three.js,
+mêmes données, mêmes réglages — puis transcrites telles quelles.
+
+⭐ **La transposition est licite pour une raison écrite dans la preview elle-même** : elle force
+`physicallyCorrectLights = true`, donc elle se place dans le régime qui est celui de `three` 0.185
+par défaut. Les intensités s'y lisent à l'identique.
+
+⭐⭐ **Ce que le réglage change se voit sans effort** : les touches du clavier **existent**, là où
+elles formaient une masse noire ; les chanfreins du plateau accrochent la lumière — ceux-là mêmes que
+le dossier avait portés de 3 à 8 mm parce qu'ils étaient invisibles. Le travail de géométrie de P5-05
+ne se voyait pas, faute d'éclairage pour le révéler.
+
+⭐ **Et le risque annoncé a été mesuré, pas jugé à l'œil** : une exposition à 1,89 pouvait écrêter la
+dalle blanche — le dossier avertit que c'est la première cause d'une scène three.js ratée. Relevé sur
+la capture : **canal max 249/255 sur la dalle, 0 % de pixels écrêtés sur toute l'image.** ACES absorbe.
+
+### 11.2 Le volet « environnement », tranché sans écrire une ligne
+
+✅ **Rien de plus que le décor actuel** (arbitrage du 2026-08-25). Le dossier dit « trois sources, pas
+une de plus », et le mur, le sol et la plinthe tiennent lieu d'environnement.
+⚠️ **Conséquence assumée et écrite** : les métaux — tige de lampe à `metalness` 0,70, châssis à 0,30 —
+ne réfléchissent rien, faute de carte d'environnement. À rouvrir en Phase 8, avec la direction
+artistique.
+
+### 11.3 ⛔⛔ Le cadrage sous 16:9 : le défaut que le profil mobile avait révélé
+
+Les quatre cadrages sont calculés pour un rapport 16:9 et leur `fov` est **vertical**. Sur un écran
+plus étroit, le champ horizontal se referme mécaniquement — et le rendu du 2026-08-24 (§7.10) l'avait
+montré : sur un iPhone 14 en portrait, l'accueil ne montrait **ni le bureau, ni la lampe, ni l'écran
+gauche**.
+
+`framing.ts` applique la prescription du dossier §6 — *augmenter le `fov` plutôt que reculer la
+caméra, pour ne pas réintroduire le mur* — aux quatre cadrages, là où le dossier ne la chiffrait que
+pour un seul.
+
+⛔⛔ **Le plafond n'est pas une prudence, c'est une nécessité arithmétique.** Préserver *tout* le champ
+horizontal sur un rapport de 0,462 demanderait **103°** de champ vertical : un œil de poisson, et le
+retour dans l'image du décor que les cadrages excluent. Plafond retenu : **50°**.
+
+⚠️ **Ce que le plafond ne fait PAS, écrit plutôt que tu** : il **borne** le portrait extrême, il ne le
+répare pas. À 50° sur un rapport de 0,462, le champ couvre ~0,84 m à la distance de l'accueil, contre
+1,40 m de plateau. Le rendu après correction le confirme : on récupère l'écran gauche, le mât, le
+plateau et le sol ; **la lampe reste dehors**. Un cadrage portrait dédié demanderait des **cotes**, et
+les cotes de cette scène viennent du dossier — elles ne s'inventent pas ici. C'est la Phase 13.
+
+⭐ **La règle n'agit que dans un sens.** Sur un écran plus large que 16:9, le champ horizontal dépasse
+déjà la référence : resserrer le `fov` vertical pour « compenser » retirerait de la hauteur sans que
+rien ne le demande. Un test tient cette asymétrie.
+
+### 11.4 Deux détails d'implémentation qui ne sont pas des détails
+
+⛔ **`invalidate()` est obligatoire.** En `frameloop="demand"`, changer le `fov` ne provoque aucune
+image : le cadrage serait corrigé **dans l'objet caméra** et faux **à l'écran**. Aucune assertion
+portant sur la caméra n'aurait vu la différence.
+
+⚠️ **La caméra est lue par `get()` et non par `useThree((s) => s.camera)`.** Le compilateur React
+refuse la mutation d'une valeur rendue par un hook — *« This value cannot be modified »* — et il a
+raison dans le cas général. Mais l'objet caméra de `three` n'est pas un état React : c'est un objet
+impératif dont la mutation **est** l'API. Passer par l'accesseur du store dit cela, plutôt que de
+désactiver une règle qui protège partout ailleurs.
+
+### 11.5 Relevés
+
+| Relevé | Valeur | Seuil |
+|---|---|---|
+| Socle partagé | 127,1 Ko *(inchangé)* | cible 136 · bloquant 146 |
+| JS propre à chaque route | 11,0 Ko *(inchangé)* | cible 25 · bloquant 40 |
+| Tests | **764** verts, couverture **100 %** — `framing.ts` compris | ≥ 95 % sur `scene/state` |
+| Pixels écrêtés, exposition 1,89 | **0 %** — canal max 249/255 | — |
+| Garde d'isolation (P5-09) | vert | — |
+
+### 11.6 Ce que P5-06 laisse ouvert
+
+| Sujet | État |
+|---|---|
+| Le portrait extrême | **Borné, pas réparé** (§11.3). Phase 13 |
+| Les métaux sourds | Assumé : pas de carte d'environnement. Phase 8 |
+| Les huit hypothèses de cotes du dossier | Toujours ouvertes, dont **D12** — la largeur du plateau au mètre ruban |
+| Le `fov` interpolé avec la position | **P6-04**, et le piège est écrit depuis P5-05 : de 16° à 36° selon l'état |

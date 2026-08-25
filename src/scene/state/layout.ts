@@ -700,8 +700,23 @@ export interface PointLightSpec {
 
 export type LightSpec = HemisphereLightSpec | DirectionalLightSpec | PointLightSpec
 
+/*
+ * ⭐⭐ **Les quatre intensités sont RÉGLÉES depuis le 2026-08-25** — hémisphérique,
+ * directionnelle et ponctuelle ici, exposition dans `scene-canvas.tsx`.
+ *
+ * ⛔ Elles ne se calculent pas et Blender ne les rend pas : elles dépendent du
+ * moteur et de la courbe de tonalité. Elles ont été posées **au curseur, à
+ * l'œil**, dans `preview.html` — three.js, mêmes données, mêmes réglages de
+ * moteur — puis recopiées telles quelles. Les ajuster ici au jugé reviendrait à
+ * inventer la seule mesure de tout ce projet qui demande un regard.
+ *
+ * ⭐ La transposition est licite parce que la preview force
+ * `physicallyCorrectLights = true` : elle se place donc dans le régime qui est
+ * celui de `three` 0.185 par défaut, où les intensités se lisent à l'identique.
+ */
 export const LIGHTS: readonly LightSpec[] = [
-  { kind: 'hemisphere', skyColor: '#C9D4E2', groundColor: '#9C7A50', intensity: 0.5 },
+  // 0,50 → 1,46 : l'ambiance portait beaucoup moins que ce que le calcul laissait croire.
+  { kind: 'hemisphere', skyColor: '#C9D4E2', groundColor: '#9C7A50', intensity: 1.46 },
   {
     /*
      * `shadowExtent` est tombé de 2,00 à 1,00 m. La valeur de 2,00 n'était pas
@@ -714,7 +729,8 @@ export const LIGHTS: readonly LightSpec[] = [
      */
     kind: 'directional',
     color: '#FFE7C4',
-    intensity: 1.6,
+    // 1,60 → 1,00 au réglage : l'hémisphérique montant, la directionnelle écrasait.
+    intensity: 1.0,
     position: [-2.5, 2.6, 2.0],
     target: [0, 0, -0.2],
     castShadow: true,
@@ -729,14 +745,14 @@ export const LIGHTS: readonly LightSpec[] = [
    * 0,37 m du clavier, 10 candelas donnent une irradiance de 73 contre 1,6 pour la
    * directionnelle — d'où la scène entièrement délavée au premier essai.
    *
-   * Cette valeur et les trois autres intensités se règlent au curseur dans
-   * `preview.html`, seul endroit où elles sont observables. Elles n'ont pas
-   * d'équivalent dans Blender.
+   * ✅ **Réglée le 2026-08-25 : 0,08 → 0,200.** Le raisonnement ci-dessus donnait
+   * l'ordre de grandeur, jamais la valeur — c'est l'œil qui l'a fixée, dans la
+   * preview, comme pour les trois autres.
    */
   {
     kind: 'point',
     color: '#BFD4F5',
-    intensity: 0.08,
+    intensity: 0.2,
     position: [0, 0.35, 0.05],
     distance: 1.6,
     decay: 2,

@@ -10,14 +10,56 @@
  * garde ESLint et son banc le tiennent, et le budget en dépend (802,8 Ko contre
  * 0,9 par composant).
  */
-import { Canvas } from '@react-three/fiber'
-import type { ReactNode } from 'react'
-import { ACESFilmicToneMapping, PCFSoftShadowMap, SRGBColorSpace } from 'three'
+import { Canvas, useThree } from '@react-three/fiber'
+import { type ReactNode, useLayoutEffect } from 'react'
+import { ACESFilmicToneMapping, PCFSoftShadowMap, PerspectiveCamera, SRGBColorSpace } from 'three'
 
 import type { Capability } from '@/scene/capability/resolve'
+import { fovForAspect } from '@/scene/state/framing'
 import { CAMERAS } from '@/scene/state/layout'
 
 import { Desk } from './desk'
+
+/**
+ * Le cadrage suit le format de la fenêtre — P5-06.
+ *
+ * ⛔⛔ **Les `fov` de `layout.ts` sont calculés pour 16:9 et sont VERTICAUX.** Sur
+ * un écran plus étroit, le champ horizontal se referme tout seul : un iPhone en
+ * portrait ne voyait qu'un morceau d'écran central là où l'accueil doit montrer
+ * le bureau entier. La règle vit dans `framing.ts`, pure et éprouvée ; ici, on
+ * ne fait que l'appliquer.
+ *
+ * ⭐ `useLayoutEffect` et non `useEffect` : la correction doit être en place
+ * **avant** la première image, sinon le premier rendu affiche le mauvais cadrage
+ * puis saute.
+ *
+ * ⛔ Et `invalidate()` est obligatoire : en `frameloop="demand"`, changer le `fov`
+ * ne provoque aucune image. Le cadrage serait corrigé dans l'objet caméra, et
+ * faux à l'écran — un défaut qu'aucune assertion sur la caméra ne verrait.
+ */
+function CameraFraming({ fovAt16by9 }: { readonly fovAt16by9: number }) {
+  /*
+   * ⚠️ **La caméra est lue par `get()`, et non par `useThree((s) => s.camera)`.**
+   * Le compilateur React refuse la mutation d'une valeur rendue par un hook —
+   * « This value cannot be modified » — et il a raison dans le cas général : une
+   * valeur réactive mutée en place échappe au rendu. Ici, l'objet caméra de
+   * `three` n'est pas un état React : c'est un objet impératif dont la mutation
+   * **est** l'API. Le lire par l'accesseur du store dit exactement cela, plutôt
+   * que de désactiver une règle qui protège partout ailleurs.
+   */
+  const get = useThree((state) => state.get)
+  const size = useThree((state) => state.size)
+
+  useLayoutEffect(() => {
+    const { camera, invalidate } = get()
+    if (!(camera instanceof PerspectiveCamera) || size.height === 0) return
+    camera.fov = fovForAspect(fovAt16by9, size.width / size.height)
+    camera.updateProjectionMatrix()
+    invalidate()
+  }, [get, size.width, size.height, fovAt16by9])
+
+  return null
+}
 
 export default function SceneCanvas({
   capability,
@@ -57,11 +99,18 @@ export default function SceneCanvas({
         /*
          * Sans courbe de tonalité, les hautes lumières de la dalle blanche
          * écrêtent net et tout le reste s'écrase vers le gris : c'est la
-         * première cause d'une scène three.js délavée. ACES assombrit d'environ
-         * 15 %, que l'exposition compense.
+         * première cause d'une scène three.js délavée.
+         *
+         * ⭐ **L'exposition est réglée à l'œil, et c'est la seule des quatre
+         * valeurs d'éclairage qui n'ait AUCUNE contrainte physique derrière
+         * elle** — le dossier de scène la nomme « le seul cadran vraiment
+         * subjectif ». 1,15 → **1,89** le 2026-08-25, au curseur dans
+         * `preview.html`. La valeur de 1,15 n'était pas mesurée : elle
+         * compensait ACES « d'environ 15 % », ce qui est un raisonnement, pas un
+         * regard.
          */
         gl.toneMapping = ACESFilmicToneMapping
-        gl.toneMappingExposure = 1.15
+        gl.toneMappingExposure = 1.89
         // Sans lui, tout le travail de palette est faux d'une conversion gamma.
         gl.outputColorSpace = SRGBColorSpace
         /*
@@ -115,6 +164,7 @@ export default function SceneCanvas({
         far: 12,
       }}
     >
+      <CameraFraming fovAt16by9={CAMERAS.accueil.fov} />
       {probe}
       <Desk capability={capability} />
     </Canvas>
