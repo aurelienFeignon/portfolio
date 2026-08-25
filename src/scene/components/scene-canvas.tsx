@@ -11,6 +11,7 @@
  * 0,9 par composant).
  */
 import { Canvas } from '@react-three/fiber'
+import type { ReactNode } from 'react'
 import { ACESFilmicToneMapping, PCFSoftShadowMap, SRGBColorSpace } from 'three'
 
 import type { Capability } from '@/scene/capability/resolve'
@@ -21,9 +22,19 @@ import { Desk } from './desk'
 export default function SceneCanvas({
   capability,
   onContextLost,
+  probe,
 }: {
   readonly capability: Capability
   readonly onContextLost: () => void
+  /*
+   * ⭐ La sonde de diagnostic est **reçue**, pas importée (P5-08). `renderer.info`
+   * n'est lisible que de l'intérieur du canvas, mais le panneau qui l'affiche ne
+   * peut pas y vivre — le canvas est `aria-hidden` et n'écrit aucun texte. La
+   * faire descendre en prop garde le code de debug hors de ce fichier et hors du
+   * chemin de rendu ordinaire : sans `?debug=scene`, `probe` vaut `undefined` et
+   * rien de tout cela n'est chargé.
+   */
+  readonly probe?: ReactNode
 }) {
   return (
     <Canvas
@@ -104,6 +115,7 @@ export default function SceneCanvas({
         far: 12,
       }}
     >
+      {probe}
       <Desk capability={capability} />
     </Canvas>
   )

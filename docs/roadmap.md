@@ -5,16 +5,18 @@
 > ligne, un rollback rejoué et une vérification **depuis l'extérieur** (14 URL, `canonical`,
 > `hreflang` et `lang` concordants, Lighthouse contre le site réel — a11y 100, SEO 100, bonnes
 > pratiques 100).
-> **PHASE 5 ENGAGÉE — 7 tâches sur 10** : P5-01 à P5-05, **P5-07** et **P5-09** closes ; budget
+> **PHASE 5 — 8 tâches sur 10** : P5-01 à P5-05, **P5-07**, **P5-08** et **P5-09** closes ; budget
 > arrêté à **260 / 320 Ko** (D9), et la scène décrit **le bureau réel — deux moniteurs et un
 > portable** (D10).
-> ⚠️ **P5-06 est REPORTÉE** : ses quatre intensités d'éclairage ne se règlent qu'à l'œil, au curseur,
-> dans la preview du dossier de scène. Suite : **P5-08** et **P5-10**.
+> ⚠️ **Les deux qui restent ne sont pas en attente de code** : **P5-06** est REPORTÉE (ses quatre
+> intensités d'éclairage ne se règlent qu'à l'œil, au curseur, dans la preview du dossier de scène) et
+> **P5-10** est REPORTÉE après P6-04 (sa moitié est livrée, l'autre est sans objet tant que rien
+> n'anime).
 > Journal : [`phase-5-log.md`](./phase-5-log.md).
 > Journal de la Phase 4 : [`phase-4-log.md`](./phase-4-log.md) — phases précédentes :
 > [`phase-3-log.md`](./phase-3-log.md), [`phase-2-log.md`](./phase-2-log.md),
 > [`phase-1-log.md`](./phase-1-log.md)
-> Dernière mise à jour : 2026-08-25 (P5-09 close ; P5-06 reportée)
+> Dernière mise à jour : 2026-08-25 (P5-08 et P5-09 closes ; P5-06 et P5-10 reportées)
 
 Ce document est la **source de vérité unique des tâches**. Les identifiants sont stables et ne
 sont jamais réutilisés, même si une tâche est abandonnée.
@@ -1140,7 +1142,7 @@ le 2026-08-18, jugé sur le corps : aller-retour par le même verbe, **~1 s d'or
 | P5-05 | Scène primitive : bureau, **deux moniteurs et un portable** en géométries de base (D10) — **DONE** *(2026-08-21)* | P5-04 |
 | P5-06 | Caméra, éclairage, environnement minimal — **REPORTÉE** *(2026-08-24)*, voir ci-dessous | P5-05 |
 | P5-07 | Error boundary du canvas + gestion de `webglcontextlost` → palier `none` — **DONE** *(2026-08-24)* | P5-04 |
-| P5-08 | Panneau de diagnostic : FPS, draw calls, triangles, mémoire | P5-05 |
+| P5-08 | Panneau de diagnostic : coût d'image, draw calls, triangles, mémoire — **DONE** *(2026-08-25)* | P5-05 |
 | P5-09 | Test de non-régression : aucun module `three` dans les chunks initiaux — **DONE** *(2026-08-25)* | P5-04 |
 | P5-10 | Boucle de rendu à la demande, pause hors écran / onglet masqué — **REPORTÉE après P6-04** *(2026-08-25)* | P5-05 |
 
@@ -1164,6 +1166,34 @@ P5-05.** Elle ne résistait pas à l'examen — un panneau de diagnostic et une 
 besoin d'une scène **rendue**, pas d'un éclairage **réglé**. La Phase 5 cesse d'être bloquée derrière
 une condition que rien ne justifie.
 · Depends on: P5-05
+
+**P5-08 — Le panneau de diagnostic**
+Status: **DONE** (2026-08-25) — `?debug=scene` affiche draw calls, triangles, géométries, textures,
+programmes, images rendues, coût de la dernière image et tas JS. Chargé dynamiquement : le panneau
+n'est pas servi à qui ne le demande pas. Journal : [`phase-5-log.md`](./phase-5-log.md) §9.
+⭐⭐⭐ **Il a chiffré ce que le dossier de scène annonçait sans le mesurer** : la scène desktop rend
+**52 draw calls et 8 182 triangles**, contre 30 et 4 114 de géométrie — l'écart est **entièrement la
+passe d'ombre**, +73 %. Preuve : au palier `lite`, ombres coupées, les deux comptes coïncident
+exactement. Les libellés portent « toutes passes », sans quoi le panneau fait conclure à une
+régression.
+⛔⛔ **« FPS » a été remplacé par le coût d'une image** : en `frameloop="demand"`, une scène saine et
+immobile rend zéro image par seconde, et l'afficher serait un instrument qui se lit à l'envers.
+⛔⛔ **Un observateur ne peut pas mesurer une scène qui dort sans la réveiller** : la sonde arrive
+après la seule image du montage, donc `useFrame` n'était jamais appelé. Elle réclame **une** image —
+invalider en boucle détruirait la propriété observée.
+⛔ **« Zéro octet pour un visiteur ordinaire » était faux** : l'import statique de l'aiguillage tirait
+tout le module de formatage dans le chunk de première visite (10,8 → 11,3 Ko). Séparé : **11,0 Ko**.
+*Un module est indivisible du point de vue d'un bundler.*
+⭐ Deux défauts trouvés **en regardant une capture**, qu'aucune assertion ne pouvait voir : le panneau
+recouvrait le lien *Compétences* — cliquable, donc vert partout — et les compteurs se lisaient comme
+une régression.
+· Depends on: P5-05
+Acceptance:
+- Les compteurs viennent de `renderer.info`, pas d'un décompte à la main.
+- Ce qui est affiché **dit ce qu'il compte** : « toutes passes » plutôt qu'un nombre nu.
+- Une mesure absente s'affiche `—`, jamais `0` (même règle qu'en P5-03).
+- Le panneau vit **hors** de `[data-scene-root]`, qu'un parcours exige sans un caractère de texte.
+- Le coût pour qui ne l'active pas est **mesuré**, pas supposé.
 
 **P5-10 — Boucle de rendu à la demande**
 Status: **REPORTÉE après P6-04** (2026-08-25), et pas faute de temps : **la moitié est déjà livrée et

@@ -283,6 +283,33 @@ Règles d'implémentation associées : réutilisation des `Vector3`/`Quaternion`
 `frameloop="demand"` quand la scène est immobile, mise en pause du rendu quand l'onglet est masqué
 ou le canvas hors écran.
 
+### 6.1 ⛔⛔ Ce que la scène coûte VRAIMENT à rendre — mesuré le 2026-08-25 (P5-08)
+
+Le panneau de diagnostic a rendu lisible un écart que personne n'avait chiffré :
+
+| | Ce que le banc certifie | **Ce que le GPU rend** | Écart |
+|---|---|---|---|
+| Draw calls, desktop | 30 | **52** | + 22 |
+| Triangles, desktop | 4 114 | **8 182** | **+ 73 %** |
+| Draw calls, mobile (`lite`) | 20 | **20** | 0 |
+| Triangles, mobile (`lite`) | 1 966 | **1 966** | 0 |
+
+⭐⭐⭐ **Les deux chiffres sont justes, et ils ne comptent pas la même chose.** Le banc compte la
+**géométrie de la scène** ; `renderer.info` compte **toutes les passes de rendu**. L'écart est
+entièrement la **passe d'ombre** — la preuve tient en une ligne du tableau : au palier `lite`, où les
+ombres sont coupées, les deux comptes coïncident **exactement**.
+
+⛔ **Conséquence pour qui lit le panneau** : 52 draw calls n'est pas une régression de la scène. Les
+libellés portent donc « toutes passes », faute de quoi le premier lecteur conclura le contraire.
+
+⭐ **Le dossier de scène l'avait annoncé sans jamais le chiffrer** — *« la contrainte réelle sera le
+coût des ombres, pas la géométrie »*. C'est maintenant mesuré : les ombres coûtent **73 % de plus que
+toute la géométrie**, pour trois lumières dont une seule projette.
+
+⚠️ **Ce que ce relevé ne dit pas** : rien sur le temps. Le coût d'une image mesuré ici — de l'ordre
+de 1 à 2 ms sous SwiftShader, sans GPU — ne vaut pas pour du matériel réel. Les seuils du tableau
+ci-dessus attendent toujours une mesure sur un vrai appareil (Phase 11, P11-08).
+
 ---
 
 ## 7. Budget serveur (VPS)
