@@ -5,15 +5,17 @@
 > ligne, un rollback rejoué et une vérification **depuis l'extérieur** (14 URL, `canonical`,
 > `hreflang` et `lang` concordants, Lighthouse contre le site réel — a11y 100, SEO 100, bonnes
 > pratiques 100).
-> **PHASE 5 CLOSE — 8 tâches sur 10, les quatre critères de sortie vérifiés PAR MESURE** : chunk 3D
+> **PHASE 5 CLOSE — 9 tâches sur 10, les quatre critères de sortie vérifiés PAR MESURE** : chunk 3D
 > **234,5 Ko** (seuil 320) et absent du chemin critique — prouvé par un garde, pas par un relevé —,
 > **153 parcours verts** contre l'image de production dont le profil `no-webgl`, et **LCP 1,7 → 1,6 s,
 > CLS 0 → 0**.
 > ⛔ **Le critère CWV a été mesuré pour la première fois**, en construisant une image depuis le commit
 > de clôture de la Phase 4 : il est **tenu au sens strict**, mais le **TBT triple** (640 → 2 090 ms).
 > Dette chiffrée, portée en Phase 11 (`performance-budget.md` §6.2).
-> ⚠️ **Les deux tâches restantes n'attendent pas du code** : **P5-06** attend l'œil de l'exploitant
-> (quatre intensités, au curseur dans la preview) et **P5-10** attend P6-04 (rien n'anime encore).
+> ✅ **P5-06 close le 2026-08-25** : les quatre intensités **réglées à l'œil** dans la preview puis
+> recopiées (exposition 1,15 → **1,89**, hémisphérique 0,50 → **1,46**, directionnelle 1,60 →
+> **1,00**, appoint 0,08 → **0,200**), et le cadrage corrigé sous 16:9 — un téléphone en portrait ne
+> perd plus l'accueil. ⚠️ **Seule P5-10 reste**, reportée après P6-04 : rien n'anime encore.
 > Journal : [`phase-5-log.md`](./phase-5-log.md).
 > Journal de la Phase 4 : [`phase-4-log.md`](./phase-4-log.md) — phases précédentes :
 > [`phase-3-log.md`](./phase-3-log.md), [`phase-2-log.md`](./phase-2-log.md),
@@ -41,7 +43,7 @@ silencieusement.
 | 2 | Content layer | **DONE** *(2026-08-12)* | Markdown → objets typés validés, build cassé si invalide |
 | 3 | Internationalisation | **DONE** *(2026-08-14)* | `/fr` et `/en` résolus indépendamment, hreflang exact |
 | 4 | Portfolio HTML | **DONE** *(2026-08-20)* | **Produit utilisable sans Three.js** (phase obligatoire) |
-| 5 | Fondation Three.js | **DONE** *(2026-08-25)* — 8/10, deux reportées avec raison | Scène primitive : le bureau réel, budget tenu, isolation gardée |
+| 5 | Fondation Three.js | **DONE** *(2026-08-25)* — 9/10, P5-10 reportée après P6-04 | Scène primitive : le bureau réel, éclairé, budget tenu, isolation gardée |
 | 6 | Navigation spatiale | TODO | Route ↔ scène, testé sans WebGL |
 | 7 | Interfaces des écrans | TODO | Contenu affiché sur les moniteurs, instance unique |
 | 8 | Modélisation et direction artistique | TODO | Scène crédible, budgets mesurés à chaque ajout |
@@ -1149,7 +1151,30 @@ le 2026-08-18, jugé sur le corps : aller-retour par le même verbe, **~1 s d'or
 | P5-10 | Boucle de rendu à la demande, pause hors écran / onglet masqué — **REPORTÉE après P6-04** *(2026-08-25)* | P5-05 |
 
 **P5-06 — Caméra, éclairage, environnement minimal**
-Status: **REPORTÉE** (2026-08-24), et pour une raison qui ne se lève pas en écrivant du code : ses
+Status: **DONE** (2026-08-25) — les quatre intensités réglées **à l'œil** dans `preview.html` puis
+recopiées, et le cadrage corrigé sous 16:9. Journal : [`phase-5-log.md`](./phase-5-log.md) §11.
+⭐⭐ **Ce que le réglage révèle : les touches du clavier EXISTENT enfin**, là où elles formaient une
+masse noire, et les chanfreins accrochent la lumière — ceux-là mêmes que le dossier avait portés de 3
+à 8 mm parce qu'ils étaient invisibles. Le travail de géométrie de P5-05 ne se voyait pas, faute
+d'éclairage pour le révéler.
+⭐ **Le risque a été mesuré, pas jugé** : une exposition à 1,89 pouvait écrêter la dalle blanche —
+relevé **0 % de pixels écrêtés**, canal max 249/255. ACES absorbe.
+⛔⛔ **Le cadrage sous 16:9 : un plafond est arithmétiquement nécessaire.** Préserver tout le champ
+horizontal sur un rapport de 0,462 demanderait **103°** de champ vertical. Plafond à 50°, et il
+**borne** le portrait extrême sans le réparer — la lampe reste hors cadre. Phase 13.
+⛔ **`invalidate()` obligatoire** : en `frameloop="demand"`, changer le `fov` ne provoque aucune image
+— le cadrage serait juste dans l'objet caméra et faux à l'écran.
+✅ **Environnement : rien de plus que le décor**, le dossier disant « trois sources, pas une de plus ».
+Les métaux resteront sourds jusqu'à la Phase 8, et c'est écrit.
+· Depends on: P5-05
+Acceptance:
+- Les intensités viennent d'un **réglage observé**, jamais d'un calcul ou d'un ajustement au jugé.
+- L'écrêtage est **mesuré** sur le rendu, pas supposé absent.
+- La correction de cadrage est **pure**, testée, et sa limite est écrite.
+- Aucun budget déplacé.
+
+**P5-06 (historique) — pourquoi elle a été reportée**
+Reportée le 2026-08-24, pour une raison qui ne se levait pas en écrivant du code : ses
 **quatre intensités** — exposition, hémisphérique, directionnelle, ponctuelle — sont *les seules
 valeurs du dossier de scène que ni le calcul ni Blender ne peuvent trancher*. Elles se règlent au
 curseur dans `preview.html`, qui sait recracher les lignes à recopier. ⛔ Les ajuster au jugé dans le
