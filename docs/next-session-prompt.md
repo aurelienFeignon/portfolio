@@ -43,7 +43,7 @@ Les Phases 0 à 4 sont TERMINÉES et validées. Ne les refais pas, ne les redisc
 
 Phases 0 à 4 : **DONE** — le jalon T1 est atteint, le portfolio documentaire est en ligne,
 supervisé, avec une checklist de mise en ligne et un rollback rejoué.
-**Phase 5 (Fondation Three.js) : en cours, 7 tâches sur 10.**
+**Phase 5 (Fondation Three.js) : 8 tâches sur 10.** Les deux qui restent n'attendent pas du code.
 **Tout ce qui suit est fusionné sur `main` et déployé**, les cinq jobs verts à chaque fois —
 publication GHCR et déploiement VPS compris. ⭐ L'état réellement déployé ne se recopie pas ici, il
 **se lit** — trois SHA successifs ont pourri à cet endroit :
@@ -62,10 +62,12 @@ ssh portfolio 'SSH_ORIGINAL_COMMAND="status" /srv/portfolio/deploy.sh' # ce que 
 | P5-05 | **La scène primitive** : le bureau réel, 30 meshes, 4 114 triangles, pour **3 Ko** |
 | P5-07 | **La frontière d'erreur** — et le défaut livré qu'elle a révélé : sans elle, un chunk 3D manquant affichait « Une erreur est survenue » **sur tout le site** |
 | P5-09 | **Le garde d'isolation** : `pnpm bundle` refuse un build dont la première visite porterait un module `three`. ⭐⭐⭐ Il porte un **témoin** — le détecteur doit voir la scène quelque part, sinon il s'accuse lui-même au lieu de rendre un vert |
+| P5-08 | **Le panneau de diagnostic** (`?debug=scene`). ⭐⭐⭐ Il a chiffré ce que le dossier annonçait sans le mesurer : la scène rend **8 182 triangles** pour 4 114 de géométrie — l'écart est **entièrement la passe d'ombre**, +73 % |
 
-La Phase 4 est close (17/17) ; son journal reste la meilleure lecture du dépôt. **Restent P5-06,
-P5-08 et P5-10** : caméra et éclairage (⚠️ **reportée**, voir la mission), panneau de diagnostic,
-boucle de rendu à la demande.
+La Phase 4 est close (17/17) ; son journal reste la meilleure lecture du dépôt. **Restent P5-06 et
+P5-10, toutes deux REPORTÉES pour une raison écrite** — la première attend ton œil devant
+`preview.html`, la seconde attend que quelque chose anime (P6-04). **La Phase 5 n'a plus de tâche
+exécutable.**
 
 ### ⛔⛔ Ce qui fait foi pour juger d'un déploiement
 
@@ -93,12 +95,13 @@ URL, tout le reste rend toujours 302.
 
 | Relevé | Valeur | Seuil |
 |---|---|---|
-| JS propre à chaque route | **10,8 Ko** — le seul JavaScript applicatif du site | cible 25 · bloquant 40 |
+| JS propre à chaque route | **11,0 Ko** — le seul JavaScript applicatif du site | cible 25 · bloquant 40 |
 | Socle partagé | **127,1 Ko** | cible 136 · bloquant 146 |
 | **Chunk 3D différé** | **230,0 Ko** — hors du chemin critique, chargé après `idle` | cible 260 · bloquant 320 |
 | Image de production | **281 Mo** | cible 250 · bloquant 400 |
-| Tests | **742** verts, couverture **100 %** sur les quatre métriques | ≥ 80 % |
-| E2E | **150** verts sur 5 profils | — |
+| Tests | **757** verts, couverture **100 %** sur les quatre métriques | ≥ 80 % |
+| E2E | **153** verts sur 5 profils | — |
+| **Ce que le GPU rend** | **52 draw calls · 8 182 triangles** en desktop — la passe d'ombre incluse, soit **+73 %** sur les 4 114 de géométrie | ≤ 60 / ≤ 150 000 |
 
 ⚠️ Relevés du **2026-08-24**, après P5-07, mesurés dans le même conteneur et par le même geste
 (`gzip -9`) que la référence à laquelle ils sont comparés. **P5-09 ne les déplace pas** : son diff ne
@@ -215,11 +218,27 @@ Le reste de P5-06 est cadré et t'attend : « environnement minimal » est **tra
 le décor actuel** (le dossier dit « trois sources, pas une de plus »), et le volet caméra porte un
 défaut **mesuré**, décrit ci-dessous.
 
-**Enchaîne sur P5-08 ou P5-10** — P5-09 est close depuis le 2026-08-25. ⚠️ **Les deux déclarent
-dépendre de P5-06**, et cette dépendance ne résiste pas à l'examen : un panneau de diagnostic et une
-boucle de rendu ont besoin d'une scène **rendue** (P5-05), pas d'un éclairage réglé. La roadmap n'a
-pas été modifiée sans décision — **tranche-le d'un mot**, faute de quoi la phase est bloquée par une
-dépendance que personne ne croit.
+**La Phase 5 n'a plus de tâche exécutable : ouvre la Phase 6.** P5-06 attend ton œil devant
+`preview.html` (quatre intensités), P5-10 attend P6-04. Tout le reste est livré.
+
+⭐ **P6-01 est le point d'entrée** — `resolveSceneState(pathname)`, pur, sans Three.js. La Phase 6
+fait suivre la scène à l'URL (ADR-0002), et `layout.ts` porte déjà les quatre cadrages avec leurs
+positions et cibles calculées.
+⛔⛔ **Le piège de P6-04 est écrit depuis P5-05 et n'a pas bougé** : le `fov` varie de **16° à 36°**
+selon l'état et **doit être interpolé avec la position**, sinon la transition vers *Compétences*
+produit un zoom sec.
+⭐⭐ **Et P6-04 hérite de deux dettes nommées** : le `fov` n'est pas corrigé sous 16:9 (un téléphone
+en portrait perd le cadrage d'accueil — P5-06), et la boucle de rendu devra invalider image par image
+sans rester en `always` (P5-10).
+✅ **Trois arbitrages tranchés le 2026-08-25** : la dépendance de P5-08 et P5-10 passe de P5-06 à
+**P5-05** (une scène *rendue* suffit, un éclairage *réglé* n'y change rien) ; **P5-10 est reportée
+après P6-04** ; **D11 est close en « laisser »**.
+
+⭐⭐ **Pourquoi P5-10 est reportée, et ce que ça apprend** : `frameloop="demand"` est en place depuis
+P5-04 et **rien n'appelle `invalidate()`**, faute d'animation. « Pause hors écran / onglet masqué »
+suppose une boucle à mettre en pause — une boucle qui ne tourne pas ne se suspend pas. L'écrire
+aujourd'hui produirait un mécanisme sans effet mesurable, donc **un garde qu'aucun banc ne pourrait
+voir rouge**. Son contenu naît avec P6-04, quand la transition devra invalider image par image.
 
 ⭐ **P5-08 hérite d'un manque nommé par P5-07** : rien ne distingue à l'écran une scène qui n'a jamais
 monté d'une scène tombée. Le panneau de diagnostic est le premier endroit où la **cause** pourra se
@@ -259,9 +278,9 @@ phase après que `make test` l'eut déclarée bonne.
 pas s'étonner que l'arbre de travail en ressorte sali — voir `next-env.d.ts` dans les pièges
 d'environnement.
 
-⛔⛔⛔ **Les huit leçons que ces deux phases ont payées, et qui visent tout ce qui suit :**
-(⚠️ le titre annonçait « cinq » pour sept entrées — un compte écrit une fois puis jamais recompté,
-dans le document qui interdit précisément cela.)
+⛔⛔⛔ **Les dix leçons que ces deux phases ont payées, et qui visent tout ce qui suit :**
+(⚠️ ce titre a déjà annoncé « cinq » pour sept entrées — un compte écrit une fois puis jamais
+recompté, dans le document qui interdit précisément cela. Recompter en éditant.)
 1. **Une preuve d'exploitation peut se périmer sans jamais devenir fausse** (P4-15). Le rollback était
    « prouvé » depuis P1-15 — mesure prise proxy en *DNS only*, honnête ce jour-là, vide de sens depuis
    la bascule en *Full (strict)*. Rejoué en jugeant le corps : **~1 s d'origine absente sous un 200
@@ -288,11 +307,19 @@ dans le document qui interdit précisément cela.)
    part. Aveuglé exprès, le garde s'accuse lui-même au lieu de rendre un vert. ⛔⛔ Et le repère
    apparemment évident était **faux** : la chaîne `node_modules/three/` n'existe pas dans le code
    minifié, jusque dans le chunk qui est fait de `three`.
-7. ⭐⭐ **Une frontière d'erreur ne se juge pas sur ce qu'elle attrape, mais sur ce qui l'attraperait à
+7. ⭐⭐⭐ **Deux mesures justes peuvent se contredire tant qu'on n'a pas dit ce que chacune compte**
+   (P5-08). Le panneau annonçait 52 draw calls là où le banc en certifie 30 : aucune régression — le
+   banc compte la **géométrie**, `renderer.info` compte **toutes les passes de rendu**. Prouvé au
+   palier `lite`, ombres coupées, où les deux comptes coïncident exactement. ⭐ Un nombre nu sur un
+   panneau est une conclusion fausse en attente ; les libellés disent « toutes passes ».
+8. ⭐⭐ **Un banc vert ne voit pas ce qui est illisible** (P5-08). Le panneau recouvrait un lien de
+   navigation ; `pointer-events: none` le gardait **cliquable**, donc tous les parcours passaient. Ce
+   défaut-là ne se trouve qu'en **regardant une capture** — comme les deux de D11.
+9. ⭐⭐ **Une frontière d'erreur ne se juge pas sur ce qu'elle attrape, mais sur ce qui l'attraperait à
    sa place** (P5-07). Il y en avait déjà une au-dessus, et elle faisait exactement ce qu'il ne
    fallait pas : afficher « Une erreur est survenue » sur tout le site parce qu'un décor n'avait pas
    pu se charger.
-8. **Un test qui passe pour deux raisons possibles n'en garde aucune** (P5-04). « N'intercepte aucun
+10. **Un test qui passe pour deux raisons possibles n'en garde aucune** (P5-04). « N'intercepte aucun
    clic » cliquait un lien ; `z-index: -1` suffisait déjà à le faire aboutir, donc retirer la ligne de
    CSS qu'il protégeait l'aurait laissé vert. Affirme la propriété, jamais son symptôme.
 
@@ -372,7 +399,8 @@ Format des réponses : « D2 = …, défaut partout ailleurs » suffit. Aucune n
 
 ⭐ **Ce bloc ne contient QUE des questions vivantes**, et c'est ce qui lui donne sa valeur. Les
 décisions tranchées sont reportées dans `phase-0-questions.md` ; elles n'ont plus à être lues ici.
-**Closes : D1, D3, D4, D7** (le 2026-08-16 pour les deux dernières), **D9 et D10** (le 2026-08-20).
+**Closes : D1, D3, D4, D7** (le 2026-08-16 pour les deux dernières), **D9 et D10** (le 2026-08-20),
+**D11** (le 2026-08-25, « laisser » — `phase-5-log.md` §6.7).
 
 **D2 🟠 — Relire les 40 niveaux de compétence (1 à 5).** *La seule qui ait un effet visible : les
 niveaux **ne sont ni affichés ni publiés** tant que tu ne les as pas relus.* Les publier afficherait
@@ -395,21 +423,6 @@ que des travaux scolaires de 2021, et la page Projets ne contient que ce portfol
 pas d'ajouter du volume — c'est **un** projet récent, décrit pour lui-même.
 → *Si tu en as un à montrer, c'est un fichier par locale dans `content/*/projects/`. Sinon, dis-le :
 la page reste à un projet, assumé, et je ne la rouvre plus.*
-
-**D11 🟠 — Le profil mobile de la scène, que personne n'a jamais regardé.** *Mesuré en P5-05, non
-corrigé.* Les objets `desktopOnly` sont écartés au palier `lite`, et deux d'entre eux emportaient ce
-qui tenait un autre : les **bras d'écran** partent mais le **mât reste** — un mât nu, et deux
-moniteurs qui ne tiennent à rien ; le **socle de lampe** part mais la **tige reste**, et elle
-commence exactement là où finissait le socle, donc la lampe **flotte à 3 cm** du plateau.
-⭐ Les huit objets écartés sont exactement ceux que ton dossier énumère, et les changer déplacerait
-les chiffres que le banc certifie — c'est-à-dire la preuve que la transcription est fidèle. C'est
-donc ta décision, pas la mienne.
-✅ **Le rendu a été fait le 2026-08-24** (trois captures : `full` de référence, `lite` au même
-cadrage, `lite` sur iPhone 14). Il confirme les deux défauts, et en ajoute un troisième : **les ombres
-étant coupées au palier `lite`, plus rien n'ancre les objets au plateau** — la lampe flottante n'est
-même pas trahie par son ombre.
-→ *Réponds « D11 = corrige » et je marque le mât et la tige `desktopOnly` en ajustant les budgets du
-banc, ou « D11 = laisse » et je l'écris comme assumé.* Détail : `phase-5-log.md` §6.7 et §7.10.
 
 **D12 🟢 — La largeur du plateau, au mètre ruban.** *Une seule mesure, et toute la scène se
 verrouille.* La photo donne **1,37 m**, la valeur retenue **1,40 m** ; toutes les cotes en découlent
@@ -521,6 +534,11 @@ officielle n'atteint 250 Mo.
   `make up`, `./.next/types/…` après un `make build` ou `make bundle`. Il ressort donc modifié d'une
   tâche sur deux, sans que personne l'ait touché. **Ne pas le committer** au fil de l'eau — ce serait
   un aller-retour permanent selon la dernière commande lancée. Relevé en P5-09.
+- ⛔⛔ **Un `str.replace` dont le motif ne correspond pas ne dit RIEN** et rend le fichier inchangé.
+  P5-08 l'a payé deux fois, dont une où **les tests sont restés verts** — ils attendaient exactement
+  ce que l'ancien code produisait, et seul ESLint a signalé quelque chose. Toute édition scriptée doit
+  porter une assertion (`assert s != avant`) ou passer par un index de ligne vérifié. C'est le mode de
+  panne que ce fichier dénonce déjà pour lui-même.
 - ⚠️ **`.next` vit dans un volume Docker nommé**, pas sur l'hôte : `ls .next/…` depuis le dépôt rend
   « No such file or directory », ce qui ressemble à un build absent. Passer par le conteneur
   (`docker compose run --rm web sh -c '…'`).

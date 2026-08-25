@@ -34,11 +34,27 @@ import {
   sceneReady,
 } from '@/scene/capability/mount-state'
 import { resolveCapability, shouldMountScene } from '@/scene/capability/resolve'
+import { shouldShowDiagnostics } from '@/scene/state/debug-flag'
+import type { SceneReadings } from '@/scene/state/diagnostics'
 
 import { SceneBoundary } from './scene-boundary'
 import styles from './scene-mount.module.css'
 
 const SceneCanvas = dynamic(() => import('./scene-canvas'), { ssr: false })
+
+/*
+ * ⭐ Le panneau de diagnostic est chargé **à la demande** (P5-08). Sans
+ * `?debug=scene`, ces deux imports ne sont jamais résolus : un visiteur ordinaire
+ * ne paie pas un octet pour un outil qui ne s'adresse qu'à l'auteur du site.
+ */
+const DiagnosticsPanel = dynamic(
+  () => import('./scene-diagnostics').then((module) => module.DiagnosticsPanel),
+  { ssr: false },
+)
+const DiagnosticsProbe = dynamic(
+  () => import('./scene-diagnostics').then((module) => module.DiagnosticsProbe),
+  { ssr: false },
+)
 
 /**
  * `requestIdleCallback` n'existe pas sur Safari avant la version 18.2. Le repli
@@ -64,6 +80,8 @@ function auRepos(callback: () => void): () => void {
 
 export function SceneMount() {
   const [etat, setEtat] = useState<SceneMountState>(SCENE_WAITING)
+  const [diagnostics, setDiagnostics] = useState(false)
+  const [releves, setReleves] = useState<SceneReadings | null>(null)
 
   /*
    * ⭐ La bascule est **une seule fonction pour les trois causes**, parce que le
@@ -94,6 +112,13 @@ export function SceneMount() {
       auRepos(() => {
         const lu = resolveCapability(readCapability(window))
         if (shouldMountScene(lu)) setEtat((precedent) => sceneReady(precedent, lu))
+        /*
+         * ⭐ L'URL est lue ici, à la main, et non par `useSearchParams` : ce hook
+         * force une frontière de suspense au prérendu, et **toutes** les pages de
+         * ce site sont statiques — un gate le vérifie. Un panneau de debug n'a
+         * pas à peser sur le mode de rendu du site entier.
+         */
+        setDiagnostics(shouldShowDiagnostics(window.location.search))
       }),
     [],
   )
@@ -107,10 +132,23 @@ export function SceneMount() {
   if (etat.phase !== 'mounted') return null
 
   return (
-    <div aria-hidden="true" data-scene-root className={styles.decor}>
-      <SceneBoundary onFailure={abandonner}>
-        <SceneCanvas capability={etat.capability} onContextLost={surPerteDeContexte} />
-      </SceneBoundary>
-    </div>
+    <>
+      <div aria-hidden="true" data-scene-root className={styles.decor}>
+        <SceneBoundary onFailure={abandonner}>
+          <SceneCanvas
+            capability={etat.capability}
+            onContextLost={surPerteDeContexte}
+            {...(diagnostics ? { probe: <DiagnosticsProbe onReadings={setReleves} /> } : {})}
+          />
+        </SceneBoundary>
+      </div>
+      {/*
+       * ⛔ Le panneau est HORS de `data-scene-root`, et ce n'est pas un détail de
+       * mise en page : un parcours E2E exige que cette racine ne contienne pas un
+       * caractère de texte (ADR-0003, « rien n'y est écrit qui n'existe pas dans
+       * le DOM »). L'y placer ferait rougir le banc, à juste titre.
+       */}
+      {diagnostics ? <DiagnosticsPanel readings={releves} /> : null}
+    </>
   )
 }

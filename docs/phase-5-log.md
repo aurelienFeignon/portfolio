@@ -594,8 +594,22 @@ calls, 1 966 triangles), c'est-à-dire la preuve même que la transcription est 
 deux cadrages de contrôle, tous en profil desktop. Un profil qu'on n'a pas rendu est un profil dont
 on ne sait rien — c'est le motif que ce dépôt rencontre depuis la Phase 4, ici appliqué à une scène.
 
-*Ce qui le tranchera* : rendre la scène en profil `lite` et regarder. À faire avant P5-10, qui règle
-la boucle de rendu, et avant toute mesure de performance mobile.
+✅ **D11 tranchée le 2026-08-25, après avoir regardé : LAISSER, et c'est assumé.** Le profil `lite` a
+été rendu (§7.10) ; les trois défauts sont réels et visibles. Ils restent.
+
+⭐ **La raison n'est pas l'indifférence, c'est ce que la correction coûterait à la preuve.** Les huit
+objets `desktopOnly` sont exactement ceux que le dossier énumère, et le banc certifie depuis P5-05 les
+chiffres qui en découlent — **20 draw calls, 1 966 triangles**. En marquer deux de plus les
+déplacerait, c'est-à-dire ferait tomber le contrôle de transcription lui-même. On échangerait un
+défaut visuel sur un profil contre la perte de ce qui prouve que le plan est arrivé intact.
+
+⚠️ **Ce que cette décision N'AUTORISE PAS** : conclure que le profil `lite` est bon. Il est **connu**,
+ce qui n'est pas pareil. Trois défauts y sont nommés et datés — le mât nu, la lampe à 3 cm du plateau,
+et l'absence d'ombres qui retire le dernier indice d'ancrage.
+
+*Ce qui la rouvrirait* : la Phase 8, qui reprendra la direction artistique et pourra déplacer les
+budgets du banc en connaissance de cause ; ou une mesure de performance mobile qui rendrait la coupe
+d'ombres discutable pour une autre raison que l'esthétique.
 
 ---
 
@@ -915,3 +929,124 @@ par ce qu'on mesure* — ici, elles diffèrent par autre chose.
 | Le garde ne compte pas les composants `drei` | **Toujours vrai.** P5-01 avait établi que quatre composants coûtent 65,3 Ko ; le garde d'ADR-0016 reste **syntaxique** et celui-ci ne juge que la présence, jamais la quantité. Un budget du chunk différé lui-même n'existe pas encore |
 | Le chunk 3D n'a pas de seuil appliqué | Sa cible (260) et son seuil (320) sont écrits dans `performance-budget.md` et **mesurés à la main** à chaque tâche. Rien ne les applique |
 | `next-env.d.ts` oscille selon la dernière commande | Il pointe `.next/dev/types` après un `make up`, `.next/types` après un build — **et il est versionné**. Non corrigé ici : ce n'est pas le périmètre, mais c'est une divergence qui salit l'arbre d'une tâche sur deux |
+
+---
+
+## 9. P5-08 — le panneau de diagnostic, et ce que le regard a trouvé que les assertions ne voyaient pas
+
+### 9.1 Ce que la tâche devait lever, et ce qu'elle lève vraiment
+
+P5-07 avait nommé un manque en le laissant ouvert : *rien ne distingue à l'écran une scène qui n'a
+jamais monté d'une scène tombée.* `mount-state.ts` porte la cause depuis — `chunk`, `render`,
+`context-lost` — et personne ne l'affichait. Le panneau est le premier endroit où l'état réel de la
+scène se lit.
+
+### 9.2 Les deux arbitrages, posés avant la première ligne
+
+| # | Sujet | Décision | Ce qui la rouvre |
+|---|---|---|---|
+| 1 | Qui voit le panneau | **`?debug=scene`, chargé dynamiquement.** Il reste utilisable **sur le site déployé** — ce qui compte, puisqu'une scène tombée y est rigoureusement invisible. Le site étant derrière Access, personne d'autre n'y accède | L'ouverture du site au public : le paramètre deviendrait accessible à tous, sans danger mais sans discrétion |
+| 2 | « FPS », que l'intitulé demandait | **Remplacé par le coût de la dernière image et le nombre d'images rendues.** En `frameloop="demand"`, une scène saine et immobile rend **zéro image par seconde** : afficher « 0 FPS » serait un instrument qui se lit à l'envers | P6-04, qui fera tourner une vraie boucle pendant les transitions — un FPS y redeviendra mesurable, et il faudra le mesurer |
+
+### 9.3 ⛔⛔ Ce que les assertions ne pouvaient pas voir
+
+Le banc était vert — trois parcours E2E, quinze tests unitaires — quand la **capture** a montré deux
+choses qu'aucun d'eux ne pouvait attraper.
+
+**Le panneau recouvrait la navigation.** En haut à droite, il masquait le lien *Compétences*.
+⭐⭐ `pointer-events: none` gardait le lien **cliquable**, donc tous les parcours passaient : le
+défaut n'était pas fonctionnel, il était **de lisibilité**, et c'est exactement la classe qu'un banc
+ne voit jamais. Déplacé en bas à droite.
+
+**Et surtout : les compteurs affichaient 52 draw calls et 8 182 triangles**, là où le banc certifie
+30 et 4 114 depuis P5-05. Un lecteur en aurait conclu à une régression de la scène.
+
+### 9.4 ⭐⭐⭐ L'écart n'était pas un défaut : c'est la passe d'ombre, et elle vient d'être chiffrée
+
+L'hypothèse — `renderer.info` cumule toutes les passes — a été **mesurée plutôt que supposée**, et la
+mesure tient en une comparaison :
+
+| | Banc (géométrie) | Panneau (rendu) |
+|---|---|---|
+| Desktop `full` | 30 / 4 114 | **52 / 8 182** |
+| Mobile `lite`, **ombres coupées** | 20 / 1 966 | **20 / 1 966** |
+
+⭐⭐⭐ **Au palier où les ombres sont coupées, les deux comptes coïncident exactement.** L'écart est
+donc entièrement la passe d'ombre : **+22 draw calls et +4 068 triangles, soit +73 % de toute la
+géométrie**, pour une seule source qui projette.
+
+Le dossier de scène l'annonçait — *« la contrainte réelle sera le coût des ombres, pas la
+géométrie »* — sans jamais l'avoir chiffré. C'est fait. Les libellés portent désormais « toutes
+passes » : sans ces deux mots, le panneau produit une fausse alarme à chaque lecture.
+
+⭐⭐ *Deux mesures justes peuvent se contredire tant qu'on n'a pas dit ce que chacune compte.* Le
+banc décrit **la scène**, le panneau décrit **ce que le GPU fait de la scène**.
+
+### 9.5 ⛔⛔ Un observateur ne peut pas mesurer une scène qui dort sans la réveiller
+
+Premier échec du banc E2E, et il est structurel : le panneau restait bloqué sur « aucune image
+mesurée » **au-dessus d'une scène parfaitement rendue**.
+
+La cause est `frameloop="demand"` : le canvas rend son image au montage, la sonde — chargée
+dynamiquement — arrive **après**, et plus rien ne demande d'image. `useFrame` n'était donc jamais
+appelé. La sonde réclame désormais **une** image au montage (`invalidate()`).
+
+⛔ **Une seule, et c'est délibéré** : invalider en boucle transformerait `demand` en `always`,
+c'est-à-dire détruirait la propriété même qu'on cherche à observer. Les relevés suivants viennent de
+ce que la scène rend de toute façon.
+
+### 9.6 ⛔ « Zéro octet pour un visiteur ordinaire » était faux, et la mesure l'a dit
+
+L'intention était que le panneau ne coûte rien à qui ne le demande pas. Le relevé a démenti la
+formule : **10,8 → 11,3 Ko** par route.
+
+⭐⭐ **Un module est indivisible du point de vue d'un bundler.** `shouldShowDiagnostics` doit être lue
+par le montage, qui vit dans le chunk de première visite — et cet import statique y tirait
+`diagnostics.ts` **en entier**, formatage des relevés compris. Vérifié en lisant les source maps des
+chunks servis, où `state/diagnostics.ts` figurait noir sur blanc.
+
+L'aiguillage a donc son propre fichier, `debug-flag.ts`. Après séparation : **11,0 Ko**.
+
+| | JS par route |
+|---|---|
+| Avant P5-08 | 10,8 Ko |
+| Module unique | 11,3 Ko |
+| **Aiguillage séparé** | **11,0 Ko** |
+
+⚠️ **Il reste +0,2 Ko, et c'est irréductible** : lire l'URL et déclarer deux imports dynamiques a un
+coût. La formule juste n'est donc pas « zéro octet » mais *« le panneau n'est pas chargé ; son
+interrupteur pèse 0,2 Ko »*.
+
+### 9.7 ⚠️ Deux remplacements de texte ont échoué EN SILENCE
+
+Méthode, pas code, mais la tâche l'a payé deux fois : un `str.replace` dont le motif ne correspond
+pas ne dit **rien** et rend le fichier inchangé. La première fois, la correction d'un caractère
+invisible (espace fine U+202F) n'a pas été appliquée — et **les tests sont restés verts**, puisqu'ils
+attendaient précisément ce que l'ancien code produisait. Seul ESLint l'a signalé.
+
+⭐⭐ C'est le mode de panne que ce fichier même dénonce pour le prompt de reprise : *« deux mises à
+jour successives étaient des remplacements de texte sans vérification, donc des no-op silencieux »*.
+Tous les remplacements de cette tâche portent désormais une assertion, ou passent par un index de
+ligne vérifié.
+
+### 9.8 Relevés
+
+| Relevé | Valeur | Seuil |
+|---|---|---|
+| Socle partagé | 127,1 Ko *(inchangé)* | cible 136 · bloquant 146 |
+| JS propre à chaque route | **11,0 Ko** *(+0,2)* | cible 25 · bloquant 40 |
+| Tests | **757** verts, couverture **100 %** | ≥ 80 % |
+| E2E de la scène | 8 verts *(3 neufs)* | — |
+| Garde d'isolation (P5-09) | vert, témoin sur **2** chunks porteurs | — |
+
+⭐ Le garde de P5-09 a fait son premier vrai travail : le panneau importe `@react-three/fiber`, et
+c'est lui qui atteste que rien de tout cela n'a fui dans le socle.
+
+### 9.9 Ce que P5-08 laisse ouvert
+
+| Sujet | État |
+|---|---|
+| La **cause** d'une défaillance n'est toujours pas affichée | Le panneau montre une scène **vivante**. Quand elle tombe, `SceneMount` retire tout — panneau compris. Afficher « abandonnée : context-lost » demanderait de le sortir de cette branche : c'est utile, et ce n'est pas fait |
+| Le coût d'une image, sur du matériel réel | **Non mesuré.** 1 à 2 ms sous SwiftShader, sans GPU, ne vaut rien comme prévision. Phase 11 |
+| Le panneau observe une scène qu'il modifie | Assumé et écrit : la sonde reprend la boucle de rendu. Sans `?debug=scene`, aucun visiteur n'est concerné |
+| Les seuils du §6 de `performance-budget.md` | Toujours **jamais mesurés** — FPS, durée d'image, allocations. Le panneau les rend mesurables ; il ne les mesure pas |
