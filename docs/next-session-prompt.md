@@ -62,15 +62,14 @@ ssh portfolio 'SSH_ORIGINAL_COMMAND="status" /srv/portfolio/deploy.sh' # ce que 
 | P5-03 | `resolveCapability` : quatre paliers, **pur**, et son adaptateur navigateur injectable |
 | P5-04 | Montage du canvas : dynamique, après `idle`, `aria-hidden`, **rien au palier `none`** |
 | P5-05 | **La scène primitive** : le bureau réel, 30 meshes, 4 114 triangles, pour **3 Ko** |
-| P5-07 | **La frontière d'erreur** — et le défaut livré qu'elle a révélé : sans elle, un chunk 3D manquant affichait « Une erreur est survenue » **sur tout le site** |
-| P5-09 | **Le garde d'isolation** : `pnpm bundle` refuse un build dont la première visite porterait un module `three`. ⭐⭐⭐ Il porte un **témoin** — le détecteur doit voir la scène quelque part, sinon il s'accuse lui-même au lieu de rendre un vert |
 | P5-06 | **L'éclairage réglé à l'œil** dans la preview puis recopié — et le cadrage corrigé sous 16:9. ⭐⭐ Le réglage a révélé le travail de P5-05 : **les touches du clavier existent enfin**, les chanfreins accrochent la lumière |
+| P5-07 | **La frontière d'erreur** — et le défaut livré qu'elle a révélé : sans elle, un chunk 3D manquant affichait « Une erreur est survenue » **sur tout le site** |
 | P5-08 | **Le panneau de diagnostic** (`?debug=scene`). ⭐⭐⭐ Il a chiffré ce que le dossier annonçait sans le mesurer : la scène rend **8 182 triangles** pour 4 114 de géométrie — l'écart est **entièrement la passe d'ombre**, +73 % |
+| P5-09 | **Le garde d'isolation** : `pnpm bundle` refuse un build dont la première visite porterait un module `three`. ⭐⭐⭐ Il porte un **témoin** — le détecteur doit voir la scène quelque part, sinon il s'accuse lui-même au lieu de rendre un vert |
 
-La Phase 4 est close (17/17) ; son journal reste la meilleure lecture du dépôt. **Restent P5-06 et
-P5-10, toutes deux REPORTÉES pour une raison écrite** — la première attend ton œil devant
-`preview.html`, la seconde attend que quelque chose anime (P6-04). **La Phase 5 n'a plus de tâche
-exécutable.**
+La Phase 4 est close (17/17) ; son journal reste la meilleure lecture du dépôt. **Seule P5-10
+reste**, reportée après P6-04 : sa moitié est livrée (`frameloop="demand"` depuis P5-04) et l'autre
+est sans objet tant que rien n'anime. **La Phase 5 n'a plus de tâche exécutable.**
 
 ### ⛔⛔ Ce qui fait foi pour juger d'un déploiement
 
@@ -100,21 +99,22 @@ URL, tout le reste rend toujours 302.
 |---|---|---|
 | JS propre à chaque route | **11,0 Ko** — le seul JavaScript applicatif du site | cible 25 · bloquant 40 |
 | Socle partagé | **127,1 Ko** | cible 136 · bloquant 146 |
-| **Chunk 3D différé** | **230,0 Ko** — hors du chemin critique, chargé après `idle` | cible 260 · bloquant 320 |
+| **Chunk 3D différé** | **234,5 Ko** — somme des **deux** chunks porteurs, hors du chemin critique | cible 260 · bloquant 320 |
 | Image de production | **281 Mo** | cible 250 · bloquant 400 |
-| Tests | **757** verts, couverture **100 %** sur les quatre métriques | ≥ 80 % |
+| Tests | **764** verts, couverture **100 %** sur les quatre métriques | ≥ 80 % |
 | E2E | **153** verts sur 5 profils | — |
 | **Ce que le GPU rend** | **52 draw calls · 8 182 triangles** en desktop — la passe d'ombre incluse, soit **+73 %** sur les 4 114 de géométrie | ≤ 60 / ≤ 150 000 |
 
-⚠️ Relevés du **2026-08-24**, après P5-07, mesurés dans le même conteneur et par le même geste
-(`gzip -9`) que la référence à laquelle ils sont comparés. **P5-09 ne les déplace pas** : son diff ne
-contient aucun fichier de `src/`, ce qui se vérifie d'un `git diff --stat src/` plutôt que par une
-seconde mesure.
+⚠️ **Relevés du 2026-08-25, à la clôture de la Phase 5**, tous remesurés ce jour-là dans le même
+conteneur et par le même geste (`gzip -9`). L'image de production est vérifiée par
+`make check-image-size`, les tests par `pnpm vitest run`.
 
-⚠️ **Le chunk 3D vaut 230,8 Ko si l'on gzippe le seul chunk porteur**, contre les 230,0 ci-dessus.
-Les deux chiffres sont justes et ne comptent pas la même chose. Avant de conclure à une dérive de
-0,8 Ko, vérifier ce qui est compté : *deux mesures ne se comparent que si leurs entrées ne diffèrent
-que par ce qu'on mesure.*
+⛔⛔ **Le chunk 3D n'est plus UN chunk depuis P5-08** : l'import dynamique du panneau l'a scindé en
+deux (225,4 + 9,1 Ko). Les 234,5 ci-dessus sont leur somme, mesurée à la clôture de la phase. Les
+relevés antérieurs — 226, 229, 230,0, 230,8 — comptaient **un seul fichier** : ils ne se comparent
+pas à celui-ci, et une « dérive de 4 Ko » lue entre eux serait un artefact de méthode.
+⭐ Le garde de P5-09 énumère les chunks porteurs à chaque build : c'est lui qui dit combien il y en a,
+plutôt qu'une hypothèse.
 
 ⛔⛔ **Le « 8,2 Ko par route » qu'annonçait ce tableau était périmé de 2,3 Ko** : remesuré sur `main`
 sans une ligne de P5-07, il vaut **10,5**. C'est la **deuxième** dérive du même chiffre — P4-12 avait
@@ -211,15 +211,6 @@ mets l'ADR à jour et ajoute une ligne au journal des révisions. Jamais de chan
 - Documentation et échanges en français ; identifiants, code et noms de fichiers en anglais.
 
 ## Ta mission cette session
-
-**P5-06 est REPORTÉE, et ce n'est pas un retard : c'est une décision du 2026-08-24.** Ses quatre
-intensités — exposition, hémisphérique, directionnelle, ponctuelle — sont *les seules valeurs du
-dossier de scène que ni le calcul ni Blender ne tranchent*. Elles se règlent au curseur dans
-`preview.html`, qui recrache les lignes à recopier. ⛔ **Ne les ajuste pas au jugé dans le code** :
-c'est la seule mesure du projet qui demande un œil, et l'outil pour la prendre existe déjà.
-Le reste de P5-06 est cadré et t'attend : « environnement minimal » est **tranché — rien de plus que
-le décor actuel** (le dossier dit « trois sources, pas une de plus »), et le volet caméra porte un
-défaut **mesuré**, décrit ci-dessous.
 
 **La Phase 5 est close : ouvre la Phase 6.** Seule P5-10 reste, reportée après P6-04. Tout le reste
 est livré et mesuré.
@@ -583,6 +574,15 @@ que tu as écrit — c'est la règle que ce fichier applique au code, appliquée
 
 ⭐ Et **une seule copie de chaque chiffre** : ce fichier a porté le tableau de mesures deux fois, et
 les deux avaient divergé.
+
+⛔⛔ **Une mise à jour PARTIELLE laisse un fichier qui se contredit lui-même, et c'est pire qu'un
+fichier périmé.** Constaté le 2026-08-25, sur question de l'exploitant : la section « État »
+annonçait P5-06 close et la livrait dans son tableau, pendant que le paragraphe **six lignes plus
+bas** disait « Restent P5-06 et P5-10, toutes deux REPORTÉES », et que la section « Ta mission »
+expliquait encore comment la régler. Trois endroits, une seule vérité, deux versions.
+⭐ Le remède tient en une habitude : après toute édition, **`grep` l'identifiant qu'on vient de
+changer** — `grep -n "P5-06" docs/next-session-prompt.md` — plutôt que de relire de mémoire le
+passage qu'on croit unique.
 
 Mettre à jour dans le bloc ci-dessus :
 
