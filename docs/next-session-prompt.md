@@ -74,7 +74,7 @@ ssh portfolio 'SSH_ORIGINAL_COMMAND="status" /srv/portfolio/deploy.sh' # ce que 
 
 | Tâche | Ce qu'elle a livré |
 |---|---|
-| P6-01 | **`resolveSceneState(pathname)`**, pure, 23 tests, 100 %. ⭐⭐ La règle tient en une phrase : elle lit la **FORME** de l'URL, jamais l'**EXISTENCE** de ce qu'elle nomme — `scene → content` est interdit, donc `detail` **nomme** sans vérifier |
+| P6-01 | **`resolveSceneState(pathname)`**, pure, 100 %. ⭐⭐ La règle tient en une phrase : elle lit la **FORME** de l'URL, jamais l'**EXISTENCE** de ce qu'elle nomme — `scene → content` est interdit, donc `detail` **nomme** sans vérifier |
 
 ⛔ **Elle n'a encore aucun appelant**, et c'est voulu : P6-02 la consomme, P6-07 l'expose au DOM.
 « Socle et route inchangés » n'affirme donc rien de plus que ce qui est écrit — le vrai relevé se
@@ -114,14 +114,14 @@ URL, tout le reste rend toujours 302.
 | Socle partagé | **127,1 Ko** | cible 136 · bloquant 146 |
 | **Chunk 3D différé** | **234,5 Ko** — somme des **deux** chunks porteurs, hors du chemin critique | cible 260 · bloquant 320 |
 | Image de production | **281 Mo** | cible 250 · bloquant 400 |
-| Tests | **787** verts, couverture **100 %** sur les quatre métriques | ≥ 80 % |
+| Tests | **803** verts, couverture **100 %** sur les quatre métriques | ≥ 80 % |
 | E2E | **153** verts sur 5 profils | — |
 | **Ce que le GPU rend** | **52 draw calls · 8 182 triangles** en desktop — la passe d'ombre incluse, soit **+73 %** sur les 4 114 de géométrie | ≤ 60 / ≤ 150 000 |
 
 ⚠️ **Relevés du 2026-08-25, à la clôture de la Phase 5**, tous remesurés ce jour-là dans le même
 conteneur et par le même geste (`gzip -9`). L'image de production est vérifiée par
 `make check-image-size`, les tests par `pnpm vitest run`.
-⭐ **Trois lignes ont été remesurées le 2026-08-26 (P6-01)** : les tests (**787**, +23), le socle
+⭐ **Trois lignes ont été remesurées le 2026-08-26 (P6-01)** : les tests (**803**, +39), le socle
 (**127,1 Ko**) et le JS par route (**11,0 Ko**) — les deux derniers **inchangés**, ce qui n'affirme
 rien d'autre que ce qui est écrit : le module de P6-01 n'a pas encore d'appelant, donc il n'entre
 dans aucun chunk.
@@ -265,17 +265,31 @@ la Phase 4 venait du **site réel** (P4-16, 98/100), donc incomparable à un rel
 Lighthouse contre les deux, sur la même machine, à quelques minutes d'écart. C'est cette mesure qui a
 montré que la chute de 23 points ne touche **ni le LCP ni le CLS**.
 
-✅ **P6-01 est livrée** (2026-08-26) — `resolveSceneState(pathname)`, pure, 23 tests, 100 %.
-⭐⭐ **Ce qu'elle établit et qui gouverne P6-02 et P6-03** : la fonction lit la **FORME** de l'URL,
-jamais l'**EXISTENCE** de ce qu'elle nomme. Une forme qu'aucune route ne sert — locale inconnue,
-segment de section inconnu, plus profond qu'une entité — rend `overview` ; une forme servie rend sa
-section, avec le nom que l'URL porte, **sans vérifier** qu'une entité s'y trouve (`scene → content`
-est interdit).
-⛔⛔ **Deux pièges pour P6-03, tous deux déjà payés en P6-01** : le segment de section se résout par
-`routeSegments[locale]`, **jamais par un littéral** — la table est l'identité en v1 (ADR-0005), donc
-un `'projects'` écrit en dur serait vert aujourd'hui et faux le jour où `/fr/projets` existe ; et
-`entityPath` **encode** le slug, donc l'aller-retour n'est vrai que parce que `resolveSceneState`
-décode.
+✅ **P6-01 est livrée** (2026-08-26) — `resolveSceneState(pathname)`, pure, 100 % de couverture.
+⭐⭐ **La règle qu'elle établit, et qui gouverne P6-02 et P6-03** : la chaîne lit la **FORME** de
+l'URL, jamais l'**EXISTENCE** de ce qu'elle nomme. Une forme qu'aucune route ne sert — locale inconnue,
+segment de section inconnu, **section sans fiche d'entité**, plus profond qu'une entité — rend
+`overview` ; une forme servie rend sa section, avec le nom que l'URL porte, **sans vérifier** qu'une
+entité s'y trouve (`scene → content` est interdit).
+⛔⛔ **La revue a trouvé cette règle appliquée à moitié, deux fois** : `/fr/skills/typescript` cadrait
+Compétences (les compétences n'ont pas de fiche — `SECTIONS_WITH_DETAIL`), et `/fr/projects/augure/`
+rendait la vue d'ensemble sur une page **servie en 200**. ⭐⭐ *Un périmètre dérivé ne garde que la
+dimension dont il est dérivé* : le banc bouclait sur `SECTIONS` sans jamais croiser
+`SECTIONS_WITH_DETAIL`.
+⭐⭐⭐ **Et le plus utile pour toi : la LECTURE d'URL n'est pas dans `scene`.** `parsePagePath` vit
+dans `src/routing/paths.ts`, contre `pathFor` dont elle est l'inverse ; `resolveSceneState` n'en est
+qu'une projection de neuf lignes. **P6-03 n'a donc pas de second inverse à écrire** : l'aller-retour
+qu'exige `testing-strategy.md` §4.3 est déjà une propriété de `routing`, éprouvée sur
+`pathFor ∘ parsePagePath = id` pour toutes les locales et tous les lieux.
+⛔ Deux pièges déjà payés, à ne pas repayer : le segment de section se résout par
+`sectionForSegment(locale, segment)`, **jamais par un littéral** — la table `routeSegments` est
+l'identité en v1 (ADR-0005), donc un `'projects'` écrit en dur serait vert aujourd'hui et faux le
+jour où `/fr/projets` existe ; et `entityPath` **encode** le slug, donc l'aller-retour n'est vrai que
+parce que la lecture décode.
+⚠️ **Un constat de revue nommé et NON traité** : `entityPath('fr', 'skills', 'x')` compile et
+fabrique une adresse que le site ne sert nulle part — `entityPath` et `PageLocation.entity` prennent
+`Section`, pas `SectionWithDetail`. La contrainte est tenue par **trois** itérations indépendantes.
+Resserrer les deux types est la forme profonde, et touche `src/seo` et `src/app`.
 ⭐ **Le mapping ne s'énumère pas, il se dérive** : `SceneFocus = 'overview' | Section`, et le banc
 boucle sur `SECTIONS` × `LOCALES`. P6-02 doit tenir la même exigence par un `Record<SceneFocus,
 ViewId>`, jamais une suite de `if` — ⚠️ les deux vocabulaires **ne coïncident pas** : `SceneFocus`

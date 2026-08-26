@@ -9,15 +9,24 @@
  * partage d'URL et l'ouverture directe fonctionnent donc par construction, et non
  * par correctif (R-03).
  *
- * ⭐⭐ **Ce fichier ne porte QUE cette fonction, et c'est mesuré, pas esthétique.**
- * `getCameraTarget` (P6-02) devra importer `layout.ts` — le plan coté du bureau
- * entier. Or `resolveSceneState` sera lue par le montage de la scène, qui vit dans
- * le chunk de **première visite** (P6-07, `data-scene-focus`). Les loger ensemble
- * y ferait entrer tout `layout.ts` : *un module est indivisible du point de vue
- * d'un bundler*, ce que P5-08 a payé en 0,5 Ko et vérifié dans les source maps.
+ * ⭐⭐ **La lecture de l'URL n'est pas ici, et c'est la décision de conception de
+ * cette tâche.** `parsePagePath` vit dans `src/routing/paths.ts`, contre `pathFor`
+ * dont elle est l'inverse — c'est la place que ce dépôt donne déjà à
+ * `localeFromPathname` contre `homePath`, pour la raison qu'il y écrit : *le jour
+ * où l'un change, l'autre continue de répondre à l'ancienne question.* Ce fichier
+ * ne garde que ce qui est une décision de **scène** : l'effondrement de tout ce
+ * qui n'est pas un écran vers la vue d'ensemble.
+ *
+ * ⭐ **Ce module reste sans `layout.ts`, et c'est mesuré.** `getCameraTarget`
+ * (P6-02) importera le plan coté du bureau entier, alors que `resolveSceneState`
+ * sera lue depuis le chunk de **première visite** (P6-07, `data-scene-focus`).
+ * *Un module est indivisible du point de vue d'un bundler* — ce que P5-08 a payé
+ * en 0,5 Ko, vérifié dans les source maps. La règle n'est pas « un fichier par
+ * fonction » mais **« rien sur le chemin de première visite ne tire `layout.ts` »**,
+ * et c'est `scripts/check-scene-isolation.mts` qui la mesure, avec témoin.
  */
-import { isLocale, type Locale } from '../../i18n/locales.ts'
-import { SECTIONS, routeSegments, type Section } from '../../routing/sections.ts'
+import { parsePagePath } from '../../routing/paths.ts'
+import type { Section } from '../../routing/sections.ts'
 
 /**
  * Les quatre états de la scène : la vue d'ensemble du bureau, et un écran par
@@ -44,56 +53,40 @@ export interface SceneState {
   readonly detail: string | null
 }
 
-/** La vue d'ensemble, exportée parce que trois appelants la comparent. */
+/**
+ * La vue d'ensemble.
+ *
+ * ⭐ Constante de module, et non un littéral reconstruit : c'est la réponse de
+ * **tous** les chemins de rejet, et son identité `===` permettra à P6-04 de
+ * distinguer « rien n'a changé » sans comparer champ à champ.
+ */
 export const OVERVIEW: SceneState = { focus: 'overview', detail: null }
-
-/**
- * L'inverse de `segmentFor`, **par locale**.
- *
- * ⛔ Le segment ne peut pas être comparé à un littéral : `routeSegments` est
- * l'identité en v1 (ADR-0005), mais elle est précisément le point unique où la
- * traduction des segments aura lieu. Un `'projects'` écrit en dur ici cesserait de
- * résoudre le jour où `/fr/projets` existe, sans que rien ne le dise.
- */
-function sectionForSegment(locale: Locale, segment: string): Section | null {
-  const segments = routeSegments[locale]
-  return SECTIONS.find((section) => segments[section] === segment) ?? null
-}
-
-/**
- * L'aller-retour de `encodeURIComponent`, que `entityPath` applique à tout slug.
- *
- * ⛔ Un échappement tronqué — `%E0%A4%A` — fait **jeter** `decodeURIComponent`.
- * Aucun encodage ne l'a produit, donc il ne désigne aucune entité : la section
- * reste, l'entité est nulle. Laisser l'exception remonter ferait tomber la scène
- * entière sur une adresse tapée à la main.
- */
-function slugFromSegment(segment: string): string | null {
-  try {
-    return decodeURIComponent(segment)
-  } catch {
-    return null
-  }
-}
 
 /**
  * L'état de scène que désigne un **chemin** — sans requête ni fragment, tel que
  * le rend `usePathname()`.
  *
- * ⭐⭐ **Elle lit la FORME de l'URL, jamais l'EXISTENCE de ce qu'elle nomme.** Une
- * forme qu'aucune route ne sert — locale inconnue, segment de section inconnu,
- * plus profond qu'une entité — rend la vue d'ensemble. Une forme servie rend sa
- * section, avec le nom que l'URL porte.
+ * ⭐⭐ **Tout ce qui n'est pas un écran est la vue d'ensemble**, et c'est la seule
+ * décision que ce module prend. Elle recouvre deux cas que rien ne rapproche
+ * ailleurs : l'accueil, qui est une page bien servie mais ne cadre aucun écran,
+ * et les adresses que le site ne sert dans aucune langue, dont `parsePagePath`
+ * rend `null`.
+ *
+ * ⛔ Elle ne recouvre **pas** le troisième cas, et c'est l'arbitrage de la tâche :
+ * une adresse **servie en forme** dont l'entité n'existe pas garde sa section.
+ * `detail` nomme ce que l'URL porte, il ne vérifie pas.
  */
 export function resolveSceneState(pathname: string): SceneState {
-  const [, locale = '', section = '', slug = '', ...reste] = pathname.split('/')
+  const page = parsePagePath(pathname)
+  if (page === null) return OVERVIEW
 
-  if (!isLocale(locale) || reste.length > 0) return OVERVIEW
-
-  const focus = sectionForSegment(locale, section)
-  if (focus === null) return OVERVIEW
-
-  // Une barre finale laisse un segment vide : `/fr/projects/` désigne la section,
-  // pas une entité dont le nom serait la chaîne vide.
-  return { focus, detail: slug === '' ? null : slugFromSegment(slug) }
+  const { location } = page
+  switch (location.kind) {
+    case 'home':
+      return OVERVIEW
+    case 'section':
+      return { focus: location.section, detail: null }
+    case 'entity':
+      return { focus: location.section, detail: location.slug }
+  }
 }

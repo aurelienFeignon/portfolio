@@ -120,8 +120,12 @@ S'y ajoutent trois vérifications héritées, qui deviennent réelles ici :
 ## 7. P6-01 — l'état de scène, dérivé de l'URL et de rien d'autre
 
 **Livré le 2026-08-26.** `src/scene/state/scene-state.ts` : `SceneFocus`, `SceneState`, `OVERVIEW`,
-`resolveSceneState(pathname)`. Pure, sans Three.js, sans lecture du contenu. **23 tests**, couverture
-**100 %** sur les quatre métriques.
+`resolveSceneState(pathname)`. Pure, sans Three.js, sans lecture du contenu.
+
+⭐⭐ **La lecture de l'URL n'est pas dans `scene`, et c'est la décision de conception de la tâche** —
+prise en passe de simplification, voir §7.7. `parsePagePath` vit dans `src/routing/paths.ts`, contre
+`pathFor` dont elle est l'inverse ; `resolveSceneState` n'en est qu'une **projection de neuf
+lignes**. Couverture **100 %** sur les quatre métriques, dans les deux couches.
 
 ### 7.1 ⭐⭐ La règle tient en une phrase : la FORME, jamais l'EXISTENCE
 
@@ -131,7 +135,7 @@ que la scène ne peut pas devenir une seconde source de contenu (ADR-0001).
 
 | Ce que l'URL montre | Verdict | Pourquoi |
 |---|---|---|
-| Une forme qu'**aucune route ne sert** — locale inconnue, segment de section inconnu, plus profond qu'une entité | `overview` | Le site ne sert rien à cette adresse, dans aucune langue |
+| Une forme qu'**aucune route ne sert** — locale inconnue, segment de section inconnu, **section sans fiche d'entité**, plus profond qu'une entité | `overview` | Le site ne sert rien à cette adresse, dans aucune langue |
 | Une forme **servie**, dont l'entité n'existe pas | La section, `detail` = ce que l'URL nomme | Le visiteur est réellement dans cette zone ; la 404 qu'il voit ne change pas où il se trouve |
 
 ⭐ **Les deux moitiés de cette règle sont les arbitrages 1 et 2 de §3**, et elles ne se déduisent
@@ -170,13 +174,24 @@ précisément le seul endroit que ce changement doit toucher.
 Le banc a d'abord échoué faute de module — ce qui ne prouve rien d'autre que son existence. Chaque
 propriété a donc été éprouvée séparément, en cassant le code une fois par propriété :
 
+**Quatorze mutations, toutes tuées**, réparties sur les trois fichiers après la relocalisation :
+
 | Mutation | Verdict |
 |---|---|
-| La locale n'est plus validée | **tuée** — 3 tests |
+| La barre finale n'est plus retirée | **tuée** — 3 tests |
+| Elle en retire **deux** au lieu d'une | **tuée** — 1 test |
+| La locale n'est plus validée | **tuée** — 4 tests |
 | La profondeur n'est plus bornée | **tuée** — 2 tests |
+| L'accueil n'est plus distingué d'une section | **tuée** — 2 tests |
+| Un segment de section inconnu est accepté | **tuée** — 3 tests |
+| La section est avalée par la fiche d'entité | **tuée** — 3 tests |
+| La fiche d'entité n'est exigée nulle part | **tuée** — 2 tests |
 | Le slug n'est plus décodé | **tuée** — 2 tests |
-| Le segment vide devient une entité | **tuée** — 8 tests |
-| La section retombe sur une valeur par défaut | **tuée** — 7 tests |
+| Toute section porterait une fiche | **tuée** — 1 test |
+| Le segment est mal inversé | **tuée** — 3 tests |
+| L'accueil cadre un écran | **tuée** — 4 tests |
+| `detail` est jeté | **tuée** — 2 tests |
+| `OVERVIEW` est reconstruit au lieu d'être rendu | **tuée** — 1 test |
 
 ⭐ Le harnais **vérifie que la mutation s'est appliquée** (comptage du motif, `assert` sur
 l'unicité) et **distingue un échec de chargement d'un échec de test** : sans ces deux contrôles, une
@@ -187,8 +202,9 @@ rien se lit comme un code sain. Les deux pièges sont documentés dans ce dépô
 
 | Relevé | Avant | Après | |
 |---|---|---|---|
-| Tests | 764 | **787** | +23 |
+| Tests | 764 | **803** | +39 |
 | Couverture `src/scene/state` | 100 % | **100 %** | seuil 95 % |
+| Couverture `src/routing` | 100 % | **100 %** | seuil 95 % |
 | Socle partagé | 127,1 Ko | **127,1 Ko** | inchangé |
 | JS propre à chaque route | 11,0 Ko | **11,0 Ko** | inchangé |
 | Isolation de la scène (P5-09) | ✓ | **✓** | témoin : 2 chunks différés porteurs |
@@ -198,7 +214,80 @@ aujourd'hui, donc il n'entre dans aucun chunk. Le vrai relevé se prendra en **P
 `data-scene-focus` l'amènera dans le chemin de première visite. Écrire ici « le mapping ne coûte
 rien » serait la forme d'affirmation que la Phase 5 a appris à ne pas croire sur parole.
 
-### 7.6 Ce que P6-01 laisse ouvert
+### 7.6 ⛔⛔ Ce que la revue a changé — deux URL de la même classe, deux verdicts opposés
+
+Les deux constats sont de la **même famille**, et c'est ce qui les rend intéressants : la règle de
+§7.1 était écrite juste et **appliquée à moitié**. Tous deux ont été reproduits avant d'être crus —
+le second en lisant `src/proxy.ts`, qui tranche la question.
+
+1. ⛔ **`/fr/skills/typescript` cadrait l'écran Compétences.** Les compétences n'ont **pas** de page
+   de détail en v1 : `SECTIONS_WITH_DETAIL` les exclut, `src/app/[locale]/skills` n'a pas de
+   `[slug]`, et le proxy y réécrit une 404. C'est donc une *forme qu'aucune route ne sert*, qui
+   devait rendre `overview` — comme `/fr/projects/augure/extra` le faisait déjà. **Deux URL de la
+   même classe, deux verdicts opposés**, dans le module qui documente la règle en tête de fichier.
+   ⭐⭐ **Le banc ne pouvait pas le voir** : il dérivait son périmètre de `SECTIONS` et ne croisait
+   jamais `SECTIONS_WITH_DETAIL`. *Un périmètre dérivé ne garde que la dimension dont il est
+   dérivé* — c'est la leçon 5 de la Phase 4, rencontrée du côté où elle ne se voit pas.
+2. ⛔ **`/fr/projects/augure/` rendait la vue d'ensemble** sur une page **servie en 200**. La barre
+   finale était absorbée derrière une section (cas codé et testé) et **perdue** derrière un slug, où
+   elle comptait comme un segment de trop. `src/proxy.ts` pose pourtant l'équivalence au caractère
+   près — `pathname.replace(/\/$/, '')`, « une barre finale désigne la même page ».
+   ⭐ **Le correctif est de retirer la barre une fois, en tête**, plutôt que de la traiter à deux
+   endroits : une règle écrite deux fois est une règle qui ne vaut qu'à un endroit sur deux.
+
+⭐ Les deux propriétés neuves sont entrées **avec leurs mutations** : « toute section porterait une
+fiche » et « la barre finale n'est plus retirée » sont tuées, comme les six autres.
+
+### 7.7 ⭐⭐⭐ Ce que la passe de simplification a changé — la lecture d'URL remonte dans `routing`
+
+Quatre angles ont été passés. **L'efficacité n'a rien rendu, et c'est mesuré** : les quatre pistes
+possibles valent ~100 ns par appel réunies — cinq ordres de grandeur sous une image — et deux
+d'entre elles coûteraient des octets dans le chunk de première visite pour ce gain. La fermeture du
+module fait **702 octets gzip** et ne tire rien d'inattendu : ni `sections.ts` ni `locales.ts`
+n'importent quoi que ce soit à l'exécution. Pas de P5-08 ici.
+
+**L'altitude, elle, a rendu un verdict, et l'argument qui l'emporte était écrit dans le dépôt.**
+
+⛔⛔ **`src/routing/sections.ts` documente noir sur blanc qu'un segment de section n'est *jamais* une
+chaîne à valider** — « c'est un dossier de l'App Router, donc une valeur littérale du code », note
+posée en revue avec le retrait d'un `isSection`. Or `sectionForSegment` est exactement le lecteur que
+cette note déclarait inutile, et il avait été écrit dans `scene`, sans rouvrir la décision. ⭐⭐ **Une
+décision argumentée qu'on contourne au lieu de l'amender est pire qu'une décision fausse** : la
+prochaine revue relit la note, la croit, et referme le sujet. Elle est **amendée** — la note reste
+vraie de la *construction*, elle a cessé de l'être de la *lecture*, et la différence est écrite là où
+elle se pose.
+
+De là, trois duplications tombaient d'elles-mêmes :
+
+| Ce qui était écrit deux fois | Où c'est écrit une fois maintenant |
+|---|---|
+| `pathname.replace(/\/$/, '')` — l'équivalence de la barre finale, **mot pour mot** dans `src/proxy.ts` | `withoutTrailingSlash` dans `paths.ts`, appelée par les deux |
+| `isLocale(pathname.split('/')[1])` — ce que fait déjà `localeFromPathname` | `localeFromPathname`, dont `paths.ts` dit qu'elle est le point unique |
+| `(SECTIONS_WITH_DETAIL as readonly Section[]).includes(…)`, y compris dans le banc | `isSectionWithDetail`, garde de type dans `sections.ts` |
+
+⭐⭐ **La première est celle qui coûtait le plus cher** : le commentaire citait `src/proxy.ts` comme
+autorité, mais *un commentaire n'est pas un lien*. Le jour où le proxy passe de l'équivalence à une
+redirection — ou où `next.config` adopte `trailingSlash` —, la scène aurait gardé l'ancienne règle et
+cadré la mauvaise zone sur une page servie en 200, **sans un rouge**. C'est le motif que §7.6 venait
+de corriger *à l'intérieur* du module, réintroduit **entre** modules.
+
+⭐⭐⭐ **Le résultat est que `parsePagePath` est l'inverse manquant de `pathFor`**, à la place que ce
+dépôt donne déjà à `localeFromPathname` contre `homePath`. Bénéfice immédiat pour **P6-03** :
+l'aller-retour qu'exige `testing-strategy.md` §4.3 est désormais une propriété de `routing`, éprouvée
+sur `pathFor ∘ parsePagePath = id` pour toutes les locales et tous les lieux — au lieu d'un second
+inverse à écrire.
+⭐ Et la découpe reste franche : l'effondrement « ce qui n'est pas un écran → `overview` » est une
+décision de **scène**, pas de routage. `parsePagePath` rend `null`, `resolveSceneState` projette.
+
+⚠️ **Un constat de la revue est nommé et NON traité** : `entityPath('fr', 'skills', 'x')` compile et
+fabrique une adresse que le site ne sert nulle part, parce que `entityPath` et `PageLocation.entity`
+prennent `Section` et non `SectionWithDetail`. La contrainte est tenue par **trois** itérations
+indépendantes — le sitemap, le générateur de manifeste, et maintenant la lecture d'URL. Resserrer les
+deux types serait la forme profonde ; c'est un changement de `routing` qui touche `src/seo` et
+`src/app`, donc hors du périmètre de P6-01. Écrit dans `sections.ts`, à l'endroit où la question se
+repose.
+
+### 7.8 Ce que P6-01 laisse ouvert
 
 - **`SceneState` n'est encore lu par personne.** C'est voulu — P6-02 le consomme, P6-07 l'expose —
   mais cela veut dire qu'aucun parcours ne l'exerce : la seule preuve aujourd'hui est unitaire.
@@ -206,6 +295,8 @@ rien » serait la forme d'affirmation que la Phase 5 a appris à ne pas croire s
   (`overview`, `projects`, `skills`), `ViewId` de `layout.ts` parle en français (`accueil`,
   `projets`, `competences`). La correspondance est le cœur de **P6-02**, et elle doit y être
   **exhaustive par le typage** — un `Record<SceneFocus, ViewId>` —, jamais une suite de `if`.
-- ⚠️ **`resolveSceneState` attend un chemin**, sans requête ni fragment — ce que rend `usePathname()`.
-  Rien ne le vérifie à l'exécution, et c'est assumé : le seul appelant prévu est ce hook. Le jour où
-  une autre source alimente cette fonction, la question se repose **là**, pas ici.
+- ⚠️ **`parsePagePath` attend un chemin**, sans requête ni fragment — ce que rend `usePathname()`.
+  Rien ne le vérifie à l'exécution, et c'est assumé : les appelants prévus sont ce hook et le proxy,
+  qui lit `request.nextUrl.pathname`. Le jour où une autre source l'alimente, la question se repose
+  **là**, pas ici.
+- ⚠️ **`entityPath` accepte une section sans fiche d'entité** — voir §7.7, nommé et non traité.

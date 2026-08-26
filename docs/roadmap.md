@@ -1460,8 +1460,12 @@ du score ne touche **ni le LCP ni le CLS**, mais le temps de blocage.
 
 **P6-01 — `resolveSceneState(pathname)`**
 Status: **DONE** (2026-08-26) — `src/scene/state/scene-state.ts` : `SceneFocus`, `SceneState`,
-`OVERVIEW`, `resolveSceneState`. **23 tests, 100 % de couverture**, aucun import Three.js, aucune
-lecture du contenu. Journal : [`phase-6-log.md`](./phase-6-log.md) §7.
+`OVERVIEW`, `resolveSceneState`. **100 % de couverture**, aucun import Three.js, aucune lecture du
+contenu. Journal : [`phase-6-log.md`](./phase-6-log.md) §7.
+⭐⭐⭐ **La lecture de l'URL n'est PAS dans `scene`** : `parsePagePath` vit dans `src/routing/paths.ts`,
+contre `pathFor` dont elle est l'inverse — à la place que ce dépôt donne déjà à `localeFromPathname`
+contre `homePath`. `resolveSceneState` n'en est qu'une **projection de neuf lignes**, et ne garde que
+la décision de scène : l'effondrement de ce qui n'est pas un écran vers la vue d'ensemble.
 ⭐⭐ **La règle tient en une phrase : la fonction lit la FORME de l'URL, jamais l'EXISTENCE de ce
 qu'elle nomme.** Une forme qu'aucune route ne sert — locale inconnue, segment de section inconnu,
 plus profond qu'une entité — rend `overview` ; une forme servie rend sa section, avec le nom que
@@ -1477,7 +1481,22 @@ cesserait de résoudre le jour où `/fr/projets` existe — sans que rien ne le 
 ⛔ **`decodeURIComponent` jette** sur un échappement tronqué, qu'aucun encodage n'a pu produire :
 l'exception ferait tomber la scène sur une adresse tapée à la main. Rattrapée — la section reste,
 l'entité est nulle.
-⭐ Éprouvé par **cinq mutations, toutes tuées**, avec un harnais qui vérifie que la mutation s'est
+⛔⛔ **La revue a trouvé la règle écrite juste et appliquée à moitié** : `/fr/skills/typescript`
+cadrait l'écran Compétences alors que les compétences n'ont **pas** de fiche
+(`SECTIONS_WITH_DETAIL`), et `/fr/projects/augure/` rendait la vue d'ensemble sur une page **servie
+en 200**. ⭐⭐ Le banc ne pouvait voir ni l'un ni l'autre : il dérivait son périmètre de `SECTIONS`
+sans jamais croiser `SECTIONS_WITH_DETAIL`, et la barre finale était traitée à **deux** endroits —
+donc juste à un seul. *Un périmètre dérivé ne garde que la dimension dont il est dérivé.*
+⛔⛔ **`sections.ts` déclarait qu'un segment de section n'est *jamais* une chaîne à valider** — vrai
+de la construction, faux de la **lecture** d'une URL. La note est **amendée**, pas contournée : une
+décision argumentée qu'on contourne en silence est relue et crue par la revue suivante.
+⭐⭐ Trois duplications supprimées au passage, dont `pathname.replace(/\/$/, '')` écrit **mot pour
+mot** dans `src/proxy.ts` — un commentaire citait le proxy comme autorité, mais *un commentaire n'est
+pas un lien*. `withoutTrailingSlash` est désormais partagée.
+⭐⭐⭐ **Bénéfice pour P6-03** : l'aller-retour qu'exige `testing-strategy.md` §4.3 est devenu une
+propriété de `routing` — `pathFor ∘ parsePagePath = id`, éprouvée sur toutes les locales et tous les
+lieux — au lieu d'un second inverse à écrire.
+⭐ Éprouvé par **quatorze mutations, toutes tuées**, avec un harnais qui vérifie que la mutation s'est
 appliquée et qui distingue un échec de chargement d'un échec de test.
 ⚠️ **« Socle et route inchangés » n'affirme rien de plus que ce qui est écrit** : ce module n'a
 aucun appelant, donc il n'entre dans aucun chunk. Le vrai relevé se prend en **P6-07**.
@@ -1485,6 +1504,7 @@ aucun appelant, donc il n'entre dans aucun chunk. Le vrai relevé se prend en **
 Acceptance:
 - Décision **pure**, sans Three.js et sans lecture du contenu, testable en Vitest.
 - Mapping écran ↔ section **dérivé** de `routing`, jamais recopié — un ajout non mappé rougit.
+- La lecture d'URL vit **contre sa construction**, pas dans la couche qui la consomme.
 - Les formes qu'aucune route ne sert distinguées de celles dont l'entité n'existe pas.
 - Chaque propriété **vue rouge** avant d'être crue.
 

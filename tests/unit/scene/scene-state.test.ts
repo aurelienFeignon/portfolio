@@ -1,15 +1,14 @@
 /**
  * P6-01 — l'état de scène, dérivé de l'URL et de rien d'autre.
  *
- * ADR-0002 : *l'URL décide, la scène suit*. Ce banc tient le premier maillon —
- * `resolveSceneState`, pure, sans Three.js, sans lecture du contenu.
+ * ADR-0002 : *l'URL décide, la scène suit*.
  *
- * ⭐ **La règle tient en une phrase, et c'est elle qu'on éprouve** : la fonction
- * lit la **forme** de l'URL, jamais l'**existence** de ce qu'elle nomme. Une
- * forme qu'aucune route ne sert rend `overview` ; une forme servie rend sa
- * section, avec le nom que l'URL porte — que l'entité existe ou non, ce que
- * cette couche ne peut pas savoir (`scene → content` est interdit,
- * `architecture.md` §1.2).
+ * ⭐ **Ce banc n'éprouve pas la lecture d'URL**, qui vit dans `src/routing/paths.ts`
+ * avec `pathFor` dont elle est l'inverse, et qui est tenue par
+ * `tests/unit/routing/paths.test.ts` — décodage des slugs, barre finale,
+ * profondeur, sections sans fiche d'entité. Ce qui est ici est la seule décision
+ * de **scène** : ce que chaque endroit du site fait cadrer, et ce qui s'effondre
+ * vers la vue d'ensemble.
  */
 import { describe, expect, it } from 'vitest'
 
@@ -55,12 +54,15 @@ describe('le mapping écran ↔ section, dérivé et non énuméré', () => {
     }
 
     it(`${homePath(locale)} → la vue d’ensemble`, () => {
+      // ⛔ L'accueil est une page bien SERVIE, et il ne cadre pourtant aucun
+      // écran : c'est le second cas que la vue d'ensemble recouvre, et rien ne
+      // le rapproche du premier ailleurs.
       expect(resolveSceneState(homePath(locale))).toEqual(OVERVIEW)
     })
   }
 })
 
-describe('ce que la fonction ne peut pas savoir, et n’affirme donc pas', () => {
+describe('ce que la scène ne peut pas savoir, et n’affirme donc pas', () => {
   it('⭐ garde la section quand l’entité n’existe pas — `detail` NOMME, il ne vérifie pas', () => {
     // Le proxy réécrit cette adresse vers la 404, mais l'URL affichée reste
     // celle-ci. La couche scène ne peut pas lire `content/` : elle rend ce que
@@ -70,62 +72,23 @@ describe('ce que la fonction ne peut pas savoir, et n’affirme donc pas', () =>
       detail: 'inexistant',
     })
   })
-
-  it('décode le slug, parce que `entityPath` l’encode — la propriété est l’aller-retour', () => {
-    const chemin = entityPath('fr', 'projects', 'été 2026')
-
-    expect(chemin).not.toContain('é')
-    expect(resolveSceneState(chemin)).toEqual({ focus: 'projects', detail: 'été 2026' })
-  })
-
-  it('⛔ un échappement impossible ne nomme aucune entité, et ne jette pas', () => {
-    // `%E0%A4%A` est tronqué : aucun encodage ne l'a produit, donc il ne désigne
-    // rien. La section reste — le visiteur est bien dans Projets, sur rien.
-    expect(resolveSceneState('/fr/projects/%E0%A4%A')).toEqual({
-      focus: 'projects',
-      detail: null,
-    })
-  })
 })
 
-describe('les formes qu’aucune route ne sert rendent la vue d’ensemble', () => {
-  it('⛔ une locale inconnue, même suivie d’un segment de section valide', () => {
-    // `/de/projects` n'existe dans aucune langue : le garde `isLocale` rend une
-    // 404. Et les segments de section sont indexés PAR locale, donc sans locale
-    // valide il n'y a aucune table où chercher.
-    expect(resolveSceneState('/de/projects')).toEqual(OVERVIEW)
+describe('tout ce qu’aucune route ne sert s’effondre vers la vue d’ensemble', () => {
+  it.each([
+    ['une locale inconnue, même suivie d’une section valide', '/de/projects'],
+    ['un segment de section inconnu', '/fr/inconnu'],
+    ['plus profond qu’une entité', '/fr/projects/augure/extra'],
+    ['une compétence, qui n’a pas de page en v1', entityPath('fr', 'skills', 'typescript')],
+  ])('%s', (_label, pathname) => {
+    expect(resolveSceneState(pathname)).toEqual(OVERVIEW)
   })
 
-  it('⛔ une locale en majuscules — `/FR` n’est pas `/fr`', () => {
-    expect(resolveSceneState('/FR/projects')).toEqual(OVERVIEW)
-  })
-
-  it('⛔ plus profond qu’une entité', () => {
-    // `/{locale}/{section}/{slug}` est la route la plus profonde du site.
-    expect(resolveSceneState('/fr/projects/augure/extra')).toEqual(OVERVIEW)
-  })
-
-  it('la racine, et la chaîne vide', () => {
-    expect(resolveSceneState('/')).toEqual(OVERVIEW)
-    expect(resolveSceneState('')).toEqual(OVERVIEW)
-  })
-
-  it('la page introuvable localisée, qui n’est pas une section', () => {
-    expect(resolveSceneState('/fr/404')).toEqual(OVERVIEW)
-  })
-
-  it('une route non-page servie par la même origine', () => {
-    expect(resolveSceneState('/fr/opengraph-image')).toEqual(OVERVIEW)
-  })
-})
-
-describe('les bords de la découpe', () => {
-  it('une barre finale ne change rien — elle ne nomme pas une entité vide', () => {
-    expect(resolveSceneState('/fr/projects/')).toEqual({ focus: 'projects', detail: null })
-    expect(resolveSceneState('/fr/')).toEqual(OVERVIEW)
-  })
-
-  it('une barre doublée n’est pas une route', () => {
-    expect(resolveSceneState('/fr/projects//augure')).toEqual(OVERVIEW)
+  it('⭐ et rend TOUJOURS la même instance, jamais un littéral reconstruit', () => {
+    // P6-04 pourra distinguer « rien n'a changé » par identité, sans comparer
+    // champ à champ. La propriété est gratuite, mais seulement si personne ne
+    // réécrit `{ focus: 'overview', detail: null }` à la main quelque part.
+    expect(resolveSceneState('/de/projects')).toBe(OVERVIEW)
+    expect(resolveSceneState('/fr')).toBe(OVERVIEW)
   })
 })
