@@ -300,3 +300,129 @@ repose.
   qui lit `request.nextUrl.pathname`. Le jour où une autre source l'alimente, la question se repose
   **là**, pas ici.
 - ⚠️ **`entityPath` accepte une section sans fiche d'entité** — voir §7.7, nommé et non traité.
+
+
+---
+
+## 8. P6-03 — l'autre sens du flux, et l'arbitrage qui l'empêche d'être vacant
+
+**Livré le 2026-08-26.** `getRouteForScreen(focus, locale)` et `SCENE_FOCUSES`, dans
+`scene-state.ts`, contre `resolveSceneState` dont ils sont l'inverse. **30 tests** sur le module,
+couverture **100 %**.
+
+### 8.1 ⭐⭐⭐ L'arbitrage, posé avant la première ligne — et ce qu'il évitait
+
+`testing-strategy.md` §4.3 écrit `getRouteForScreen('skills', 'en') → '/en/skills'`, ce qui se lit
+comme *l'un des trois écrans*. Écrite ainsi, la fonction aurait été **un alias d'une ligne de
+`sectionPath`**, et sa propriété d'aller-retour n'aurait rien affirmé que
+`pathFor ∘ parsePagePath = id` — tenu depuis P6-01 — n'affirmait déjà. Le « mapping écran ↔ section
+testé exhaustivement » qu'exige le même paragraphe serait devenu **vacant** : les deux vocabulaires
+sont le même.
+
+| Arbitrage | Décision de l'utilisateur (2026-08-26) | Ce qui la rouvre |
+|---|---|---|
+| Que prend `getRouteForScreen` ? | **Un `SceneFocus`** — les quatre états, `overview` compris | Un état de scène non représentable en URL, ce qu'ADR-0002 traite déjà comme un déclencheur de réexamen |
+
+⭐⭐ **La raison qui emporte n'est pas l'élégance, c'est le nombre de portes.** « Revenir au bureau »
+— touche Échap, clic hors écran (P6-05) — est une navigation comme une autre. Restreinte aux trois
+écrans, la fonction aurait obligé P6-05 à appeler `homePath` **à côté** : ADR-0002 n'aurait plus *un*
+sens de flux mais deux, dans l'ADR même qui n'en veut qu'un. **ADR-0002 est amendé**, avec sa ligne
+au journal des révisions — jamais de changement silencieux.
+
+### 8.2 ⛔⛔ L'aller-retour SEUL ne prouve rien pour `overview`
+
+C'est l'écriture qui l'a montré, pas la relecture. La propriété
+`resolveSceneState(getRouteForScreen(f, l)).focus === f` est satisfaite, pour `f = 'overview'`, par
+**n'importe quelle adresse que le site ne sert pas** — elle s'effondre justement vers la vue
+d'ensemble. `/fr/bureau` passait.
+
+⛔⛔ **Et le trou était DOUBLE** — la seconde moitié trouvée en revue seulement (§8.4 bis) :
+`resolveSceneState` ne rend **pas la langue**, donc `/fr` et `/en` y sont indiscernables. Un
+`homePath('fr')` écrit en dur sur la branche `overview` laissait **toute la suite verte**.
+
+Une seule ligne ferme les deux : **`parsePagePath(route)?.locale === locale`**, qui affirme la page
+*et* sa langue.
+
+⭐⭐⭐ **La leçon, énoncée une fois** : `overview` est la **valeur d'absorption** de cette fonction —
+celle vers laquelle tout ce qui rate s'effondre. *Une propriété écrite sur une valeur d'absorption ne
+garde rien tant qu'on n'assère pas sur ce qui la distingue d'elle-même.* Il a fallu deux passes pour
+en trouver les deux moitiés, et c'est bien le même défaut deux fois.
+
+### 8.3 Deux décisions d'écriture, et leur raison
+
+- ⭐ **Pas de `switch` exhaustif.** `overview` est le seul cas particulier ; *tout le reste est une
+  section par construction*. Un `switch` devrait être rouvert à chaque section ajoutée, alors qu'elle
+  doit précisément suivre toute seule — l'exhaustivité par le typage serait ici un frein, pas un
+  garde.
+- ⭐⭐ **L'exhaustivité du périmètre est tenue par le COMPILATEUR, pas par une assertion.** Une liste
+  dérivée peut **rétrécir en silence** : `['overview', ...SECTIONS]` amputée d'`overview` laissait
+  les boucles vertes — mutation jouée, vue survivante. Le banc dérive donc son périmètre d'un
+  `Record<SceneFocus, true>` littéral : une section ajoutée sans y être déclarée **ne compile pas**
+  (`TS2741`, vérifié), et une clé de trop non plus. ⛔ Un `satisfies readonly SceneFocus[]` ne rend
+  **pas** ce service — il ne contrôle que l'appartenance, jamais la complétude.
+
+⭐ Les deux fonctions vivent dans le **même fichier**, et c'est la règle appliquée à elle-même :
+*l'inverse vit contre l'aller*. Leur empreinte d'import est identique — `routing` seul, pas de
+`layout.ts` —, donc la contrainte de §3.1 est respectée. C'est la démonstration que cette règle porte
+sur l'empreinte et non sur la forme.
+
+### 8.4 Éprouvé par mutation — cinq, dont une vue survivante avant d'être fermée
+
+| Mutation | Verdict |
+|---|---|
+| L'accueil est rendu pour tous les focus | **tuée** — 8 tests |
+| Une route d'accueil **inventée** (`/fr/bureau`) | **tuée** — 3 tests |
+| La locale est figée à `fr`, **fonction entière** | **tuée** — 2 tests |
+| La locale est figée à `fr` **sur la seule branche `overview`** | ⛔ **survivante** au premier banc, **tuée** après le correctif de revue |
+| Le périmètre est amputé de `overview` | **tuée** — 1 test |
+
+### 8.4 bis Ce que la revue et la simplification ont changé
+
+**Le constat de revue portait sur le banc, pas sur le code : la branche `overview` n'était assérée
+qu'en `fr`.** Le cas littéral pinnait `('overview', 'fr')`, la boucle de locales ne parcourait
+que `SECTIONS`, et l'aller-retour — qui joue pourtant `overview × en` — était **aveugle à la langue**
+des deux côtés. Détail par lequel il faut passer : `resolveSceneState('/fr').focus` et
+`resolveSceneState('/en').focus` valent tous deux `'overview'`.
+
+⭐ **Le correctif tient en une ligne et couvre plus large que le trou** : `parsePagePath(route)?.locale
+=== locale`, dans la boucle d'aller-retour, affirme la page **et** sa langue pour les quatre focus et
+les deux locales — au lieu de rajouter un cas littéral pour `('overview', 'en')`.
+⛔ **Une correction du tableau de mutations avec** : §8.4 annonçait « la locale figée » tuée, ce qui
+n'était vrai que de la variante portant sur la fonction entière. La variante restreinte à `overview`
+survivait, et le tableau la porte désormais dans les deux états. ⚠️ Son titre annonçait aussi
+« quatre, toutes tuées » deux lignes au-dessus d'un tableau qui en comptait cinq dont une survivante
+— *un compte écrit une fois puis jamais recompté*, le défaut que ce dépôt dénonce, dans le paragraphe
+qui venait de le corriger.
+
+**Et la simplification a retiré un export spéculatif.** `SCENE_FOCUSES` n'avait **aucun consommateur
+de production**, et n'en aurait pas eu : l'exhaustivité dont P6-02 a besoin est celle d'un
+`Record<SceneFocus, ViewId>`, tenue par le **type**. Quatre documents — ce journal compris — en
+promettaient pourtant une consommation qui n'aurait pas eu lieu.
+⭐⭐ **Le retirer a rendu le banc PLUS fort, pas moins** : le périmètre dérive désormais du
+`Record<SceneFocus, true>` littéral, donc l'exhaustivité est passée de l'`expect` au **compilateur**
+(`TS2741` vérifié en amputant le littéral). Un symbole public, un test et quatre phrases de
+documentation ont disparu ensemble — le signe qu'ils ne servaient qu'à se tenir les uns les autres.
+⭐ *Un export dont le seul appelant est le banc n'est pas une API, c'est une couture du banc rendue
+publique.*
+
+### 8.5 Relevés
+
+| Relevé | Avant | Après | |
+|---|---|---|---|
+| Tests | 803 | **814** | +11 |
+| Couverture `src/scene/state` | 100 % | **100 %** | seuil 95 % |
+| Socle partagé | 127,1 Ko | **127,1 Ko** | inchangé |
+| JS propre à chaque route | 11,0 Ko | **11,0 Ko** | inchangé |
+| Isolation de la scène (P5-09) | ✓ | **✓** | témoin sur 2 chunks différés |
+
+⚠️ Même réserve qu'en §7.5, et elle vaut toujours : **aucun de ces deux modules n'a d'appelant**.
+Le vrai relevé se prend en P6-07.
+
+### 8.6 Ce que P6-03 laisse ouvert
+
+- ⚠️ **Le nom `Screen` n'existe toujours pas dans le code**, et c'est assumé : les trois écrans sont
+  désignés par ce qu'ils **montrent** (`SceneFocus`), pas par leur place. La correspondance avec les
+  dalles physiques — `dalleGauche`, `dalleCentre`, `dallePortable` — vit déjà dans `layout.ts`
+  (`CAMERAS[ViewId].focusNodeId`), en français. **P6-02 est l'endroit où les deux vocabulaires se
+  rencontrent**, par un `Record<SceneFocus, ViewId>` exhaustif. N'en inventer aucun quatrième.
+- ⚠️ `getRouteForScreen` n'a **aucun appelant** : P6-05 est le premier. Sa seule preuve est unitaire.

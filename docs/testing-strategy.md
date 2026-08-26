@@ -109,7 +109,15 @@ getRouteForScreen('skills', 'en')            → '/en/skills'
 ```
 
 - Aller-retour : `getRouteForScreen` puis `resolveSceneState` redonne le même focus (propriété
-  vérifiée sur les trois écrans et les deux locales).
+  vérifiée sur les **quatre focus** — `overview` compris, ADR-0002 amendé en P6-03 — et les deux
+  locales).
+  ⛔⛔ **Et l'aller-retour seul ne suffit pas, deux fois** — parce qu'`overview` absorbe ce qui rate :
+  toute adresse que le site ne sert pas le satisfait, et `resolveSceneState` **ne rend pas la
+  langue**, donc `/fr` et `/en` y sont indiscernables. Il est doublé d'une seconde propriété qui
+  couvre les deux : **`parsePagePath(route)?.locale === locale`** — la route désigne une vraie page,
+  *et* dans la bonne langue.
+  ⭐⭐⭐ *Une propriété écrite sur une valeur d'absorption ne garde rien tant qu'on n'assère pas sur
+  ce qui la distingue d'elle-même.*
 - Le mapping écran ↔ section est testé **exhaustivement** : tout ajout d'écran sans mise à jour du
   mapping échoue.
 - Transitions : durée nulle quand `reduced-motion`, interruption d'une transition en cours,

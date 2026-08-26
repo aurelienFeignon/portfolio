@@ -25,7 +25,8 @@
  * fonction » mais **« rien sur le chemin de première visite ne tire `layout.ts` »**,
  * et c'est `scripts/check-scene-isolation.mts` qui la mesure, avec témoin.
  */
-import { parsePagePath } from '../../routing/paths.ts'
+import type { Locale } from '../../i18n/locales.ts'
+import { homePath, parsePagePath, sectionPath } from '../../routing/paths.ts'
 import type { Section } from '../../routing/sections.ts'
 
 /**
@@ -37,6 +38,20 @@ import type { Section } from '../../routing/sections.ts'
  * qui lui manquerait échoue au typage — c'est l'exhaustivité qu'exige ADR-0002.
  */
 export type SceneFocus = 'overview' | Section
+
+/*
+ * ⛔ **Pas de constante `SCENE_FOCUSES` ici, et c'est une décision.** Une première
+ * écriture en exportait une, `['overview', ...SECTIONS]`, pour que le banc puisse
+ * boucler dessus. Elle n'avait **aucun consommateur de production** et n'en aurait
+ * pas eu : l'exhaustivité dont P6-02 a besoin est celle d'un
+ * `Record<SceneFocus, ViewId>`, tenue par le **type**, jamais par une liste à
+ * l'exécution. Un `satisfies` ne vérifiant pas la complétude, il fallait en plus un
+ * test pour garder la liste — un symbole public et une assertion, tous deux au
+ * service du seul banc. Le banc dérive désormais son périmètre d'un
+ * `Record<SceneFocus, true>` littéral, ce qui déplace l'exhaustivité de l'`expect`
+ * vers le **compilateur** : une section ajoutée sans y être déclarée ne compile
+ * pas. Retiré en passe de simplification (`phase-6-log.md` §8.4 bis).
+ */
 
 export interface SceneState {
   readonly focus: SceneFocus
@@ -89,4 +104,35 @@ export function resolveSceneState(pathname: string): SceneState {
     case 'entity':
       return { focus: location.section, detail: location.slug }
   }
+}
+
+/**
+ * L'autre sens du flux — P6-03, et **le seul** que la scène ait le droit
+ * d'emprunter (ADR-0002).
+ *
+ * ```text
+ * clic sur un écran ──▶ getRouteForScreen(focus, locale) ──▶ router.push(url)
+ *                                                                  │
+ *                              (la route change) ──▶ resolveSceneState ──▶ caméra
+ * ```
+ *
+ * ⛔ **La scène ne bouge pas ici.** Une interaction ne touche ni la caméra ni un
+ * état local : elle demande une URL, et c'est le changement de route qui fait
+ * suivre le cadrage. C'est ce qui rend le bouton précédent et le partage d'URL
+ * corrects *par construction* plutôt que par correctif (R-03).
+ *
+ * ⭐⭐ **Elle prend un `SceneFocus`, donc `overview` avec les trois écrans** —
+ * arbitrage tranché le 2026-08-26 (`phase-6-log.md` §8). La vue d'ensemble **est
+ * une destination** : le bureau, c'est l'accueil, et « revenir au bureau » (Échap,
+ * clic hors écran — P6-05) est une navigation comme une autre. La restreindre aux
+ * trois écrans aurait obligé P6-05 à appeler `homePath` à côté, c'est-à-dire à
+ * ouvrir une **seconde** porte dans le sens que cet ADR n'en veut qu'une.
+ *
+ * ⭐ Pas de `switch` exhaustif ici, et c'est délibéré : `overview` est le seul cas
+ * particulier, **tout le reste est une section par construction**. Un `switch`
+ * devrait être rouvert à chaque section ajoutée, alors qu'elle doit précisément
+ * suivre toute seule.
+ */
+export function getRouteForScreen(focus: SceneFocus, locale: Locale): string {
+  return focus === 'overview' ? homePath(locale) : sectionPath(locale, focus)
 }

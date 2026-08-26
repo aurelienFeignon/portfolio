@@ -1449,7 +1449,7 @@ du score ne touche **ni le LCP ni le CLS**, mais le temps de blocage.
 |---|---|---|
 | P6-01 | `resolveSceneState(pathname)` — pur, sans Three.js — **DONE** *(2026-08-26)* | P5-05 |
 | P6-02 | `getCameraTarget(state)` — positions cibles par écran | P6-01 |
-| P6-03 | `getRouteForScreen(screen, locale)` + propriété d'aller-retour | P6-01 |
+| P6-03 | `getRouteForScreen(focus, locale)` + propriété d'aller-retour — **DONE** *(2026-08-26)* | P6-01 |
 | P6-04 | Transition de caméra pilotée par la route, interruptible | P6-02 |
 | P6-05 | Écrans interactifs : survol, focus, activation → `router.push` | P6-03 |
 | P6-06 | Équivalents DOM accessibles de chaque interaction (CF-06) | P6-05 |
@@ -1507,6 +1507,41 @@ Acceptance:
 - La lecture d'URL vit **contre sa construction**, pas dans la couche qui la consomme.
 - Les formes qu'aucune route ne sert distinguées de celles dont l'entité n'existe pas.
 - Chaque propriété **vue rouge** avant d'être crue.
+
+**P6-03 — `getRouteForScreen(focus, locale)` et l'aller-retour**
+Status: **DONE** (2026-08-26) — l'autre sens du flux d'ADR-0002, dans le même fichier que son
+inverse. Journal : [`phase-6-log.md`](./phase-6-log.md) §8.
+⭐⭐ **Elle prend un `SceneFocus`, donc `overview` avec les trois écrans — ADR-0002 est AMENDÉ**
+(journal des révisions). La lecture restreinte aux trois écrans obligeait « revenir au bureau »
+(Échap, clic hors écran — P6-05) à appeler `homePath` **à côté**, c'est-à-dire à ouvrir une seconde
+porte dans le sens que l'ADR n'en veut qu'une.
+⭐⭐⭐ **Et c'est ce qui rend l'aller-retour non vacant** : restreinte aux trois sections, la fonction
+était un alias d'une ligne de `sectionPath`, et sa propriété n'affirmait rien que
+`pathFor ∘ parsePagePath = id` — tenu depuis P6-01 — n'affirmait déjà.
+⛔⛔ **L'aller-retour SEUL ne suffit pas, et le trou est DOUBLE — les deux fois parce qu'`overview`
+absorbe ce qui rate.** *(1)* Toute adresse que le site ne sert pas le satisfait, puisqu'elle
+s'effondre justement vers la vue d'ensemble : `/fr/bureau` passait. *(2)* Et `resolveSceneState` ne
+rend **pas la langue**, donc `/fr` et `/en` y sont indiscernables — un `homePath('fr')` écrit en dur
+laissait **toute la suite verte**, et un visiteur anglophone revenant au bureau aurait changé de
+langue sans l'avoir demandé. Relevé **en revue**, après que la première moitié eut été trouvée à
+l'écriture. La propriété est donc `parsePagePath(route)?.locale === locale`, qui affirme la page
+*et* sa langue.
+⭐⭐⭐ **Une propriété écrite sur une valeur d'ABSORPTION ne garde rien tant qu'on n'assère pas sur ce
+qui la distingue d'elle-même.**
+⭐ **Pas de `switch` exhaustif**, délibérément : `overview` est le seul cas particulier, tout le
+reste est une section **par construction**. Un `switch` devrait être rouvert à chaque section
+ajoutée, alors qu'elle doit suivre toute seule.
+⭐⭐ **L'exhaustivité du périmètre est tenue par le COMPILATEUR** : le banc dérive ses cas d'un
+`Record<SceneFocus, true>` littéral, donc une section ajoutée sans y être déclarée **ne compile pas**
+(`TS2741`). Une première écriture exportait une constante `SCENE_FOCUSES` — retirée en passe de
+simplification : **aucun consommateur de production**, et amputée d'`overview` elle faisait rétrécir
+le périmètre **en silence**. ⭐ *Un export dont le seul appelant est le banc n'est pas une API.*
+· Depends on: P6-01
+Acceptance:
+- Un seul sens de flux : la scène demande une URL, elle ne bouge pas elle-même.
+- Aller-retour vérifié sur **tous** les focus et **toutes** les locales, périmètre dérivé.
+- La route produite désigne une page que le site sert réellement.
+- Aucun chemin écrit dans la fonction : `src/routing/paths.ts` reste le point unique.
 
 **Critères de sortie** — Couverture ≥ 95 % sur `src/scene/state/**`, **zéro import Three.js** dans
 ce dossier ; back/forward et deep links corrects ; mapping écran ↔ section exhaustif et testé.
