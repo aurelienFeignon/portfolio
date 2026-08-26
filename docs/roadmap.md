@@ -1447,7 +1447,7 @@ du score ne touche **ni le LCP ni le CLS**, mais le temps de blocage.
 
 | ID | Tâche | Dépend de |
 |---|---|---|
-| P6-01 | `resolveSceneState(pathname)` — pur, sans Three.js | P5-05 |
+| P6-01 | `resolveSceneState(pathname)` — pur, sans Three.js — **DONE** *(2026-08-26)* | P5-05 |
 | P6-02 | `getCameraTarget(state)` — positions cibles par écran | P6-01 |
 | P6-03 | `getRouteForScreen(screen, locale)` + propriété d'aller-retour | P6-01 |
 | P6-04 | Transition de caméra pilotée par la route, interruptible | P6-02 |
@@ -1458,8 +1458,63 @@ du score ne touche **ni le LCP ni le CLS**, mais le temps de blocage.
 | P6-09 | ADR-0012 : stratégie d'animation de caméra | P6-04 |
 | P6-10 | E2E : back/forward, deep link, clavier, reduced-motion | P6-08 |
 
+**P6-01 — `resolveSceneState(pathname)`**
+Status: **DONE** (2026-08-26) — `src/scene/state/scene-state.ts` : `SceneFocus`, `SceneState`,
+`OVERVIEW`, `resolveSceneState`. **100 % de couverture**, aucun import Three.js, aucune lecture du
+contenu. Journal : [`phase-6-log.md`](./phase-6-log.md) §7.
+⭐⭐⭐ **La lecture de l'URL n'est PAS dans `scene`** : `parsePagePath` vit dans `src/routing/paths.ts`,
+contre `pathFor` dont elle est l'inverse — à la place que ce dépôt donne déjà à `localeFromPathname`
+contre `homePath`. `resolveSceneState` n'en est qu'une **projection de neuf lignes**, et ne garde que
+la décision de scène : l'effondrement de ce qui n'est pas un écran vers la vue d'ensemble.
+⭐⭐ **La règle tient en une phrase : la fonction lit la FORME de l'URL, jamais l'EXISTENCE de ce
+qu'elle nomme.** Une forme qu'aucune route ne sert — locale inconnue, segment de section inconnu,
+plus profond qu'une entité — rend `overview` ; une forme servie rend sa section, avec le nom que
+l'URL porte. `detail` **nomme**, il ne vérifie pas : `scene → content` est interdit
+(`architecture.md` §1.2), donc `/fr/projects/inexistant` cadre l'écran Projets pendant qu'une 404
+s'affiche — le visiteur reste dans la zone où il se trouve.
+⭐⭐ **Le mapping est DÉRIVÉ à deux endroits** : le type (`SceneFocus = 'overview' | Section`) et le
+banc (`SECTIONS` × `LOCALES`). Une quatrième section devient un focus sans que personne y pense, et
+le `Record` que P6-02 lui devra échouera au typage. *Dérive le périmètre, ne l'énumère pas.*
+⛔ **La résolution du segment passe par `routeSegments[locale]`, jamais par un littéral** : la table
+est l'identité en v1 (ADR-0005), donc un `'projects'` écrit en dur serait vert aujourd'hui et
+cesserait de résoudre le jour où `/fr/projets` existe — sans que rien ne le dise.
+⛔ **`decodeURIComponent` jette** sur un échappement tronqué, qu'aucun encodage n'a pu produire :
+l'exception ferait tomber la scène sur une adresse tapée à la main. Rattrapée — la section reste,
+l'entité est nulle.
+⛔⛔ **La revue a trouvé la règle écrite juste et appliquée à moitié** : `/fr/skills/typescript`
+cadrait l'écran Compétences alors que les compétences n'ont **pas** de fiche
+(`SECTIONS_WITH_DETAIL`), et `/fr/projects/augure/` rendait la vue d'ensemble sur une page **servie
+en 200**. ⭐⭐ Le banc ne pouvait voir ni l'un ni l'autre : il dérivait son périmètre de `SECTIONS`
+sans jamais croiser `SECTIONS_WITH_DETAIL`, et la barre finale était traitée à **deux** endroits —
+donc juste à un seul. *Un périmètre dérivé ne garde que la dimension dont il est dérivé.*
+⛔⛔ **`sections.ts` déclarait qu'un segment de section n'est *jamais* une chaîne à valider** — vrai
+de la construction, faux de la **lecture** d'une URL. La note est **amendée**, pas contournée : une
+décision argumentée qu'on contourne en silence est relue et crue par la revue suivante.
+⭐⭐ Trois duplications supprimées au passage, dont `pathname.replace(/\/$/, '')` écrit **mot pour
+mot** dans `src/proxy.ts` — un commentaire citait le proxy comme autorité, mais *un commentaire n'est
+pas un lien*. `withoutTrailingSlash` est désormais partagée.
+⭐⭐⭐ **Bénéfice pour P6-03** : l'aller-retour qu'exige `testing-strategy.md` §4.3 est devenu une
+propriété de `routing` — `pathFor ∘ parsePagePath = id`, éprouvée sur toutes les locales et tous les
+lieux — au lieu d'un second inverse à écrire.
+⭐ Éprouvé par **quatorze mutations, toutes tuées**, avec un harnais qui vérifie que la mutation s'est
+appliquée et qui distingue un échec de chargement d'un échec de test.
+⚠️ **« Socle et route inchangés » n'affirme rien de plus que ce qui est écrit** : ce module n'a
+aucun appelant, donc il n'entre dans aucun chunk. Le vrai relevé se prend en **P6-07**.
+· Depends on: P5-05
+Acceptance:
+- Décision **pure**, sans Three.js et sans lecture du contenu, testable en Vitest.
+- Mapping écran ↔ section **dérivé** de `routing`, jamais recopié — un ajout non mappé rougit.
+- La lecture d'URL vit **contre sa construction**, pas dans la couche qui la consomme.
+- Les formes qu'aucune route ne sert distinguées de celles dont l'entité n'existe pas.
+- Chaque propriété **vue rouge** avant d'être crue.
+
 **Critères de sortie** — Couverture ≥ 95 % sur `src/scene/state/**`, **zéro import Three.js** dans
 ce dossier ; back/forward et deep links corrects ; mapping écran ↔ section exhaustif et testé.
+
+⭐ **Ordre de travail retenu** (`phase-6-log.md` §5) : P6-01 → **P6-03** → P6-02 → **P6-09** → P6-04
+→ P6-07 → P6-08 → P6-05 → P6-06 → P6-10. Deux écarts assumés : P6-03 ferme l'aller-retour de
+navigation avant que P6-02 n'ouvre la dépendance à `layout.ts`, et **P6-09 précède P6-04** — un ADR
+sur l'animation de caméra se pose avant d'écrire le rig, pas après (CT-08).
 
 ---
 

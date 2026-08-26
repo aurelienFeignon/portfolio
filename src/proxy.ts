@@ -45,7 +45,7 @@
 import { NextResponse, type NextRequest } from 'next/server'
 
 import { negotiateLocale } from '@/i18n/negotiate'
-import { homePath, localeFromPathname, notFoundPath } from '@/routing/paths'
+import { homePath, localeFromPathname, notFoundPath, withoutTrailingSlash } from '@/routing/paths'
 import { PASSTHROUGH_PATHS, SERVED_PATHS } from '@/routing/route-manifest'
 
 /**
@@ -73,7 +73,11 @@ export default function proxy(request: NextRequest) {
   // Aucune garde sur `/` ici : il est traité au-dessus et n'arrive jamais
   // jusqu'à cette ligne. La première version en portait une, et c'était une
   // branche que rien ne pouvait exécuter — la couverture le disait.
-  if (servable.has(pathname.replace(/\/$/, ''))) return NextResponse.next()
+  //
+  // ⭐ La règle est **partagée** depuis P6-01 : la lecture d'URL de la scène en
+  // dépend au caractère près, et deux copies ne vaudraient qu'à un endroit sur
+  // deux. Elle vit dans `paths.ts`, avec sa justification.
+  if (servable.has(withoutTrailingSlash(pathname))) return NextResponse.next()
 
   // `/fr/rien` est en français ; `/de/x` et `/rien` prennent la langue négociée.
   // L'URL l'emporte sur l'en-tête : un visiteur qui tape `/en/...` a demandé

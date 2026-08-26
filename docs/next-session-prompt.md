@@ -31,11 +31,13 @@ Lis, dans cet ordre, et ne me demande pas de te les résumer :
 11. docs/phase-4-log.md       ← journal de la Phase 4, CLOSE. Long, et c'est voulu : §13 à §23
                                  portent les défauts déjà livrés qu'elle a trouvés, les arbitrages
                                  tranchés, et ce que chaque tâche refuse d'affirmer.
-12. docs/phase-5-log.md       ← ⭐⭐ journal de la phase EN COURS. Court pour l'instant : P5-01, le
-                                 verdict GO, et les deux contraintes qui gouvernent toute la phase.
-13. deploy/README.md          ← exploitation réelle du serveur : déploiement, rollback, journaux,
+12. docs/phase-5-log.md       ← journal de la Phase 5, CLOSE. §10 porte le bilan et le seul relevé
+                                 comparatif de Core Web Vitals du projet.
+13. docs/phase-6-log.md       ← ⭐⭐ journal de la phase EN COURS. §3 porte les arbitrages
+                                 d'ouverture, §5 l'ordre de travail et ses deux écarts assumés.
+14. deploy/README.md          ← exploitation réelle du serveur : déploiement, rollback, journaux,
                                  checklist de mise en ligne (§8) et vérification publique (§9)
-14. content/README.md         ← règles d'écriture du contenu, et deux réserves à corriger
+15. content/README.md         ← règles d'écriture du contenu, et deux réserves à corriger
 
 Les Phases 0 à 4 sont TERMINÉES et validées. Ne les refais pas, ne les rediscute pas.
 
@@ -46,6 +48,7 @@ supervisé, avec une checklist de mise en ligne et un rollback rejoué.
 **Phase 5 (Fondation Three.js) : CLOSE le 2026-08-25**, **9 tâches sur 10**, les quatre critères de
 sortie vérifiés par mesure (bilan : `phase-5-log.md` §10). **Seule P5-10 reste**, reportée après
 P6-04 : rien n'anime encore.
+**Phase 6 (Navigation spatiale) : OUVERTE le 2026-08-26**, **1 tâche sur 10** — P6-01 livrée.
 **Tout ce qui suit est fusionné sur `main` et déployé**, les cinq jobs verts à chaque fois —
 publication GHCR et déploiement VPS compris. ⭐ L'état réellement déployé ne se recopie pas ici, il
 **se lit** — trois SHA successifs ont pourri à cet endroit :
@@ -66,6 +69,16 @@ ssh portfolio 'SSH_ORIGINAL_COMMAND="status" /srv/portfolio/deploy.sh' # ce que 
 | P5-07 | **La frontière d'erreur** — et le défaut livré qu'elle a révélé : sans elle, un chunk 3D manquant affichait « Une erreur est survenue » **sur tout le site** |
 | P5-08 | **Le panneau de diagnostic** (`?debug=scene`). ⭐⭐⭐ Il a chiffré ce que le dossier annonçait sans le mesurer : la scène rend **8 182 triangles** pour 4 114 de géométrie — l'écart est **entièrement la passe d'ombre**, +73 % |
 | P5-09 | **Le garde d'isolation** : `pnpm bundle` refuse un build dont la première visite porterait un module `three`. ⭐⭐⭐ Il porte un **témoin** — le détecteur doit voir la scène quelque part, sinon il s'accuse lui-même au lieu de rendre un vert |
+
+### Phase 6, en cours
+
+| Tâche | Ce qu'elle a livré |
+|---|---|
+| P6-01 | **`resolveSceneState(pathname)`**, pure, 100 %. ⭐⭐ La règle tient en une phrase : elle lit la **FORME** de l'URL, jamais l'**EXISTENCE** de ce qu'elle nomme — `scene → content` est interdit, donc `detail` **nomme** sans vérifier |
+
+⛔ **Elle n'a encore aucun appelant**, et c'est voulu : P6-02 la consomme, P6-07 l'expose au DOM.
+« Socle et route inchangés » n'affirme donc rien de plus que ce qui est écrit — le vrai relevé se
+prend en P6-07.
 
 La Phase 4 est close (17/17) ; son journal reste la meilleure lecture du dépôt. **Seule P5-10
 reste**, reportée après P6-04 : sa moitié est livrée (`frameloop="demand"` depuis P5-04) et l'autre
@@ -101,13 +114,17 @@ URL, tout le reste rend toujours 302.
 | Socle partagé | **127,1 Ko** | cible 136 · bloquant 146 |
 | **Chunk 3D différé** | **234,5 Ko** — somme des **deux** chunks porteurs, hors du chemin critique | cible 260 · bloquant 320 |
 | Image de production | **281 Mo** | cible 250 · bloquant 400 |
-| Tests | **764** verts, couverture **100 %** sur les quatre métriques | ≥ 80 % |
+| Tests | **803** verts, couverture **100 %** sur les quatre métriques | ≥ 80 % |
 | E2E | **153** verts sur 5 profils | — |
 | **Ce que le GPU rend** | **52 draw calls · 8 182 triangles** en desktop — la passe d'ombre incluse, soit **+73 %** sur les 4 114 de géométrie | ≤ 60 / ≤ 150 000 |
 
 ⚠️ **Relevés du 2026-08-25, à la clôture de la Phase 5**, tous remesurés ce jour-là dans le même
 conteneur et par le même geste (`gzip -9`). L'image de production est vérifiée par
 `make check-image-size`, les tests par `pnpm vitest run`.
+⭐ **Trois lignes ont été remesurées le 2026-08-26 (P6-01)** : les tests (**803**, +39), le socle
+(**127,1 Ko**) et le JS par route (**11,0 Ko**) — les deux derniers **inchangés**, ce qui n'affirme
+rien d'autre que ce qui est écrit : le module de P6-01 n'a pas encore d'appelant, donc il n'entre
+dans aucun chunk.
 
 ⛔⛔ **Le chunk 3D n'est plus UN chunk depuis P5-08** : l'import dynamique du panneau l'a scindé en
 deux (225,4 + 9,1 Ko). Les 234,5 ci-dessus sont leur somme, mesurée à la clôture de la phase. Les
@@ -212,8 +229,17 @@ mets l'ADR à jour et ajoute une ligne au journal des révisions. Jamais de chan
 
 ## Ta mission cette session
 
-**La Phase 5 est close : ouvre la Phase 6.** Seule P5-10 reste, reportée après P6-04. Tout le reste
-est livré et mesuré.
+**La Phase 6 est ouverte et P6-01 est livrée : enchaîne sur P6-03.** Seule P5-10 reste de la
+Phase 5, reportée après P6-04. Tout le reste est livré et mesuré.
+
+⭐ **L'ordre de travail de la phase est arrêté** (`phase-6-log.md` §5), avec **deux écarts assumés**
+par rapport à l'ordre des identifiants :
+P6-01 → **P6-03** → P6-02 → **P6-09** → P6-04 → P6-07 → P6-08 → P6-05 → P6-06 → P6-10.
+**P6-03 avant P6-02** : l'aller-retour `getRouteForScreen` → `resolveSceneState` est une propriété de
+la couche navigation, sans une cote de scène — la fermer verrouille le contrat que P6-05 emploiera,
+avant que P6-02 n'ouvre la dépendance à `layout.ts`.
+**P6-09 avant P6-04** : un ADR sur l'animation de caméra se pose au moment où l'on choisit entre
+interpolation maison et bibliothèque de ressorts, c'est-à-dire **avant** d'écrire le rig (CT-08).
 
 ⭐⭐ **Ce que P5-06 a appris, et qui vaut au-delà d'elle** : le travail de géométrie de P5-05 — les
 chanfreins portés de 3 à 8 mm, le fruit des capuchons — **ne se voyait pas**, faute d'un éclairage
@@ -239,12 +265,43 @@ la Phase 4 venait du **site réel** (P4-16, 98/100), donc incomparable à un rel
 Lighthouse contre les deux, sur la même machine, à quelques minutes d'écart. C'est cette mesure qui a
 montré que la chute de 23 points ne touche **ni le LCP ni le CLS**.
 
-⭐ **P6-01 est le point d'entrée** — `resolveSceneState(pathname)`, pur, sans Three.js. La Phase 6
-fait suivre la scène à l'URL (ADR-0002), et `layout.ts` porte déjà les quatre cadrages avec leurs
-positions et cibles calculées.
+✅ **P6-01 est livrée** (2026-08-26) — `resolveSceneState(pathname)`, pure, 100 % de couverture.
+⭐⭐ **La règle qu'elle établit, et qui gouverne P6-02 et P6-03** : la chaîne lit la **FORME** de
+l'URL, jamais l'**EXISTENCE** de ce qu'elle nomme. Une forme qu'aucune route ne sert — locale inconnue,
+segment de section inconnu, **section sans fiche d'entité**, plus profond qu'une entité — rend
+`overview` ; une forme servie rend sa section, avec le nom que l'URL porte, **sans vérifier** qu'une
+entité s'y trouve (`scene → content` est interdit).
+⛔⛔ **La revue a trouvé cette règle appliquée à moitié, deux fois** : `/fr/skills/typescript` cadrait
+Compétences (les compétences n'ont pas de fiche — `SECTIONS_WITH_DETAIL`), et `/fr/projects/augure/`
+rendait la vue d'ensemble sur une page **servie en 200**. ⭐⭐ *Un périmètre dérivé ne garde que la
+dimension dont il est dérivé* : le banc bouclait sur `SECTIONS` sans jamais croiser
+`SECTIONS_WITH_DETAIL`.
+⭐⭐⭐ **Et le plus utile pour toi : la LECTURE d'URL n'est pas dans `scene`.** `parsePagePath` vit
+dans `src/routing/paths.ts`, contre `pathFor` dont elle est l'inverse ; `resolveSceneState` n'en est
+qu'une projection de neuf lignes. **P6-03 n'a donc pas de second inverse à écrire** : l'aller-retour
+qu'exige `testing-strategy.md` §4.3 est déjà une propriété de `routing`, éprouvée sur
+`pathFor ∘ parsePagePath = id` pour toutes les locales et tous les lieux.
+⛔ Deux pièges déjà payés, à ne pas repayer : le segment de section se résout par
+`sectionForSegment(locale, segment)`, **jamais par un littéral** — la table `routeSegments` est
+l'identité en v1 (ADR-0005), donc un `'projects'` écrit en dur serait vert aujourd'hui et faux le
+jour où `/fr/projets` existe ; et `entityPath` **encode** le slug, donc l'aller-retour n'est vrai que
+parce que la lecture décode.
+⚠️ **Un constat de revue nommé et NON traité** : `entityPath('fr', 'skills', 'x')` compile et
+fabrique une adresse que le site ne sert nulle part — `entityPath` et `PageLocation.entity` prennent
+`Section`, pas `SectionWithDetail`. La contrainte est tenue par **trois** itérations indépendantes.
+Resserrer les deux types est la forme profonde, et touche `src/seo` et `src/app`.
+⭐ **Le mapping ne s'énumère pas, il se dérive** : `SceneFocus = 'overview' | Section`, et le banc
+boucle sur `SECTIONS` × `LOCALES`. P6-02 doit tenir la même exigence par un `Record<SceneFocus,
+ViewId>`, jamais une suite de `if` — ⚠️ les deux vocabulaires **ne coïncident pas** : `SceneFocus`
+parle anglais (`overview`, `projects`, `skills`), `ViewId` de `layout.ts` parle français (`accueil`,
+`projets`, `competences`).
+⭐ **`layout.ts` porte déjà les quatre cadrages** avec leurs positions et cibles calculées sur la
+normale de chaque dalle : P6-02 les lit, il ne les invente pas.
 ⛔⛔ **Le piège de P6-04 est écrit depuis P5-05 et n'a pas bougé** : le `fov` varie de **16° à 36°**
-selon l'état et **doit être interpolé avec la position**, sinon la transition vers *Compétences*
-produit un zoom sec.
+selon l'état — le cadrage *Compétences* vise un écran monté sur un corps profond — et **doit être
+interpolé avec la position**, sinon la transition produit un zoom sec. Le rig lui-même —
+interpolation simultanée de la position et de la cible, 700 ms (`transitionMs`), `easeInOutCubic` —
+est **P6-04**, pas P5-06.
 ⭐⭐ **Et P6-04 hérite de deux dettes nommées** : le `fov` n'est pas corrigé sous 16:9 (un téléphone
 en portrait perd le cadrage d'accueil — P5-06), et la boucle de rendu devra invalider image par image
 sans rester en `always` (P5-10).
@@ -258,18 +315,15 @@ suppose une boucle à mettre en pause — une boucle qui ne tourne pas ne se sus
 aujourd'hui produirait un mécanisme sans effet mesurable, donc **un garde qu'aucun banc ne pourrait
 voir rouge**. Son contenu naît avec P6-04, quand la transition devra invalider image par image.
 
-⭐ **P5-08 hérite d'un manque nommé par P5-07** : rien ne distingue à l'écran une scène qui n'a jamais
-monté d'une scène tombée. Le panneau de diagnostic est le premier endroit où la **cause** pourra se
-lire — `mount-state.ts` la porte déjà (`chunk`, `render`, `context-lost`), personne ne l'affiche.
+⚠️ **Une dette nommée par P5-07 est encore ouverte après P5-08** : `mount-state.ts` porte la
+**cause** d'une défaillance (`chunk`, `render`, `context-lost`) et **personne ne l'affiche**. Le
+panneau de diagnostic montre ce qu'une scène **vivante** rend ; une scène tombée est démontée
+enveloppe comprise, donc le panneau disparaît avec elle. Distinguer « jamais montée » de « tombée,
+et pourquoi » reste à faire, et ce n'est pas une tâche de la Phase 6.
 
 ✅ **Le défaut de cadrage sous 16:9 est corrigé** (P5-06, `framing.ts`) : la règle du dossier §6 est
 appliquée aux quatre cadrages, plafonnée à 50°. ⚠️ Elle **borne** le portrait extrême sans le
 réparer — voir la mission ci-dessus.
-
-⛔⛔ **Et le piège qui attend P6-04** : le `fov` varie de **16° à 36°** selon l'état, parce que le
-cadrage *Compétences* vise un écran monté sur un corps profond. **Il doit être interpolé avec la
-position**, sinon la transition produit un zoom sec. Le rig lui-même — interpolation simultanée de la
-position et de la cible, 700 ms, `easeInOutCubic` — est **P6-04**, pas P5-06.
 
 ⭐⭐ **Ce que la Phase 5 laisse et qu'il faut employer plutôt que refaire** :
 `src/scene/state/layout.ts` porte **toutes** les cotes — aucune valeur de scène ne s'écrit ailleurs ;
