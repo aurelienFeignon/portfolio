@@ -61,10 +61,19 @@ inchangé.
 focus et les **deux** locales, là où la version restreinte n'aurait rien affirmé que
 `pathFor ∘ parsePagePath = id` — tenu depuis P6-01 — n'affirmait déjà.
 
-⛔ **Et l'aller-retour seul ne suffit pas**, ce que l'écriture a montré : pour `overview`, *toute*
-adresse que le site ne sert pas le satisfait, puisqu'elle s'effondre justement vers la vue
-d'ensemble. Une route d'accueil inventée passerait. La propriété est donc doublée d'une seconde —
-la route désigne une **vraie page** (`parsePagePath(route) !== null`).
+⛔⛔ **Et l'aller-retour seul ne suffit pas — le trou est double, les deux fois parce qu'`overview`
+absorbe ce qui rate.** *(1)* Toute adresse que le site ne sert pas satisfait la propriété, puisqu'elle
+s'effondre justement vers la vue d'ensemble : une route d'accueil inventée passait. *(2)* Et
+`resolveSceneState` ne rend **pas la langue**, donc `/fr` et `/en` y sont indiscernables — un
+`homePath('fr')` écrit en dur laissait toute la suite verte, et un visiteur anglophone revenant au
+bureau aurait changé de langue sans l'avoir demandé.
+
+La propriété est donc doublée d'une seconde, qui couvre les deux moitiés :
+**`parsePagePath(route)?.locale === locale`** — la route désigne une vraie page, *et* dans la bonne
+langue.
+
+⭐⭐⭐ *Une propriété écrite sur une valeur d'**absorption** ne garde rien tant qu'on n'assère pas sur
+ce qui la distingue d'elle-même.*
 
 ## Alternatives considérées
 

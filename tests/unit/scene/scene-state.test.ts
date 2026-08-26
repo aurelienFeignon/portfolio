@@ -17,11 +17,29 @@ import { entityPath, homePath, parsePagePath, sectionPath } from '@/routing/path
 import { SECTIONS } from '@/routing/sections'
 import {
   OVERVIEW,
-  SCENE_FOCUSES,
   type SceneFocus,
   getRouteForScreen,
   resolveSceneState,
 } from '@/scene/state/scene-state'
+
+/**
+ * Les quatre focus — et l'exhaustivité est tenue par le **compilateur**.
+ *
+ * ⭐⭐ C'est un `Record<SceneFocus, true>` : une section ajoutée sans y être
+ * déclarée **ne compile pas**, et une clé de trop non plus. Aucun `expect` ne
+ * pourrait rendre ce service — un `satisfies readonly SceneFocus[]` sur un tableau
+ * ne vérifie que l'appartenance, jamais la complétude, si bien qu'une liste
+ * dérivée peut **rétrécir en silence** (mesuré : amputée d'`overview`, elle
+ * laissait toute la suite verte).
+ */
+const TOUS_LES_FOCUS: Record<SceneFocus, true> = {
+  overview: true,
+  experiences: true,
+  projects: true,
+  skills: true,
+}
+
+const FOCUSES = Object.keys(TOUS_LES_FOCUS) as readonly SceneFocus[]
 
 describe('les quatre exemples de testing-strategy.md §4.3', () => {
   it('/fr/projects → la section, sans entité', () => {
@@ -120,36 +138,27 @@ describe('la route d’un écran — l’autre sens du flux (P6-03)', () => {
     }
   })
 
-  it('⭐⭐ `SCENE_FOCUSES` les énumère TOUS — sans quoi les boucles ci-dessous rétrécissent en silence', () => {
-    // Le littéral ci-dessous est un `Record<SceneFocus, true>` : ajouter une
-    // section sans l'y déclarer NE COMPILE PAS. C'est ce qui fait de ce contrôle
-    // autre chose qu'une tautologie — il oblige un humain à passer par ici, puis
-    // confronte sa liste à celle que le code exporte.
-    const tous: Record<SceneFocus, true> = {
-      overview: true,
-      experiences: true,
-      projects: true,
-      skills: true,
-    }
-
-    expect([...SCENE_FOCUSES].sort()).toEqual(Object.keys(tous).sort())
-  })
-
   describe('⭐⭐ l’aller-retour, sur les quatre focus et les deux locales', () => {
-    // Le périmètre est DÉRIVÉ de `SCENE_FOCUSES` : un écran ajouté sans route,
+    // Le périmètre est DÉRIVÉ de `TOUS_LES_FOCUS` : un écran ajouté sans route,
     // ou une route qui ne relit pas son écran, fait rougir ce banc tout seul.
-    for (const focus of SCENE_FOCUSES) {
+    for (const focus of FOCUSES) {
       for (const locale of LOCALES) {
         it(`${focus} en ${locale}`, () => {
           const route = getRouteForScreen(focus, locale)
 
           expect(resolveSceneState(route).focus).toBe(focus)
 
-          // ⛔ L'aller-retour SEUL ne suffit pas, et c'est le piège : pour
-          // `overview`, n'importe quelle adresse que le site ne sert pas le
-          // satisfait — elle s'effondre justement vers la vue d'ensemble. Il
-          // faut donc affirmer en plus que la route désigne une VRAIE page.
-          expect(parsePagePath(route)).not.toBeNull()
+          // ⛔⛔ L'aller-retour SEUL ne suffit pas, et le trou est DOUBLE — les
+          // deux fois parce que `overview` ABSORBE ce qui ne va pas :
+          //
+          // 1. n'importe quelle adresse que le site ne sert pas le satisfait,
+          //    puisqu'elle s'effondre justement vers la vue d'ensemble ;
+          // 2. et `resolveSceneState` ne rend PAS la langue, donc `/fr` et `/en`
+          //    y sont indiscernables — un `homePath('fr')` écrit en dur passait,
+          //    et un visiteur anglophone qui revient au bureau (Échap, P6-05)
+          //    aurait changé de langue sans l'avoir demandé. Mutation vue
+          //    survivante avant ces deux lignes, tuée après. Relevé en revue.
+          expect(parsePagePath(route)?.locale).toBe(locale)
         })
       }
     }

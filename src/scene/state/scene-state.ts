@@ -27,7 +27,7 @@
  */
 import type { Locale } from '../../i18n/locales.ts'
 import { homePath, parsePagePath, sectionPath } from '../../routing/paths.ts'
-import { SECTIONS, type Section } from '../../routing/sections.ts'
+import type { Section } from '../../routing/sections.ts'
 
 /**
  * Les quatre états de la scène : la vue d'ensemble du bureau, et un écran par
@@ -39,14 +39,19 @@ import { SECTIONS, type Section } from '../../routing/sections.ts'
  */
 export type SceneFocus = 'overview' | Section
 
-/**
- * Les quatre focus, énumérés une seule fois — et **dérivés**, comme le type.
- *
- * ⭐ Ils existent parce que deux propriétés se vérifient *sur l'ensemble* et non
- * cas par cas : l'aller-retour de P6-03, et l'exhaustivité du cadrage de P6-02.
- * Une quatrième section y entre sans que personne y pense.
+/*
+ * ⛔ **Pas de constante `SCENE_FOCUSES` ici, et c'est une décision.** Une première
+ * écriture en exportait une, `['overview', ...SECTIONS]`, pour que le banc puisse
+ * boucler dessus. Elle n'avait **aucun consommateur de production** et n'en aurait
+ * pas eu : l'exhaustivité dont P6-02 a besoin est celle d'un
+ * `Record<SceneFocus, ViewId>`, tenue par le **type**, jamais par une liste à
+ * l'exécution. Un `satisfies` ne vérifiant pas la complétude, il fallait en plus un
+ * test pour garder la liste — un symbole public et une assertion, tous deux au
+ * service du seul banc. Le banc dérive désormais son périmètre d'un
+ * `Record<SceneFocus, true>` littéral, ce qui déplace l'exhaustivité de l'`expect`
+ * vers le **compilateur** : une section ajoutée sans y être déclarée ne compile
+ * pas. Retiré en passe de simplification (`phase-6-log.md` §8.4 bis).
  */
-export const SCENE_FOCUSES = ['overview', ...SECTIONS] as const satisfies readonly SceneFocus[]
 
 export interface SceneState {
   readonly focus: SceneFocus

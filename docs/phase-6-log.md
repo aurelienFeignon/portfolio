@@ -336,9 +336,17 @@ C'est l'écriture qui l'a montré, pas la relecture. La propriété
 **n'importe quelle adresse que le site ne sert pas** — elle s'effondre justement vers la vue
 d'ensemble. `/fr/bureau` passait.
 
-⭐⭐ **Une propriété d'aller-retour est aveugle sur la valeur qui absorbe les erreurs.** Elle est donc
-doublée : la route doit désigner une **vraie page**, `parsePagePath(route) !== null`. La mutation
-« une route d'accueil inventée » le confirme — elle survit à l'aller-retour, elle meurt sur celle-ci.
+⛔⛔ **Et le trou était DOUBLE** — la seconde moitié trouvée en revue seulement (§8.4 bis) :
+`resolveSceneState` ne rend **pas la langue**, donc `/fr` et `/en` y sont indiscernables. Un
+`homePath('fr')` écrit en dur sur la branche `overview` laissait **toute la suite verte**.
+
+Une seule ligne ferme les deux : **`parsePagePath(route)?.locale === locale`**, qui affirme la page
+*et* sa langue.
+
+⭐⭐⭐ **La leçon, énoncée une fois** : `overview` est la **valeur d'absorption** de cette fonction —
+celle vers laquelle tout ce qui rate s'effondre. *Une propriété écrite sur une valeur d'absorption ne
+garde rien tant qu'on n'assère pas sur ce qui la distingue d'elle-même.* Il a fallu deux passes pour
+en trouver les deux moitiés, et c'est bien le même défaut deux fois.
 
 ### 8.3 Deux décisions d'écriture, et leur raison
 
@@ -346,32 +354,62 @@ doublée : la route doit désigner une **vraie page**, `parsePagePath(route) !==
   section par construction*. Un `switch` devrait être rouvert à chaque section ajoutée, alors qu'elle
   doit précisément suivre toute seule — l'exhaustivité par le typage serait ici un frein, pas un
   garde.
-- ⭐⭐ **`SCENE_FOCUSES` est exporté, et sa complétude est tenue.** Deux propriétés se vérifient sur
-  l'ensemble et non cas par cas (l'aller-retour, et le cadrage de P6-02). Mais une liste dérivée peut
-  **rétrécir en silence** : amputée de `'overview'`, elle laissait les boucles vertes. Le banc la
-  confronte à un `Record<SceneFocus, true>` littéral — ajouter une section sans l'y déclarer **ne
-  compile pas**, ce qui oblige un humain à passer par là. Mutation vue **survivante avant**, tuée
-  après.
+- ⭐⭐ **L'exhaustivité du périmètre est tenue par le COMPILATEUR, pas par une assertion.** Une liste
+  dérivée peut **rétrécir en silence** : `['overview', ...SECTIONS]` amputée d'`overview` laissait
+  les boucles vertes — mutation jouée, vue survivante. Le banc dérive donc son périmètre d'un
+  `Record<SceneFocus, true>` littéral : une section ajoutée sans y être déclarée **ne compile pas**
+  (`TS2741`, vérifié), et une clé de trop non plus. ⛔ Un `satisfies readonly SceneFocus[]` ne rend
+  **pas** ce service — il ne contrôle que l'appartenance, jamais la complétude.
 
 ⭐ Les deux fonctions vivent dans le **même fichier**, et c'est la règle appliquée à elle-même :
 *l'inverse vit contre l'aller*. Leur empreinte d'import est identique — `routing` seul, pas de
 `layout.ts` —, donc la contrainte de §3.1 est respectée. C'est la démonstration que cette règle porte
 sur l'empreinte et non sur la forme.
 
-### 8.4 Éprouvé par mutation — quatre, toutes tuées
+### 8.4 Éprouvé par mutation — cinq, dont une vue survivante avant d'être fermée
 
 | Mutation | Verdict |
 |---|---|
 | L'accueil est rendu pour tous les focus | **tuée** — 8 tests |
 | Une route d'accueil **inventée** (`/fr/bureau`) | **tuée** — 3 tests |
-| La locale est figée à `fr` | **tuée** — 2 tests |
+| La locale est figée à `fr`, **fonction entière** | **tuée** — 2 tests |
+| La locale est figée à `fr` **sur la seule branche `overview`** | ⛔ **survivante** au premier banc, **tuée** après le correctif de revue |
 | Le périmètre est amputé de `overview` | **tuée** — 1 test |
+
+### 8.4 bis Ce que la revue et la simplification ont changé
+
+**Le constat de revue portait sur le banc, pas sur le code : la branche `overview` n'était assérée
+qu'en `fr`.** Le cas littéral pinnait `('overview', 'fr')`, la boucle de locales ne parcourait
+que `SECTIONS`, et l'aller-retour — qui joue pourtant `overview × en` — était **aveugle à la langue**
+des deux côtés. Détail par lequel il faut passer : `resolveSceneState('/fr').focus` et
+`resolveSceneState('/en').focus` valent tous deux `'overview'`.
+
+⭐ **Le correctif tient en une ligne et couvre plus large que le trou** : `parsePagePath(route)?.locale
+=== locale`, dans la boucle d'aller-retour, affirme la page **et** sa langue pour les quatre focus et
+les deux locales — au lieu de rajouter un cas littéral pour `('overview', 'en')`.
+⛔ **Une correction du tableau de mutations avec** : §8.4 annonçait « la locale figée » tuée, ce qui
+n'était vrai que de la variante portant sur la fonction entière. La variante restreinte à `overview`
+survivait, et le tableau la porte désormais dans les deux états. ⚠️ Son titre annonçait aussi
+« quatre, toutes tuées » deux lignes au-dessus d'un tableau qui en comptait cinq dont une survivante
+— *un compte écrit une fois puis jamais recompté*, le défaut que ce dépôt dénonce, dans le paragraphe
+qui venait de le corriger.
+
+**Et la simplification a retiré un export spéculatif.** `SCENE_FOCUSES` n'avait **aucun consommateur
+de production**, et n'en aurait pas eu : l'exhaustivité dont P6-02 a besoin est celle d'un
+`Record<SceneFocus, ViewId>`, tenue par le **type**. Quatre documents — ce journal compris — en
+promettaient pourtant une consommation qui n'aurait pas eu lieu.
+⭐⭐ **Le retirer a rendu le banc PLUS fort, pas moins** : le périmètre dérive désormais du
+`Record<SceneFocus, true>` littéral, donc l'exhaustivité est passée de l'`expect` au **compilateur**
+(`TS2741` vérifié en amputant le littéral). Un symbole public, un test et quatre phrases de
+documentation ont disparu ensemble — le signe qu'ils ne servaient qu'à se tenir les uns les autres.
+⭐ *Un export dont le seul appelant est le banc n'est pas une API, c'est une couture du banc rendue
+publique.*
 
 ### 8.5 Relevés
 
 | Relevé | Avant | Après | |
 |---|---|---|---|
-| Tests | 803 | **815** | +12 |
+| Tests | 803 | **814** | +11 |
 | Couverture `src/scene/state` | 100 % | **100 %** | seuil 95 % |
 | Socle partagé | 127,1 Ko | **127,1 Ko** | inchangé |
 | JS propre à chaque route | 11,0 Ko | **11,0 Ko** | inchangé |
