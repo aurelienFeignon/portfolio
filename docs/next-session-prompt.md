@@ -48,7 +48,7 @@ supervisé, avec une checklist de mise en ligne et un rollback rejoué.
 **Phase 5 (Fondation Three.js) : CLOSE le 2026-08-25**, **9 tâches sur 10**, les quatre critères de
 sortie vérifiés par mesure (bilan : `phase-5-log.md` §10). **Seule P5-10 reste**, reportée après
 P6-04 : rien n'anime encore.
-**Phase 6 (Navigation spatiale) : OUVERTE le 2026-08-26**, **1 tâche sur 10** — P6-01 livrée.
+**Phase 6 (Navigation spatiale) : OUVERTE le 2026-08-26**, **2 tâches sur 10** — P6-01 et P6-03.
 **Tout ce qui suit est fusionné sur `main` et déployé**, les cinq jobs verts à chaque fois —
 publication GHCR et déploiement VPS compris. ⭐ L'état réellement déployé ne se recopie pas ici, il
 **se lit** — trois SHA successifs ont pourri à cet endroit :
@@ -75,10 +75,11 @@ ssh portfolio 'SSH_ORIGINAL_COMMAND="status" /srv/portfolio/deploy.sh' # ce que 
 | Tâche | Ce qu'elle a livré |
 |---|---|
 | P6-01 | **`resolveSceneState(pathname)`**, pure, 100 %. ⭐⭐ La règle tient en une phrase : elle lit la **FORME** de l'URL, jamais l'**EXISTENCE** de ce qu'elle nomme — `scene → content` est interdit, donc `detail` **nomme** sans vérifier |
+| P6-03 | **`getRouteForScreen(focus, locale)`** — l'autre sens du flux. ⭐⭐ Elle prend un `SceneFocus`, donc `overview` : **ADR-0002 amendé**, parce que « revenir au bureau » aurait sinon ouvert une **seconde porte** dans le sens que l'ADR n'en veut qu'une |
 
-⛔ **Elle n'a encore aucun appelant**, et c'est voulu : P6-02 la consomme, P6-07 l'expose au DOM.
-« Socle et route inchangés » n'affirme donc rien de plus que ce qui est écrit — le vrai relevé se
-prend en P6-07.
+⛔ **Aucune des deux n'a encore d'appelant**, et c'est voulu : P6-02 consomme l'état, P6-05 appelle
+la route, P6-07 l'expose au DOM. « Socle et route inchangés » n'affirme donc rien de plus que ce qui
+est écrit — le vrai relevé se prend en P6-07.
 
 La Phase 4 est close (17/17) ; son journal reste la meilleure lecture du dépôt. **Seule P5-10
 reste**, reportée après P6-04 : sa moitié est livrée (`frameloop="demand"` depuis P5-04) et l'autre
@@ -114,14 +115,14 @@ URL, tout le reste rend toujours 302.
 | Socle partagé | **127,1 Ko** | cible 136 · bloquant 146 |
 | **Chunk 3D différé** | **234,5 Ko** — somme des **deux** chunks porteurs, hors du chemin critique | cible 260 · bloquant 320 |
 | Image de production | **281 Mo** | cible 250 · bloquant 400 |
-| Tests | **803** verts, couverture **100 %** sur les quatre métriques | ≥ 80 % |
+| Tests | **815** verts, couverture **100 %** sur les quatre métriques | ≥ 80 % |
 | E2E | **153** verts sur 5 profils | — |
 | **Ce que le GPU rend** | **52 draw calls · 8 182 triangles** en desktop — la passe d'ombre incluse, soit **+73 %** sur les 4 114 de géométrie | ≤ 60 / ≤ 150 000 |
 
 ⚠️ **Relevés du 2026-08-25, à la clôture de la Phase 5**, tous remesurés ce jour-là dans le même
 conteneur et par le même geste (`gzip -9`). L'image de production est vérifiée par
 `make check-image-size`, les tests par `pnpm vitest run`.
-⭐ **Trois lignes ont été remesurées le 2026-08-26 (P6-01)** : les tests (**803**, +39), le socle
+⭐ **Trois lignes ont été remesurées le 2026-08-26 (P6-01 puis P6-03)** : les tests (**815**, +51), le socle
 (**127,1 Ko**) et le JS par route (**11,0 Ko**) — les deux derniers **inchangés**, ce qui n'affirme
 rien d'autre que ce qui est écrit : le module de P6-01 n'a pas encore d'appelant, donc il n'entre
 dans aucun chunk.
@@ -183,6 +184,8 @@ Le détail est dans `phase-4-log.md` — ici, seulement ce qui se transporte.
 
 ADR-0001  Markdown/MDX = source de vérité unique, Content Layer pur TS validé par Zod
 ADR-0002  Le routeur Next.js est la source de vérité de la navigation ; la scène suit l'URL
+          **amendé le 2026-08-26 (P6-03)** : `getRouteForScreen` prend un `SceneFocus`, les quatre
+          états — restreinte aux trois écrans, elle ouvrait une seconde porte
 ADR-0003  Three.js = enrichissement progressif, 4 paliers de capacité
 ADR-0004  Contenu des écrans = DOM superposé, instance unique déplacée par portail React
 ADR-0005  i18n sans bibliothèque, dictionnaires TS, contenu localisé par fichier
@@ -229,8 +232,20 @@ mets l'ADR à jour et ajoute une ligne au journal des révisions. Jamais de chan
 
 ## Ta mission cette session
 
-**La Phase 6 est ouverte et P6-01 est livrée : enchaîne sur P6-03.** Seule P5-10 reste de la
+**P6-01 et P6-03 sont livrées : enchaîne sur P6-02** (`getCameraTarget`). Seule P5-10 reste de la
 Phase 5, reportée après P6-04. Tout le reste est livré et mesuré.
+
+⭐⭐⭐ **Ce que P6-02 doit tenir, et qui est déjà préparé** : `SCENE_FOCUSES` énumère les quatre focus
+une seule fois, et l'exhaustivité du cadrage se tient par un **`Record<SceneFocus, ViewId>`**, jamais
+une suite de `if`. ⚠️ **Les deux vocabulaires ne coïncident pas** — `SceneFocus` parle anglais
+(`overview`, `projects`, `skills`), `ViewId` de `layout.ts` parle français (`accueil`, `projets`,
+`competences`) — et **P6-02 est le seul endroit où ils se rencontrent**. Les dalles physiques
+(`dalleGauche`, `dalleCentre`, `dallePortable`) y sont déjà attachées par
+`CAMERAS[ViewId].focusNodeId` : **n'inventer aucun quatrième vocabulaire.**
+⛔ **P6-02 est la tâche qui fait entrer `layout.ts`** dans le graphe d'imports de `scene/state`.
+La règle n'est pas « un fichier par fonction » mais *rien sur le chemin de première visite ne tire
+`layout.ts`* — `getCameraTarget` ne peut donc PAS cohabiter avec `scene-state.ts`, que P6-07 amènera
+dans ce chemin. `scripts/check-scene-isolation.mts` mesure la propriété, avec témoin.
 
 ⭐ **L'ordre de travail de la phase est arrêté** (`phase-6-log.md` §5), avec **deux écarts assumés**
 par rapport à l'ordre des identifiants :

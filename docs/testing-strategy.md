@@ -109,7 +109,12 @@ getRouteForScreen('skills', 'en')            → '/en/skills'
 ```
 
 - Aller-retour : `getRouteForScreen` puis `resolveSceneState` redonne le même focus (propriété
-  vérifiée sur les trois écrans et les deux locales).
+  vérifiée sur les **quatre focus** — `overview` compris, ADR-0002 amendé en P6-03 — et les deux
+  locales).
+  ⛔ **Et l'aller-retour seul ne suffit pas** : pour `overview`, *toute* adresse que le site ne sert
+  pas le satisfait, puisqu'elle s'effondre justement vers la vue d'ensemble — une route d'accueil
+  inventée passerait. Il est doublé d'une seconde propriété : la route désigne une **vraie page**
+  (`parsePagePath(route) !== null`).
 - Le mapping écran ↔ section est testé **exhaustivement** : tout ajout d'écran sans mise à jour du
   mapping échoue.
 - Transitions : durée nulle quand `reduced-motion`, interruption d'une transition en cours,

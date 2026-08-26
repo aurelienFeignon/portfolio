@@ -1,6 +1,6 @@
 # ADR-0002 — Le routeur Next.js est la source de vérité de l'état de navigation
 
-- **Statut** : ACCEPTÉ (Phase 0, 2026-08-11)
+- **Statut** : ACCEPTÉ (Phase 0, 2026-08-11) — *amendé le 2026-08-26 (P6-03), voir §Amendement*
 - **Décide** : synchronisation entre l'URL et la scène 3D
 - **Lié à** : ADR-0003, ADR-0004
 
@@ -43,6 +43,28 @@ Corollaires :
    utile au débogage.
 4. Le canvas est monté **au-dessus** des routes (dans le layout de locale) : changer de route ne le
    démonte pas, donc pas de rechargement d'assets ni de fuite GPU (R-10).
+
+## Amendement du 2026-08-26 (P6-03) — `getRouteForScreen` prend un **état**, pas un écran
+
+Le schéma ci-dessus écrit `getRouteForScreen(screen, locale)`, et l'exemple de
+`testing-strategy.md` §4.3 le lit comme *l'un des trois écrans*. À l'écriture, cette lecture
+**ouvrait une seconde porte** : « revenir au bureau » — touche Échap, clic hors écran (P6-05) — est
+une navigation comme une autre, et elle aurait dû appeler `homePath` directement, à côté de la
+fonction que cet ADR déclare unique.
+
+La fonction prend donc un **`SceneFocus`**, les quatre états, `overview` compris. Rien d'autre ne
+change : `getRouteForScreen('skills', 'en')` rend toujours `/en/skills`, et le sens du flux est
+inchangé.
+
+**Ce que l'amendement gagne, et qui est vérifiable** : l'aller-retour cesse d'être vacant.
+`resolveSceneState(getRouteForScreen(focus, locale)).focus === focus` se prouve sur les **quatre**
+focus et les **deux** locales, là où la version restreinte n'aurait rien affirmé que
+`pathFor ∘ parsePagePath = id` — tenu depuis P6-01 — n'affirmait déjà.
+
+⛔ **Et l'aller-retour seul ne suffit pas**, ce que l'écriture a montré : pour `overview`, *toute*
+adresse que le site ne sert pas le satisfait, puisqu'elle s'effondre justement vers la vue
+d'ensemble. Une route d'accueil inventée passerait. La propriété est donc doublée d'une seconde —
+la route désigne une **vraie page** (`parsePagePath(route) !== null`).
 
 ## Alternatives considérées
 

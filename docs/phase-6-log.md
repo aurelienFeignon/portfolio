@@ -300,3 +300,91 @@ repose.
   qui lit `request.nextUrl.pathname`. Le jour où une autre source l'alimente, la question se repose
   **là**, pas ici.
 - ⚠️ **`entityPath` accepte une section sans fiche d'entité** — voir §7.7, nommé et non traité.
+
+
+---
+
+## 8. P6-03 — l'autre sens du flux, et l'arbitrage qui l'empêche d'être vacant
+
+**Livré le 2026-08-26.** `getRouteForScreen(focus, locale)` et `SCENE_FOCUSES`, dans
+`scene-state.ts`, contre `resolveSceneState` dont ils sont l'inverse. **30 tests** sur le module,
+couverture **100 %**.
+
+### 8.1 ⭐⭐⭐ L'arbitrage, posé avant la première ligne — et ce qu'il évitait
+
+`testing-strategy.md` §4.3 écrit `getRouteForScreen('skills', 'en') → '/en/skills'`, ce qui se lit
+comme *l'un des trois écrans*. Écrite ainsi, la fonction aurait été **un alias d'une ligne de
+`sectionPath`**, et sa propriété d'aller-retour n'aurait rien affirmé que
+`pathFor ∘ parsePagePath = id` — tenu depuis P6-01 — n'affirmait déjà. Le « mapping écran ↔ section
+testé exhaustivement » qu'exige le même paragraphe serait devenu **vacant** : les deux vocabulaires
+sont le même.
+
+| Arbitrage | Décision de l'utilisateur (2026-08-26) | Ce qui la rouvre |
+|---|---|---|
+| Que prend `getRouteForScreen` ? | **Un `SceneFocus`** — les quatre états, `overview` compris | Un état de scène non représentable en URL, ce qu'ADR-0002 traite déjà comme un déclencheur de réexamen |
+
+⭐⭐ **La raison qui emporte n'est pas l'élégance, c'est le nombre de portes.** « Revenir au bureau »
+— touche Échap, clic hors écran (P6-05) — est une navigation comme une autre. Restreinte aux trois
+écrans, la fonction aurait obligé P6-05 à appeler `homePath` **à côté** : ADR-0002 n'aurait plus *un*
+sens de flux mais deux, dans l'ADR même qui n'en veut qu'un. **ADR-0002 est amendé**, avec sa ligne
+au journal des révisions — jamais de changement silencieux.
+
+### 8.2 ⛔⛔ L'aller-retour SEUL ne prouve rien pour `overview`
+
+C'est l'écriture qui l'a montré, pas la relecture. La propriété
+`resolveSceneState(getRouteForScreen(f, l)).focus === f` est satisfaite, pour `f = 'overview'`, par
+**n'importe quelle adresse que le site ne sert pas** — elle s'effondre justement vers la vue
+d'ensemble. `/fr/bureau` passait.
+
+⭐⭐ **Une propriété d'aller-retour est aveugle sur la valeur qui absorbe les erreurs.** Elle est donc
+doublée : la route doit désigner une **vraie page**, `parsePagePath(route) !== null`. La mutation
+« une route d'accueil inventée » le confirme — elle survit à l'aller-retour, elle meurt sur celle-ci.
+
+### 8.3 Deux décisions d'écriture, et leur raison
+
+- ⭐ **Pas de `switch` exhaustif.** `overview` est le seul cas particulier ; *tout le reste est une
+  section par construction*. Un `switch` devrait être rouvert à chaque section ajoutée, alors qu'elle
+  doit précisément suivre toute seule — l'exhaustivité par le typage serait ici un frein, pas un
+  garde.
+- ⭐⭐ **`SCENE_FOCUSES` est exporté, et sa complétude est tenue.** Deux propriétés se vérifient sur
+  l'ensemble et non cas par cas (l'aller-retour, et le cadrage de P6-02). Mais une liste dérivée peut
+  **rétrécir en silence** : amputée de `'overview'`, elle laissait les boucles vertes. Le banc la
+  confronte à un `Record<SceneFocus, true>` littéral — ajouter une section sans l'y déclarer **ne
+  compile pas**, ce qui oblige un humain à passer par là. Mutation vue **survivante avant**, tuée
+  après.
+
+⭐ Les deux fonctions vivent dans le **même fichier**, et c'est la règle appliquée à elle-même :
+*l'inverse vit contre l'aller*. Leur empreinte d'import est identique — `routing` seul, pas de
+`layout.ts` —, donc la contrainte de §3.1 est respectée. C'est la démonstration que cette règle porte
+sur l'empreinte et non sur la forme.
+
+### 8.4 Éprouvé par mutation — quatre, toutes tuées
+
+| Mutation | Verdict |
+|---|---|
+| L'accueil est rendu pour tous les focus | **tuée** — 8 tests |
+| Une route d'accueil **inventée** (`/fr/bureau`) | **tuée** — 3 tests |
+| La locale est figée à `fr` | **tuée** — 2 tests |
+| Le périmètre est amputé de `overview` | **tuée** — 1 test |
+
+### 8.5 Relevés
+
+| Relevé | Avant | Après | |
+|---|---|---|---|
+| Tests | 803 | **815** | +12 |
+| Couverture `src/scene/state` | 100 % | **100 %** | seuil 95 % |
+| Socle partagé | 127,1 Ko | **127,1 Ko** | inchangé |
+| JS propre à chaque route | 11,0 Ko | **11,0 Ko** | inchangé |
+| Isolation de la scène (P5-09) | ✓ | **✓** | témoin sur 2 chunks différés |
+
+⚠️ Même réserve qu'en §7.5, et elle vaut toujours : **aucun de ces deux modules n'a d'appelant**.
+Le vrai relevé se prend en P6-07.
+
+### 8.6 Ce que P6-03 laisse ouvert
+
+- ⚠️ **Le nom `Screen` n'existe toujours pas dans le code**, et c'est assumé : les trois écrans sont
+  désignés par ce qu'ils **montrent** (`SceneFocus`), pas par leur place. La correspondance avec les
+  dalles physiques — `dalleGauche`, `dalleCentre`, `dallePortable` — vit déjà dans `layout.ts`
+  (`CAMERAS[ViewId].focusNodeId`), en français. **P6-02 est l'endroit où les deux vocabulaires se
+  rencontrent**, par un `Record<SceneFocus, ViewId>` exhaustif. N'en inventer aucun quatrième.
+- ⚠️ `getRouteForScreen` n'a **aucun appelant** : P6-05 est le premier. Sa seule preuve est unitaire.
