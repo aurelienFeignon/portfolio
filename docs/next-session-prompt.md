@@ -538,6 +538,29 @@ officielle n'atteint 250 Mo.
 
 **Dettes nommées, par ordre d'urgence :**
 
+- ⛔⛔⛔ **Le conteneur de développement FUIT, et il écrivait dans le swap du SSD qui est tombé en
+  panne.** Relevé le **2026-09-23** par la session qui instruisait la récidive NVMe du homeserver, en
+  remontant l'origine de 54 Go de swap. `portfolio-web-1` tourne en `pnpm dev` **sans aucune limite
+  mémoire**, et sa mémoire résidente + swap croissait d'environ **1,7 Go par jour** — de 29 Go à
+  53 Go en quatorze jours.
+  ⚠️ **Ce qui n'est PAS établi, et qu'il ne faut pas laisser glisser** : que cette fuite ait *causé*
+  le blocage du contrôleur NVMe. Elle ajoute une charge d'écriture continue, inutile, sur un
+  contrôleur qui a figé deux fois — c'est tout ce qu'on peut affirmer. *Une corrélation sur le même
+  disque n'est pas une cause.*
+  ⛔ **Le conteneur est aujourd'hui `Exited (255)` et ne s'est pas relancé. Le relancer tel quel
+  redémarre la fuite** — c'est le piège, et rien ne le signalera.
+  **À faire, dans cet ordre :**
+  1. un `mem_limit` sur le service `web` de `docker-compose.yml` (aujourd'hui **aucune** borne
+     mémoire, vérifié : ni `mem_limit` ni `deploy.resources` dans les deux fichiers compose) ;
+  2. cesser de faire tourner `pnpm dev` **en permanence** — l'étage `dev` du `Dockerfile` porte
+     `CMD ["pnpm", "dev"]`, donc le conteneur sert un serveur de développement tant qu'il vit, même
+     quand personne ne développe. `make up` à la demande, `make down` après.
+  ⚠️ **Le plafond ne s'invente pas** : le mesurer sur une session de travail réelle (`docker stats`)
+  avant de l'écrire, sinon la borne tue le hot reload au premier build un peu gros — et un `OOMKilled`
+  silencieux se lit comme « Next a planté ».
+  ⭐ Ce que cela n'explique pas : **pourquoi** `pnpm dev` fuit. Une borne mémoire contient la
+  conséquence, elle ne corrige pas la cause, et la cause n'est pas instruite.
+
 - ✅ ~~La confrontation manifeste ↔ sitemap~~ — **faite en P4-07**, et autrement que prévu : les
   listes générées sont confrontées **aux pages réellement prégénérées**, pas au sitemap. Il y a trois
   énumérations, dont deux dérivées ; comparer deux dérivées produit un message qui accuse celle qui
