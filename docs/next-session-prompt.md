@@ -563,28 +563,34 @@ officielle n'atteint 250 Mo.
 
 **Dettes nommées, par ordre d'urgence :**
 
-- ⛔⛔⛔ **Le conteneur de développement FUIT, et il écrivait dans le swap du SSD qui est tombé en
-  panne.** Relevé le **2026-09-23** par la session qui instruisait la récidive NVMe du homeserver, en
-  remontant l'origine de 54 Go de swap. `portfolio-web-1` tourne en `pnpm dev` **sans aucune limite
+- ⚠️ **Le conteneur de développement FUIT — la fuite est BORNÉE depuis le 2026-09-24, pas corrigée.**
+  Relevée le 2026-09-23 par la session qui instruisait la récidive NVMe du homeserver, en remontant
+  l'origine de 54 Go de swap : `portfolio-web-1` tournait en `pnpm dev` **sans aucune limite
   mémoire**, et sa mémoire résidente + swap croissait d'environ **1,7 Go par jour** — de 29 Go à
-  53 Go en quatorze jours.
-  ⚠️ **Ce qui n'est PAS établi, et qu'il ne faut pas laisser glisser** : que cette fuite ait *causé*
-  le blocage du contrôleur NVMe. Elle ajoute une charge d'écriture continue, inutile, sur un
-  contrôleur qui a figé deux fois — c'est tout ce qu'on peut affirmer. *Une corrélation sur le même
-  disque n'est pas une cause.*
-  ⛔ **Le conteneur est aujourd'hui `Exited (255)` et ne s'est pas relancé. Le relancer tel quel
-  redémarre la fuite** — c'est le piège, et rien ne le signalera.
-  **À faire, dans cet ordre :**
-  1. un `mem_limit` sur le service `web` de `docker-compose.yml` (aujourd'hui **aucune** borne
-     mémoire, vérifié : ni `mem_limit` ni `deploy.resources` dans les deux fichiers compose) ;
-  2. cesser de faire tourner `pnpm dev` **en permanence** — l'étage `dev` du `Dockerfile` porte
-     `CMD ["pnpm", "dev"]`, donc le conteneur sert un serveur de développement tant qu'il vit, même
-     quand personne ne développe. `make up` à la demande, `make down` après.
-  ⚠️ **Le plafond ne s'invente pas** : le mesurer sur une session de travail réelle (`docker stats`)
-  avant de l'écrire, sinon la borne tue le hot reload au premier build un peu gros — et un `OOMKilled`
-  silencieux se lit comme « Next a planté ».
-  ⭐ Ce que cela n'explique pas : **pourquoi** `pnpm dev` fuit. Une borne mémoire contient la
-  conséquence, elle ne corrige pas la cause, et la cause n'est pas instruite.
+  53 Go en quatorze jours, écrits en continu dans le swap du SSD dont le contrôleur a gelé deux fois.
+  ⚠️ **Non établi, et à ne pas affirmer** : que la fuite ait *causé* ces gels. Elle ajoute une charge
+  d'écriture continue et inutile — c'est tout ce qui est démontré.
+
+  ✅ **Ce qui est fait** : `mem_limit: 4g` **et** `memswap_limit: 4g` sur le service `web`.
+  ⭐⭐ **Les deux, parce que `mem_limit` seul ne coupe pas le swap** — Docker laisse alors la mémoire
+  virtuelle monter à **deux fois** la limite, le surplus partant précisément dans le swap qu'on veut
+  ne plus toucher. Vérifié dans le cgroup depuis l'intérieur du conteneur :
+  `memory.max = 4 Gio`, **`memory.swap.max = 0`**. Le dommage rapporté est donc structurellement
+  impossible, pas seulement découragé.
+  ⭐ **Le plafond est mesuré** (2026-09-24) : 858 Mio au démarrage, 959 après six routes compilées,
+  **1 526 Mio au pic d'un `make bundle`** — 4 Gio laisse ~2,6× de marge sur le geste le plus lourd du
+  dépôt. Les quatre portes rejouées **sous la borne** : `bundle`, `test` (814), `lint`, `typecheck`.
+  Le raisonnement complet vit dans `docker-compose.yml`, à l'endroit où la valeur est écrite.
+
+  ⛔ **Ce qui RESTE ouvert, et qu'une borne ne règle pas :**
+  1. **Pourquoi `pnpm dev` fuit n'est pas instruit.** La borne rend la fuite **datée et bruyante** —
+     à 1,7 Go/jour depuis ~1 Gio, elle atteint 4 Gio en ~2 jours de marche continue et le conteneur
+     est tué — mais elle ne la supprime pas. ⛔ Un `OOMKilled` se lit comme « Next a planté » :
+     `docker inspect -f '{{.State.OOMKilled}}' portfolio-web-1` tranche.
+  2. **Ne pas le faire tourner en permanence.** L'étage `dev` porte `CMD ["pnpm", "dev"]` : le
+     conteneur sert un serveur de développement tant qu'il vit, même quand personne ne développe.
+     `make up` à la demande, `make down` après — c'est une habitude à prendre, pas un correctif à
+     écrire.
 
 - ✅ ~~La confrontation manifeste ↔ sitemap~~ — **faite en P4-07**, et autrement que prévu : les
   listes générées sont confrontées **aux pages réellement prégénérées**, pas au sitemap. Il y a trois

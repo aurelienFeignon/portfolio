@@ -21,6 +21,41 @@ services:
     user: '${HOST_UID:-1000}:${HOST_GID:-1000}'
     working_dir: /app
     init: true
+    # ⛔⛔⛔ **Ce conteneur a fui 1,7 Go par JOUR** — de 29 à 53 Go en quatorze
+    # jours, relevé le 2026-09-23 en remontant l'origine de 54 Go de swap sur la
+    # machine hôte. Il écrivait donc en continu dans le swap, sur le SSD dont le
+    # contrôleur a gelé deux fois. ⚠️ Que la fuite ait CAUSÉ ces gels n'est pas
+    # établi et ne doit pas être affirmé : elle ajoute une charge d'écriture
+    # continue et inutile, c'est tout ce qui est démontré.
+    #
+    # ⭐⭐ **`mem_limit` SEUL NE SUFFIT PAS, et c'est le point de la correction.**
+    # Sans `memswap_limit`, Docker autorise la mémoire virtuelle totale à monter
+    # jusqu'à **deux fois** `mem_limit` — le surplus partant précisément dans le
+    # swap qu'on cherche à ne plus toucher. Les deux valeurs égales veulent dire
+    # « pas de swap du tout pour ce conteneur ».
+    #
+    # ⭐ **Le plafond est mesuré, pas choisi.** Relevés du 2026-09-24 :
+    #     858 Mio  serveur de dev au démarrage
+    #     959 Mio  après compilation de six routes, accueil 3D comprise
+    #   1 526 Mio  PIC d'un `make bundle` complet (`next build` + gates)
+    # 4 Gio laisse donc ~2,6× de marge sur le geste le plus lourd du dépôt, et
+    # reste treize fois sous ce que la fuite avait atteint.
+    #
+    # ⚠️ **Ce que le plafond fait, et ce qu'il ne fait pas.** Il ne corrige pas la
+    # fuite — la cause n'est pas instruite. Il la rend **datée et bruyante** : à
+    # 1,7 Go/jour depuis ~1 Gio, elle atteint 4 Gio en environ deux jours de
+    # marche continue, et le conteneur est alors tué. ⛔ Un `OOMKilled` se lit
+    # comme « Next a planté » ; la commande qui tranche est
+    # `docker inspect -f '{{.State.OOMKilled}}' portfolio-web-1`.
+    # ⭐ Aucune politique `restart:` ici, délibérément : un redémarrage
+    # automatique transformerait ce signal en boucle silencieuse.
+    #
+    # ⭐⭐ **Le vrai remède reste de ne pas le faire tourner en permanence** :
+    # l'étage `dev` porte `CMD ["pnpm", "dev"]`, donc ce conteneur sert un serveur
+    # de développement tant qu'il vit, même quand personne ne développe.
+    # `make up` à la demande, `make down` après.
+    mem_limit: 4g
+    memswap_limit: 4g
     ports:
       - '3000:3000'
     environment:
