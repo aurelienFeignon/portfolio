@@ -54,9 +54,26 @@ publication GHCR et déploiement VPS compris. ⭐ L'état réellement déployé 
 **se lit** — trois SHA successifs ont pourri à cet endroit :
 
 ```bash
-gh run list --branch main --limit 1                                   # ce que la CI a conclu
+gh run list --branch main --workflow ci.yml --limit 1                 # ce que la CI a conclu
 ssh portfolio 'SSH_ORIGINAL_COMMAND="status" /srv/portfolio/deploy.sh' # ce que le serveur SERT
 ```
+
+⛔⛔ **`--workflow ci.yml` n'est pas décoratif** : sans lui, `--limit 1` rend la *Sonde externe* et
+jamais la CI. Pourquoi, et où le piège a mordu : `deploy/README.md` §4.2.
+
+⏸️ **Le projet est en PAUSE depuis le 2026-08-26**, dernier commit sur `main`. Ce n'est pas un
+oubli : rien n'est en cours, aucune branche n'attend. Deux conséquences **mesurées le 2026-09-24**,
+qui ne se voient pas depuis le dépôt :
+
+- ✅ **Le site est debout** — la sonde externe est verte sans interruption sur toute la fenêtre.
+- ⛔⛔ **Mais elle ne tire PAS toutes les 10 minutes**, et l'écart est mesuré : le délai honnête
+  avant qu'une panne ne soit vue est de l'ordre de **~7 h**. Cadence relevée, méthode et
+  conséquences : `deploy/README.md` **§7.4 ter** — ne pas recopier les chiffres ici.
+- ⛔⛔⛔ **Et GitHub DÉSACTIVE un workflow planifié après 60 jours sans activité sur le dépôt** :
+  passé ce délai la sonde ne rend plus ni vert ni rouge — elle ne tourne plus, et *rien ne le dit*.
+  La règle, l'échéance qui se **calcule** plutôt que se recopier, et le contrôle : `deploy/README.md`
+  §7.5. ⭐ Ce risque n'existe que tant que le projet **dort** — c'est-à-dire quand personne ne
+  regarde.
 
 | Tâche | Ce qu'elle a livré |
 |---|---|
@@ -93,8 +110,11 @@ restera tant que le portfolio n'est pas terminé. **Une requête anonyme reçoit
 la conclusion du workflow — les cinq jobs, publication GHCR et déploiement VPS compris :
 
 ```bash
-gh run list --branch main --limit 1
+gh run list --branch main --workflow ci.yml --limit 1
 ```
+
+⭐ Les cinq jobs ne sont verts que sur un run **`push` sur `main`** : sur une PR, `publier sur GHCR`
+et `déployer sur le VPS` sont **`skipped`** par construction (`deploy/README.md` §8.1).
 
 ⭐ **P4-16 a été faite dans une fenêtre ouverte exprès** : Access levé le 2026-08-20 le temps de la
 mesure, puis refermé le jour même à la demande de l'exploitant. Les relevés sont en
@@ -537,6 +557,24 @@ porte les deux paliers. `performance-budget.md` §7.1 tranche : ne rien changer,
 officielle n'atteint 250 Mo.
 
 **Dettes nommées, par ordre d'urgence :**
+
+- ⚠️ **Le conteneur de développement FUIT — la fuite est BORNÉE depuis le 2026-09-24, pas corrigée.**
+  Relevée le 2026-09-23 par la session qui instruisait la récidive NVMe du homeserver :
+  `portfolio-web-1` tournait en `pnpm dev` **sans aucune limite mémoire**, et écrivait en continu
+  dans le swap du SSD dont le contrôleur a gelé deux fois.
+  ⚠️ **Non établi, et à ne pas affirmer** : que la fuite ait *causé* ces gels. Elle ajoute une charge
+  d'écriture continue et inutile — c'est tout ce qui est démontré.
+
+  ✅ **Fait** : `mem_limit` **et** `memswap_limit` sur le service `web`. ⭐ **Les chiffres, le
+  raisonnement et les contrôles vivent dans `docker-compose.yml`**, à l'endroit où la valeur est
+  écrite — ne pas les recopier ici. Les portes de `make ci` qui passent par ce service (`lint`,
+  `typecheck`, `coverage`, `bundle`) ont été rejouées **sous la borne** : les quatre sortent en 0.
+
+  ⛔ **Ce qui RESTE ouvert, et qu'une borne ne règle pas :**
+  1. **Pourquoi `pnpm dev` fuit n'est pas instruit.** La borne contient la conséquence, pas la cause.
+  2. **Ne pas le faire tourner en permanence** — `make up` à la demande, `make down` après. C'est une
+     habitude à prendre, pas un correctif à écrire : l'étage `dev` porte `CMD ["pnpm", "dev"]`, donc
+     le conteneur sert un serveur de développement tant qu'il vit, même quand personne ne développe.
 
 - ✅ ~~La confrontation manifeste ↔ sitemap~~ — **faite en P4-07**, et autrement que prévu : les
   listes générées sont confrontées **aux pages réellement prégénérées**, pas au sitemap. Il y a trois

@@ -22,11 +22,12 @@
 #
 # ⚠️ **La planification d'Actions est « au mieux ».** GitHub retarde ou saute les
 # exécutions planifiées sous charge, et désactive un `cron` après 60 jours sans
-# activité sur le dépôt. La résolution réelle n'est donc pas « 10 minutes » mais
-# « 10 minutes plus un retard non garanti » — ce qui reste très au-dessous du
-# risque visé par R-15, qui est une panne durant des JOURS sans être vue. Le
-# retard réellement observé est relevé dans `deploy/README.md` §7.4 plutôt que
-# supposé.
+# activité sur le dépôt.
+# ⛔⛔ **La résolution réelle n'est donc PAS celle de la ligne `cron` ci-dessous**,
+# et l'écart est mesuré : `deploy/README.md` §7.4 ter pour la cadence, §7.5 pour
+# l'extinction. Ce qui reste vrai est la garantie visée par R-15 — une panne ne
+# dure pas des JOURS sans être vue. C'est elle qu'il faut citer, jamais les dix
+# minutes de la ligne ci-dessous.
 #
 # ⚠️ **Elle partage une plateforme avec la chaîne de déploiement.** Une panne de
 # GitHub rend la sonde muette, pas rouge. C'est l'arbitrage du 2026-08-17 (une
@@ -44,8 +45,8 @@ on:
   workflow_dispatch:
 
 # Aucun droit n'est nécessaire : la sonde ne lit que le dépôt et n'écrit nulle
-# part. C'est le principe du moindre privilège appliqué à un workflow qui tourne
-# 144 fois par jour.
+# part. C'est le principe du moindre privilège appliqué au workflow le plus
+# souvent exécuté du dépôt.
 permissions:
   contents: read
 
@@ -75,9 +76,11 @@ jobs:
       #
       # ⭐ **Le MAJEUR, pas le correctif exact**, et c'est la seule différence
       # avec `ci.yml` : une version au correctif près manque le cache d'outils du
-      # runner et retélécharge ~50 Mo **à chacune des 144 exécutions
-      # quotidiennes**. Le majeur est ce dont le retrait de types dépend, et il
-      # reste **dérivé** de la même source — rien n'est recopié.
+      # runner et retélécharge ~50 Mo à chaque exécution. Le majeur est ce dont le
+      # retrait de types dépend, et il reste **dérivé** de la même source — rien
+      # n'est recopié, et c'est ce seul argument qui porte le choix.
+      # ⚠️ Le gain de bande passante qui le justifiait autrefois était chiffré sur
+      # le compte THÉORIQUE du `cron` : voir `phase-4-log.md` §21.7 bis, amendé.
       - id: node
         run: |
           version="$(grep -oP '^ARG NODE_VERSION=\K.*' Dockerfile)"
