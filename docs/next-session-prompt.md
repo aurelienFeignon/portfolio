@@ -49,22 +49,23 @@ supervisé, avec une checklist de mise en ligne et un rollback rejoué.
 sortie vérifiés par mesure (bilan : `phase-5-log.md` §10). **Seule P5-10 reste**, reportée après
 P6-04 : rien n'anime encore.
 **Phase 6 (Navigation spatiale) : OUVERTE le 2026-08-26**, **2 tâches sur 10** — P6-01 et P6-03.
-**Les six tâches ci-dessous sont fusionnées sur `main` et déployées**, les cinq jobs verts à chaque
-fois — publication GHCR et déploiement VPS compris.
-⛔⛔ **La fusion #52 du 2026-09-24 n'a PAS été déployée, et il faut le savoir avant de lire quoi que
-ce soit d'autre.** Fusionnée à 16:32:44 UTC ; à 16:53:47, soit **21 minutes plus tard**, GitHub
-n'avait **créé aucune exécution** pour ce commit — pas une en attente, pas une en échec : aucune.
-Constaté, avec les trois contrôles qui éliminent les causes évidentes : les deux workflows sont
-`active`, `pushed_at` du dépôt porte bien 16:32:47, et la CI de la PR avait conclu vert seize minutes
-plus tôt. ⚠️ **La cause n'est pas établie** — l'étranglement d'Actions que §7.4 ter mesure sur la
-sonde est cohérent avec ce qu'on voit, il ne le démontre pas.
+**Tout ce qui suit est fusionné sur `main` et déployé**, les cinq jobs verts à chaque fois —
+publication GHCR et déploiement VPS compris.
 
-⛔⛔⛔ **Et `ci.yml` n'a pas de `workflow_dispatch`** : il n'existe donc **aucun moyen de la relancer
-à la main**, et `gh run rerun` exige une exécution qui n'existe pas. Le seul chemin vers le
-déploiement est **un nouveau push sur `main`** — que la fusion suivante fournira, en emportant #52
-avec elle. ⭐ La sonde, elle, porte `workflow_dispatch` depuis P4-14, et c'est précisément ce qui
-avait permis de la voir rouge sur une panne réelle. *La chaîne de déploiement n'a pas cette poignée.*
-⛔ **Donc ne suppose pas que `main` est déployée : LIS-LE.** C'est exactement pourquoi l'état
+⛔⛔⛔ **Mais une fusion peut ne RIEN déclencher, en silence — c'est arrivé le 2026-09-24.** La fusion
+de #52 (16:32:44 UTC) n'a produit **aucune exécution** : pas une en attente, pas une en échec —
+aucune, et le compte y était toujours à zéro quarante minutes plus tard. Les trois contrôles qui
+éliminent les causes évidentes avaient été faits : les deux workflows `active`, `pushed_at` du dépôt
+à 16:32:47, et la CI de la PR verte seize minutes plus tôt.
+✅ **Rattrapé par la fusion suivante** (#53, `6ced783`) : le déclencheur `push` a répondu **en une
+minute**, les cinq jobs verts, et le contenu de #52 est parti avec. ⚠️ **La cause reste NON
+ÉTABLIE**, et la piste de l'étranglement d'Actions est affaiblie par ce rattrapage même : les
+`pull_request` répondaient en une minute pendant que ce `push`-là ne produisait rien.
+⭐⭐ **Ce qu'il faut en retenir n'est pas l'incident, c'est ce qu'il révèle** : une fusion peut ne pas
+déployer sans qu'aucune alerte, aucun rouge, aucun message ne le dise. Seule la sonde l'aurait vu, à
+~7 h près. *Un déploiement qui n'a pas lieu ne produit aucun signal — c'est l'absence qu'il faut
+aller regarder.*
+⛔ **Donc ne suppose jamais que `main` est déployée : LIS-LE.** C'est exactement pourquoi l'état
 déployé ne se recopie pas ici — trois SHA successifs ont déjà pourri à cet endroit :
 
 ```bash
@@ -638,9 +639,10 @@ officielle n'atteint 250 Mo.
 - **Mesure CPU en régime stable** (P11-08) : le seul relevé date d'une minute après démarrage — 32 %,
   au-dessus du seuil d'alerte de 25 %. Ce n'est pas une mesure valide.
 - ⛔⛔ **`ci.yml` n'a pas de `workflow_dispatch`**, donc une exécution que GitHub ne crée pas est
-  **irrattrapable autrement que par un nouveau push** — constaté le 2026-09-24 sur la fusion de #52.
-  La sonde a cette poignée depuis P4-14 ; la chaîne qui **déploie** ne l'a pas. L'ajouter est une
-  ligne, et elle rendrait un déploiement manquant récupérable sans commit de complaisance.
+  **irrattrapable autrement que par un nouveau push** — et le 2026-09-24 il a fallu en faire un
+  (voir « État »). La sonde a cette poignée depuis P4-14 ; la chaîne qui **déploie** ne l'a pas.
+  L'ajouter est une ligne, et elle rendrait un déploiement manquant récupérable sans commit de
+  complaisance.
 - **Procédure de restauration du serveur** (R-23) : Hetzner restreint par intermittence la création
   d'instances. À écrire sous cette contrainte en Phase 15.
 - **Plages Cloudflare** : un timer hebdomadaire les rafraîchit sur le VPS.
