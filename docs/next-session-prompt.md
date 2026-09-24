@@ -54,9 +54,27 @@ publication GHCR et déploiement VPS compris. ⭐ L'état réellement déployé 
 **se lit** — trois SHA successifs ont pourri à cet endroit :
 
 ```bash
-gh run list --branch main --limit 1                                   # ce que la CI a conclu
+gh run list --branch main --workflow ci.yml --limit 1                 # ce que la CI a conclu
 ssh portfolio 'SSH_ORIGINAL_COMMAND="status" /srv/portfolio/deploy.sh' # ce que le serveur SERT
 ```
+
+⛔⛔ **`--workflow ci.yml` n'est pas décoratif, et son absence rendait cette recette FAUSSE.** Sans
+lui, `--limit 1` rend le run le plus récent **tous workflows confondus** — donc toujours la *Sonde
+externe*, qui tire plusieurs fois par jour, jamais la CI. La commande répondait sereinement à une
+autre question que celle qu'elle annonçait. Relevé le 2026-09-24 en l'exécutant, pas en la relisant.
+
+⏸️ **Le projet est en PAUSE depuis le 2026-08-26**, dernier commit sur `main`. Ce n'est pas un
+oubli : rien n'est en cours, aucune branche n'attend. Deux conséquences **mesurées le 2026-09-24**,
+qui ne se voient pas depuis le dépôt :
+
+- ✅ **Le site est debout** — la sonde externe est verte sans interruption sur toute la fenêtre.
+- ⛔⛔ **Mais elle ne tire pas toutes les 10 minutes** : médiane **3 h 27**, maximum **6 h 58**, sur
+  100 tirs planifiés (facteur **21** sur la ligne `cron`). Le chiffre honnête du délai de détection
+  est donc **~7 h**, pas 10 minutes. Mesure et conséquences : `deploy/README.md` **§7.4 ter**.
+- ⛔⛔⛔ **Et GitHub DÉSACTIVE un workflow planifié après 60 jours sans activité sur le dépôt** :
+  l'échéance tombe au **2026-10-25**. Passé ce jour, la sonde ne rend plus ni vert ni rouge — elle
+  ne tourne plus, et *rien ne le dit*. ⭐ **Pousser quoi que ce soit remet le compteur à zéro**, donc
+  ce risque n'existe que tant que le projet dort, c'est-à-dire quand personne ne regarde.
 
 | Tâche | Ce qu'elle a livré |
 |---|---|
@@ -93,8 +111,15 @@ restera tant que le portfolio n'est pas terminé. **Une requête anonyme reçoit
 la conclusion du workflow — les cinq jobs, publication GHCR et déploiement VPS compris :
 
 ```bash
-gh run list --branch main --limit 1
+gh run list --branch main --workflow ci.yml --limit 1
 ```
+
+⛔⛔ **Ce fichier portait cette recette DEUX fois, et les deux étaient fausses de la même manière** —
+sans `--workflow ci.yml`, elle rend la *Sonde externe* et jamais la CI. C'est le défaut que la
+section « Entretien de ce fichier » dénonce pour les chiffres, rencontré sur une **commande** : deux
+copies d'un geste, donc deux endroits où il est faux. Corrigé le 2026-09-24, aux deux endroits.
+⭐ Les cinq jobs ne sont verts que sur un run **`push` sur `main`** : sur une PR, `publier sur GHCR`
+et `déployer sur le VPS` sont `skipped` par construction (`deploy/README.md` §8).
 
 ⭐ **P4-16 a été faite dans une fenêtre ouverte exprès** : Access levé le 2026-08-20 le temps de la
 mesure, puis refermé le jour même à la demande de l'exploitant. Les relevés sont en

@@ -577,6 +577,41 @@ trois commandes du §7.3 sans avoir à ouvrir ce fichier.
 §7.5, observée dès le premier jour : la planification d'Actions est « au mieux ». Ce que la sonde
 garantit est *« une panne ne dure pas des jours »*, pas *« une panne est vue en dix minutes »*.
 
+### 7.4 ter La cadence réelle, mesurée sur 14,6 jours — 2026-09-24
+
+Le §7.5 annonce une planification « au mieux » et renvoie ici pour le **retard réellement observé**,
+plutôt que supposé. Le voici, sur **100 tirs planifiés** du 2026-09-10 au 2026-09-24, lus par
+`gh api …/workflows/uptime.yml/runs` :
+
+| | intervalle entre deux tirs |
+|---|---|
+| déclaré (`cron: '*/10 * * * *'`) | **0 h 10** |
+| minimum observé | 1 h 39 |
+| **médiane observée** | **3 h 27** |
+| moyenne | 3 h 32 |
+| **maximum observé** | **6 h 58** |
+
+⛔⛔ **La sonde tire environ toutes les 3 h 30, pas toutes les 10 minutes — un facteur 21.** Ce n'est
+pas une dérive passagère : la moyenne de la première moitié de la fenêtre (3 h 26) et celle de la
+seconde (3 h 37) sont indiscernables.
+
+⭐⭐ **Ce que cela change à ce que la sonde PROMET.** Le §7.5 avait raison de refuser « une panne est
+vue en dix minutes » ; le chiffre honnête est désormais connu : **jusqu'à ~7 h** avant qu'une panne
+ne soit vue. La garantie visée par R-15 — *une panne ne dure pas des jours* — tient toujours, et
+c'est elle qu'il faut citer, jamais la ligne `cron`.
+⚠️ **Le seul chiffre qui vieillit ici est celui du `cron`**, qui donne au lecteur pressé une
+résolution que la plateforme ne rend pas. Il reste à `*/10` volontairement : l'abaisser ne
+ralentirait rien, et l'augmenter ferait croire que le retard est choisi.
+
+⛔⛔⛔ **Et la vraie menace n'est pas le retard, c'est l'extinction.** GitHub **désactive** un
+workflow planifié après **60 jours sans activité sur le dépôt** (§7.5). Le dernier commit sur `main`
+date du **2026-08-26**, donc l'échéance tombe au **2026-10-25**. Passé ce jour, la sonde ne rendrait
+plus ni vert ni rouge : elle ne tournerait plus, et *rien ne le dirait* — une absence de supervision
+qui se lit exactement comme une supervision sereine.
+⭐ **Le compteur se remet à zéro à chaque poussée**, donc un dépôt en développement actif ne le voit
+jamais. C'est précisément quand le projet dort — c'est-à-dire quand personne ne regarde — que la
+sonde s'éteint. À vérifier dans *Actions → Sonde externe* si le projet reste en pause.
+
 ### 7.4 bis L'alerte est **reçue** — confirmé le 2026-08-17
 
 L'e-mail d'échec de GitHub Actions est arrivé pour le run rouge de 11:57:54Z. C'est la seule pièce
