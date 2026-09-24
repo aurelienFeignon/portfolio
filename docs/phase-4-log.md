@@ -2482,6 +2482,12 @@ vérifié.
 ⭐ **Le majeur de Node, et non le correctif exact, dans le workflow.** Une version épinglée au
 correctif manque le cache d'outils du runner et retélécharge ~50 Mo à **chacune des 144 exécutions
 quotidiennes**. Le majeur reste dérivé de l'`ARG` du Dockerfile — la source unique tient.
+⚠️ **Amendé le 2026-09-24 : « 144 exécutions quotidiennes » était le compte THÉORIQUE de la ligne
+`cron`, jamais mesuré.** Le relevé de `deploy/README.md` §7.4 ter en donne **~7 par jour** — facteur
+20. Le choix du majeur tient toujours, mais sur son argument de correction (la source unique), pas
+sur ce chiffre. ⭐⭐ La phrase n'est pas effacée parce que la leçon est la péremption elle-même :
+*un nombre qui fonde une décision doit être remesuré avec elle*, et celui-ci avait l'air d'une
+mesure sans jamais en être une.
 ⚠️ Le constat qui a mené là allait plus loin : `setup-node` est, dans le chemin d'alerte, la même
 classe de dépendance distante que le `pnpm install` que ce workflow refuse. Il n'est pas retiré —
 l'écrire en `.mjs` sortirait le fichier de la convention des six autres scripts **et** du périmètre

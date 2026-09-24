@@ -307,8 +307,14 @@ conclusion du workflow CI sur `main` — les jobs « publier l'image sur GHCR »
 VPS » :
 
 ```bash
-gh run list --branch main --limit 1
+gh run list --branch main --workflow ci.yml --limit 1
 ```
+
+⛔⛔ **`--workflow ci.yml` n'est pas décoratif.** Sans lui, `--limit 1` rend le run le plus récent
+**tous workflows confondus** — donc la *Sonde externe*, qui tire plusieurs fois par jour, et jamais
+la CI. La commande répond alors sereinement à une autre question que celle qu'on lui pose : on lit un
+déploiement d'après un tir de sonde. ⭐ Le §8 emploie déjà l'idiome pour la sonde
+(`--workflow "Sonde externe"`) ; il manquait ici. Corrigé le 2026-09-24.
 
 ⚠️ **Conséquence pour P4-16.** La vérification post-déploiement — indexation, `canonical`,
 `hreflang`, `sitemap.xml`, `robots.txt` observés depuis l'extérieur — est **impossible tant
@@ -577,6 +583,15 @@ trois commandes du §7.3 sans avoir à ouvrir ce fichier.
 §7.5, observée dès le premier jour : la planification d'Actions est « au mieux ». Ce que la sonde
 garantit est *« une panne ne dure pas des jours »*, pas *« une panne est vue en dix minutes »*.
 
+### 7.4 bis L'alerte est **reçue** — confirmé le 2026-08-17
+
+L'e-mail d'échec de GitHub Actions est arrivé pour le run rouge de 11:57:54Z. C'est la seule pièce
+que le dépôt ne peut pas prouver seul : elle dépend d'un réglage du compte (§7.3), hors du dépôt.
+
+⚠️ **Le jour où une panne passe inaperçue, c'est là qu'il faut regarder d'abord** — *GitHub →
+Settings → Notifications → Actions* —, et non dans la sonde : elle, son code de sortie et son journal
+disent ce qu'ils voient.
+
 ### 7.4 ter La cadence réelle, mesurée sur 14,6 jours — 2026-09-24
 
 Le §7.5 annonce une planification « au mieux » et renvoie ici pour le **retard réellement observé**,
@@ -604,22 +619,22 @@ résolution que la plateforme ne rend pas. Il reste à `*/10` volontairement : l
 ralentirait rien, et l'augmenter ferait croire que le retard est choisi.
 
 ⛔⛔⛔ **Et la vraie menace n'est pas le retard, c'est l'extinction.** GitHub **désactive** un
-workflow planifié après **60 jours sans activité sur le dépôt** (§7.5). Le dernier commit sur `main`
-date du **2026-08-26**, donc l'échéance tombe au **2026-10-25**. Passé ce jour, la sonde ne rendrait
-plus ni vert ni rouge : elle ne tournerait plus, et *rien ne le dirait* — une absence de supervision
+workflow planifié après **60 jours sans activité sur le dépôt** (§7.5). Passé ce délai, la sonde ne
+rend plus ni vert ni rouge : elle ne tourne plus, et *rien ne le dit* — une absence de supervision
 qui se lit exactement comme une supervision sereine.
+
+⛔⛔ **L'échéance ne s'écrit pas ici, elle se CALCULE** — et une date gravée dans ce fichier serait
+fausse dès la première poussée, celle-ci comprise :
+
+```bash
+git log -1 --format=%cd --date=short origin/main   # + 60 jours = l'échéance
+```
+
 ⭐ **Le compteur se remet à zéro à chaque poussée**, donc un dépôt en développement actif ne le voit
 jamais. C'est précisément quand le projet dort — c'est-à-dire quand personne ne regarde — que la
 sonde s'éteint. À vérifier dans *Actions → Sonde externe* si le projet reste en pause.
-
-### 7.4 bis L'alerte est **reçue** — confirmé le 2026-08-17
-
-L'e-mail d'échec de GitHub Actions est arrivé pour le run rouge de 11:57:54Z. C'est la seule pièce
-que le dépôt ne peut pas prouver seul : elle dépend d'un réglage du compte (§7.3), hors du dépôt.
-
-⚠️ **Le jour où une panne passe inaperçue, c'est là qu'il faut regarder d'abord** — *GitHub →
-Settings → Notifications → Actions* —, et non dans la sonde : elle, son code de sortie et son journal
-disent ce qu'ils voient.
+⚠️ Relevé du 2026-09-24, à titre d'ordre de grandeur et non de date à croire : le dépôt dormait
+depuis 28 jours.
 
 ### 7.5 Ce que cette sonde n'est pas
 
@@ -632,8 +647,11 @@ justifiée par l'audience.
 
 ⚠️ **La planification d'Actions est « au mieux »** : GitHub retarde ou saute des exécutions sous
 charge, et désactive un `cron` après **60 jours sans activité** sur le dépôt. La résolution réelle
-est donc « 10 minutes plus un retard non garanti », ce qui reste très au-dessous du risque visé —
-une panne durant des **jours** sans être vue.
+n'est donc pas celle de la ligne `cron`.
+⛔⛔ **Elle est désormais MESURÉE, et l'écart est d'un facteur 21** — médiane **3 h 27**, maximum
+**6 h 58** sur 100 tirs : voir **§7.4 ter**. Le délai honnête avant qu'une panne ne soit vue est
+donc de l'ordre de **7 h**. Cela reste très au-dessous du risque visé — une panne durant des
+**jours** sans être vue —, et c'est cette garantie-là qu'il faut citer, jamais les 10 minutes.
 
 ⚠️ **Aucun relevé d'expiration de certificat, et ce n'est pas un oubli.** Le site étant proxifié, le
 certificat vu de l'extérieur est celui de **Cloudflare**, qu'il renouvelle seul : en mesurer les
@@ -706,8 +724,10 @@ la conclusion du workflow d'un côté, la sonde de l'autre.
       le sitemap déclare (§9). ⚠️ Derrière Access, il rend une erreur qui **nomme** la fermeture — ce
       n'est pas un défaut, et c'est pourquoi il n'est pas un gate de CI.
 - [ ] **Les cinq jobs du run de `main` ont conclu** — `déployer sur le VPS` compris :
-      `gh run watch <id> --exit-status`, ou `gh run list --branch main --limit 1`. Le vert de GHCR
-      ne dit rien du VPS.
+      `gh run watch <id> --exit-status`, ou `gh run list --branch main --workflow ci.yml --limit 1`.
+      ⛔ **Sans `--workflow ci.yml`, cette ligne se coche sur un tir de SONDE** : `--limit 1` rend le
+      run le plus récent tous workflows confondus. Le vert de GHCR ne dit rien du VPS, et le vert de
+      la sonde ne dit rien des deux.
 - [ ] **Un tir PLANIFIÉ de la sonde est passé vert** depuis le déploiement :
       `gh run list --workflow "Sonde externe" --event schedule --limit 1`. ⛔ Sans `--event
       schedule`, un `workflow_dispatch` déclenché à la main coche la case sans rien prouver — or ce

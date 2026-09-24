@@ -34,6 +34,16 @@ services:
     # swap qu'on cherche à ne plus toucher. Les deux valeurs égales veulent dire
     # « pas de swap du tout pour ce conteneur ».
     #
+    # ⚠️ **Vérifié sur CETTE machine, et la portée de l'affirmation s'arrête là.**
+    # Relevé dans le cgroup depuis l'intérieur du conteneur, le 2026-09-24 :
+    # `memory.max = 4294967296` et **`memory.swap.max = 0`**. ⛔ Sur un hôte sans
+    # comptabilité du swap (cgroup v1, certaines configurations WSL2), Docker
+    # **ignore `memswap_limit` avec un simple avertissement** : la borne de RAM
+    # tient, la coupure du swap non, et rien d'autre ne le dit. Le contrôle qui
+    # tranche, à rejouer sur une machine neuve :
+    #   docker compose up -d web
+    #   docker compose exec web cat /sys/fs/cgroup/memory.swap.max   # doit rendre 0
+    #
     # ⭐ **Le plafond est mesuré, pas choisi.** Relevés du 2026-09-24 :
     #     858 Mio  serveur de dev au démarrage
     #     959 Mio  après compilation de six routes, accueil 3D comprise
@@ -45,8 +55,14 @@ services:
     # fuite — la cause n'est pas instruite. Il la rend **datée et bruyante** : à
     # 1,7 Go/jour depuis ~1 Gio, elle atteint 4 Gio en environ deux jours de
     # marche continue, et le conteneur est alors tué. ⛔ Un `OOMKilled` se lit
-    # comme « Next a planté » ; la commande qui tranche est
-    # `docker inspect -f '{{.State.OOMKilled}}' portfolio-web-1`.
+    # comme « Next a planté ». Deux cas, et une seule commande ne les couvre pas :
+    #   - serveur de dev (`make up`, conteneur durable) :
+    #       docker inspect -f '{{.State.OOMKilled}}' portfolio-web-1
+    #   - portes (`make bundle`, `coverage`, …) : `docker compose run --rm` crée
+    #     un `portfolio-web-run-<hash>` et le SUPPRIME, donc `docker inspect`
+    #     répond `No such object`. ⛔ C'est pourtant là qu'est le pic mesuré
+    #     (1 526 Mio) : le signal à lire est le **code de sortie 137** de la
+    #     cible `make`, qui est la signature du tueur de mémoire.
     # ⭐ Aucune politique `restart:` ici, délibérément : un redémarrage
     # automatique transformerait ce signal en boucle silencieuse.
     #

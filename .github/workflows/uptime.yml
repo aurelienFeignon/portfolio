@@ -25,8 +25,9 @@
 # activité sur le dépôt. La résolution réelle n'est donc pas « 10 minutes » mais
 # « 10 minutes plus un retard non garanti » — ce qui reste très au-dessous du
 # risque visé par R-15, qui est une panne durant des JOURS sans être vue. Le
-# retard réellement observé est relevé dans `deploy/README.md` §7.4 plutôt que
-# supposé.
+# retard réellement observé est relevé dans `deploy/README.md` **§7.4 ter**
+# plutôt que supposé : médiane **3 h 27**, maximum **6 h 58** sur 100 tirs
+# (2026-09-24), soit un facteur **21** sur la ligne `cron` ci-dessous.
 #
 # ⚠️ **Elle partage une plateforme avec la chaîne de déploiement.** Une panne de
 # GitHub rend la sonde muette, pas rouge. C'est l'arbitrage du 2026-08-17 (une
@@ -44,8 +45,8 @@ on:
   workflow_dispatch:
 
 # Aucun droit n'est nécessaire : la sonde ne lit que le dépôt et n'écrit nulle
-# part. C'est le principe du moindre privilège appliqué à un workflow qui tourne
-# 144 fois par jour.
+# part. C'est le principe du moindre privilège appliqué au workflow le plus
+# souvent exécuté du dépôt — ⚠️ **~7 fois par jour et non 144**, voir plus bas.
 permissions:
   contents: read
 
@@ -75,9 +76,18 @@ jobs:
       #
       # ⭐ **Le MAJEUR, pas le correctif exact**, et c'est la seule différence
       # avec `ci.yml` : une version au correctif près manque le cache d'outils du
-      # runner et retélécharge ~50 Mo **à chacune des 144 exécutions
-      # quotidiennes**. Le majeur est ce dont le retrait de types dépend, et il
-      # reste **dérivé** de la même source — rien n'est recopié.
+      # runner et retélécharge ~50 Mo à chaque exécution. Le majeur est ce dont le
+      # retrait de types dépend, et il reste **dérivé** de la même source — rien
+      # n'est recopié.
+      #
+      # ⚠️ **La justification chiffrée de ce choix était fausse d'un facteur 20.**
+      # Elle disait « 144 exécutions quotidiennes », soit le compte théorique de
+      # la ligne `cron`. La mesure du 2026-09-24 (`deploy/README.md` §7.4 ter)
+      # donne **~7 tirs par jour** : le gain réel est de l'ordre de 350 Mo/jour,
+      # pas 7 Go. ⭐ **Le choix tient quand même** — le majeur est dérivé de la
+      # même source, donc il ne coûte rien à maintenir —, mais il tient
+      # maintenant sur son argument de correction, pas sur un chiffre inventé.
+      # *Un nombre qui fonde une décision doit être remesuré avec elle.*
       - id: node
         run: |
           version="$(grep -oP '^ARG NODE_VERSION=\K.*' Dockerfile)"

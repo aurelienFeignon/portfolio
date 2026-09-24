@@ -71,10 +71,12 @@ qui ne se voient pas depuis le dépôt :
 - ⛔⛔ **Mais elle ne tire pas toutes les 10 minutes** : médiane **3 h 27**, maximum **6 h 58**, sur
   100 tirs planifiés (facteur **21** sur la ligne `cron`). Le chiffre honnête du délai de détection
   est donc **~7 h**, pas 10 minutes. Mesure et conséquences : `deploy/README.md` **§7.4 ter**.
-- ⛔⛔⛔ **Et GitHub DÉSACTIVE un workflow planifié après 60 jours sans activité sur le dépôt** :
-  l'échéance tombe au **2026-10-25**. Passé ce jour, la sonde ne rend plus ni vert ni rouge — elle
-  ne tourne plus, et *rien ne le dit*. ⭐ **Pousser quoi que ce soit remet le compteur à zéro**, donc
-  ce risque n'existe que tant que le projet dort, c'est-à-dire quand personne ne regarde.
+- ⛔⛔⛔ **Et GitHub DÉSACTIVE un workflow planifié après 60 jours sans activité sur le dépôt.**
+  Passé ce délai la sonde ne rend plus ni vert ni rouge — elle ne tourne plus, et *rien ne le dit*.
+  ⛔⛔ **L'échéance ne se recopie pas, elle se CALCULE** : `git log -1 --format=%cd --date=short
+  origin/main`, plus 60 jours. Une date gravée ici serait fausse dès la poussée suivante — celle qui
+  l'écrit comprise. ⭐ **Pousser quoi que ce soit remet le compteur à zéro**, donc ce risque n'existe
+  que tant que le projet dort, c'est-à-dire quand personne ne regarde.
 
 | Tâche | Ce qu'elle a livré |
 |---|---|
@@ -580,6 +582,11 @@ officielle n'atteint 250 Mo.
   ⭐ **Le plafond est mesuré** (2026-09-24) : 858 Mio au démarrage, 959 après six routes compilées,
   **1 526 Mio au pic d'un `make bundle`** — 4 Gio laisse ~2,6× de marge sur le geste le plus lourd du
   dépôt. Les quatre portes rejouées **sous la borne** : `bundle`, `test` (814), `lint`, `typecheck`.
+  ⭐ **Les portes rejouées sous la borne sont celles de `make ci`** — `lint`, `typecheck`,
+  **`coverage`** et `bundle` —, pas des cibles voisines : la chaîne enchaîne `coverage` et n'appelle
+  **jamais** `test`, et c'était l'erreur de la première rédaction. Les quatre sortent en 0.
+  ⚠️ Les autres gates (`build`, `e2e-prod`, `lighthouse`) ne passent **pas** par le service `web` et
+  ne sont donc pas concernés par la borne.
   Le raisonnement complet vit dans `docker-compose.yml`, à l'endroit où la valeur est écrite.
 
   ⛔ **Ce qui RESTE ouvert, et qu'une borne ne règle pas :**
