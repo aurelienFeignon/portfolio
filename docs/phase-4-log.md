@@ -2483,8 +2483,8 @@ vérifié.
 correctif manque le cache d'outils du runner et retélécharge ~50 Mo à **chacune des 144 exécutions
 quotidiennes**. Le majeur reste dérivé de l'`ARG` du Dockerfile — la source unique tient.
 ⚠️ **Amendé le 2026-09-24 : « 144 exécutions quotidiennes » était le compte THÉORIQUE de la ligne
-`cron`, jamais mesuré.** Le relevé de `deploy/README.md` §7.4 ter en donne **~7 par jour** — facteur
-20. Le choix du majeur tient toujours, mais sur son argument de correction (la source unique), pas
+`cron`, jamais mesuré.** Le relevé de `deploy/README.md` §7.4 ter en donne **~7 par jour** — le
+facteur 21 qui y est dérivé. Le choix du majeur tient toujours, mais sur son argument de correction (la source unique), pas
 sur ce chiffre. ⭐⭐ La phrase n'est pas effacée parce que la leçon est la péremption elle-même :
 *un nombre qui fonde une décision doit être remesuré avec elle*, et celui-ci avait l'air d'une
 mesure sans jamais en être une.
