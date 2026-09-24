@@ -49,9 +49,23 @@ supervisé, avec une checklist de mise en ligne et un rollback rejoué.
 sortie vérifiés par mesure (bilan : `phase-5-log.md` §10). **Seule P5-10 reste**, reportée après
 P6-04 : rien n'anime encore.
 **Phase 6 (Navigation spatiale) : OUVERTE le 2026-08-26**, **2 tâches sur 10** — P6-01 et P6-03.
-**Tout ce qui suit est fusionné sur `main` et déployé**, les cinq jobs verts à chaque fois —
-publication GHCR et déploiement VPS compris. ⭐ L'état réellement déployé ne se recopie pas ici, il
-**se lit** — trois SHA successifs ont pourri à cet endroit :
+**Les six tâches ci-dessous sont fusionnées sur `main` et déployées**, les cinq jobs verts à chaque
+fois — publication GHCR et déploiement VPS compris.
+⛔⛔ **La fusion #52 du 2026-09-24 n'a PAS été déployée, et il faut le savoir avant de lire quoi que
+ce soit d'autre.** Fusionnée à 16:32:44 UTC ; à 16:53:47, soit **21 minutes plus tard**, GitHub
+n'avait **créé aucune exécution** pour ce commit — pas une en attente, pas une en échec : aucune.
+Constaté, avec les trois contrôles qui éliminent les causes évidentes : les deux workflows sont
+`active`, `pushed_at` du dépôt porte bien 16:32:47, et la CI de la PR avait conclu vert seize minutes
+plus tôt. ⚠️ **La cause n'est pas établie** — l'étranglement d'Actions que §7.4 ter mesure sur la
+sonde est cohérent avec ce qu'on voit, il ne le démontre pas.
+
+⛔⛔⛔ **Et `ci.yml` n'a pas de `workflow_dispatch`** : il n'existe donc **aucun moyen de la relancer
+à la main**, et `gh run rerun` exige une exécution qui n'existe pas. Le seul chemin vers le
+déploiement est **un nouveau push sur `main`** — que la fusion suivante fournira, en emportant #52
+avec elle. ⭐ La sonde, elle, porte `workflow_dispatch` depuis P4-14, et c'est précisément ce qui
+avait permis de la voir rouge sur une panne réelle. *La chaîne de déploiement n'a pas cette poignée.*
+⛔ **Donc ne suppose pas que `main` est déployée : LIS-LE.** C'est exactement pourquoi l'état
+déployé ne se recopie pas ici — trois SHA successifs ont déjà pourri à cet endroit :
 
 ```bash
 gh run list --branch main --workflow ci.yml --limit 1                 # ce que la CI a conclu
@@ -61,19 +75,24 @@ ssh portfolio 'SSH_ORIGINAL_COMMAND="status" /srv/portfolio/deploy.sh' # ce que 
 ⛔⛔ **`--workflow ci.yml` n'est pas décoratif** : sans lui, `--limit 1` rend la *Sonde externe* et
 jamais la CI. Pourquoi, et où le piège a mordu : `deploy/README.md` §4.2.
 
-⏸️ **Le projet est en PAUSE depuis le 2026-08-26**, dernier commit sur `main`. Ce n'est pas un
-oubli : rien n'est en cours, aucune branche n'attend. Deux conséquences **mesurées le 2026-09-24**,
-qui ne se voient pas depuis le dépôt :
+⏸️ **Le projet a DORMI du 2026-08-26 au 2026-09-24**, vingt-neuf jours sans un commit, et c'est ce
+qui a rendu visibles deux propriétés de la supervision qu'aucune session active n'aurait
+rencontrées :
 
-- ✅ **Le site est debout** — la sonde externe est verte sans interruption sur toute la fenêtre.
-- ⛔⛔ **Mais elle ne tire PAS toutes les 10 minutes**, et l'écart est mesuré : le délai honnête
-  avant qu'une panne ne soit vue est de l'ordre de **~7 h**. Cadence relevée, méthode et
-  conséquences : `deploy/README.md` **§7.4 ter** — ne pas recopier les chiffres ici.
-- ⛔⛔⛔ **Et GitHub DÉSACTIVE un workflow planifié après 60 jours sans activité sur le dépôt** :
-  passé ce délai la sonde ne rend plus ni vert ni rouge — elle ne tourne plus, et *rien ne le dit*.
-  La règle, l'échéance qui se **calcule** plutôt que se recopier, et le contrôle : `deploy/README.md`
-  §7.5. ⭐ Ce risque n'existe que tant que le projet **dort** — c'est-à-dire quand personne ne
-  regarde.
+- ✅ **Le site est resté debout** — sonde verte sans interruption sur toute la fenêtre.
+- ⛔⛔ **Mais elle ne tire PAS toutes les 10 minutes** : le délai honnête avant qu'une panne ne soit
+  vue est de l'ordre de **~7 h**. Cadence relevée, méthode et conséquences : `deploy/README.md`
+  **§7.4 ter** — ne pas recopier les chiffres ici.
+  ⚠️⚠️ **Et cette mesure ne décrit QUE le régime dormant.** GitHub étrangle les exécutions planifiées
+  des dépôts peu actifs : les 100 tirs ont tous été relevés pendant la pause, donc *rien n'établit ce
+  que devient la cadence sur un dépôt qui travaille*. Elle peut s'améliorer — ⛔ ne pas le supposer,
+  et remesurer avant de citer un chiffre en période active. *Une mesure prise dans un seul régime ne
+  décrit que celui-là.*
+- ⛔⛔⛔ **GitHub DÉSACTIVE un workflow planifié après 60 jours sans activité sur le dépôt** : passé
+  ce délai la sonde ne rend plus ni vert ni rouge — elle ne tourne plus, et *rien ne le dit*. La
+  règle, l'échéance qui se **calcule** plutôt que se recopier, et le contrôle : `deploy/README.md`
+  §7.5. ⭐ Le compteur a été remis à zéro par la fusion du 2026-09-24 ; ce risque ne revient que si
+  le projet se rendort.
 
 | Tâche | Ce qu'elle a livré |
 |---|---|
@@ -565,10 +584,13 @@ officielle n'atteint 250 Mo.
   ⚠️ **Non établi, et à ne pas affirmer** : que la fuite ait *causé* ces gels. Elle ajoute une charge
   d'écriture continue et inutile — c'est tout ce qui est démontré.
 
-  ✅ **Fait** : `mem_limit` **et** `memswap_limit` sur le service `web`. ⭐ **Les chiffres, le
-  raisonnement et les contrôles vivent dans `docker-compose.yml`**, à l'endroit où la valeur est
-  écrite — ne pas les recopier ici. Les portes de `make ci` qui passent par ce service (`lint`,
-  `typecheck`, `coverage`, `bundle`) ont été rejouées **sous la borne** : les quatre sortent en 0.
+  ✅ **Fait et fusionné** (#52, 2026-09-24) : `mem_limit` **et** `memswap_limit` sur le service
+  `web`. ⭐ **Les chiffres, le raisonnement et les contrôles vivent dans `docker-compose.yml`**, à
+  l'endroit où la valeur est écrite — ne pas les recopier ici. Les portes de `make ci` qui passent
+  par ce service (`lint`, `typecheck`, `coverage`, `bundle`) ont été rejouées **sous la borne** :
+  les quatre sortent en 0.
+  ⭐ Ce service n'est **que** l'environnement de développement : `docker-compose.prod.yml` est
+  intact, et le site en ligne n'est pas concerné.
 
   ⛔ **Ce qui RESTE ouvert, et qu'une borne ne règle pas :**
   1. **Pourquoi `pnpm dev` fuit n'est pas instruit.** La borne contient la conséquence, pas la cause.
@@ -615,6 +637,10 @@ officielle n'atteint 250 Mo.
   Phase 14.
 - **Mesure CPU en régime stable** (P11-08) : le seul relevé date d'une minute après démarrage — 32 %,
   au-dessus du seuil d'alerte de 25 %. Ce n'est pas une mesure valide.
+- ⛔⛔ **`ci.yml` n'a pas de `workflow_dispatch`**, donc une exécution que GitHub ne crée pas est
+  **irrattrapable autrement que par un nouveau push** — constaté le 2026-09-24 sur la fusion de #52.
+  La sonde a cette poignée depuis P4-14 ; la chaîne qui **déploie** ne l'a pas. L'ajouter est une
+  ligne, et elle rendrait un déploiement manquant récupérable sans commit de complaisance.
 - **Procédure de restauration du serveur** (R-23) : Hetzner restreint par intermittence la création
   d'instances. À écrire sous cette contrainte en Phase 15.
 - **Plages Cloudflare** : un timer hebdomadaire les rafraîchit sur le VPS.
