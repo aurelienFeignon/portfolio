@@ -41,14 +41,45 @@ const DALLE_ATTENDUE: Record<SceneFocus, string | undefined> = {
 
 const FOCUSES = Object.keys(DALLE_ATTENDUE) as readonly SceneFocus[]
 
-const positionDuNoeud = (id: string) => NODES.find((node) => node.id === id)?.position
+function noeud(id: string) {
+  const trouve = NODES.find((candidat) => candidat.id === id)
+  // ⛔ Un identifiant renommé dans `layout.ts` doit le DIRE, pas rendre `undefined`
+  // et laisser l'assertion suivante échouer sur un diff illisible.
+  if (trouve === undefined) throw new Error(`Aucun nœud « ${id} » dans layout.ts`)
+  return trouve
+}
+
+const DEG = Math.PI / 180
+
+/**
+ * La normale d'une dalle — le +Z du plan, tourné par son Euler `XYZ` (l'ordre
+ * par défaut de `three`) : `(sin b, −sin a · cos b, cos a · cos b)`.
+ */
+function normale([a, b]: readonly [number, number, number]): [number, number, number] {
+  return [
+    Math.sin(b * DEG),
+    -Math.sin(a * DEG) * Math.cos(b * DEG),
+    Math.cos(a * DEG) * Math.cos(b * DEG),
+  ]
+}
+
+function unitaire([x, y, z]: readonly [number, number, number]): [number, number, number] {
+  const norme = Math.hypot(x, y, z)
+  return [x / norme, y / norme, z / norme]
+}
+
+/** Les dalles que l'oracle attend — dérivé de lui, jamais de ce que rend le code. */
+const ECRANS = FOCUSES.flatMap((focus) => {
+  const dalle = DALLE_ATTENDUE[focus]
+  return dalle === undefined ? [] : [[focus, dalle] as const]
+})
 
 describe('l’exemple de testing-strategy.md §4.3', () => {
   it('experiences → le cadrage de l’écran gauche', () => {
     const cadrage = getCameraTarget({ focus: 'experiences', detail: null })
 
     expect(cadrage.focusNodeId).toBe('dalleGauche')
-    expect(cadrage.target).toEqual(positionDuNoeud('dalleGauche'))
+    expect(cadrage.target).toEqual(noeud('dalleGauche').position)
   })
 })
 
@@ -59,18 +90,32 @@ describe('chaque focus cadre sa dalle', () => {
     })
   }
 
-  it('⭐ un cadrage d’écran vise le CENTRE de la dalle qu’il nomme', () => {
-    // C'est ce qui donne un sens à `focusNodeId` : le nom seul ne garantit pas
-    // que la caméra regarde l'écran. `layout.ts` calcule la cible comme le centre
-    // de la dalle (« centre de la dalle ± normale × distance ») ; ce banc vérifie
-    // que les deux restent la même cote, au lieu de le croire.
-    for (const focus of FOCUSES) {
-      const cadrage = getCameraTarget({ focus, detail: null })
-      if (cadrage.focusNodeId === undefined) continue
+  // C'est ce qui donne un sens à `focusNodeId` : le nom seul ne garantit pas que la
+  // caméra regarde l'écran. `layout.ts` pose chaque cadrage d'écran « centre de la
+  // dalle ± normale × distance » ; ce banc vérifie les deux moitiés de la formule
+  // au lieu de croire le commentaire. ⭐ Le périmètre vient de l'ORACLE : un
+  // cadrage qui aurait perdu son `focusNodeId` ne peut pas s'en faire dispenser.
+  for (const [focus, dalle] of ECRANS) {
+    it(`⭐ ${focus} vise le CENTRE de ${dalle}`, () => {
+      expect(getCameraTarget({ focus, detail: null }).target).toEqual(noeud(dalle).position)
+    })
 
-      expect(cadrage.target, focus).toEqual(positionDuNoeud(cadrage.focusNodeId))
-    }
-  })
+    it(`⭐ ${focus} regarde ${dalle} DE FACE, sur sa normale`, () => {
+      // ⛔ 4° hors normale donnent 9,6 % d'écart entre les marges gauche et
+      // droite du cadre — un écran qui se lit mal centré (`layout.ts`). Les cotes
+      // sont arrondies au dixième de millimètre : 10⁻³ sur un vecteur unitaire
+      // les absorbe, et laisse 4° (≈ 0,07) très au-dessus.
+      const { position, target } = getCameraTarget({ focus, detail: null })
+      const visee = unitaire([
+        position[0] - target[0],
+        position[1] - target[1],
+        position[2] - target[2],
+      ])
+      const attendue = normale(noeud(dalle).rotationDeg)
+
+      visee.forEach((composante, i) => expect(composante).toBeCloseTo(attendue[i] ?? NaN, 3))
+    })
+  }
 })
 
 describe('les cadrages sont LUS dans layout.ts, jamais recopiés', () => {

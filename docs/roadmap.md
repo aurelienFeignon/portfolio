@@ -1525,13 +1525,16 @@ cadrage — le dossier cadre des écrans, pas des fiches.
 L'import inverse est un import de **type**, effacé à la compilation.
 ⛔⛔ **Le banc porte un ORACLE, et c'est ce qui le rend non vacant** : sans lui, échanger deux écrans
 dans le `Record` laissait le banc vert — chaque focus visait toujours *un* cadrage de `layout.ts`,
-distinct des autres. Six mutations, toutes tuées.
+distinct des autres. Dix mutations tuées, et l'amputation du `Record` refusée au typage.
+⛔⛔ **La revue a trouvé un critère affirmé sans rien derrière** : « `layout.ts` hors du graphe de
+`scene-state.ts` » était attribué à `check-scene-isolation.mts`, qui ne cherche que `three`. Un garde
+le tient désormais — `tests/integration/scene-state-stays-off-layout.test.ts`, avec témoin.
 · Depends on: P6-01
 Acceptance:
 - Les quatre cadrages **lus** dans `layout.ts`, jamais recopiés — vérifié par identité.
 - Mapping exhaustif par le typage, jamais par une suite de `if`.
-- Chaque cadrage d'écran vise le centre de la dalle qu'il nomme.
-- `layout.ts` n'entre pas dans le graphe d'imports de `scene-state.ts`.
+- Chaque cadrage d'écran vise le centre de la dalle qu'il nomme, **sur sa normale**.
+- `layout.ts` n'entre pas dans le graphe d'imports de valeur de `scene-state.ts` — **gardé**.
 
 **P6-03 — `getRouteForScreen(focus, locale)` et l'aller-retour**
 Status: **DONE** (2026-08-26) — l'autre sens du flux d'ADR-0002, dans le même fichier que son

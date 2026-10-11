@@ -432,7 +432,8 @@ Le vrai relevé se prend en P6-07.
 ## 9. P6-02 — le cadrage d'un état, et l'oracle qui empêche le banc d'être vacant
 
 **Livré le 2026-10-11**, après une pause de 46 jours sur la phase. `src/scene/state/camera-target.ts` :
-`getCameraTarget(state)`. **8 tests**, couverture **100 %**, aucun import Three.js.
+`getCameraTarget(state)`. **13 tests** sur le module et **3** sur le garde d'imports de §9.4 bis,
+couverture **100 %**, aucun import Three.js.
 
 ### 9.1 Ce que la fonction fait — et ce qu'elle refuse de faire
 
@@ -466,9 +467,11 @@ Le banc porte donc un **oracle** : la dalle que chaque focus doit cadrer, en ide
 bureau, qui vient du dossier de scène. *Un banc qui ne compare le code qu'à lui-même ne peut rien
 dire de ce que le code devrait faire.*
 
-⭐ Une seconde propriété donne un sens à `focusNodeId` : **la cible d'un cadrage d'écran est la
-position de la dalle qu'il nomme**. `layout.ts` l'écrit en commentaire (« centre de la dalle ±
-normale × distance ») ; rien ne la vérifiait jusqu'ici. Une cible déplacée d'**1 mm** rougit.
+⭐ Deux propriétés donnent un sens à `focusNodeId` : la cible d'un cadrage d'écran est **le centre**
+de la dalle qu'il nomme, et la caméra la regarde **de face**, sur sa normale. `layout.ts` l'écrit en
+commentaire (« centre de la dalle ± normale × distance ») ; rien ne le vérifiait jusqu'ici. Une cible
+déplacée d'**1 mm** rougit, une caméra à **4°** hors normale aussi — l'écart que `layout.ts` cite
+comme visible (9,6 % d'asymétrie des marges).
 
 ### 9.3 Éprouvé par mutation
 
@@ -482,14 +485,47 @@ distingué d'un échec de test.
 | `overview` cadre Projets | **tuée** — 1 test |
 | Une copie au lieu de l'instance | **tuée** — 2 tests |
 | Une fiche (`detail`) renvoie à la vue d'ensemble | **tuée** — 1 test |
-| Cible de Projets décalée d'1 mm dans `layout.ts` | **tuée** — 1 test |
+| Cible de Projets décalée d'1 mm dans `layout.ts` | **tuée** — 2 tests |
+| Caméra de Projets 4° hors de la normale | **tuée** — 1 test *(après revue)* |
+| `focusNodeId` retiré du cadrage Projets | **tuée** — 1 test *(après revue)* |
+| `scene-state.ts` importe `layout.ts` | **tuée** — 1 test *(après revue)* |
+| `scene-state.ts` importe `camera-target.ts` en `{ type … }` | **tuée** — 1 test *(après revue)* |
 | `skills` retiré du `Record` | **refusée au typage** — `TS2741` |
+
+Dix mutations tuées, une refusée au compilateur. Les comptes de tests des quatre premières lignes ont
+grossi après la revue, l'oracle étant désormais lu par trois tests par écran.
+
+### 9.4 bis ⛔⛔ Ce que la revue a changé — un critère affirmé sans rien derrière
+
+1. ⛔⛔ **« `layout.ts` n'entre pas dans le graphe de `scene-state.ts` » n'était gardé par RIEN.** Le
+   commentaire de tête de `scene-state.ts` et le README de `scene/state` l'attribuaient à
+   `scripts/check-scene-isolation.mts` — qui ne cherche que `three` et `@react-three`. `layout.ts`
+   n'importe ni l'un ni l'autre : il traverserait ce garde sans un rouge, même une fois sur le chemin
+   de première visite. Et le critère d'acceptation de P6-02 le déclarait tenu.
+   ✅ **Un garde le tient désormais** : `tests/integration/scene-state-stays-off-layout.test.ts` lit
+   le **graphe d'imports de valeur** avec l'analyseur de TypeScript. ⭐ Deux finesses, toutes deux
+   éprouvées par mutation : `import type` n'est pas une arête, mais **`import { type X }` en est
+   une** — sous `verbatimModuleSyntax`, il est émis `import {} from …` et charge le module ; et un
+   `import()` dynamique n'en est pas une, puisqu'il ouvre un chunk à part. ⭐⭐⭐ **Avec témoin**,
+   double : depuis `camera-target.ts` le parcours doit trouver `layout.ts`, et depuis
+   `scene-state.ts` il doit atteindre `routing/paths.ts` — sans quoi un parcours qui ne lit aucun
+   import rendrait trivialement « absent ».
+2. **La propriété « vise sa dalle » se dispensait elle-même** : elle sautait tout cadrage sans
+   `focusNodeId`, valeur lue dans le code éprouvé. Son périmètre vient maintenant de l'**oracle**. Et
+   elle ne vérifiait que le centre : la normale est ajoutée.
+3. **Le prompt de reprise rangeait P6-02 sous « fusionné sur `main` et déployé »** avant toute
+   fusion. Corrigé : l'état écrit est celui d'une PR, à vérifier par `gh`.
+
+⚠️ **Constat de passage, NON traité ici** : sous forte charge de l'hôte (load ~45 sur 20 cœurs),
+`tests/integration/drei-import-guard.test.ts` dépasse son délai de 5 s — le premier `lintText`
+d'ESLint à froid. Reproduit **sans** le garde ajouté ici (1 fois sur 2), donc préexistant ; plus
+fréquent avec lui, qui charge aussi `typescript`. La CI, moins chargée, ne l'a jamais montré.
 
 ### 9.4 Relevés
 
 | Relevé | Avant | Après | |
 |---|---|---|---|
-| Tests | 814 | **822** | +8 |
+| Tests | 814 | **830** | +16 |
 | Couverture `src/scene/state` | 100 % | **100 %** | seuil 95 % |
 | Socle partagé | 127,1 Ko | **127,1 Ko** | inchangé |
 | JS propre à chaque route | 11,0 Ko | **11,0 Ko** | inchangé |
@@ -511,7 +547,6 @@ premier. « Inchangé » n'affirme rien de plus.
 - ⚠️ **`scene-canvas.tsx` lit encore `CAMERAS.accueil` en dur** (position, cible, `fov`). C'est
   correct tant que rien ne bouge ; c'est **P6-04** qui le remplacera par `getCameraTarget` piloté par
   la route. Ne pas le brancher avant : un appel sans rig n'aurait aucun effet observable.
-- ⚠️ **Rien ne garde mécaniquement que `scene-state.ts` n'importe pas `layout.ts`** tant que P6-07
-  n'a pas mis `resolveSceneState` dans le chemin de première visite : le garde de P5-09 mesure le
-  graphe **réel**, et ce module n'y entre pas encore. La règle est écrite dans les deux fichiers ; la
-  mesure qui la rend vraie arrive avec P6-07.
+- ⚠️ **Le garde de §9.4 bis lit le SOURCE, pas le chunk.** Il tient la règle dès aujourd'hui, mais
+  ce que P6-07 embarquera réellement reste à mesurer sur le build — le garde de P5-09 n'y voit que
+  `three`, et le relevé du socle de P6-07 devra le dire.

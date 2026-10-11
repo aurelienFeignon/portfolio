@@ -49,7 +49,8 @@ supervisé, avec une checklist de mise en ligne et un rollback rejoué.
 sortie vérifiés par mesure (bilan : `phase-5-log.md` §10). **Seule P5-10 reste**, reportée après
 P6-04 : rien n'anime encore.
 **Phase 6 (Navigation spatiale) : OUVERTE le 2026-08-26**, **3 tâches sur 10** — P6-01, P6-03 et P6-02
-(2026-10-11).
+(2026-10-11, branche `feat/p6-02-camera-target` — ⛔ **vérifie sa fusion** par `gh pr list --state all
+--head feat/p6-02-camera-target` avant de la croire sur `main`).
 **Tout ce qui suit est fusionné sur `main` et déployé**, les cinq jobs verts à chaque fois —
 publication GHCR et déploiement VPS compris.
 
@@ -157,7 +158,7 @@ URL, tout le reste rend toujours 302.
 | Socle partagé | **127,1 Ko** | cible 136 · bloquant 146 |
 | **Chunk 3D différé** | **234,5 Ko** — somme des **deux** chunks porteurs, hors du chemin critique | cible 260 · bloquant 320 |
 | Image de production | **281 Mo** | cible 250 · bloquant 400 |
-| Tests | **822** verts, couverture **100 %** sur les quatre métriques | ≥ 80 % |
+| Tests | **830** verts, couverture **100 %** sur les quatre métriques | ≥ 80 % |
 | E2E | **153** verts sur 5 profils | — |
 | **Ce que le GPU rend** | **52 draw calls · 8 182 triangles** en desktop — la passe d'ombre incluse, soit **+73 %** sur les 4 114 de géométrie | ≤ 60 / ≤ 150 000 |
 
@@ -165,7 +166,7 @@ URL, tout le reste rend toujours 302.
 conteneur et par le même geste (`gzip -9`). L'image de production est vérifiée par
 `make check-image-size`, les tests par `pnpm vitest run`.
 ⭐ **Trois lignes ont été remesurées le 2026-08-26 (P6-01 puis P6-03) puis le 2026-10-11 (P6-02)** :
-les tests (**822**, +58), le socle
+les tests (**830**, +66), le socle
 (**127,1 Ko**) et le JS par route (**11,0 Ko**) — les deux derniers **inchangés**, ce qui n'affirme
 rien d'autre que ce qui est écrit : **aucun des trois modules n'a encore d'appelant**, donc aucun
 n'entre dans un chunk.
