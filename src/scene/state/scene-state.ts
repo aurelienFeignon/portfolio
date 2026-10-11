@@ -18,7 +18,7 @@
  * qui n'est pas un écran vers la vue d'ensemble.
  *
  * ⭐ **Ce module reste sans `layout.ts`, et c'est mesuré.** `getCameraTarget`
- * (P6-02) importera le plan coté du bureau entier, alors que `resolveSceneState`
+ * (P6-02, `camera-target.ts`) importe le plan coté du bureau entier, alors que `resolveSceneState`
  * sera lue depuis le chunk de **première visite** (P6-07, `data-scene-focus`).
  * *Un module est indivisible du point de vue d'un bundler* — ce que P5-08 a payé
  * en 0,5 Ko, vérifié dans les source maps. La règle n'est pas « un fichier par

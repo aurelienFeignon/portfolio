@@ -11,10 +11,8 @@ WebGL (CT-10), couverture exigée à 95 %.
 | `framing.ts` | La correction de champ quand l'écran n'est pas en 16:9, et son plafond (P5-06) |
 | `diagnostics.ts` | Ce que le panneau de diagnostic affiche, et la cadence des relevés (P5-08) |
 | `debug-flag.ts` | L'aiguillage `?debug=scene`, **et rien d'autre** : il est lu depuis le chunk de première visite, où le reste n'a pas à entrer (P5-08 §9.6) |
+| `camera-target.ts` | `getCameraTarget(state)` (P6-02) : **le seul endroit où `SceneFocus` rencontre `ViewId`**, par un `Record<SceneFocus, ViewId>` dont le **type** tient l'exhaustivité. Rend l'instance de `CAMERAS` elle-même, `fov` à 16:9 — la correction de format est celle de P6-04, sur la valeur interpolée |
 | `scene-state.ts` | **Les deux sens du flux d'ADR-0002** : `resolveSceneState(pathname)` (P6-01) et `getRouteForScreen(focus, locale)` (P6-03), inverses l'un de l'autre — ils vivent ensemble pour la raison que `routing` applique déjà à `homePath`/`localeFromPathname`. ⭐ La **lecture** de l'URL n'est pas ici : `parsePagePath` vit dans `routing`, contre `pathFor`. Ce fichier ne porte que les décisions de scène |
-
-⚠️ **À venir en Phase 6** : `getCameraTarget(state)` (P6-02), dont l'exhaustivité se tiendra par un
-`Record<SceneFocus, ViewId>` — le **type** suffit, aucune liste à l'exécution n'est nécessaire.
 
 ⭐⭐ **La règle de découpage n'est pas « un fichier par fonction », c'est l'empreinte d'import** :
 *rien sur le chemin de première visite ne doit tirer `layout.ts`*. `getCameraTarget` l'importe, et
