@@ -48,7 +48,9 @@ supervisé, avec une checklist de mise en ligne et un rollback rejoué.
 **Phase 5 (Fondation Three.js) : CLOSE le 2026-08-25**, **9 tâches sur 10**, les quatre critères de
 sortie vérifiés par mesure (bilan : `phase-5-log.md` §10). **Seule P5-10 reste**, reportée après
 P6-04 : rien n'anime encore.
-**Phase 6 (Navigation spatiale) : OUVERTE le 2026-08-26**, **2 tâches sur 10** — P6-01 et P6-03.
+**Phase 6 (Navigation spatiale) : OUVERTE le 2026-08-26**, **3 tâches sur 10** — P6-01, P6-03 et P6-02
+(2026-10-11, branche `feat/p6-02-camera-target` — ⛔ **vérifie sa fusion** par `gh pr list --state all
+--head feat/p6-02-camera-target` avant de la croire sur `main`).
 **Tout ce qui suit est fusionné sur `main` et déployé**, les cinq jobs verts à chaque fois —
 publication GHCR et déploiement VPS compris.
 
@@ -113,9 +115,10 @@ rencontrées :
 |---|---|
 | P6-01 | **`resolveSceneState(pathname)`**, pure, 100 %. ⭐⭐ La règle tient en une phrase : elle lit la **FORME** de l'URL, jamais l'**EXISTENCE** de ce qu'elle nomme — `scene → content` est interdit, donc `detail` **nomme** sans vérifier |
 | P6-03 | **`getRouteForScreen(focus, locale)`** — l'autre sens du flux. ⭐⭐ Elle prend un `SceneFocus`, donc `overview` : **ADR-0002 amendé**, parce que « revenir au bureau » aurait sinon ouvert une **seconde porte** dans le sens que l'ADR n'en veut qu'une. ⭐⭐⭐ *Une propriété écrite sur une valeur d'**absorption** ne garde rien tant qu'on n'assère pas sur ce qui la distingue d'elle-même* — l'aller-retour était aveugle deux fois sur `overview` |
+| P6-02 | **`getCameraTarget(state)`**, dans `camera-target.ts` — un `Record<SceneFocus, ViewId>`, exhaustif par le **type** (`TS2741` vérifié), qui rend l'instance de `CAMERAS` elle-même. ⭐⭐ *Un banc qui ne compare le code qu'à lui-même ne dit rien de ce qu'il devrait faire* : « lu dans `layout.ts` » laissait passer l'échange de deux écrans, d'où un **oracle** en identifiants de dalles |
 
-⛔ **Aucune des deux n'a encore d'appelant**, et c'est voulu : P6-02 consomme l'état, P6-05 appelle
-la route, P6-07 l'expose au DOM. « Socle et route inchangés » n'affirme donc rien de plus que ce qui
+⛔ **Aucune des trois n'a encore d'appelant**, et c'est voulu : P6-04 branchera `getCameraTarget` (le
+canvas lit encore `CAMERAS.accueil` en dur), P6-05 appellera la route, P6-07 exposera l'état au DOM. « Socle et route inchangés » n'affirme donc rien de plus que ce qui
 est écrit — le vrai relevé se prend en P6-07.
 
 La Phase 4 est close (17/17) ; son journal reste la meilleure lecture du dépôt. **Seule P5-10
@@ -155,16 +158,17 @@ URL, tout le reste rend toujours 302.
 | Socle partagé | **127,1 Ko** | cible 136 · bloquant 146 |
 | **Chunk 3D différé** | **234,5 Ko** — somme des **deux** chunks porteurs, hors du chemin critique | cible 260 · bloquant 320 |
 | Image de production | **281 Mo** | cible 250 · bloquant 400 |
-| Tests | **814** verts, couverture **100 %** sur les quatre métriques | ≥ 80 % |
+| Tests | **830** verts, couverture **100 %** sur les quatre métriques | ≥ 80 % |
 | E2E | **153** verts sur 5 profils | — |
 | **Ce que le GPU rend** | **52 draw calls · 8 182 triangles** en desktop — la passe d'ombre incluse, soit **+73 %** sur les 4 114 de géométrie | ≤ 60 / ≤ 150 000 |
 
 ⚠️ **Relevés du 2026-08-25, à la clôture de la Phase 5**, tous remesurés ce jour-là dans le même
 conteneur et par le même geste (`gzip -9`). L'image de production est vérifiée par
 `make check-image-size`, les tests par `pnpm vitest run`.
-⭐ **Trois lignes ont été remesurées le 2026-08-26 (P6-01 puis P6-03)** : les tests (**814**, +50), le socle
+⭐ **Trois lignes ont été remesurées le 2026-08-26 (P6-01 puis P6-03) puis le 2026-10-11 (P6-02)** :
+les tests (**830**, +66), le socle
 (**127,1 Ko**) et le JS par route (**11,0 Ko**) — les deux derniers **inchangés**, ce qui n'affirme
-rien d'autre que ce qui est écrit : **aucun des deux modules n'a encore d'appelant**, donc aucun
+rien d'autre que ce qui est écrit : **aucun des trois modules n'a encore d'appelant**, donc aucun
 n'entre dans un chunk.
 
 ⛔⛔ **Le chunk 3D n'est plus UN chunk depuis P5-08** : l'import dynamique du panneau l'a scindé en
@@ -272,22 +276,24 @@ mets l'ADR à jour et ajoute une ligne au journal des révisions. Jamais de chan
 
 ## Ta mission cette session
 
-**P6-01 et P6-03 sont livrées : enchaîne sur P6-02** (`getCameraTarget`). Seule P5-10 reste de la
-Phase 5, reportée après P6-04. Tout le reste est livré et mesuré.
+**P6-01, P6-03 et P6-02 sont livrées : enchaîne sur P6-09** — l'ADR-0012, stratégie d'animation de
+caméra. Seule P5-10 reste de la Phase 5, reportée après P6-04. Tout le reste est livré et mesuré.
 
-⭐⭐⭐ **Ce que P6-02 doit tenir** : l'exhaustivité du cadrage se tient par un
-**`Record<SceneFocus, ViewId>`**, jamais une suite de `if` — le **type** suffit, aucune liste à
-l'exécution n'est nécessaire. ⛔ P6-03 en avait exporté une (`SCENE_FOCUSES`) : retirée en passe de
-simplification, faute de tout consommateur de production. *Un export dont le seul appelant est le
-banc n'est pas une API.* ⚠️ **Les deux vocabulaires ne coïncident pas** — `SceneFocus` parle anglais
-(`overview`, `projects`, `skills`), `ViewId` de `layout.ts` parle français (`accueil`, `projets`,
-`competences`) — et **P6-02 est le seul endroit où ils se rencontrent**. Les dalles physiques
-(`dalleGauche`, `dalleCentre`, `dallePortable`) y sont déjà attachées par
-`CAMERAS[ViewId].focusNodeId` : **n'inventer aucun quatrième vocabulaire.**
-⛔ **P6-02 est la tâche qui fait entrer `layout.ts`** dans le graphe d'imports de `scene/state`.
-La règle n'est pas « un fichier par fonction » mais *rien sur le chemin de première visite ne tire
-`layout.ts`* — `getCameraTarget` ne peut donc PAS cohabiter avec `scene-state.ts`, que P6-07 amènera
-dans ce chemin. `scripts/check-scene-isolation.mts` mesure la propriété, avec témoin.
+⭐⭐⭐ **Ce que P6-09 doit tenir** : c'est une **décision**, pas du code — interpolation maison
+(`easeInOutCubic` sur 700 ms, déjà décrite par `transitionMs` et le dossier) contre bibliothèque de
+ressorts. `docs/adr/README.md` la réserve « parce qu'elle dépend du **ressenti réel**, non prévisible
+sur le papier » : ⛔ **ne la tranche donc pas sur le papier.** Pose-la comme une liste de choix avec
+un défaut recommandé, **au moment où elle naît**, et ce que chaque option coûte en octets dans le
+chunk 3D (seuil 320 Ko, 234,5 aujourd'hui) **mesuré**, pas estimé. CT-08 s'applique : problème /
+adéquation / alternatives / arbitrage.
+⚠️ **Ce que l'option retenue doit permettre, et qui est déjà écrit** : l'**interruption** d'une
+transition en cours (P6-04), le `fov` **interpolé avec la position** puis passé par `fovForAspect`,
+`invalidate()` image par image sans laisser la boucle en `always` (P5-10), et une durée nulle sous
+`reduced-motion` (P6-08, `transitionMs(true)`). Une option qui en rend une difficile se juge là.
+⭐ **Ce que P6-02 laisse à P6-04** : `getCameraTarget(state)` rend l'instance de `CAMERAS` elle-même
+(comparaison par identité possible), `fov` **à 16:9** — la correction de format s'applique sur la
+valeur interpolée, jamais sur les bornes. `scene-canvas.tsx` lit encore `CAMERAS.accueil` en dur :
+c'est P6-04 qui le remplace (`phase-6-log.md` §9.6).
 
 ⭐ **L'ordre de travail de la phase est arrêté** (`phase-6-log.md` §5), avec **deux écarts assumés**
 par rapport à l'ordre des identifiants :
@@ -348,8 +354,8 @@ fabrique une adresse que le site ne sert nulle part — `entityPath` et `PageLoc
 `Section`, pas `SectionWithDetail`. La contrainte est tenue par **trois** itérations indépendantes.
 Resserrer les deux types est la forme profonde, et touche `src/seo` et `src/app`.
 ⭐ **Le mapping ne s'énumère pas, il se dérive** : `SceneFocus = 'overview' | Section`, et le banc
-boucle sur `SECTIONS` × `LOCALES`. Ce que P6-02 doit en faire est écrit **une seule fois**, dans
-« Ta mission cette session » ci-dessus — ne pas le redire ici.
+boucle sur `SECTIONS` × `LOCALES`. P6-02 en a fait le `Record<SceneFocus, ViewId>` de
+`camera-target.ts` (`phase-6-log.md` §9).
 ⛔⛔ **Le piège de P6-04 est écrit depuis P5-05 et n'a pas bougé** : le `fov` varie de **16° à 36°**
 selon l'état — le cadrage *Compétences* vise un écran monté sur un corps profond — et **doit être
 interpolé avec la position**, sinon la transition produit un zoom sec. Le rig lui-même —

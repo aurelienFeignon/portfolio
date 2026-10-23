@@ -104,7 +104,7 @@ resolveSceneState('/en/projects/augure')     → { focus: 'projects', detail: 'a
 resolveSceneState('/fr')                     → { focus: 'overview', detail: null }
 resolveSceneState('/fr/inconnu')             → { focus: 'overview', detail: null }
 
-getCameraTarget({ focus: 'experiences' })    → position/lookAt de l'écran gauche
+getCameraTarget({ focus: 'experiences', detail: null }) → le cadrage de l'écran gauche (dalleGauche)
 getRouteForScreen('skills', 'en')            → '/en/skills'
 ```
 

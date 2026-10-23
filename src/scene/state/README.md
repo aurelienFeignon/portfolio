@@ -11,18 +11,20 @@ WebGL (CT-10), couverture exigée à 95 %.
 | `framing.ts` | La correction de champ quand l'écran n'est pas en 16:9, et son plafond (P5-06) |
 | `diagnostics.ts` | Ce que le panneau de diagnostic affiche, et la cadence des relevés (P5-08) |
 | `debug-flag.ts` | L'aiguillage `?debug=scene`, **et rien d'autre** : il est lu depuis le chunk de première visite, où le reste n'a pas à entrer (P5-08 §9.6) |
+| `camera-target.ts` | `getCameraTarget(state)` (P6-02) : **le seul endroit où `SceneFocus` rencontre `ViewId`**, par un `Record<SceneFocus, ViewId>` dont le **type** tient l'exhaustivité. Rend l'instance de `CAMERAS` elle-même, `fov` à 16:9 — la correction de format est celle de P6-04, sur la valeur interpolée |
 | `scene-state.ts` | **Les deux sens du flux d'ADR-0002** : `resolveSceneState(pathname)` (P6-01) et `getRouteForScreen(focus, locale)` (P6-03), inverses l'un de l'autre — ils vivent ensemble pour la raison que `routing` applique déjà à `homePath`/`localeFromPathname`. ⭐ La **lecture** de l'URL n'est pas ici : `parsePagePath` vit dans `routing`, contre `pathFor`. Ce fichier ne porte que les décisions de scène |
-
-⚠️ **À venir en Phase 6** : `getCameraTarget(state)` (P6-02), dont l'exhaustivité se tiendra par un
-`Record<SceneFocus, ViewId>` — le **type** suffit, aucune liste à l'exécution n'est nécessaire.
 
 ⭐⭐ **La règle de découpage n'est pas « un fichier par fonction », c'est l'empreinte d'import** :
 *rien sur le chemin de première visite ne doit tirer `layout.ts`*. `getCameraTarget` l'importe, et
 `resolveSceneState` sera lue depuis ce chemin (P6-07, `data-scene-focus`) — les deux ne peuvent donc
 pas cohabiter. `getRouteForScreen` ne touche que `routing` : elle cohabite, et c'est la démonstration que la règle
 porte bien sur l'empreinte et non sur la forme. *Un module est
-indivisible du point de vue d'un bundler* (P5-08, 0,5 Ko vérifiés en source maps), et c'est
-`scripts/check-scene-isolation.mts` qui mesure la propriété, avec témoin — pas une règle de forme.
+indivisible du point de vue d'un bundler* (P5-08, 0,5 Ko vérifiés en source maps).
+⛔ **`scripts/check-scene-isolation.mts` ne garde PAS cette règle** — il ne cherche que `three`, et
+`layout.ts` n'en importe pas. C'est `tests/integration/scene-state-stays-off-layout.test.ts` qui la
+tient : graphe d'imports de **valeur** depuis `scene-mount.tsx` (le chemin de première visite
+d'aujourd'hui) et `scene-state.ts` (celui de P6-07), avec témoin (P6-02). Étendre
+`check-scene-isolation.mts` à `layout.ts`, pour le mesurer aussi sur le build, est à faire avec P6-07.
 
 ⛔ Ce README a annoncé les trois comme existantes jusqu'au 2026-08-25, alors qu'aucune n'était
 écrite — un inventaire faux dans le sens rassurant, corrigé en P5-08. Il n'en annonce plus que ce

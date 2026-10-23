@@ -443,7 +443,7 @@ de la lecture des API navigateur. Chaque palier est atteignable en test via une 
                    detail: string | null }
               │
               ▼
-   getCameraTarget(state)               fonction pure → { position, lookAt, fov }
+   getCameraTarget(state)               fonction pure → CAMERAS[…] : { position, target, fov, focusNodeId? }
               │
               ▼
    useCameraTransition()                seul module qui touche Three.js
