@@ -431,7 +431,9 @@ Le vrai relevé se prend en P6-07.
 
 ## 9. P6-02 — le cadrage d'un état, et l'oracle qui empêche le banc d'être vacant
 
-**Livré le 2026-10-11**, après une pause de 46 jours sur la phase. `src/scene/state/camera-target.ts` :
+**Implémenté le 2026-10-11**, après une pause de 46 jours sur la phase ; **fusionné le 2026-10-23**
+(#55, `e5621ba`), après une passe de simplification et une erreur de lint que seule la relance des
+gates a montrée — d'ici là, la roadmap le disait `DONE` sur la foi d'un commit local jamais poussé. `src/scene/state/camera-target.ts` :
 `getCameraTarget(state)`. **6 tests** sur le module, **6** sur les cadrages dans `layout.test.ts` et
 **3** sur le garde d'imports de §9.4 bis — couverture **100 %**, aucun import Three.js.
 
