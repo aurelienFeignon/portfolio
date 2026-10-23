@@ -23,9 +23,9 @@ noyau central et trois univers, un par section.
 |---|---|---|
 | **Noyau** | icosaèdre subdivisé, métal sombre à facettes ; structure filaire tournant à contre-sens ; 2 coques de Fresnel (cyan, violet) ; halo en sprite ; 4 anneaux orbitaux inclinés, chacun avec sa perle | Une silhouette taillée, de la profondeur par couches, une lueur **sans bloom** |
 | **Plateforme** | trois disques de métal sombre en gradins, cerclés de bandes lumineuses qui respirent avec le noyau ; colonne de lumière (shader de faisceau) ; grille de sol qui s'efface dans le brouillard | Le noyau est posé, pas suspendu ; la grille donne l'échelle (référence « univers central ») |
-| **Expériences** | 5 anneaux empilés le long d'un axe, du plus large au plus serré, reliés par une hélice parcourue d'impulsions | Une chronologie orbitale |
+| **Expériences** | six plaques de verre translucides en spirale le long de l'axe du temps, liseré lumineux et traits évoquant des lignes de texte, reliées par une hélice parcourue d'impulsions | Une chronologie faite d'« interfaces » empilées (référence « les interfaces ») — six est un nombre de composition, pas le nombre de postes |
 | **Projets** | architecture isométrique : trois plateaux de verre en gradins (tournés de 45°), blocs instanciés posés dessus, flux de données en équerre sur chaque plateau et verticaux entre étages | Des composants techniques et leurs flux (référence « les projets ») |
-| **Compétences** | 5 amas de points doux (un par domaine), moyeux reliés en anneau | Une constellation |
+| **Compétences** | 5 amas de points doux (un par domaine) sur un anneau orbital, moyeu central relié à chaque domaine par un rayon lumineux, disque de visée en dessous ; inclinée vers le visiteur | Une constellation organisée : la structure se lit avant les points |
 | **Ambiance** | 1 800 particules en galaxie aplatie (`full`) ; 3 arcs lumineux du noyau vers chaque univers | Profondeur et connexions animées |
 | **Lumière** | ponctuelle cyan au cœur, principale froide de face, contre-jour violet | Les facettes accrochent la lumière, la silhouette se détache |
 
@@ -100,7 +100,7 @@ sans scène sur la même image. Référence : le bureau, `1ecfdb3`, `benchmarkIn
 
 | | Bureau (P5) | NEXUS |
 |---|---|---|
-| Chunk 3D différé (gzip) | 234,5 Ko | **237,2 Ko** (225,0 + 12,3) avec plateforme et architecture, mesuré `gzip -9` |
+| Chunk 3D différé (gzip) | 234,5 Ko | **237,5 Ko** (225,0 + 12,5) avec plateforme, architecture et univers retravaillés, mesuré `gzip -9` |
 | JS propre à chaque route | 11,0 Ko | **12,7 Ko** (+1,7 : lecture de la route et routeur dans `SceneMount`) |
 | Module 3D en première visite | aucun | **aucun** (garde P5-09) |
 

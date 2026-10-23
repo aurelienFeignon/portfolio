@@ -20,12 +20,14 @@ import {
   CanvasTexture,
   Color,
   CylinderGeometry,
+  DoubleSide,
   EdgesGeometry,
   GridHelper,
   Group,
   IcosahedronGeometry,
   InstancedMesh,
   Line,
+  LineLoop,
   LineBasicMaterial,
   LineSegments,
   type Material,
@@ -33,6 +35,8 @@ import {
   MeshBasicMaterial,
   MeshStandardMaterial,
   Object3D,
+  OctahedronGeometry,
+  PlaneGeometry,
   Points,
   type ShaderMaterial,
   SphereGeometry,
@@ -103,6 +107,15 @@ function setHighlight(materials: readonly ShaderMaterial[], value: number): void
     if (uniform) uniform.value = value
   }
 }
+
+const additiveLines = (color: string, opacity: number) =>
+  new LineBasicMaterial({
+    color,
+    transparent: true,
+    opacity,
+    blending: AdditiveBlending,
+    depthWrite: false,
+  })
 
 const additive = (color: string, opacity: number) =>
   new MeshBasicMaterial({
@@ -291,59 +304,90 @@ export function buildConnections(): Built {
 
 /* =================================================================== univers */
 
-const TIMELINE_RINGS = [
-  { y: -0.95, radius: 1.05 },
-  { y: -0.45, radius: 0.92 },
-  { y: 0.05, radius: 0.78 },
-  { y: 0.55, radius: 0.62 },
-  { y: 1.0, radius: 0.45 },
-] as const
+/** Les plaques de la chronologie : du bas (le plus ancien) vers le haut. */
+const TIMELINE_PLATES = 6
+const PLATE_W = 1.05
+const PLATE_H = 0.62
 
 /**
- * Expériences — une chronologie orbitale : des anneaux empilés le long d'un axe,
- * du plus large au plus serré, reliés par une hélice parcourue d'impulsions.
+ * Expériences — une chronologie de verre : six plaques translucides, disposées
+ * en spirale le long de l'axe du temps, chacune avec son liseré lumineux et
+ * quelques traits qui évoquent des lignes de texte. Une hélice parcourue
+ * d'impulsions les relie. (Référence « les interfaces » : des panneaux
+ * semi-transparents aux bordures fines.)
+ *
+ * ⛔ Six est un nombre de COMPOSITION, pas le nombre d'expériences : la scène ne
+ * lit pas le contenu, et une plaque par poste ferait mentir l'image au premier
+ * poste ajouté.
  */
 export function buildTimeline(): Built {
   const root = new Group()
-  root.rotation.set(0.18, 0, -0.12)
+  root.rotation.set(0.12, 0, -0.08)
   const spin = new Group()
   root.add(spin)
 
-  const axisMaterial = flowLineMaterial(PALETTE.cyan, PALETTE.violet, 0.25, 0.08)
+  const axisMaterial = flowLineMaterial(PALETTE.cyan, PALETTE.violet, 0.3, 0.08)
   root.add(
     new Line(
       polylineGeometry([
-        [0, -1.35, 0],
-        [0, 1.4, 0],
+        [0, -1.5, 0],
+        [0, 1.55, 0],
       ]),
       axisMaterial,
     ),
   )
 
-  const ringMaterial = additive(PALETTE.violet, 0.7)
-  const bead = new SphereGeometry(0.06, 12, 8)
-  const beadMaterial = new MeshBasicMaterial({ color: PALETTE.text })
-  TIMELINE_RINGS.forEach((ring, i) => {
-    const holder = new Group()
-    holder.position.y = ring.y
-    holder.rotation.x = Math.PI / 2 + 0.08 * i
-    holder.add(new Mesh(new TorusGeometry(ring.radius, 0.012, 6, 120), ringMaterial))
-    const pearl = new Mesh(bead, beadMaterial)
-    pearl.position.set(Math.cos(i * 1.3) * ring.radius, Math.sin(i * 1.3) * ring.radius, 0)
-    holder.add(pearl)
-    spin.add(holder)
+  const fill = new MeshBasicMaterial({
+    color: '#0f2240',
+    transparent: true,
+    opacity: 0.42,
+    side: DoubleSide,
+    depthWrite: false,
   })
+  const plateGeometry = new PlaneGeometry(PLATE_W, PLATE_H)
+  const borderGeometry = new EdgesGeometry(plateGeometry)
+  // Trois « lignes de texte » de longueurs différentes, en un seul objet.
+  const lines = segmentsGeometry(
+    [
+      [-0.42, 0.14, 0.001],
+      [0.3, 0.14, 0.001],
+      [-0.42, 0.02, 0.001],
+      [0.12, 0.02, 0.001],
+      [-0.42, -0.1, 0.001],
+      [0.22, -0.1, 0.001],
+    ],
+    [
+      [0, 1],
+      [2, 3],
+      [4, 5],
+    ],
+  )
+  const borders = [additiveLines(PALETTE.violet, 0.85), additiveLines(PALETTE.cyan, 0.85)]
+  const textLines = additiveLines(PALETTE.text, 0.35)
+  for (let i = 0; i < TIMELINE_PLATES; i += 1) {
+    const t = i / (TIMELINE_PLATES - 1)
+    const angle = t * Math.PI * 2.2
+    const plate = new Group()
+    plate.position.set(Math.cos(angle) * 0.55, -1.25 + t * 2.5, Math.sin(angle) * 0.55)
+    // Chaque plaque regarde vers l'extérieur de la spirale.
+    plate.rotation.y = -angle + Math.PI / 2
+    plate.add(new Mesh(plateGeometry, fill))
+    plate.add(new LineSegments(borderGeometry, borders[i % 2] as LineBasicMaterial))
+    plate.add(new LineSegments(lines, textLines))
+    spin.add(plate)
+  }
 
-  const spiralMaterial = flowLineMaterial(PALETTE.violet, PALETTE.cyan, 0.35, 0.12)
-  spin.add(new Line(polylineGeometry(helix(3.2, 2.1, 0.5, 160)), spiralMaterial))
+  const spiralMaterial = flowLineMaterial(PALETTE.violet, PALETTE.cyan, 0.4, 0.12)
+  spin.add(new Line(polylineGeometry(helix(2.2, 2.5, 0.55, 160)), spiralMaterial))
 
   return {
     root,
     update({ time, delta, animated, highlight }) {
       setTime([axisMaterial, spiralMaterial], time)
       setHighlight([axisMaterial, spiralMaterial], highlight.experiences)
-      ringMaterial.opacity = 0.55 + 0.35 * highlight.experiences
-      if (animated) spin.rotation.y += delta * 0.09
+      fill.opacity = 0.36 + 0.2 * highlight.experiences
+      for (const border of borders) border.opacity = 0.65 + 0.35 * highlight.experiences
+      if (animated) spin.rotation.y += delta * 0.07
     },
     dispose: () => disposeTree(root),
   }
@@ -500,7 +544,9 @@ const SKILL_DOMAINS = 5
  */
 export function buildConstellation(density: Density): Built {
   const root = new Group()
-  root.rotation.set(0.35, 0, 0.1)
+  // ⭐ Inclinée vers le visiteur : de profil, l'anneau et le disque de visée
+  // s'aplatissaient en traits (cinquième capture, gros plan Compétences).
+  root.rotation.set(0.9, 0, 0.18)
   const { points, centers } = constellation(SKILL_DOMAINS, density.skillPointsPerCluster, 11)
 
   // ⭐ Des points plus gros que les particules d’ambiance : la constellation se lit
@@ -535,11 +581,51 @@ export function buildConstellation(density: Density): Built {
     root.add(mesh)
   }
 
+  /*
+   * ⭐ La structure qui fait d'un semis une constellation : un moyeu central
+   * relié à chaque domaine par un rayon lumineux, un anneau orbital qui porte
+   * les amas, et un disque de visée en dessous — l'organisation se lit avant
+   * les points.
+   */
+  const core = new Mesh(
+    new OctahedronGeometry(0.12, 0),
+    new MeshBasicMaterial({ color: PALETTE.cyan }),
+  )
+  root.add(core)
+  const spokeMaterial = flowLineMaterial(PALETTE.cyan, PALETTE.violet, 0.35, 0.2)
+  root.add(
+    new LineSegments(
+      segmentsGeometry(
+        [[0, 0, 0], ...centers],
+        centers.map((_, i) => [0, i + 1] as const),
+      ),
+      spokeMaterial,
+    ),
+  )
+  const orbit = new Mesh(new TorusGeometry(1.18, 0.006, 6, 160), additive(PALETTE.cyan, 0.45))
+  orbit.rotation.x = Math.PI / 2
+  root.add(orbit)
+  const radar = additiveLines(PALETTE.cyan, 0.18)
+  for (const radius of [0.45, 0.8, 1.45]) {
+    const ring = new LineLoop(
+      polylineGeometry(
+        Array.from({ length: 96 }, (_, k) => {
+          const angle = (k / 96) * Math.PI * 2
+          return [Math.cos(angle) * radius, -0.42, Math.sin(angle) * radius] as Vec3
+        }),
+      ),
+      radar,
+    )
+    root.add(ring)
+  }
+
   return {
     root,
     update({ time, delta, animated, highlight }) {
-      setTime([pointsMaterial, linkMaterial], time)
-      setHighlight([pointsMaterial, linkMaterial], highlight.skills)
+      setTime([pointsMaterial, linkMaterial, spokeMaterial], time)
+      setHighlight([pointsMaterial, linkMaterial, spokeMaterial], highlight.skills)
+      radar.opacity = 0.14 + 0.2 * highlight.skills
+      if (animated) core.rotation.y += delta * 0.6
       if (animated) root.rotation.y -= delta * 0.07
     },
     dispose: () => disposeTree(root),
