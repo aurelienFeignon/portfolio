@@ -49,8 +49,7 @@ supervisé, avec une checklist de mise en ligne et un rollback rejoué.
 sortie vérifiés par mesure (bilan : `phase-5-log.md` §10). **Seule P5-10 reste**, reportée après
 P6-04 : rien n'anime encore.
 **Phase 6 (Navigation spatiale) : OUVERTE le 2026-08-26**, **3 tâches sur 10** — P6-01, P6-03 et P6-02
-(2026-10-11, branche `feat/p6-02-camera-target` — ⛔ **vérifie sa fusion** par `gh pr list --state all
---head feat/p6-02-camera-target` avant de la croire sur `main`).
+(fusionnée par #55 le 2026-10-23).
 **Tout ce qui suit est fusionné sur `main` et déployé**, les cinq jobs verts à chaque fois —
 publication GHCR et déploiement VPS compris.
 
@@ -276,7 +275,21 @@ mets l'ADR à jour et ajoute une ligne au journal des révisions. Jamais de chan
 
 ## Ta mission cette session
 
-**P6-01, P6-03 et P6-02 sont livrées : enchaîne sur P6-09** — l'ADR-0012, stratégie d'animation de
+⛔⛔ **Direction artistique NEXUS validée le 2026-10-23, PAS ENCORE CONSIGNÉE dans le dépôt.** Le
+bureau 3D (D10) sera remplacé par un univers sombre — noyau central, trois univers, orbite bornée,
+contenu long dans un `ReadingPanel` HTML non projeté, scène réservée à l'accueil et aux sections.
+La formaliser (D11, amendements d'ADR-0004 et d'ADR-0010) est l'étape 5 ci-dessous, pas avant.
+**Ordre d'exécution arrêté par l'utilisateur** :
+1. ~~Finaliser P6-02~~ — fait (#55).
+2. **Mesures de référence reproductibles** (Lighthouse : TBT/LCP/CLS extraits, médiane de 5 tirs,
+   palier monté relevé, témoin sans scène) sur l'image servie en production.
+3. Lisibilité HTML : `ReadingPanel`.
+4. P6-04 contre l'interface générique `CameraSpec` — précédée de P6-09 ci-dessous.
+5. Formaliser les décisions NEXUS. 6. Prototype sur une branche isolée. 7. Validation visuelle
+   avant toute bascule. 8. Reprendre la roadmap existante, identifiants et historique conservés.
+⛔ Aucune seconde roadmap ; ne pas tester NEXUS en production.
+
+**P6-01, P6-03 et P6-02 sont livrées.** Côté Phase 6, la suivante est **P6-09** — l'ADR-0012, stratégie d'animation de
 caméra. Seule P5-10 reste de la Phase 5, reportée après P6-04. Tout le reste est livré et mesuré.
 
 ⭐⭐⭐ **Ce que P6-09 doit tenir** : c'est une **décision**, pas du code — interpolation maison

@@ -20,11 +20,10 @@
 > Journal de la Phase 4 : [`phase-4-log.md`](./phase-4-log.md) — phases précédentes :
 > [`phase-3-log.md`](./phase-3-log.md), [`phase-2-log.md`](./phase-2-log.md),
 > [`phase-1-log.md`](./phase-1-log.md)
-> **PHASE 6 OUVERTE le 2026-08-26 — 2 tâches sur 10** : P6-01 et P6-03 ; **P6-02 en cours de
-> validation** (implémentée le 2026-10-11, `DONE` à sa fusion seulement). Les deux sens du flux
-> d'ADR-0002 et le cadrage par état existent, purs et à 100 % ; **aucun n'a encore d'appelant** —
-> P6-04 sera le premier. Journal : [`phase-6-log.md`](./phase-6-log.md).
-> Dernière mise à jour : 2026-10-23 (**P6-02 repassée `IN_PROGRESS`** jusqu'à sa fusion)
+> **PHASE 6 OUVERTE le 2026-08-26 — 3 tâches sur 10** : P6-01, P6-03 puis P6-02 (fusionnée par #55
+> le 2026-10-23). Les deux sens du flux d'ADR-0002 et le cadrage par état existent, purs et à 100 % ;
+> **aucun n'a encore d'appelant** — P6-04 sera le premier. Journal : [`phase-6-log.md`](./phase-6-log.md).
+> Dernière mise à jour : 2026-10-23 (**P6-02 fusionnée et déployée**)
 
 Ce document est la **source de vérité unique des tâches**. Les identifiants sont stables et ne
 sont jamais réutilisés, même si une tâche est abandonnée.
@@ -48,7 +47,7 @@ silencieusement.
 | 3 | Internationalisation | **DONE** *(2026-08-14)* | `/fr` et `/en` résolus indépendamment, hreflang exact |
 | 4 | Portfolio HTML | **DONE** *(2026-08-20)* | **Produit utilisable sans Three.js** (phase obligatoire) |
 | 5 | Fondation Three.js | **DONE** *(2026-08-25)* — 9/10, P5-10 reportée après P6-04 | Scène primitive : le bureau réel, éclairé, budget tenu, isolation gardée |
-| 6 | Navigation spatiale | **IN_PROGRESS** *(ouverte le 2026-08-26)* — 2/10 : P6-01, P6-03 ; P6-02 `IN_PROGRESS` | Route ↔ scène, testé sans WebGL |
+| 6 | Navigation spatiale | **IN_PROGRESS** *(ouverte le 2026-08-26)* — 3/10 : P6-01, P6-02, P6-03 | Route ↔ scène, testé sans WebGL |
 | 7 | Interfaces des écrans | TODO | Contenu affiché sur les moniteurs, instance unique |
 | 8 | Modélisation et direction artistique | TODO | Scène crédible, budgets mesurés à chaque ajout |
 | 9 | Interactions secondaires | TODO | CV, GitHub, LinkedIn, contact, à propos |
@@ -1452,7 +1451,7 @@ du score ne touche **ni le LCP ni le CLS**, mais le temps de blocage.
 | ID | Tâche | Dépend de |
 |---|---|---|
 | P6-01 | `resolveSceneState(pathname)` — pur, sans Three.js — **DONE** *(2026-08-26)* | P5-05 |
-| P6-02 | `getCameraTarget(state)` — positions cibles par écran — **IN_PROGRESS** *(implémentée le 2026-10-11, en revue)* | P6-01 |
+| P6-02 | `getCameraTarget(state)` — positions cibles par écran — **DONE** *(2026-10-23, #55)* | P6-01 |
 | P6-03 | `getRouteForScreen(focus, locale)` + propriété d'aller-retour — **DONE** *(2026-08-26)* | P6-01 |
 | P6-04 | Transition de caméra pilotée par la route, interruptible | P6-02 |
 | P6-05 | Écrans interactifs : survol, focus, activation → `router.push` | P6-03 |
@@ -1513,8 +1512,8 @@ Acceptance:
 - Chaque propriété **vue rouge** avant d'être crue.
 
 **P6-02 — `getCameraTarget(state)`**
-Status: **IN_PROGRESS** — implémentée le 2026-10-11, gates locaux verts le 2026-10-23 ; `DONE`
-à la fusion de sa PR, pas avant. `src/scene/state/camera-target.ts`. **100 % de couverture**, aucun
+Status: **DONE** (2026-10-23) — implémentée le 2026-10-11, fusionnée par #55 (`e5621ba`) après
+CI verte, E2E compris (153 parcours), et déployée. `src/scene/state/camera-target.ts`. **100 % de couverture**, aucun
 import Three.js. Journal : [`phase-6-log.md`](./phase-6-log.md) §9.
 ⭐⭐ **Le seul endroit où les deux vocabulaires se rencontrent** : un `Record<SceneFocus, ViewId>`
 — `overview → accueil`, `projects → projets`, … L'exhaustivité est tenue par le **type** (`TS2741`
