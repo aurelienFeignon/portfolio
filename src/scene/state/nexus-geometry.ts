@@ -54,31 +54,6 @@ export function particleShell(
 }
 
 /**
- * Des points régulièrement espacés sur une sphère (spirale de Fibonacci),
- * légèrement bousculés pour ne pas lire comme une grille.
- */
-export function fibonacciSphere(
-  count: number,
-  radius: number,
-  jitter: number,
-  seed: number,
-): Vec3[] {
-  const random = seededRandom(seed)
-  const golden = Math.PI * (3 - Math.sqrt(5))
-  const points: Vec3[] = []
-
-  for (let i = 0; i < count; i += 1) {
-    const y = count === 1 ? 0 : 1 - (i / (count - 1)) * 2
-    const ring = Math.sqrt(1 - y * y)
-    const angle = golden * i
-    const r = radius * (1 + (random() * 2 - 1) * jitter)
-    points.push([Math.cos(angle) * ring * r, y * r, Math.sin(angle) * ring * r])
-  }
-
-  return points
-}
-
-/**
  * Les arêtes qui relient chaque point à ses `k` plus proches voisins, sans
  * doublon : `[i, j]` avec `i < j`.
  */
@@ -179,4 +154,76 @@ export function arc(from: Vec3, to: Vec3, lift: number, segments: number): Vec3[
     ])
   }
   return points
+}
+
+/** Une architecture isométrique : plateaux, blocs posés dessus, liaisons. */
+export interface Architecture {
+  /** Un plateau carré par niveau, du plus large (bas) au plus étroit (haut). */
+  readonly slabs: ReadonlyArray<{ readonly y: number; readonly size: number }>
+  /** Le centre de chaque bloc, posé sur son plateau. */
+  readonly blocks: Vec3[]
+  /** Les flux de données : des segments en équerre sur un plateau, verticaux entre deux. */
+  readonly links: Array<readonly [Vec3, Vec3]>
+}
+
+const SLAB_STEP = 0.7
+const CELL = 0.45
+const BLOCK_LIFT = 0.18
+
+/**
+ * Projets — des composants techniques posés en étages, reliés par des flux.
+ *
+ * ⭐ Les liaisons d'un plateau sont tracées **en équerre** (d'abord en X, puis en
+ * Z) : c'est ce qui fait lire un circuit, là où une diagonale ferait lire un
+ * graphe. Entre deux étages, la liaison est verticale.
+ */
+export function isoArchitecture(levels: number, blockCount: number, seed: number): Architecture {
+  const random = seededRandom(seed)
+  const slabs = Array.from({ length: levels }, (_, i) => ({
+    y: -0.9 + i * SLAB_STEP,
+    size: 2.4 - i * 0.6,
+  }))
+
+  const parLevel: Vec3[][] = slabs.map(() => [])
+  for (let b = 0; b < blockCount; b += 1) {
+    const level = b % levels
+    const slab = slabs[level] as { y: number; size: number }
+    const cells = Math.max(1, Math.floor(slab.size / CELL) - 1)
+    const taken = new Set((parLevel[level] as Vec3[]).map((p) => `${p[0]},${p[2]}`))
+    for (let attempt = 0; attempt < 20; attempt += 1) {
+      const cx = (Math.floor(random() * cells) - (cells - 1) / 2) * CELL
+      const cz = (Math.floor(random() * cells) - (cells - 1) / 2) * CELL
+      if (taken.has(`${cx},${cz}`)) continue
+      ;(parLevel[level] as Vec3[]).push([cx, slab.y + BLOCK_LIFT, cz])
+      break
+    }
+  }
+
+  const links: Array<readonly [Vec3, Vec3]> = []
+  parLevel.forEach((blocks, level) => {
+    const surface = (slabs[level] as { y: number }).y + 0.04
+    for (const [a, b] of nearestEdges(blocks, 1)) {
+      const from = blocks[a] as Vec3
+      const to = blocks[b] as Vec3
+      const corner: Vec3 = [to[0], surface, from[2]]
+      links.push([[from[0], surface, from[2]], corner], [corner, [to[0], surface, to[2]]])
+    }
+    const below = parLevel[level - 1]
+    const first = blocks[0]
+    if (below && below.length > 0 && first) {
+      const target = below.reduce((best, candidate) =>
+        Math.hypot(candidate[0] - first[0], candidate[2] - first[2]) <
+        Math.hypot(best[0] - first[0], best[2] - first[2])
+          ? candidate
+          : best,
+      )
+      // Descente verticale jusqu'au plateau du dessous, puis équerre vers la cible.
+      const floor = (slabs[level - 1] as { y: number }).y + 0.04
+      const drop: Vec3 = [first[0], floor, first[2]]
+      const corner: Vec3 = [target[0], floor, first[2]]
+      links.push([first, drop], [drop, corner], [corner, [target[0], floor, target[2]]])
+    }
+  })
+
+  return { slabs, blocks: parLevel.flat(), links }
 }

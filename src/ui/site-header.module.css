@@ -14,7 +14,9 @@
   z-index: 3;
   background: var(--color-header-glass);
   backdrop-filter: blur(12px);
-  border-bottom: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--glass-border);
+  /* Un liseré qui rayonne vers le bas : la ligne d'horizon de l'interface. */
+  box-shadow: var(--glow-horizon);
 }
 
 /*

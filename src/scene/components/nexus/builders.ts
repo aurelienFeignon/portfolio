@@ -15,10 +15,13 @@
  */
 import {
   AdditiveBlending,
+  BoxGeometry,
   type BufferGeometry,
   CanvasTexture,
   Color,
+  CylinderGeometry,
   EdgesGeometry,
+  GridHelper,
   Group,
   IcosahedronGeometry,
   InstancedMesh,
@@ -30,7 +33,6 @@ import {
   MeshBasicMaterial,
   MeshStandardMaterial,
   Object3D,
-  OctahedronGeometry,
   Points,
   type ShaderMaterial,
   SphereGeometry,
@@ -44,14 +46,13 @@ import { CORE_RADIUS, type Density, PALETTE, UNIVERSES, type Vec3 } from '@/scen
 import {
   arc,
   constellation,
-  fibonacciSphere,
   helix,
-  nearestEdges,
+  isoArchitecture,
   particleShell,
 } from '@/scene/state/nexus-geometry'
 
 import { pointsGeometry, polylineGeometry, segmentsGeometry } from './buffers'
-import { flowLineMaterial, fresnelMaterial, softPointsMaterial } from './materials'
+import { beamMaterial, flowLineMaterial, fresnelMaterial, softPointsMaterial } from './materials'
 
 /** Ce qu'une image transmet à chaque objet. */
 export interface Frame {
@@ -349,46 +350,143 @@ export function buildTimeline(): Built {
 }
 
 /**
- * Projets — un réseau : des nœuds sur une sphère, reliés à leurs trois plus
- * proches voisins, parcourus d'impulsions. Tous les nœuds en un seul draw call.
+ * Projets — une architecture isométrique : des plateaux de verre superposés,
+ * des blocs posés dessus comme des composants techniques, et des flux de
+ * données qui courent en équerre d'un bloc à l'autre et d'un étage à l'autre.
+ * Tous les blocs en un seul draw call.
  */
-export function buildNetwork(density: Density): Built {
+export function buildArchitecture(density: Density): Built {
   const root = new Group()
-  const nodes = fibonacciSphere(density.projectNodes, 1.15, 0.22, 7)
+  // ⭐ Tourné de 45° : vu de trois quarts, un plateau carré se lit en losange,
+  // ce qui donne l'isométrie sans caméra orthographique.
+  root.rotation.y = Math.PI / 4
+  const { slabs, blocks, links } = isoArchitecture(3, density.projectNodes, 7)
 
-  const nodeMaterial = new MeshStandardMaterial({
-    color: '#16294a',
+  const slabMaterial = new MeshStandardMaterial({
+    color: '#12223d',
+    metalness: 0.5,
+    roughness: 0.35,
+    transparent: true,
+    opacity: 0.55,
     emissive: PALETTE.cyan,
-    emissiveIntensity: 0.3,
+    emissiveIntensity: 0.04,
+  })
+  const slabEdges = new LineBasicMaterial({
+    color: PALETTE.cyan,
+    transparent: true,
+    opacity: 0.7,
+    blending: AdditiveBlending,
+    depthWrite: false,
+  })
+  for (const slab of slabs) {
+    const geometry = new BoxGeometry(slab.size, 0.06, slab.size)
+    const plate = new Mesh(geometry, slabMaterial)
+    plate.position.y = slab.y
+    root.add(plate)
+    const edges = new LineSegments(new EdgesGeometry(geometry), slabEdges)
+    edges.position.y = slab.y
+    root.add(edges)
+  }
+
+  const blockMaterial = new MeshStandardMaterial({
+    color: '#16294a',
     metalness: 0.6,
     roughness: 0.3,
-    flatShading: true,
+    emissive: PALETTE.cyan,
+    emissiveIntensity: 0.12,
   })
-  const instances = new InstancedMesh(new OctahedronGeometry(0.11, 0), nodeMaterial, nodes.length)
+  const instances = new InstancedMesh(
+    new BoxGeometry(0.22, 0.3, 0.22),
+    blockMaterial,
+    blocks.length,
+  )
   const dummy = new Object3D()
-  nodes.forEach((node, i) => {
-    dummy.position.set(...node)
-    dummy.rotation.set(i * 0.7, i * 1.1, 0)
-    dummy.scale.setScalar(i === 0 ? 1.9 : 0.8 + ((i * 37) % 10) / 20)
+  blocks.forEach((block, i) => {
+    dummy.position.set(...block)
+    dummy.scale.set(1, 0.7 + ((i * 37) % 10) / 15, 1)
     dummy.updateMatrix()
     instances.setMatrixAt(i, dummy.matrix)
-    instances.setColorAt(i, new Color(i % 4 === 0 ? PALETTE.violet : '#8fdcec'))
+    instances.setColorAt(i, new Color(i % 4 === 0 ? PALETTE.violet : '#3f8fa6'))
   })
   root.add(instances)
 
-  const edgeMaterial = flowLineMaterial(PALETTE.cyan, PALETTE.violet, 0.4, 0.22)
-  root.add(new LineSegments(segmentsGeometry(nodes, nearestEdges(nodes, 3)), edgeMaterial))
+  const linkMaterial = flowLineMaterial(PALETTE.cyan, PALETTE.violet, 0.8, 0.35)
+  const ends = links.flatMap(([a, b]) => [a, b])
+  root.add(
+    new LineSegments(
+      segmentsGeometry(
+        ends,
+        links.map((_, i) => [i * 2, i * 2 + 1] as const),
+      ),
+      linkMaterial,
+    ),
+  )
 
   return {
     root,
     update({ time, delta, animated, highlight }) {
-      setTime([edgeMaterial], time)
-      setHighlight([edgeMaterial], highlight.projects)
-      nodeMaterial.emissiveIntensity = 0.25 + 0.45 * highlight.projects
-      if (animated) {
-        root.rotation.y += delta * 0.06
-        root.rotation.x += delta * 0.015
-      }
+      setTime([linkMaterial], time)
+      setHighlight([linkMaterial], highlight.projects)
+      blockMaterial.emissiveIntensity = 0.1 + 0.35 * highlight.projects
+      slabEdges.opacity = 0.55 + 0.4 * highlight.projects
+      if (animated) root.rotation.y += delta * 0.05
+    },
+    dispose: () => disposeTree(root),
+  }
+}
+
+/* ================================================================ plateforme */
+
+/**
+ * La plateforme du noyau : trois disques de métal sombre en gradins, chacun
+ * cerclé d'une bande lumineuse ; une colonne de lumière qui monte vers le noyau ;
+ * et une grille de sol, qui donne l'échelle et s'efface dans le brouillard.
+ */
+export function buildPlatform(): Built {
+  const root = new Group()
+  root.position.y = -2.7
+
+  const metal = new MeshStandardMaterial({ color: '#0c1628', metalness: 0.85, roughness: 0.35 })
+  const tiers = [
+    { radius: 2.8, y: 0 },
+    { radius: 2.2, y: 0.09 },
+    { radius: 1.5, y: 0.18 },
+  ]
+  const strips = tiers.map((tier, i) => {
+    const disc = new Mesh(new CylinderGeometry(tier.radius, tier.radius * 1.02, 0.09, 72), metal)
+    disc.position.y = tier.y
+    root.add(disc)
+    const strip = additive(i === 1 ? PALETTE.violet : PALETTE.cyan, 0.8)
+    const ring = new Mesh(new TorusGeometry(tier.radius * 1.01, 0.012, 6, 160), strip)
+    ring.rotation.x = Math.PI / 2
+    ring.position.y = tier.y + 0.046
+    root.add(ring)
+    return strip
+  })
+
+  const beam = beamMaterial(PALETTE.cyan, 0.55)
+  const column = new Mesh(new CylinderGeometry(0.75, 1.35, 2.6, 48, 1, true), beam)
+  column.position.y = 1.5
+  root.add(column)
+
+  // ⛔ Axes centraux de la MÊME couleur que la grille : en cyan, l'axe X traçait
+  // une ligne d'horizon à travers tout l'écran (quatrième capture).
+  const grid = new GridHelper(64, 64, '#1b3a5c', '#1b3a5c')
+  const gridMaterial = grid.material as LineBasicMaterial
+  gridMaterial.transparent = true
+  gridMaterial.opacity = 0.22
+  gridMaterial.depthWrite = false
+  grid.position.y = -0.05
+  root.add(grid)
+
+  return {
+    root,
+    update({ time }) {
+      setTime([beam], time)
+      // Les bandes respirent avec le noyau, en léger décalage de l'une à l'autre.
+      strips.forEach((strip, i) => {
+        strip.opacity = 0.55 + 0.35 * (0.5 + 0.5 * Math.sin(time * 0.55 - i * 0.6))
+      })
     },
     dispose: () => disposeTree(root),
   }

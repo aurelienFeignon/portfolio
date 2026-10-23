@@ -37,4 +37,6 @@
   font-weight: 600;
   color: var(--color-accent);
   border-bottom-color: var(--color-accent);
+  text-shadow: var(--glow-text);
+  box-shadow: 0 6px 14px -8px var(--color-accent);
 }

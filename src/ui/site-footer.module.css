@@ -43,9 +43,11 @@
     min-height: var(--footer-h);
     display: flex;
     align-items: center;
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-lg);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-sm);
     background: var(--color-panel-glass);
+    backdrop-filter: blur(16px);
+    box-shadow: var(--glow-edge);
   }
 
   :global(body:has([data-reading-panel='aside'])) .inner {

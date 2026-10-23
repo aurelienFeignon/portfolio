@@ -10,8 +10,30 @@
  * même rythme intérieur, et c'est la seule chose qui les distingue vraiment.
  */
 
+/*
+ * NEXUS, étape 2 : une carte de verre au liseré en dégradé cyan → violet. Le
+ * dégradé est posé en `border-box` sous un fond plein en `padding-box` — la
+ * seule façon d'avoir une bordure en dégradé ET des coins arrondis
+ * (`border-image` ignore `border-radius`). Le fond reste OPAQUE : c'est sur lui
+ * que se lit le texte.
+ */
 .surface {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
+  background:
+    linear-gradient(var(--color-surface), var(--color-surface)) padding-box,
+    var(--gradient-edge) border-box;
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  transition: box-shadow 200ms ease-out;
+}
+
+/* Le halo ne s'allume que sur une carte qui mène quelque part. */
+.surface:has(a):hover,
+.surface:has(a:focus-visible) {
+  box-shadow: var(--glow-card);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .surface {
+    transition: none;
+  }
 }

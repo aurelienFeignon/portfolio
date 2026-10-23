@@ -16,6 +16,10 @@
  * une image demandée trop tôt rattraperait la compilation en synchrone, et tout
  * le gain serait perdu.
  *
+ * ⚠️ **Sans effet mesurable dans le banc** : son Chromium n'offre pas
+ * l'extension, et la compilation y reste synchrone (`nexus-prototype.md` §6.3).
+ * Le gain sur un appareil réel n'est pas encore vérifié.
+ *
  * Ce composant se place APRÈS la scène dans l'arbre : ses effets s'exécutent
  * après ceux des objets, qui sont donc déjà dans le graphe à compiler.
  */

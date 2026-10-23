@@ -7,14 +7,12 @@ import { describe, expect, it } from 'vitest'
 import {
   arc,
   constellation,
-  fibonacciSphere,
   helix,
+  isoArchitecture,
   nearestEdges,
   particleShell,
   seededRandom,
 } from '@/scene/state/nexus-geometry'
-
-const norme = (p: readonly number[]) => Math.hypot(...p)
 
 describe('le générateur à graine', () => {
   it('rend la même suite pour la même graine, une autre pour une autre', () => {
@@ -56,24 +54,9 @@ describe('la coquille de particules', () => {
   })
 })
 
-describe('la sphère de Fibonacci', () => {
-  it('rend le nombre demandé de points, au rayon près de la gigue', () => {
-    const points = fibonacciSphere(20, 2, 0.1, 5)
-    expect(points).toHaveLength(20)
-    for (const point of points) {
-      expect(norme(point)).toBeGreaterThanOrEqual(2 * 0.9 - 1e-9)
-      expect(norme(point)).toBeLessThanOrEqual(2 * 1.1 + 1e-9)
-    }
-  })
-
-  it('accepte un seul point', () => {
-    expect(fibonacciSphere(1, 1, 0, 1)).toHaveLength(1)
-  })
-})
-
 describe('les arêtes aux plus proches voisins', () => {
   it('n’a ni doublon, ni boucle, et chaque arête est ordonnée', () => {
-    const points = fibonacciSphere(14, 1, 0.2, 7)
+    const { points } = constellation(2, 7, 7)
     const edges = nearestEdges(points, 3)
     const cles = edges.map(([a, b]) => `${a}-${b}`)
     expect(new Set(cles).size).toBe(cles.length)
@@ -81,7 +64,7 @@ describe('les arêtes aux plus proches voisins', () => {
   })
 
   it('relie chaque point à au moins un autre', () => {
-    const points = fibonacciSphere(10, 1, 0.2, 2)
+    const { points } = constellation(2, 5, 2)
     const relies = new Set(nearestEdges(points, 2).flat())
     expect(relies.size).toBe(10)
   })
@@ -111,5 +94,40 @@ describe('l’hélice et l’arc', () => {
     expect(points[0]).toEqual([0, 0, 0])
     expect(points[10]).toEqual([4, 0, 0])
     expect(points[5]![1]).toBeCloseTo(1)
+  })
+})
+
+describe('l’architecture isométrique', () => {
+  const { slabs, blocks, links } = isoArchitecture(3, 12, 5)
+
+  it('empile des plateaux qui rétrécissent en montant', () => {
+    expect(slabs).toHaveLength(3)
+    for (let i = 1; i < slabs.length; i += 1) {
+      expect(slabs[i]!.y).toBeGreaterThan(slabs[i - 1]!.y)
+      expect(slabs[i]!.size).toBeLessThan(slabs[i - 1]!.size)
+    }
+  })
+
+  it('pose chaque bloc sur un plateau, à l’intérieur de ses bords', () => {
+    expect(blocks.length).toBeGreaterThan(0)
+    expect(blocks.length).toBeLessThanOrEqual(12)
+    for (const [x, y, z] of blocks) {
+      const slab = slabs.find((candidate) => Math.abs(candidate.y + 0.18 - y) < 1e-9)
+      expect(slab).toBeDefined()
+      expect(Math.abs(x)).toBeLessThan(slab!.size / 2)
+      expect(Math.abs(z)).toBeLessThan(slab!.size / 2)
+    }
+  })
+
+  it('trace des liaisons en équerre — chaque segment suit un seul axe', () => {
+    expect(links.length).toBeGreaterThan(0)
+    for (const [a, b] of links) {
+      const axes = [0, 1, 2].filter((i) => Math.abs(a[i]! - b[i]!) > 1e-9)
+      expect(axes.length).toBeLessThanOrEqual(1)
+    }
+  })
+
+  it('est déterministe', () => {
+    expect(isoArchitecture(3, 12, 5)).toEqual(isoArchitecture(3, 12, 5))
   })
 })

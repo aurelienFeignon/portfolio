@@ -12,7 +12,7 @@
  * Tous partagent une horloge `uTime`, avancée par `useNexusClock` — et figée sous
  * `prefers-reduced-motion`.
  */
-import { AdditiveBlending, Color, ShaderMaterial } from 'three'
+import { AdditiveBlending, Color, DoubleSide, ShaderMaterial } from 'three'
 
 export interface TimeUniform {
   readonly uTime: { value: number }
@@ -159,6 +159,51 @@ export function flowLineMaterial(
     `,
     transparent: true,
     depthWrite: false,
+    blending: AdditiveBlending,
+  })
+}
+
+/**
+ * Une colonne de lumière : opaque à sa base, évanouie à son sommet, plus claire
+ * au bord qu'au centre — un faisceau, pas un cylindre.
+ */
+export function beamMaterial(color: string, intensity: number): ShaderMaterial {
+  return new ShaderMaterial({
+    uniforms: {
+      uTime: { value: 0 },
+      uColor: { value: new Color(color) },
+      uIntensity: { value: intensity },
+    },
+    vertexShader: /* glsl */ `
+      varying vec2 vUv;
+      varying vec3 vNormal;
+      varying vec3 vView;
+      void main() {
+        vUv = uv;
+        vec4 world = modelViewMatrix * vec4(position, 1.0);
+        vNormal = normalize(normalMatrix * normal);
+        vView = normalize(-world.xyz);
+        gl_Position = projectionMatrix * world;
+      }
+    `,
+    fragmentShader: /* glsl */ `
+      uniform vec3 uColor;
+      uniform float uIntensity;
+      uniform float uTime;
+      varying vec2 vUv;
+      varying vec3 vNormal;
+      varying vec3 vView;
+      void main() {
+        float fade = pow(1.0 - vUv.y, 1.6);
+        float rim = 0.35 + 0.65 * pow(1.0 - abs(dot(vNormal, vView)), 1.5);
+        float shimmer = 0.85 + 0.15 * sin(uTime * 0.8 + vUv.y * 9.0);
+        float alpha = fade * rim * shimmer * uIntensity;
+        gl_FragColor = vec4(uColor * alpha, alpha);
+      }
+    `,
+    transparent: true,
+    depthWrite: false,
+    side: DoubleSide,
     blending: AdditiveBlending,
   })
 }

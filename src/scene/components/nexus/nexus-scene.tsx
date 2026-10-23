@@ -24,10 +24,11 @@ import type { SceneFocus } from '@/scene/state/scene-state'
 import {
   type Built,
   buildConnections,
+  buildArchitecture,
   buildConstellation,
   buildCore,
-  buildNetwork,
   buildParticles,
+  buildPlatform,
   buildTimeline,
 } from './builders'
 
@@ -39,7 +40,7 @@ const CLICK_TOLERANCE_PX = 6
 
 const BUILD_UNIVERSE: Readonly<Record<Section, (density: Density) => Built>> = {
   experiences: () => buildTimeline(),
-  projects: buildNetwork,
+  projects: buildArchitecture,
   skills: buildConstellation,
 }
 
@@ -61,7 +62,12 @@ export function NexusScene({
   const pixelRatio = useThree((state) => state.viewport.dpr)
 
   const world = useMemo(() => {
-    const ambient = [buildCore(density), buildParticles(density, pixelRatio), buildConnections()]
+    const ambient = [
+      buildPlatform(),
+      buildCore(density),
+      buildParticles(density, pixelRatio),
+      buildConnections(),
+    ]
     const universes = SECTIONS.map((section) => ({
       section,
       built: BUILD_UNIVERSE[section](density),
