@@ -22,7 +22,9 @@ porte bien sur l'empreinte et non sur la forme. *Un module est
 indivisible du point de vue d'un bundler* (P5-08, 0,5 Ko vérifiés en source maps).
 ⛔ **`scripts/check-scene-isolation.mts` ne garde PAS cette règle** — il ne cherche que `three`, et
 `layout.ts` n'en importe pas. C'est `tests/integration/scene-state-stays-off-layout.test.ts` qui la
-tient : graphe d'imports de **valeur** depuis `scene-state.ts`, avec témoin (P6-02).
+tient : graphe d'imports de **valeur** depuis `scene-mount.tsx` (le chemin de première visite
+d'aujourd'hui) et `scene-state.ts` (celui de P6-07), avec témoin (P6-02). Étendre
+`check-scene-isolation.mts` à `layout.ts`, pour le mesurer aussi sur le build, est à faire avec P6-07.
 
 ⛔ Ce README a annoncé les trois comme existantes jusqu'au 2026-08-25, alors qu'aucune n'était
 écrite — un inventaire faux dans le sens rassurant, corrigé en P5-08. Il n'en annonce plus que ce

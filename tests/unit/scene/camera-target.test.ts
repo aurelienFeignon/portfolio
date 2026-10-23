@@ -12,7 +12,7 @@
  */
 import { describe, expect, it } from 'vitest'
 
-import { CAMERAS, NODES } from '@/scene/state/layout'
+import { CAMERAS } from '@/scene/state/layout'
 import { getCameraTarget } from '@/scene/state/camera-target'
 import type { SceneFocus } from '@/scene/state/scene-state'
 
@@ -41,79 +41,16 @@ const DALLE_ATTENDUE: Record<SceneFocus, string | undefined> = {
 
 const FOCUSES = Object.keys(DALLE_ATTENDUE) as readonly SceneFocus[]
 
-function noeud(id: string) {
-  const trouve = NODES.find((candidat) => candidat.id === id)
-  // ⛔ Un identifiant renommé dans `layout.ts` doit le DIRE, pas rendre `undefined`
-  // et laisser l'assertion suivante échouer sur un diff illisible.
-  if (trouve === undefined) throw new Error(`Aucun nœud « ${id} » dans layout.ts`)
-  return trouve
-}
-
-const DEG = Math.PI / 180
-
-/**
- * La normale d'une dalle — le +Z du plan, tourné par son Euler `XYZ` (l'ordre
- * par défaut de `three`) : `(sin b, −sin a · cos b, cos a · cos b)`.
- */
-function normale([a, b]: readonly [number, number, number]): [number, number, number] {
-  return [
-    Math.sin(b * DEG),
-    -Math.sin(a * DEG) * Math.cos(b * DEG),
-    Math.cos(a * DEG) * Math.cos(b * DEG),
-  ]
-}
-
-function unitaire([x, y, z]: readonly [number, number, number]): [number, number, number] {
-  const norme = Math.hypot(x, y, z)
-  return [x / norme, y / norme, z / norme]
-}
-
-/** Les dalles que l'oracle attend — dérivé de lui, jamais de ce que rend le code. */
-const ECRANS = FOCUSES.flatMap((focus) => {
-  const dalle = DALLE_ATTENDUE[focus]
-  return dalle === undefined ? [] : [[focus, dalle] as const]
-})
-
-describe('l’exemple de testing-strategy.md §4.3', () => {
-  it('experiences → le cadrage de l’écran gauche', () => {
-    const cadrage = getCameraTarget({ focus: 'experiences', detail: null })
-
-    expect(cadrage.focusNodeId).toBe('dalleGauche')
-    expect(cadrage.target).toEqual(noeud('dalleGauche').position)
-  })
-})
+const cadrage = (focus: SceneFocus, detail: string | null = null) =>
+  getCameraTarget({ focus, detail })
 
 describe('chaque focus cadre sa dalle', () => {
+  // ⭐ Le cas `experiences` est l'exemple de `testing-strategy.md` §4.3 —
+  // « le cadrage de l'écran gauche ». Que ce cadrage vise le centre de sa dalle,
+  // de face, est une propriété de `layout.ts`, tenue par `layout.test.ts`.
   for (const focus of FOCUSES) {
     it(`${focus} → ${DALLE_ATTENDUE[focus] ?? 'aucune dalle, la vue d’ensemble'}`, () => {
-      expect(getCameraTarget({ focus, detail: null }).focusNodeId).toBe(DALLE_ATTENDUE[focus])
-    })
-  }
-
-  // C'est ce qui donne un sens à `focusNodeId` : le nom seul ne garantit pas que la
-  // caméra regarde l'écran. `layout.ts` pose chaque cadrage d'écran « centre de la
-  // dalle ± normale × distance » ; ce banc vérifie les deux moitiés de la formule
-  // au lieu de croire le commentaire. ⭐ Le périmètre vient de l'ORACLE : un
-  // cadrage qui aurait perdu son `focusNodeId` ne peut pas s'en faire dispenser.
-  for (const [focus, dalle] of ECRANS) {
-    it(`⭐ ${focus} vise le CENTRE de ${dalle}`, () => {
-      expect(getCameraTarget({ focus, detail: null }).target).toEqual(noeud(dalle).position)
-    })
-
-    it(`⭐ ${focus} regarde ${dalle} DE FACE, sur sa normale`, () => {
-      // ⛔ 4° hors normale donnent 9,6 % d'écart entre les marges gauche et
-      // droite du cadre — un écran qui se lit mal centré (`layout.ts`). Les cotes
-      // sont arrondies au dixième de millimètre : 10⁻³ sur un vecteur unitaire
-      // les absorbe, et laisse 4° (≈ 0,07) très au-dessus.
-      const { position, target } = getCameraTarget({ focus, detail: null })
-      const visee = unitaire([
-        position[0] - target[0],
-        position[1] - target[1],
-        position[2] - target[2],
-      ])
-      const attendue = normale(noeud(dalle).rotationDeg)
-
-      visee.forEach((composante, i) => expect(composante).toBeCloseTo(attendue[i] ?? NaN, 3))
+      expect(cadrage(focus).focusNodeId).toBe(DALLE_ATTENDUE[focus])
     })
   }
 })
@@ -124,7 +61,7 @@ describe('les cadrages sont LUS dans layout.ts, jamais recopiés', () => {
     // millimètre, échoue ici. P6-04 pourra aussi dire « même cible » sans
     // comparer coordonnée à coordonnée.
     for (const focus of FOCUSES) {
-      expect(Object.values(CAMERAS), focus).toContain(getCameraTarget({ focus, detail: null }))
+      expect(Object.values(CAMERAS), focus).toContain(cadrage(focus))
     }
   })
 })
@@ -135,9 +72,7 @@ describe('ce que `detail` ne change pas', () => {
     // s'affiche sur l'écran de sa section (Phase 7). `detail` nomme un slug que
     // cette couche ne peut de toute façon pas vérifier (`scene-state.ts`).
     for (const focus of FOCUSES) {
-      expect(getCameraTarget({ focus, detail: 'quelconque' }), focus).toBe(
-        getCameraTarget({ focus, detail: null }),
-      )
+      expect(cadrage(focus, 'quelconque'), focus).toBe(cadrage(focus))
     }
   })
 })

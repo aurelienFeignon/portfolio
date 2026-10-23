@@ -148,6 +148,41 @@ describe('invariants que le type ne peut pas exprimer', () => {
   })
 })
 
+describe('chaque cadrage d’écran regarde sa dalle', () => {
+  // `CAMERAS` pose chaque gros plan « centre de la dalle ± normale × distance » ;
+  // ces deux tests vérifient les deux moitiés de la formule au lieu de croire le
+  // commentaire (P6-02). Que les trois cadrages d'écran portent un `focusNodeId`
+  // est tenu plus haut — aucun ne peut donc s'en faire dispenser ici.
+  const DEG = Math.PI / 180
+  const ecrans = Object.entries(CAMERAS).flatMap(([vue, camera]) => {
+    const dalle = NODES.find((node) => node.id === camera.focusNodeId)
+    return dalle === undefined ? [] : [{ vue, camera, dalle }]
+  })
+
+  for (const { vue, camera, dalle } of ecrans) {
+    it(`${vue} vise le CENTRE de ${dalle.id}`, () => {
+      expect(camera.target).toEqual(dalle.position)
+    })
+
+    it(`${vue} regarde ${dalle.id} DE FACE, sur sa normale`, () => {
+      // ⛔ 4° hors normale donnent 9,6 % d'écart entre les marges gauche et droite
+      // du cadre. La normale est le +Z du plan tourné par son Euler `XYZ` (l'ordre
+      // de `three`) : (sin b, −sin a · cos b, cos a · cos b). On compare son
+      // produit scalaire avec la visée unitaire : 1 − cos 4° ≈ 2,4·10⁻³, très
+      // au-dessus de la tolérance, quand l'arrondi des cotes au dixième de
+      // millimètre reste sous 10⁻⁸.
+      const [a, b] = dalle.rotationDeg.map((deg) => deg * DEG) as [number, number, number]
+      const normale = [Math.sin(b), -Math.sin(a) * Math.cos(b), Math.cos(a) * Math.cos(b)]
+      const visee = camera.position.map((v, i) => v - (camera.target[i] ?? NaN))
+      const norme = Math.hypot(...visee)
+
+      expect(
+        visee.reduce((somme, v, i) => somme + (v / norme) * (normale[i] ?? NaN), 0),
+      ).toBeCloseTo(1, 4)
+    })
+  }
+})
+
 describe('durée de transition', () => {
   it('coupe le mouvement à zéro quand il est refusé, plutôt que de l’accélérer', () => {
     /*

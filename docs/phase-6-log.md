@@ -432,8 +432,8 @@ Le vrai relevé se prend en P6-07.
 ## 9. P6-02 — le cadrage d'un état, et l'oracle qui empêche le banc d'être vacant
 
 **Livré le 2026-10-11**, après une pause de 46 jours sur la phase. `src/scene/state/camera-target.ts` :
-`getCameraTarget(state)`. **13 tests** sur le module et **3** sur le garde d'imports de §9.4 bis,
-couverture **100 %**, aucun import Three.js.
+`getCameraTarget(state)`. **6 tests** sur le module, **6** sur les cadrages dans `layout.test.ts` et
+**3** sur le garde d'imports de §9.4 bis — couverture **100 %**, aucun import Three.js.
 
 ### 9.1 Ce que la fonction fait — et ce qu'elle refuse de faire
 
@@ -481,19 +481,20 @@ distingué d'un échec de test.
 | Mutation | Verdict |
 |---|---|
 | Échange `projects ↔ skills` dans le `Record` | **tuée** — 2 tests |
-| Échange `experiences ↔ projects` | **tuée** — 3 tests |
+| Échange `experiences ↔ projects` | **tuée** — 2 tests |
 | `overview` cadre Projets | **tuée** — 1 test |
 | Une copie au lieu de l'instance | **tuée** — 2 tests |
 | Une fiche (`detail`) renvoie à la vue d'ensemble | **tuée** — 1 test |
-| Cible de Projets décalée d'1 mm dans `layout.ts` | **tuée** — 2 tests |
+| Cible de Projets décalée d'1 mm dans `layout.ts` | **tuée** — 1 test |
 | Caméra de Projets 4° hors de la normale | **tuée** — 1 test *(après revue)* |
-| `focusNodeId` retiré du cadrage Projets | **tuée** — 1 test *(après revue)* |
+| `focusNodeId` retiré du cadrage Projets | **tuée** — 2 tests *(après revue)* |
 | `scene-state.ts` importe `layout.ts` | **tuée** — 1 test *(après revue)* |
 | `scene-state.ts` importe `camera-target.ts` en `{ type … }` | **tuée** — 1 test *(après revue)* |
+| `scene-mount.tsx` importe `layout.ts` | **tuée** — 1 test *(après simplification)* |
 | `skills` retiré du `Record` | **refusée au typage** — `TS2741` |
 
-Dix mutations tuées, une refusée au compilateur. Les comptes de tests des quatre premières lignes ont
-grossi après la revue, l'oracle étant désormais lu par trois tests par écran.
+Onze mutations tuées, une refusée au compilateur — rejouées **après** la passe de simplification,
+sur les bancs dans leur forme finale.
 
 ### 9.4 bis ⛔⛔ Ce que la revue a changé — un critère affirmé sans rien derrière
 
@@ -515,6 +516,21 @@ grossi après la revue, l'oracle étant désormais lu par trois tests par écran
    elle ne vérifiait que le centre : la normale est ajoutée.
 3. **Le prompt de reprise rangeait P6-02 sous « fusionné sur `main` et déployé »** avant toute
    fusion. Corrigé : l'état écrit est celui d'une PR, à vérifier par `gh`.
+
+**Et la passe de simplification a déplacé trois choses** :
+
+- ⭐ **Centre et normale sont des propriétés de `layout.ts`**, pas de `getCameraTarget` — qui rend
+  l'instance de `CAMERAS`, prouvé par identité. Elles vivent donc dans `layout.test.ts`, sur tous les
+  cadrages d'écran ; la normale s'y compare par **produit scalaire** à la visée (1 − cos 4° ≈ 2,4·10⁻³,
+  tolérance 5·10⁻⁵).
+- ⭐⭐ **Le garde d'imports part aussi de `scene-mount.tsx`** : c'est le chemin de première visite
+  qui **existe** aujourd'hui — celui de P5-08 —, alors que `scene-state.ts` n'y entrera qu'en P6-07.
+- **La résolution des imports est celle du compilateur**, `ts.resolveModuleName` avec le
+  `tsconfig.json` réel : l'alias `@/` n'est plus recopié dans le banc.
+
+⚠️ **Écarté** : remplacer `typescript` par une expression régulière, pour alléger le banc sous charge.
+Une regex lit mal des formes que l'analyseur lit juste, et la résolution réelle vaut plus que les
+quelques centaines de millisecondes de chargement.
 
 ⚠️ **Constat de passage, NON traité ici** : sous forte charge de l'hôte (load ~45 sur 20 cœurs),
 `tests/integration/drei-import-guard.test.ts` dépasse son délai de 5 s — le premier `lintText`

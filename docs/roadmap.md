@@ -20,10 +20,11 @@
 > Journal de la Phase 4 : [`phase-4-log.md`](./phase-4-log.md) — phases précédentes :
 > [`phase-3-log.md`](./phase-3-log.md), [`phase-2-log.md`](./phase-2-log.md),
 > [`phase-1-log.md`](./phase-1-log.md)
-> **PHASE 6 OUVERTE le 2026-08-26 — 3 tâches sur 10** : P6-01, P6-03 puis P6-02 (2026-10-11). Les
-> deux sens du flux d'ADR-0002 et le cadrage par état existent, purs et à 100 % ; **aucun n'a encore
-> d'appelant** — P6-04 sera le premier. Journal : [`phase-6-log.md`](./phase-6-log.md).
-> Dernière mise à jour : 2026-10-11 (**P6-02 livrée**)
+> **PHASE 6 OUVERTE le 2026-08-26 — 2 tâches sur 10** : P6-01 et P6-03 ; **P6-02 en cours de
+> validation** (implémentée le 2026-10-11, `DONE` à sa fusion seulement). Les deux sens du flux
+> d'ADR-0002 et le cadrage par état existent, purs et à 100 % ; **aucun n'a encore d'appelant** —
+> P6-04 sera le premier. Journal : [`phase-6-log.md`](./phase-6-log.md).
+> Dernière mise à jour : 2026-10-23 (**P6-02 repassée `IN_PROGRESS`** jusqu'à sa fusion)
 
 Ce document est la **source de vérité unique des tâches**. Les identifiants sont stables et ne
 sont jamais réutilisés, même si une tâche est abandonnée.
@@ -47,7 +48,7 @@ silencieusement.
 | 3 | Internationalisation | **DONE** *(2026-08-14)* | `/fr` et `/en` résolus indépendamment, hreflang exact |
 | 4 | Portfolio HTML | **DONE** *(2026-08-20)* | **Produit utilisable sans Three.js** (phase obligatoire) |
 | 5 | Fondation Three.js | **DONE** *(2026-08-25)* — 9/10, P5-10 reportée après P6-04 | Scène primitive : le bureau réel, éclairé, budget tenu, isolation gardée |
-| 6 | Navigation spatiale | **IN_PROGRESS** *(ouverte le 2026-08-26)* — 3/10 : P6-01, P6-02, P6-03 | Route ↔ scène, testé sans WebGL |
+| 6 | Navigation spatiale | **IN_PROGRESS** *(ouverte le 2026-08-26)* — 2/10 : P6-01, P6-03 ; P6-02 `IN_PROGRESS` | Route ↔ scène, testé sans WebGL |
 | 7 | Interfaces des écrans | TODO | Contenu affiché sur les moniteurs, instance unique |
 | 8 | Modélisation et direction artistique | TODO | Scène crédible, budgets mesurés à chaque ajout |
 | 9 | Interactions secondaires | TODO | CV, GitHub, LinkedIn, contact, à propos |
@@ -1451,7 +1452,7 @@ du score ne touche **ni le LCP ni le CLS**, mais le temps de blocage.
 | ID | Tâche | Dépend de |
 |---|---|---|
 | P6-01 | `resolveSceneState(pathname)` — pur, sans Three.js — **DONE** *(2026-08-26)* | P5-05 |
-| P6-02 | `getCameraTarget(state)` — positions cibles par écran — **DONE** *(2026-10-11)* | P6-01 |
+| P6-02 | `getCameraTarget(state)` — positions cibles par écran — **IN_PROGRESS** *(implémentée le 2026-10-11, en revue)* | P6-01 |
 | P6-03 | `getRouteForScreen(focus, locale)` + propriété d'aller-retour — **DONE** *(2026-08-26)* | P6-01 |
 | P6-04 | Transition de caméra pilotée par la route, interruptible | P6-02 |
 | P6-05 | Écrans interactifs : survol, focus, activation → `router.push` | P6-03 |
@@ -1512,7 +1513,8 @@ Acceptance:
 - Chaque propriété **vue rouge** avant d'être crue.
 
 **P6-02 — `getCameraTarget(state)`**
-Status: **DONE** (2026-10-11) — `src/scene/state/camera-target.ts`. **100 % de couverture**, aucun
+Status: **IN_PROGRESS** — implémentée le 2026-10-11, gates locaux verts le 2026-10-23 ; `DONE`
+à la fusion de sa PR, pas avant. `src/scene/state/camera-target.ts`. **100 % de couverture**, aucun
 import Three.js. Journal : [`phase-6-log.md`](./phase-6-log.md) §9.
 ⭐⭐ **Le seul endroit où les deux vocabulaires se rencontrent** : un `Record<SceneFocus, ViewId>`
 — `overview → accueil`, `projects → projets`, … L'exhaustivité est tenue par le **type** (`TS2741`
@@ -1525,16 +1527,17 @@ cadrage — le dossier cadre des écrans, pas des fiches.
 L'import inverse est un import de **type**, effacé à la compilation.
 ⛔⛔ **Le banc porte un ORACLE, et c'est ce qui le rend non vacant** : sans lui, échanger deux écrans
 dans le `Record` laissait le banc vert — chaque focus visait toujours *un* cadrage de `layout.ts`,
-distinct des autres. Dix mutations tuées, et l'amputation du `Record` refusée au typage.
+distinct des autres. Onze mutations tuées, et l'amputation du `Record` refusée au typage.
 ⛔⛔ **La revue a trouvé un critère affirmé sans rien derrière** : « `layout.ts` hors du graphe de
 `scene-state.ts` » était attribué à `check-scene-isolation.mts`, qui ne cherche que `three`. Un garde
-le tient désormais — `tests/integration/scene-state-stays-off-layout.test.ts`, avec témoin.
+le tient désormais — `tests/integration/scene-state-stays-off-layout.test.ts`, avec témoin, depuis
+`scene-mount.tsx` et `scene-state.ts`.
 · Depends on: P6-01
 Acceptance:
 - Les quatre cadrages **lus** dans `layout.ts`, jamais recopiés — vérifié par identité.
 - Mapping exhaustif par le typage, jamais par une suite de `if`.
 - Chaque cadrage d'écran vise le centre de la dalle qu'il nomme, **sur sa normale**.
-- `layout.ts` n'entre pas dans le graphe d'imports de valeur de `scene-state.ts` — **gardé**.
+- `layout.ts` n'entre pas dans le graphe d'imports de valeur de `scene-state.ts` ni de `scene-mount.tsx` — **gardé**.
 
 **P6-03 — `getRouteForScreen(focus, locale)` et l'aller-retour**
 Status: **DONE** (2026-08-26) — l'autre sens du flux d'ADR-0002, dans le même fichier que son

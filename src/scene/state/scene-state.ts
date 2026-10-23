@@ -22,12 +22,8 @@
  * sera lue depuis le chunk de **première visite** (P6-07, `data-scene-focus`).
  * *Un module est indivisible du point de vue d'un bundler* — ce que P5-08 a payé
  * en 0,5 Ko, vérifié dans les source maps. La règle n'est pas « un fichier par
- * fonction » mais **« rien sur le chemin de première visite ne tire `layout.ts` »**,
- * ⛔ **`scripts/check-scene-isolation.mts` ne la garde PAS** : il ne cherche que
- * `three`, et `layout.ts` n'en importe pas. C'est
- * `tests/integration/scene-state-stays-off-layout.test.ts` qui la tient, sur le
- * graphe d'imports de valeur et avec témoin — ajouté en revue de P6-02, après que
- * ce commentaire l'eut attribuée au mauvais garde.
+ * fonction » mais **« rien sur le chemin de première visite ne tire `layout.ts` »**.
+ * Le garde qui la tient est nommé dans `README.md` de ce dossier.
  */
 import type { Locale } from '../../i18n/locales.ts'
 import { homePath, parsePagePath, sectionPath } from '../../routing/paths.ts'

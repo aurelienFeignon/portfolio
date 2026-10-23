@@ -22,9 +22,13 @@
  * ⭐⭐⭐ **Et il porte un témoin** : le même parcours, lancé depuis
  * `camera-target.ts`, doit trouver `layout.ts`. Sinon l'instrument est aveugle,
  * et l'absence qu'il rapporte ne vaut rien (P5-09).
+ *
+ * ⚠️ Il lit le SOURCE, pas le chunk. Ce que le build embarque réellement reste à
+ * mesurer par `scripts/check-scene-isolation.mts`, qui ne cherche aujourd'hui que
+ * `three` — l'étendre à `layout.ts` est à faire avec P6-07.
  */
-import { existsSync, readFileSync } from 'node:fs'
-import { dirname, join, relative, resolve } from 'node:path'
+import { readFileSync } from 'node:fs'
+import { join, relative } from 'node:path'
 
 import ts from 'typescript'
 import { describe, expect, it } from 'vitest'
@@ -33,50 +37,55 @@ const RACINE = process.cwd()
 const SRC = join(RACINE, 'src')
 const LAYOUT = join(SRC, 'scene/state/layout.ts')
 
-/** Le fichier qu'un spécificateur LOCAL désigne, `null` pour un paquet. */
-function resoudre(depuis: string, specificateur: string): string | null {
-  let base: string
-  if (specificateur.startsWith('@/')) base = join(SRC, specificateur.slice(2))
-  else if (specificateur.startsWith('.')) base = resolve(dirname(depuis), specificateur)
-  else return null
+/**
+ * ⭐ La résolution est celle du COMPILATEUR, avec le `tsconfig` du dépôt — alias
+ * `@/`, extensions, `index` : rien n'est recopié ici, donc rien ne dérive.
+ */
+const { options } = ts.parseJsonConfigFileContent(
+  ts.readConfigFile(join(RACINE, 'tsconfig.json'), ts.sys.readFile).config,
+  ts.sys,
+  RACINE,
+)
 
-  const candidat = [base, `${base}.ts`, `${base}.tsx`, join(base, 'index.ts')].find(
-    (chemin) => existsSync(chemin) && chemin.match(/\.tsx?$/),
-  )
-  // ⛔ Un import local introuvable est une erreur du banc, pas un module en moins :
-  // l'ignorer ferait rétrécir le graphe en silence.
-  if (candidat === undefined) throw new Error(`Import introuvable : ${specificateur} (${depuis})`)
-  return candidat
+/** Le fichier TS que désigne un import local ; `null` pour un paquet ou une feuille de style. */
+function resoudre(depuis: string, specificateur: string): string | null {
+  const resolu = ts.resolveModuleName(specificateur, depuis, options, ts.sys).resolvedModule
+  if (resolu === undefined) {
+    // ⛔ Un import local introuvable est une erreur du banc, pas un module en
+    // moins : l'ignorer ferait rétrécir le graphe en silence. Les feuilles de
+    // style (`*.module.css`) n'ont pas de module TS et ne tirent rien.
+    if (/\.css$/.test(specificateur) || !/^(\.|@\/)/.test(specificateur)) return null
+    throw new Error(`Import introuvable : ${specificateur} (${depuis})`)
+  }
+  return resolu.isExternalLibraryImport ? null : resolu.resolvedFileName
 }
 
 /** Les imports de VALEUR d'un fichier — ce qu'un bundler embarque avec lui. */
 function importsDeValeur(fichier: string): string[] {
   const source = ts.createSourceFile(fichier, readFileSync(fichier, 'utf8'), ts.ScriptTarget.Latest)
-  const specificateurs: string[] = []
 
-  for (const instruction of source.statements) {
-    if (ts.isImportDeclaration(instruction) && !instruction.importClause?.isTypeOnly) {
-      specificateurs.push((instruction.moduleSpecifier as ts.StringLiteral).text)
-    }
+  return source.statements.flatMap((instruction) => {
+    const deValeur =
+      (ts.isImportDeclaration(instruction) && !instruction.importClause?.isTypeOnly) ||
+      (ts.isExportDeclaration(instruction) && !instruction.isTypeOnly)
     if (
-      ts.isExportDeclaration(instruction) &&
-      !instruction.isTypeOnly &&
-      instruction.moduleSpecifier
+      !deValeur ||
+      !instruction.moduleSpecifier ||
+      !ts.isStringLiteral(instruction.moduleSpecifier)
     ) {
-      specificateurs.push((instruction.moduleSpecifier as ts.StringLiteral).text)
+      return []
     }
-  }
-
-  return specificateurs
-    .map((specificateur) => resoudre(fichier, specificateur))
-    .filter((chemin): chemin is string => chemin !== null)
+    const chemin = resoudre(fichier, instruction.moduleSpecifier.text)
+    return chemin === null ? [] : [chemin]
+  })
 }
 
 /** Tout ce que le chargement de `depart` embarque, `depart` compris. */
 function fermeture(depart: string): Set<string> {
   const vus = new Set<string>()
   const aVisiter = [depart]
-  for (let fichier = aVisiter.pop(); fichier !== undefined; fichier = aVisiter.pop()) {
+  while (aVisiter.length > 0) {
+    const fichier = aVisiter.pop() as string
     if (vus.has(fichier)) continue
     vus.add(fichier)
     aVisiter.push(...importsDeValeur(fichier))
@@ -86,22 +95,25 @@ function fermeture(depart: string): Set<string> {
 
 const enClair = (fichiers: Set<string>) => [...fichiers].map((f) => relative(RACINE, f)).sort()
 
-describe('le graphe d’imports de `scene-state.ts` (P6-02)', () => {
+/**
+ * Les racines du chemin de première visite côté scène. `scene-mount.tsx` est
+ * celle qui existe aujourd'hui (montée par le layout de chaque page) ;
+ * `scene-state.ts` est celle que P6-07 y amènera.
+ */
+const RACINES = ['scene/components/scene-mount.tsx', 'scene/state/scene-state.ts']
+
+describe('le chemin de première visite n’embarque pas `layout.ts` (P6-02)', () => {
   it('⭐ témoin : le parcours trouve `layout.ts` depuis `camera-target.ts`', () => {
     expect(fermeture(join(SRC, 'scene/state/camera-target.ts')).has(LAYOUT)).toBe(true)
   })
 
-  it('⭐ témoin : le parcours suit bien les arêtes de `scene-state.ts`', () => {
-    // Sans ce contrôle, un parcours qui ne lirait aucun import rendrait un
-    // graphe réduit au fichier de départ — et donc, trivialement, sans `layout.ts`.
-    expect(enClair(fermeture(join(SRC, 'scene/state/scene-state.ts')))).toContain(
-      'src/routing/paths.ts',
-    )
-  })
+  it.each(RACINES)('%s', (racine) => {
+    const graphe = fermeture(join(SRC, racine))
 
-  it('⛔ n’embarque pas `layout.ts`', () => {
-    const graphe = fermeture(join(SRC, 'scene/state/scene-state.ts'))
-
+    // ⭐ Témoin : le parcours a bien suivi des arêtes. Sans ce contrôle, un
+    // parcours qui ne lirait aucun import rendrait un graphe réduit au fichier de
+    // départ — et donc, trivialement, sans `layout.ts`.
+    expect(graphe.size, enClair(graphe).join('\n')).toBeGreaterThan(1)
     expect(graphe.has(LAYOUT), enClair(graphe).join('\n')).toBe(false)
   })
 })
