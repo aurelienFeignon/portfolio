@@ -54,6 +54,15 @@ export default function SceneCanvas({
   // `none` ne monte jamais ce composant (`shouldMountScene`).
   const tier = capability.tier === 'none' ? 'lite' : capability.tier
   const animated = capability.motion === 'animated'
+  /*
+   * ⛔⛔ **Au palier `lite`, l'ambiance est une image FIXE** — mesuré le
+   * 2026-10-23 (`nexus-prototype.md` §6). En boucle continue, l'accueil mobile
+   * montait à 1 126 ms de TBT médian et 4,7 s de thread principal : chaque image
+   * de l'ambiance, sur un CPU modeste, devient une tâche longue. ADR-0003 définit
+   * justement `lite` comme « scène décorative, ou visuel statique ». Les
+   * transitions de caméra, elles, restent fluides : le rig demande ses images.
+   */
+  const ambient = animated && tier !== 'lite'
   const initial = getCameraTarget(state)
 
   return (
@@ -61,10 +70,11 @@ export default function SceneCanvas({
       /*
        * ⭐ `always` seulement quand l'ambiance a quelque chose à montrer :
        * - scène cachée (fiche) : `never`, aucune image ;
-       * - mouvement refusé : `demand`, le rig demande les images d'une coupe ;
+       * - mouvement refusé ou palier `lite` : `demand`, le rig demande les
+       *   images d'une transition ;
        * - sinon `always` — la pulsation et les flux sont l'objet même de la scène.
        */
-      frameloop={!visible ? 'never' : animated ? 'always' : 'demand'}
+      frameloop={!visible ? 'never' : ambient ? 'always' : 'demand'}
       dpr={tier === 'full' ? [1, 2] : [1, 1.5]}
       gl={{ antialias: tier === 'full', alpha: true, powerPreference: 'high-performance' }}
       onCreated={({ gl }) => {
@@ -92,7 +102,7 @@ export default function SceneCanvas({
       <CameraRig state={state} free={free} animated={animated} orbit={tier !== 'lite'} />
       <NexusScene
         density={DENSITY[tier]}
-        animated={animated}
+        animated={ambient}
         hovered={hovered}
         focus={state.focus}
         onHover={onHover}
