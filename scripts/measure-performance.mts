@@ -30,7 +30,7 @@
  *
  * ⚠️ **Ce n'est pas un gate** : rien n'y bloque. La CI joue
  * `check-lighthouse.mts` ; celui-ci se lance à la main (`make perf-baseline`),
- * parce qu'il coûte une quinzaine de minutes.
+ * parce qu'il coûte quelques minutes (quatre pour 40 audits, mesuré le 2026-10-23).
  */
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { cpus, loadavg } from 'node:os'

@@ -108,7 +108,7 @@ lighthouse: ## Audit Lighthouse contre le BUILD DE PRODUCTION (performance-budge
 
 # ⭐ La mesure qui fait foi pour la performance (`performance-budget.md` §6.3) :
 # N tirs (RUNS, 5 par défaut), médiane, palier lu dans la page, témoin sans scène
-# sur la MÊME image. Pas un gate : elle coûte une quinzaine de minutes.
+# sur la MÊME image. Pas un gate : 40 audits, quatre minutes environ.
 # L'image doit exister — `make build` d'abord ; son identifiant et le commit sont
 # consignés avec les chiffres, sans quoi une médiane ne se compare à rien.
 perf-baseline: ## Mesure de référence : 5 tirs, médiane, palier relevé, témoin sans scène
