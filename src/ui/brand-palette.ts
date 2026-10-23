@@ -17,11 +17,11 @@
  */
 export const BRAND = {
   /** `--color-accent` */
-  accent: '#0b57d0',
+  accent: '#28d9f5',
   /** `--color-background` */
-  background: '#ffffff',
+  background: '#080d18',
   /** `--color-text` */
-  text: '#1a1a1a',
+  text: '#f1f5fb',
   /** `--color-text-muted` */
-  textMuted: '#55575c',
+  textMuted: '#a3afc4',
 }

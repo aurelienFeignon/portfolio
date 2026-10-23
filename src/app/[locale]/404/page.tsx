@@ -36,6 +36,7 @@ import { SectionGuide } from '@/ui/section-guide'
 import { readLocale, type LocaleParams } from '../locale-param'
 import { sectionLinks } from '../section-links'
 import accentLink from '@/ui/accent-link.module.css'
+import { ReadingPanel } from '@/ui/reading-panel'
 
 export async function generateMetadata({ params }: LocaleParams): Promise<Metadata> {
   const messages = getMessages(await readLocale(params))
@@ -52,7 +53,7 @@ export default async function NotFoundPage({ params }: LocaleParams) {
   const messages = getMessages(locale)
 
   return (
-    <main id="main" className={page.page}>
+    <ReadingPanel variant="aside">
       <h1 className={page.title}>{messages.notFound.title}</h1>
       <p className={lead.lead}>{messages.notFound.message}</p>
 
@@ -67,6 +68,6 @@ export default async function NotFoundPage({ params }: LocaleParams) {
           rangerait sous une rubrique au lieu de les introduire. */}
       <p>{messages.notFound.elsewhere}</p>
       <SectionGuide locale={locale} links={sectionLinks(locale)} />
-    </main>
+    </ReadingPanel>
   )
 }

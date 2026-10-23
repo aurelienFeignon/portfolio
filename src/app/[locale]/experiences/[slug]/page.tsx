@@ -14,7 +14,7 @@ import { notFound } from 'next/navigation'
 
 import { contentRepository } from '@/content/repository'
 import { getMessages } from '@/i18n/messages'
-import type { PageLocation } from '@/routing/paths'
+import { sectionPath, type PageLocation } from '@/routing/paths'
 import { CompanyLine } from '@/ui/company-line'
 import { DateRange } from '@/ui/date-range'
 import { JsonLd } from '@/ui/json-ld'
@@ -27,6 +27,7 @@ import { entityMetadata } from '../../page-metadata'
 import { breadcrumbStructuredData } from '../../structured-data'
 
 import page from '@/ui/page.module.css'
+import { ReadingPanel } from '@/ui/reading-panel'
 
 import styles from './page.module.css'
 
@@ -68,7 +69,10 @@ export default async function ExperiencePage({ params }: EntityParams) {
   const messages = getMessages(locale)
 
   return (
-    <main id="main" className={page.page}>
+    <ReadingPanel
+      variant="reading"
+      back={{ href: sectionPath(locale, 'experiences'), label: messages.sections.experiences.name }}
+    >
       {/* Le fil d'Ariane seul (P4-09) : il n'existe pas de type schema.org
           honnête pour « un poste occupé ». Le nom du dernier niveau est le `h1`
           ci-dessous — la page ne peut pas s'intituler autrement qu'elle ne se
@@ -101,6 +105,6 @@ export default async function ExperiencePage({ params }: EntityParams) {
       <TechnologySection locale={locale} labels={technologies} />
 
       <LanguageSwitcher current={locale} options={languageOptions(locationOf(slug), available)} />
-    </main>
+    </ReadingPanel>
   )
 }

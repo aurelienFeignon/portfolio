@@ -9,7 +9,7 @@
 import { contentRepository } from '@/content/repository'
 import { LOCALES } from '@/i18n/locales'
 import { getMessages } from '@/i18n/messages'
-import { entityPath, type PageLocation } from '@/routing/paths'
+import { entityPath, homePath, type PageLocation } from '@/routing/paths'
 import type { Section } from '@/routing/sections'
 import { ExperienceList } from '@/ui/experience-list'
 import { JsonLd } from '@/ui/json-ld'
@@ -21,6 +21,7 @@ import { sectionMetadata } from '../page-metadata'
 import { breadcrumbStructuredData } from '../structured-data'
 
 import styles from '@/ui/page.module.css'
+import { ReadingPanel } from '@/ui/reading-panel'
 
 /*
  * ⭐ La section est nommée **une fois** par route. Elle l'était trois fois —
@@ -40,7 +41,7 @@ export default async function ExperiencesPage({ params }: LocaleParams) {
   const experiences = await contentRepository.getAllExperiences(locale)
 
   return (
-    <main id="main" className={styles.page}>
+    <ReadingPanel variant="aside" back={{ href: homePath(locale), label: messages.overview }}>
       <JsonLd data={breadcrumbStructuredData(locale, SECTION)} />
       <h1 className={styles.title}>{messages.sections[SECTION].name}</h1>
       <ExperienceList
@@ -55,6 +56,6 @@ export default async function ExperiencesPage({ params }: LocaleParams) {
         }))}
       />
       <LanguageSwitcher current={locale} options={languageOptions(LOCATION, LOCALES)} />
-    </main>
+    </ReadingPanel>
   )
 }

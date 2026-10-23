@@ -1,0 +1,108 @@
+/*
+ * Le panneau de lecture (D11) — voir `reading-panel.tsx`.
+ *
+ * ⭐ Il porte sa propre surface, opaque : c'est sur elle que se calculent les
+ * contrastes de `globals.css`, jamais sur la scène qui passe derrière.
+ *
+ * ⭐ `position: relative; z-index: 1` partout : c'est ce qui le place AU-DESSUS
+ * de la couche de scène (`z-index: 0`), qui reçoit le pointeur partout ailleurs.
+ */
+
+.base {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  background: var(--color-panel);
+  color: var(--color-text);
+}
+
+/* ------------------------------------------------------------------ aside */
+
+/*
+ * Mobile d'abord : la scène garde une bande en haut de l'écran, le panneau est
+ * une feuille dans le flux, en dessous. Le contenu passe AVANT la 3D — on fait
+ * défiler la page, la feuille recouvre la bande.
+ *
+ * ⛔ La bande est réservée dès le rendu serveur, scène ou non : la réserver au
+ * montage de la scène décalerait tout le contenu après `idle` — un CLS que la
+ * Phase 5 a mesuré à 0 et qui doit le rester. Sans WebGL, la bande montre le
+ * halo CSS du fond (`globals.css`).
+ */
+.aside {
+  composes: base;
+  flex: 1;
+  margin-top: var(--scene-band);
+  padding: var(--space-6) var(--layout-gutter) var(--space-8);
+  border-top: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  box-shadow: var(--shadow-sheet);
+}
+
+@media (min-width: 60rem) {
+  /*
+   * Ordinateur : une colonne fixe à gauche, à défilement propre. La scène occupe
+   * le reste de l'écran, et la caméra se cadre dans ce reste (`SceneMount`).
+   */
+  .aside {
+    position: fixed;
+    top: calc(var(--header-h) + var(--space-4));
+    /* Il épouse son contenu, et ne défile qu'au-delà de la hauteur libre. */
+    max-height: calc(100svh - var(--header-h) - var(--footer-h) - var(--space-4) * 3);
+    left: var(--space-6);
+    width: var(--panel-width);
+    margin: 0;
+    padding: var(--space-8) var(--space-6);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    border: 1px solid var(--color-border-strong);
+    border-radius: var(--radius-lg);
+    background: var(--color-panel-glass);
+    backdrop-filter: blur(12px);
+    box-shadow: var(--shadow-panel);
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-border-strong) transparent;
+  }
+}
+
+/* ---------------------------------------------------------------- reading */
+
+/* Une fiche : une colonne de lecture centrée, sans scène derrière. */
+.reading {
+  composes: base;
+  flex: 1;
+  width: 100%;
+  max-width: 46rem;
+  margin-inline: auto;
+  padding: var(--space-6) var(--layout-gutter) var(--space-8);
+}
+
+@media (min-width: 48rem) {
+  .reading {
+    flex: none;
+    margin-block: var(--space-8);
+    padding: var(--space-8) var(--space-8);
+    border: 1px solid var(--color-border-strong);
+    border-radius: var(--radius-lg);
+  }
+}
+
+/* ------------------------------------------------------------------- retour */
+
+.back {
+  composes: tapTarget from './tap-target.module.css';
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  text-decoration: none;
+}
+
+.back:hover {
+  color: var(--color-accent);
+}

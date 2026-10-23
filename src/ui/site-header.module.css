@@ -4,7 +4,16 @@
  */
 
 .header {
-  background: var(--color-background);
+  /*
+   * NEXUS (D11) : collé en haut, au-dessus de la scène et du panneau
+   * (`z-index: 3`), sur un verre sombre — le texte de navigation garde sa
+   * surface, jamais posé sur le WebGL.
+   */
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  background: var(--color-header-glass);
+  backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--color-border);
 }
 
@@ -21,7 +30,20 @@
   align-items: center;
   justify-content: space-between;
   gap: var(--space-4);
+  min-height: var(--header-h);
   padding-block: var(--space-3);
+}
+
+/*
+ * Sur ordinateur, la marque s'aligne sur le CONTENU du panneau de lecture —
+ * marge du panneau, sa bordure d'un pixel, puis son padding — et non sur son
+ * bord. `home.spec.ts` le garde au pixel : le titre sous la marque.
+ */
+@media (min-width: 60rem) {
+  .inner {
+    max-width: none;
+    padding-inline: calc(var(--space-6) * 2 + 1px);
+  }
 }
 
 .brand {

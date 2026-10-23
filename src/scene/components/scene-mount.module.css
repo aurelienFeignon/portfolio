@@ -1,14 +1,48 @@
 /*
- * La scène est un DÉCOR : elle occupe le fond, derrière tout le contenu.
+ * La scène NEXUS : plein écran, SOUS le contenu, et désormais interactive (D11).
  *
- * ⛔ `pointer-events: none` n'est pas une précaution, c'est une correction par
- * anticipation : une couche fixe qui couvre la fenêtre intercepte sinon chaque
- * clic du site documentaire — liens, formulaire, sélecteur de langue. Elle sera
- * levée sur les seules cibles cliquables, en Phase 6.
+ * ⭐⭐ **L'empilement remplace `pointer-events: none`.** La Phase 5 rendait la
+ * couche insensible au pointeur parce qu'elle couvrait tout le site. NEXUS a
+ * besoin du survol, du clic et du glisser : la couche reçoit donc le pointeur,
+ * et c'est l'empilement qui protège le contenu — en-tête, panneau et pied de
+ * page sont positionnés au-dessus (`z-index: 1` et plus), et la boîte `.grow`
+ * qui les enveloppe n'est pas positionnée, donc passe dessous. Partout où il y a
+ * du contenu, il est au-dessus ; partout ailleurs, la scène.
  */
 .decor {
   position: fixed;
   inset: 0;
-  z-index: -1;
+  z-index: 0;
+  /* Le tactile fait défiler la page : la scène ne capture pas le geste. */
+  touch-action: pan-y;
+}
+
+/* Une fiche se lit sans scène : cachée, et son canvas ne calcule plus rien. */
+.cachee {
+  visibility: hidden;
+}
+
+.pointe {
+  cursor: pointer;
+}
+
+/*
+ * Le nom de l'univers survolé : une étiquette sur sa propre surface, jamais un
+ * texte posé sur le WebGL. En bas de l'écran, côté scène.
+ */
+.etiquette {
+  position: fixed;
+  right: var(--space-6);
+  bottom: var(--space-6);
+  z-index: 2;
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-panel);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  color: var(--color-text);
+  font-size: var(--text-sm);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
   pointer-events: none;
 }

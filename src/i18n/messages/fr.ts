@@ -127,6 +127,12 @@ export const fr = {
   /** Affiché à la place d'une date de fin quand l'entité est en cours (P2-06). */
   ongoing: 'En cours',
 
+  /**
+   * Le lien qui ramène à l'accueil — la vue d'ensemble de NEXUS (D11).
+   * Il est un lien ordinaire : sans scène, il mène à l'accueil, rien de plus.
+   */
+  overview: 'Vue d’ensemble',
+
   /** Titres des blocs d'une fiche d'expérience (P4-04). */
   experience: {
     highlights: 'Réalisations',
