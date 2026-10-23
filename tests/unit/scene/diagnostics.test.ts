@@ -14,6 +14,7 @@ import {
   type SceneReadings,
   diagnosticLines,
   shouldSample,
+  summarizeLongTasks,
 } from '@/scene/state/diagnostics'
 
 const RELEVES: SceneReadings = {
@@ -25,6 +26,10 @@ const RELEVES: SceneReadings = {
   framesRendered: 3,
   lastFrameMs: 2.34,
   jsHeapMb: 48,
+  gpu: 'ANGLE (NVIDIA)',
+  parallelCompile: true,
+  firstFrameMs: 412.4,
+  longTasks: { count: 2, longestMs: 180, blockingMs: 160 },
 }
 
 const valeur = (readings: SceneReadings, label: string): string | undefined =>
@@ -62,6 +67,11 @@ describe('relevés affichés', () => {
       'images rendues',
       'dernière image',
       'tas JS',
+      'GPU',
+      'compilation parallèle',
+      'première image',
+      'tâches longues',
+      'blocage (TBT)',
     ])
   })
 
@@ -109,5 +119,47 @@ describe('cadence des relevés', () => {
   it('espace les suivants d’au moins l’intervalle', () => {
     expect(shouldSample(1_000, 1_000 + SAMPLE_INTERVAL_MS - 1)).toBe(false)
     expect(shouldSample(1_000, 1_000 + SAMPLE_INTERVAL_MS)).toBe(true)
+  })
+})
+
+describe('mesure sur appareil réel (NEXUS)', () => {
+  it('affiche GPU, compilation, première image, tâches longues et blocage', () => {
+    expect(valeur(RELEVES, 'GPU')).toBe('ANGLE (NVIDIA)')
+    expect(valeur(RELEVES, 'compilation parallèle')).toBe('oui')
+    expect(valeur(RELEVES, 'première image')).toBe('412 ms')
+    expect(valeur(RELEVES, 'tâches longues')).toBe('2 (max 180 ms)')
+    expect(valeur(RELEVES, 'blocage (TBT)')).toBe('160 ms')
+  })
+
+  it('⛔ une mesure absente reste « — » ou « aucune », jamais un zéro', () => {
+    const rien: SceneReadings = {
+      ...RELEVES,
+      gpu: null,
+      parallelCompile: null,
+      firstFrameMs: null,
+      longTasks: null,
+    }
+    expect(valeur(rien, 'GPU')).toBe('—')
+    expect(valeur(rien, 'compilation parallèle')).toBe('—')
+    expect(valeur(rien, 'première image')).toBe('aucune')
+    expect(valeur(rien, 'tâches longues')).toBe('—')
+    expect(valeur(rien, 'blocage (TBT)')).toBe('—')
+    expect(valeur({ ...RELEVES, parallelCompile: false }, 'compilation parallèle')).toBe('non')
+  })
+
+  it('n’impute à la scène que les tâches commencées après sa décision, et compte le TBT', () => {
+    const resume = summarizeLongTasks(
+      [
+        { startTime: 100, duration: 300 }, // avant : la page, pas la scène
+        { startTime: 900, duration: 433 },
+        { startTime: 1500, duration: 60 },
+      ],
+      800,
+    )
+    expect(resume).toEqual({ count: 2, longestMs: 433, blockingMs: 383 + 10 })
+  })
+
+  it('rend zéro tâche quand il n’y en a aucune', () => {
+    expect(summarizeLongTasks([], 0)).toEqual({ count: 0, longestMs: 0, blockingMs: 0 })
   })
 })

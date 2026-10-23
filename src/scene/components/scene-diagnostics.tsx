@@ -18,11 +18,24 @@
 import { useFrame, useThree } from '@react-three/fiber'
 import { useEffect, useRef } from 'react'
 
-import { type SceneReadings, diagnosticLines, shouldSample } from '@/scene/state/diagnostics'
+import {
+  type SceneReadings,
+  diagnosticLines,
+  shouldSample,
+  summarizeLongTasks,
+} from '@/scene/state/diagnostics'
 
 import styles from './scene-diagnostics.module.css'
 
 /** `performance.memory` n'existe que sur Chromium — d'où `null`, jamais `0`. */
+/** L'instant où le palier a été décidé (`tier-mark.ts`) — le départ du chronomètre. */
+function decisionDeMontage(): number {
+  return (
+    performance.getEntriesByType('mark').find((repere) => repere.name.startsWith('scene:tier:'))
+      ?.startTime ?? 0
+  )
+}
+
 function tasJsMo(): number | null {
   const memoire = (performance as { memory?: { usedJSHeapSize?: number } }).memory
   return memoire?.usedJSHeapSize === undefined
@@ -53,6 +66,12 @@ export function DiagnosticsProbe({
 }) {
   const dernierReleve = useRef<number | null>(null)
   const coutDerniereImage = useRef<number | null>(null)
+  const premiereImage = useRef<number | null>(null)
+  const materiel = useRef<{ gpu: string | null; parallelCompile: boolean | null }>({
+    gpu: null,
+    parallelCompile: null,
+  })
+  const tachesLongues = useRef<Array<{ startTime: number; duration: number }> | null>(null)
   const { gl, scene, camera, invalidate } = useThree()
 
   /*
@@ -71,10 +90,37 @@ export function DiagnosticsProbe({
    */
   useEffect(() => invalidate(), [invalidate])
 
+  /*
+   * ⭐ NEXUS (`nexus-prototype.md` §6) : ce que le banc sans GPU ne peut pas
+   * dire. La carte et l'extension se lisent une fois ; les tâches longues
+   * s'observent depuis le début de la page (`buffered`) et ne sont imputées à
+   * la scène qu'à partir de sa décision de montage.
+   */
+  useEffect(() => {
+    const contexte = gl.getContext()
+    const infos = contexte.getExtension('WEBGL_debug_renderer_info')
+    materiel.current = {
+      gpu: infos ? String(contexte.getParameter(infos.UNMASKED_RENDERER_WEBGL)) : null,
+      parallelCompile: contexte.getExtension('KHR_parallel_shader_compile') !== null,
+    }
+    if (!PerformanceObserver.supportedEntryTypes.includes('longtask')) return
+    tachesLongues.current = []
+    const observateur = new PerformanceObserver((liste) => {
+      for (const tache of liste.getEntries()) {
+        tachesLongues.current?.push({ startTime: tache.startTime, duration: tache.duration })
+      }
+    })
+    observateur.observe({ type: 'longtask', buffered: true })
+    return () => observateur.disconnect()
+  }, [gl])
+
   useFrame(() => {
     const debut = performance.now()
     gl.render(scene, camera)
     coutDerniereImage.current = performance.now() - debut
+    // La première image se compte jusqu'à la FIN de son rendu : c'est là que le
+    // pilote compile, et que se paie le coût mesuré au banc.
+    if (premiereImage.current === null) premiereImage.current = performance.now()
 
     const maintenant = performance.now()
     if (!shouldSample(dernierReleve.current, maintenant)) return
@@ -89,6 +135,14 @@ export function DiagnosticsProbe({
       framesRendered: gl.info.render.frame,
       lastFrameMs: coutDerniereImage.current,
       jsHeapMb: tasJsMo(),
+      gpu: materiel.current.gpu,
+      parallelCompile: materiel.current.parallelCompile,
+      firstFrameMs:
+        premiereImage.current === null ? null : premiereImage.current - decisionDeMontage(),
+      longTasks:
+        tachesLongues.current === null
+          ? null
+          : summarizeLongTasks(tachesLongues.current, decisionDeMontage()),
     })
   }, 1)
 
