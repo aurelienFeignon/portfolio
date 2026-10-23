@@ -281,19 +281,44 @@ mets l'ADR à jour et ajoute une ligne au journal des révisions. Jamais de chan
 référence (#57), `ReadingPanel`, P6-04, décisions NEXUS (D11 et amendements d'ADR 0002/0003/0004/0010),
 prototype, validation visuelle avec l'utilisateur, fusion et déploiement (#58), roadmap reprise.
 
-**Ce qui reste, dans l'ordre où il se défend :**
-1. **P6-09 — l'ADR-0012, en dette** : la stratégie d'animation (interpolation maison `easeInOutCubic`,
+⛔ **Avant toute chose, vérifie la fusion de #59** (cette mise à jour de roadmap et de prompt) :
+`gh pr view 59 --json state`. Et l'aperçu local `nexus-preview` (port 3100) n'a plus d'objet depuis
+le déploiement : `docker ps --filter name=nexus-preview`, l'arrêter s'il tourne encore.
+
+**Reste à faire — dans l'ordre recommandé le 2026-10-23 :**
+
+1. **P7-05 — le focus après une navigation client** ⭐ *accessibilité, en premier*. Depuis #58, quand
+   la scène est montée, les liens ne rechargent plus la page (`router.push`). Vérifier où va le focus
+   clavier et ce qu'annonce un lecteur d'écran à chaque changement de route — aucun banc ne le garde.
+2. **P6-09 — l'ADR-0012, en dette** : la stratégie d'animation (interpolation maison `easeInOutCubic`,
    1,6 s, interruptible, coupe sous `reduced-motion`) est **livrée sans son ADR**. L'écrire en
    constatant ce qui est en place et ce qui a été écarté — pas en la présentant comme à trancher.
-2. **P6-10** — les parcours E2E manquants : précédent/suivant, lien direct, reduced-motion.
-3. **P6-07** — `data-scene-focus` exposé au DOM.
-4. **P8-11 — mesurer sur ce qui n'est pas couvert** : GPU intégré, téléphone réel, Safari. Sur une
-   RTX 5050 le TBT de la scène est de **0 ms** (154 ms processeur bridé ×4) ; le banc sans GPU annonce
-   1 231 ms et **surestime d'environ ×8** (`nexus-prototype.md` §6.4). Sans
-   `KHR_parallel_shader_compile`, on retombe sur le cas du banc.
-5. **P8-10** — alléger le premier rendu (72 draw calls sur ordinateur, cible 60 ; 14 programmes).
-6. **Phase 9** — décider, AVEC l'utilisateur, la forme des destinations (CV, GitHub, LinkedIn, à
-   propos) dans NEXUS, avant tout code.
+3. **P8-11 — mesurer sur ce qui n'est pas couvert**, dès qu'un appareil est disponible : GPU intégré,
+   téléphone réel, Safari. Sur une RTX 5050, le TBT de la scène est de **0 ms** (154 ms processeur
+   bridé ×4) ; le banc sans GPU annonce 1 231 ms et **surestime d'environ ×8**
+   (`nexus-prototype.md` §6.4). Sans `KHR_parallel_shader_compile`, on retombe sur le cas du banc.
+   Un téléphone ne joint pas `localhost` : il faudra exposer l'aperçu sur le réseau local.
+4. **P6-10** — les parcours E2E manquants : précédent/suivant, lien direct, reduced-motion.
+5. **P7-04, P7-06, P7-07** — non-duplication du contenu dans le DOM, comportement du panneau pendant
+   une transition, bascule de langue et liens directs en mode immersif.
+6. **P6-07** — `data-scene-focus` exposé au DOM.
+7. **P8-10** — alléger le premier rendu (72 draw calls sur ordinateur, cible 60 ; 14 programmes), à
+   prioriser si P8-11 montre un problème.
+8. **P8-05, P8-08** — ambiance et contrastes sur la direction artistique **finale** : la scène
+   actuelle est **indicative**, l'utilisateur l'a dit ; la mécanique, elle, est stable.
+
+**Décisions qui appartiennent à l'utilisateur — les poser, ne pas les trancher :**
+
+- **Phase 9** : la forme, dans NEXUS, des destinations CV, GitHub, LinkedIn et « à propos » (les objets
+  du bureau — document, terminal, téléphone, cadre — n'existent plus). Rien avant sa réponse.
+- **Cloudflare Access** : le site entier passe par une connexion (seul `robots.txt` répond en public,
+  `/fr` rend une 302). Voulu ou non ? Constaté le 2026-10-23, non tranché.
+
+**En parallèle, indépendant de la 3D** : la **Phase 10** (envoi du CV), à commencer par P10-11 — la
+vérification des prérequis d'expédition.
+
+**Petites dettes connues** : image de production à 281 Mo (cible 250, seuil 400) ; actions GitHub en
+Node 20, déprécié ; avertissement de lint `TONES` dans `src/ui/mdx/components.tsx`, préexistant.
 
 ⛔ **Ne mesure pas un changement de la scène par le seul banc** (`make perf-baseline`) : il tourne sans
 GPU. Il compare deux versions entre elles ; ce que vit un visiteur se lit dans le panneau
