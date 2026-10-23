@@ -8,9 +8,8 @@
  * (P4-10). Vérifier quarante littéraux recopiés n'est pas faisable ; vérifier
  * une dizaine de tokens l'est.
  *
- * Le mode sombre n'est pas décidé (ADR-0010 §Décision 5). S'il l'est un jour, il
- * se fera par redéfinition de ces mêmes variables sous `prefers-color-scheme`,
- * jamais par une seconde feuille.
+ * ⭐ Le thème est SOMBRE depuis NEXUS (D11, amendement d'ADR-0010 §Décision 5) :
+ * un seul jeu de variables, redéfini ici, jamais une seconde feuille.
  */
 
 :root {
@@ -18,18 +17,57 @@
    * Couleurs. Les rapports de contraste sont calculés sur `--color-background`
    * et notés ici : c'est ce qui permet de ne les recalculer qu'une fois.
    */
-  --color-background: #ffffff;
-  --color-surface: #f6f7f9;
+  /*
+   * ⭐⭐ NEXUS (D11) — thème SOMBRE unique. Les contrastes sont calculés sur les
+   * trois fonds où du texte se pose : `background`, `panel` (le panneau de
+   * lecture) et `surface` (les cartes et puces DANS le panneau). Jamais sur la
+   * scène : aucun texte ne s'y pose.
+   */
+  --color-background: #080d18;
+  --color-panel: #111c30;
+  --color-surface: #182742;
   /*
    * ⚠️ Un token de couleur n'a pas *un* contraste : il en a un par fond. Les
    * deux fonds du site sont notés, faute de quoi la valeur mesurée sur
    * `--color-background` serait recopiée là où c'est `--color-surface` qui
    * s'applique — le pied de page, par exemple.
    */
-  --color-text: #1a1a1a; /* 16,2:1 sur background · 16,2:1 sur surface */
-  --color-text-muted: #55575c; /* 7,2:1 sur background · 6,7:1 sur surface */
-  --color-accent: #0b57d0; /* 6,4:1 sur background · 5,9:1 sur surface */
-  --color-border: #d8dade; /* trait de séparation, décoratif */
+  --color-text: #f1f5fb; /* 17,8:1 sur background · 15,6:1 sur panel · 13,6:1 sur surface */
+  --color-text-muted: #a3afc4; /* 8,8:1 · 7,7:1 · 6,7:1 */
+  --color-accent: #28d9f5; /* cyan — 11,4:1 · 10,0:1 · 8,8:1 */
+  /* Violet : décoratif seulement (4,1:1 sur surface). Pour du texte : `--color-violet-text`. */
+  --color-violet: #8973f5;
+  --color-violet-text: #a796ff; /* 7,8:1 · 6,9:1 · 6,0:1 */
+  --color-border: #22314d; /* trait de séparation, décoratif */
+  --color-border-strong: #2c3f63;
+
+  /*
+   * ⭐ Le verre lumineux (étape 2 de NEXUS). Opacité 0,88 : calculée pour que
+   * le PIRE cas — du cyan pur derrière le verre — garde le texte secondaire à
+   * 5,3:1 et le cyan à 6,9:1. Le flou fait le reste : la scène se devine, ne se
+   * lit pas.
+   */
+  --color-panel-glass: linear-gradient(160deg, rgb(20 33 58 / 0.88), rgb(10 17 31 / 0.9));
+  --glass-border: rgb(40 217 245 / 0.45);
+  --glass-corner: rgb(40 217 245 / 0.95);
+  --glow-edge:
+    0 0 0 1px rgb(40 217 245 / 0.08), 0 0 36px rgb(40 217 245 / 0.18),
+    inset 0 0 48px rgb(40 217 245 / 0.06);
+  --glow-card: 0 0 0 1px rgb(40 217 245 / 0.18), 0 0 22px rgb(40 217 245 / 0.18);
+  --gradient-edge: linear-gradient(
+    135deg,
+    rgb(40 217 245 / 0.8),
+    rgb(137 115 245 / 0.6) 55%,
+    rgb(40 217 245 / 0.2)
+  );
+  --glow-text: 0 0 12px rgb(40 217 245 / 0.55);
+  --glow-horizon: 0 1px 18px rgb(40 217 245 / 0.08);
+  --shadow-panel: 0 1.5rem 4rem rgb(2 4 10 / 0.6), inset 0 1px 0 rgb(241 245 251 / 0.04);
+  --shadow-sheet: 0 -1.5rem 3rem rgb(4 7 14 / 0.55);
+  --color-header-glass: rgb(8 13 24 / 0.82);
+  /* Le halo du fond : ce que montre la bande de scène sans WebGL, et sous le canvas. */
+  --glow-cyan: rgb(40 217 245 / 0.16);
+  --glow-violet: rgb(137 115 245 / 0.14);
 
   /*
    * Espacements : une seule échelle, en rem, pour que le zoom la suive.
@@ -45,15 +83,20 @@
   --space-3: 0.75rem;
   --space-4: 1rem;
   --space-6: 1.5rem;
+  --space-8: 2rem;
 
   /* Typographie. */
   --font-sans: system-ui, -apple-system, 'Segoe UI', sans-serif;
   --text-sm: 0.875rem;
   --text-base: 1rem;
   --text-lg: 1.125rem;
+  --text-xl: 1.375rem;
   --text-2xl: 2rem; /* entré en P4-03 avec le `h1` de l'accueil, son premier usage */
+  --text-3xl: 2.5rem; /* le nom, sur l'accueil NEXUS */
 
   --radius-sm: 0.25rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 1rem;
 
   /*
    * Largeur du contenu. Une mesure de ~70 caractères est ce que la lisibilité
@@ -62,6 +105,16 @@
    */
   --layout-max-width: 68rem;
   --layout-gutter: var(--space-4);
+
+  /*
+   * La géométrie de NEXUS (D11). `--panel-width` est lue par le panneau ; la
+   * scène, elle, MESURE le panneau dans le DOM (`SceneMount`) — aucun de ces
+   * nombres n'est recopié en TypeScript.
+   */
+  --header-h: 4.25rem;
+  --footer-h: 3rem;
+  --panel-width: clamp(24rem, 38vw, 38rem);
+  --scene-band: 42svh;
 
   /*
    * Cible tactile minimale : 44 px (WCAG 2.2 — 2.5.8 exige 24, les
@@ -82,7 +135,17 @@ body {
   font-size: var(--text-base);
   line-height: 1.5;
   color: var(--color-text);
-  background: var(--color-background);
+  /*
+   * ⭐ Le fond porte déjà le halo du noyau, en CSS : c'est ce que voit un
+   * visiteur sans WebGL, et ce qui est sous le canvas transparent avant qu'il
+   * ne se monte — aucun saut de couleur à l'apparition de la scène.
+   */
+  background:
+    radial-gradient(circle at 68% 46%, var(--glow-cyan), transparent 32rem),
+    radial-gradient(circle at 76% 58%, var(--glow-violet), transparent 40rem),
+    var(--color-background);
+  background-attachment: fixed;
+  color-scheme: dark;
 
   /*
    * Le pied de page reste en bas d'une page courte, sans `position: fixed` qui
@@ -115,9 +178,10 @@ body {
   position: absolute;
   top: 0;
   left: 0;
-  z-index: 1;
+  /* Au-dessus de tout : scène (0), panneau (1), étiquette (2), en-tête (3). */
+  z-index: 10;
   padding: var(--space-3) var(--space-4);
-  background: var(--color-background);
+  background: var(--color-panel);
   color: var(--color-text);
   transform: translateY(-150%);
 }

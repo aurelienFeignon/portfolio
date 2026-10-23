@@ -1,199 +1,129 @@
 /**
- * P5-05 — le plan coté, et ce qui prouve qu'il est arrivé intact.
+ * D11 — le plan de NEXUS, et les invariants qu'un type ne peut pas exprimer.
  *
- * ⭐⭐ **Ce banc n'est pas décoratif : il est le contrôle de transcription.** Ce
- * fichier de données vient d'un dossier de référence tenu hors du dépôt (D10) —
- * seul `layout.ts` entre ici. Les chiffres ci-dessous sont ceux que ce dossier
- * annonce, recomptés depuis les données : **une seule cote mal recopiée, une
- * rangée de clavier omise, et l'un d'eux tombe.**
- *
- * ⭐ Ils gardent aussi les invariants que le dossier énonce en prose, et qu'un
- * type ne peut pas exprimer — un chanfrein plus large que la moitié de la plus
- * petite dimension retournerait la géométrie, une caméra peut désigner un écran
- * qui n'existe pas.
+ * ⭐ Le bureau de D10 était un lieu mesuré, et son banc recomptait des cotes. NEXUS
+ * est une composition : ce banc garde les RAPPORTS qui la font tenir — chaque
+ * gros plan vise son univers, le noyau reste dans le champ, les univers ne se
+ * chevauchent pas, la densité ne fait que décroître avec le palier.
  */
 import { describe, expect, it } from 'vitest'
 
-import { CAMERAS, KEY_FIELDS, LIGHTS, MATERIALS, NODES, transitionMs } from '@/scene/state/layout'
+import { SECTIONS } from '@/routing/sections'
+import {
+  CAMERAS,
+  CORE_RADIUS,
+  DENSITY,
+  ORBIT_LIMITS,
+  PALETTE,
+  UNIVERSES,
+  closeUp,
+  transitionMs,
+} from '@/scene/state/layout'
 
-/** Triangles par primitive, tels que three.js les construit (§7 du dossier). */
-const TRIANGLES = { plane: 2, box: 12, chamferBox: 44, cylinder: 96, sphere: 720 } as const
+const distance = (a: readonly number[], b: readonly number[]) =>
+  Math.hypot((a[0] ?? 0) - (b[0] ?? 0), (a[1] ?? 0) - (b[1] ?? 0), (a[2] ?? 0) - (b[2] ?? 0))
 
-/** Un capuchon est un tronc de pyramide : 5 faces, la 6ᵉ étant plaquée contre le corps. */
-const TRIANGLES_PAR_TOUCHE = 10
-
-const surProfil = (mobile: boolean) => ({
-  nodes: NODES.filter((node) => !(mobile && node.desktopOnly === true)),
-  fields: KEY_FIELDS.filter((field) => !(mobile && field.desktopOnly === true)),
-})
-
-function budget(mobile: boolean): { drawCalls: number; triangles: number } {
-  const { nodes, fields } = surProfil(mobile)
-  const triangles =
-    nodes.reduce((total, node) => total + TRIANGLES[node.shape], 0) +
-    fields.reduce((total, field) => total + field.keys.length * TRIANGLES_PAR_TOUCHE, 0)
-  return { drawCalls: nodes.length + fields.length, triangles }
-}
-
-describe('budget de la scène, recompté depuis les données', () => {
-  it('desktop : 30 draw calls et 4 114 triangles, comme le dossier l’annonce', () => {
-    expect(budget(false)).toEqual({ drawCalls: 30, triangles: 4_114 })
+describe('les univers', () => {
+  it('il y en a un par section, et pas un de plus', () => {
+    expect(Object.keys(UNIVERSES).sort()).toEqual([...SECTIONS].sort())
   })
 
-  it('mobile : 20 et 1 966, les objets `desktopOnly` écartés', () => {
-    expect(budget(true)).toEqual({ drawCalls: 20, triangles: 1_966 })
-  })
-
-  it('tient très largement sous les seuils de la phase', () => {
-    expect(budget(false).drawCalls).toBeLessThanOrEqual(60)
-    expect(budget(false).triangles).toBeLessThanOrEqual(150_000)
-    expect(budget(true).drawCalls).toBeLessThanOrEqual(30)
-    expect(budget(true).triangles).toBeLessThanOrEqual(50_000)
-  })
-})
-
-describe('champs de touches', () => {
-  it.each([
-    ['clavierTouches', 104],
-    ['portableTouches', 76],
-  ])('%s compte %i touches', (id, attendu) => {
-    expect(KEY_FIELDS.find((field) => field.id === id)?.keys.length).toBe(attendu)
-  })
-
-  it('⛔ aucune touche ne déborde de sa grille', () => {
-    // Le dossier justifie la pureté de `buildKeys` par cette vérification même :
-    // une rangée trop longue se voit ici, jamais à l'œil sur un rendu.
-    const debords = KEY_FIELDS.flatMap((field) => {
-      const demiLargeur = Math.max(...field.keys.map((key) => Math.abs(key.x) + key.width / 2))
-      const demiProfondeur = Math.max(...field.keys.map((key) => Math.abs(key.z) + key.depth / 2))
-      return field.id === 'clavierTouches'
-        ? [
-            [
-              field.id,
-              demiLargeur <= (22.5 * 0.019) / 2 + 0.001,
-              demiProfondeur <= (6.5 * 0.019) / 2 + 0.001,
-            ],
-          ]
-        : [
-            [
-              field.id,
-              demiLargeur <= (15 * 0.019) / 2 + 0.001,
-              demiProfondeur <= (6 * 0.019) / 2 + 0.001,
-            ],
-          ]
-    }).filter(([, largeurOk, profondeurOk]) => !(largeurOk && profondeurOk))
-
-    expect(debords).toEqual([])
-  })
-
-  it('laisse un jeu entre capuchons voisins — c’est lui qui rend la grille lisible', () => {
-    for (const field of KEY_FIELDS) {
-      for (const key of field.keys) {
-        expect(key.width).toBeGreaterThan(0)
-        expect(key.depth).toBeGreaterThan(0)
+  it('sont loin du noyau et loin les uns des autres — aucune sphère de sélection ne se chevauche', () => {
+    const positions = SECTIONS.map((section) => UNIVERSES[section])
+    for (const universe of positions) {
+      expect(distance(universe.position, [0, 0, 0])).toBeGreaterThan(
+        universe.hitRadius + CORE_RADIUS * 2.5,
+      )
+    }
+    for (let i = 0; i < positions.length; i += 1) {
+      for (let j = i + 1; j < positions.length; j += 1) {
+        const a = positions[i]!
+        const b = positions[j]!
+        expect(distance(a.position, b.position)).toBeGreaterThan(a.hitRadius + b.hitRadius)
       }
     }
   })
 })
 
-describe('invariants que le type ne peut pas exprimer', () => {
-  it('chaque nœud désigne un matériau qui existe', () => {
-    const inconnus = NODES.filter((node) => MATERIALS[node.material] === undefined)
-
-    expect(inconnus).toEqual([])
-  })
-
-  it('⛔ un chanfrein reste sous la moitié de la plus petite dimension', () => {
-    // Au-delà, les facettes se croisent et la boîte se retourne sur elle-même.
-    const fautifs = NODES.filter(
-      (node) => node.chamfer !== undefined && node.chamfer >= Math.min(...node.size) / 2,
-    )
-
-    expect(fautifs).toEqual([])
-  })
-
-  it('chaque cadrage rapproché vise un écran qui existe', () => {
-    const ids = new Set(NODES.map((node) => node.id))
-    const orphelins = Object.values(CAMERAS)
-      .map((camera) => camera.focusNodeId)
-      .filter((id) => id !== undefined && !ids.has(id))
-
-    expect(orphelins).toEqual([])
-  })
-
-  it('la vue d’ensemble ne vise aucun écran, les trois autres en visent un', () => {
+describe('les cadrages', () => {
+  it('la vue d’ensemble ne cadre aucun univers et voit le noyau de face', () => {
     expect(CAMERAS.accueil.focusNodeId).toBeUndefined()
-    expect(
-      [CAMERAS.experiences, CAMERAS.projets, CAMERAS.competences].every(
-        (camera) => camera.focusNodeId !== undefined,
-      ),
-    ).toBe(true)
+    expect(CAMERAS.accueil.position[2]).toBeGreaterThan(0)
   })
 
-  it('une seule source projette des ombres, et son frustum couvre l’objet le plus éloigné', () => {
-    const projetantes = LIGHTS.filter((light) => 'castShadow' in light && light.castShadow)
-
-    expect(projetantes).toHaveLength(1)
-    // Le plus éloigné qui projette est le pied gauche du bureau, à 0,97 m.
-    const etendue = projetantes[0]
-    expect(etendue && 'shadowExtent' in etendue ? etendue.shadowExtent : 0).toBeGreaterThanOrEqual(
-      0.97,
+  it('chaque gros plan nomme son univers, et les trois sont distincts', () => {
+    const cibles = [CAMERAS.experiences, CAMERAS.projets, CAMERAS.competences].map(
+      (camera) => camera.focusNodeId,
     )
+    expect(new Set(cibles)).toEqual(new Set(SECTIONS))
   })
 
-  it('⛔ la ponctuelle porte un `decay` explicite : sa valeur par défaut a changé selon les versions', () => {
-    const ponctuelle = LIGHTS.find((light) => light.kind === 'point')
+  for (const section of SECTIONS) {
+    describe(section, () => {
+      const camera = closeUp(section)
+      const universe = UNIVERSES[section].position
 
-    expect(ponctuelle?.kind === 'point' ? ponctuelle.decay : undefined).toBe(2)
-  })
-})
+      it('vise un point à moins d’une unité de l’univers', () => {
+        expect(distance(camera.target, universe)).toBeLessThan(1)
+      })
 
-describe('chaque cadrage d’écran regarde sa dalle', () => {
-  // `CAMERAS` pose chaque gros plan « centre de la dalle ± normale × distance » ;
-  // ces deux tests vérifient les deux moitiés de la formule au lieu de croire le
-  // commentaire (P6-02). Que les trois cadrages d'écran portent un `focusNodeId`
-  // est tenu plus haut — aucun ne peut donc s'en faire dispenser ici.
-  const DEG = Math.PI / 180
-  const ecrans = Object.entries(CAMERAS).flatMap(([vue, camera]) => {
-    const dalle = NODES.find((node) => node.id === camera.focusNodeId)
-    return dalle === undefined ? [] : [{ vue, camera, dalle }]
-  })
+      it('se tient hors de la sphère de sélection de l’univers, et hors du noyau', () => {
+        expect(distance(camera.position, universe)).toBeGreaterThan(
+          UNIVERSES[section].hitRadius * 1.5,
+        )
+        expect(distance(camera.position, [0, 0, 0])).toBeGreaterThan(CORE_RADIUS * 3)
+      })
 
-  for (const { vue, camera, dalle } of ecrans) {
-    it(`${vue} vise le CENTRE de ${dalle.id}`, () => {
-      expect(camera.target).toEqual(dalle.position)
-    })
-
-    it(`${vue} regarde ${dalle.id} DE FACE, sur sa normale`, () => {
-      // ⛔ 4° hors normale donnent 9,6 % d'écart entre les marges gauche et droite
-      // du cadre. La normale est le +Z du plan tourné par son Euler `XYZ` (l'ordre
-      // de `three`) : (sin b, −sin a · cos b, cos a · cos b). On compare son
-      // produit scalaire avec la visée unitaire : 1 − cos 4° ≈ 2,4·10⁻³, très
-      // au-dessus de la tolérance, quand l'arrondi des cotes au dixième de
-      // millimètre reste sous 10⁻⁸.
-      const [a, b] = dalle.rotationDeg.map((deg) => deg * DEG) as [number, number, number]
-      const normale = [Math.sin(b), -Math.sin(a) * Math.cos(b), Math.cos(a) * Math.cos(b)]
-      const visee = camera.position.map((v, i) => v - (camera.target[i] ?? NaN))
-      const norme = Math.hypot(...visee)
-
-      expect(
-        visee.reduce((somme, v, i) => somme + (v / norme) * (normale[i] ?? NaN), 0),
-      ).toBeCloseTo(1, 4)
+      it('garde le noyau devant elle — il reste dans le champ, en retrait', () => {
+        // Le noyau est du côté de la visée : produit scalaire positif entre la
+        // direction de visée et la direction du noyau.
+        const visee = camera.target.map((v, i) => v - (camera.position[i] ?? 0))
+        const versNoyau = camera.position.map((v) => -v)
+        const scalaire = visee.reduce((somme, v, i) => somme + v * (versNoyau[i] ?? 0), 0)
+        expect(scalaire).toBeGreaterThan(0)
+      })
     })
   }
+
+  it('les gros plans de `CAMERAS` sont ceux que `closeUp` calcule — rien n’est recopié', () => {
+    expect(CAMERAS.experiences).toEqual(closeUp('experiences'))
+    expect(CAMERAS.projets).toEqual(closeUp('projects'))
+    expect(CAMERAS.competences).toEqual(closeUp('skills'))
+  })
 })
 
 describe('durée de transition', () => {
   it('coupe le mouvement à zéro quand il est refusé, plutôt que de l’accélérer', () => {
-    /*
-     * ⭐ La variante `reduced-motion` est un PARAMÈTRE de durée, pas un second
-     * chemin de code : c'est ce qui l'empêche de diverger du chemin nominal, où
-     * une branche séparée finirait par oublier une interpolation.
-     */
     expect(transitionMs(true)).toBe(0)
+    expect(transitionMs(false)).toBeGreaterThan(1000)
+  })
+})
+
+describe('orbite et densité', () => {
+  it('l’orbite est bornée, et plus en lacet qu’en tangage', () => {
+    expect(ORBIT_LIMITS.yawDeg).toBeGreaterThan(0)
+    expect(ORBIT_LIMITS.pitchDeg).toBeGreaterThan(0)
+    expect(ORBIT_LIMITS.pitchDeg).toBeLessThan(ORBIT_LIMITS.yawDeg)
   })
 
-  it('laisse 700 ms sinon', () => {
-    expect(transitionMs(false)).toBe(700)
+  it('la densité ne fait que décroître de `full` à `lite`, et ne s’annule jamais', () => {
+    const paliers = [DENSITY.full, DENSITY.reduced, DENSITY.lite]
+    for (const cle of ['particles', 'projectNodes', 'skillPointsPerCluster', 'shells'] as const) {
+      const valeurs = paliers.map((densite) => densite[cle])
+      expect(valeurs).toEqual([...valeurs].sort((a, b) => b - a))
+      expect(Math.min(...valeurs)).toBeGreaterThan(0)
+    }
+  })
+})
+
+describe('la palette', () => {
+  it('est celle des tokens de `globals.css`', async () => {
+    const { readFileSync } = await import('node:fs')
+    const css = readFileSync('src/app/globals.css', 'utf8').toLowerCase()
+    expect(css).toContain(`--color-background: ${PALETTE.background.toLowerCase()}`)
+    expect(css).toContain(`--color-panel: ${PALETTE.surface.toLowerCase()}`)
+    expect(css).toContain(`--color-accent: ${PALETTE.cyan.toLowerCase()}`)
+    expect(css).toContain(`--color-violet: ${PALETTE.violet.toLowerCase()}`)
+    expect(css).toContain(`--color-text: ${PALETTE.text.toLowerCase()}`)
   })
 })

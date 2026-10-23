@@ -60,6 +60,8 @@ export const en: Messages = {
 
   ongoing: 'Present',
 
+  overview: 'Overview',
+
   experience: {
     highlights: 'Highlights',
   },

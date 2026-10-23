@@ -22,13 +22,15 @@
 import { notFound } from 'next/navigation'
 
 import { contentRepository } from '@/content/repository'
-import type { PageLocation } from '@/routing/paths'
+import { getMessages } from '@/i18n/messages'
+import { sectionPath, type PageLocation } from '@/routing/paths'
 import { DateRange } from '@/ui/date-range'
 import { JsonLd } from '@/ui/json-ld'
 import { LanguageSwitcher } from '@/ui/language-switcher'
 import { Prose } from '@/ui/mdx/prose'
 import page from '@/ui/page.module.css'
 import { TechnologySection } from '@/ui/technology-section'
+import { ReadingPanel } from '@/ui/reading-panel'
 
 import { languageOptions } from '../../language-options'
 import { readEntityParams, staticSlugParams, type EntityParams } from '../../locale-param'
@@ -73,9 +75,13 @@ export default async function ProjectPage({ params }: EntityParams) {
     contentRepository.getContentLocales('projects', slug),
     contentRepository.getTechnologyLabels(locale, project),
   ])
+  const messages = getMessages(locale)
 
   return (
-    <main id="main" className={page.page}>
+    <ReadingPanel
+      variant="reading"
+      back={{ href: sectionPath(locale, 'projects'), label: messages.sections.projects.name }}
+    >
       {/* `CreativeWork` et `BreadcrumbList` (P4-09). Les mots-clés sont les
           libellés **résolus** que la fiche affiche plus bas, jamais les slugs. */}
       <JsonLd data={projectStructuredData(locale, project, technologies)} />
@@ -88,6 +94,6 @@ export default async function ProjectPage({ params }: EntityParams) {
       <TechnologySection locale={locale} labels={technologies} />
 
       <LanguageSwitcher current={locale} options={languageOptions(locationOf(slug), available)} />
-    </main>
+    </ReadingPanel>
   )
 }

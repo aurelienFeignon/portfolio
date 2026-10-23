@@ -17,40 +17,37 @@ import { getCameraTarget } from '@/scene/state/camera-target'
 import type { SceneFocus } from '@/scene/state/scene-state'
 
 /**
- * L'oracle : la dalle que chaque focus doit cadrer, `undefined` pour la vue
+ * L'oracle : l'univers que chaque focus doit cadrer, `undefined` pour la vue
  * d'ensemble.
  *
  * ⭐⭐ **C'est un `Record<SceneFocus, …>`, donc l'exhaustivité est tenue par le
- * compilateur** — une section ajoutée sans y être déclarée ne compile pas, comme
- * dans `scene-state.test.ts`.
+ * compilateur** — une section ajoutée sans y être déclarée ne compile pas.
  *
- * ⛔ **Ce n'est pas une recopie du mapping, c'est un second énoncé du même fait,
- * dans un autre vocabulaire** — les identifiants de nœuds, qui existent déjà.
- * Sans lui, échanger deux écrans dans le module laisserait le banc vert : chaque
- * focus viserait toujours *un* cadrage de `layout.ts`, distinct des autres, et
- * seul l'exemple de `testing-strategy.md` §4.3 — `experiences` — serait gardé.
- * La place des sections sur le bureau vient du dossier de scène (écran gauche,
- * central, portable) ; c'est le fait que ce banc confronte au code.
+ * ⛔ **Ce n'est pas une recopie du mapping, c'est un second énoncé du même fait.**
+ * Sans lui, échanger deux univers dans le `Record` du module laisserait le banc
+ * vert : chaque focus viserait toujours *un* cadrage de `layout.ts`, distinct des
+ * autres. Depuis NEXUS (D11), chaque univers EST une section : l'oracle dit que
+ * le focus `projects` cadre l'univers `projects`, et rien d'autre.
  */
-const DALLE_ATTENDUE: Record<SceneFocus, string | undefined> = {
+const UNIVERS_ATTENDU: Record<SceneFocus, string | undefined> = {
   overview: undefined,
-  experiences: 'dalleGauche',
-  projects: 'dalleCentre',
-  skills: 'dallePortable',
+  experiences: 'experiences',
+  projects: 'projects',
+  skills: 'skills',
 }
 
-const FOCUSES = Object.keys(DALLE_ATTENDUE) as readonly SceneFocus[]
+const FOCUSES = Object.keys(UNIVERS_ATTENDU) as readonly SceneFocus[]
 
 const cadrage = (focus: SceneFocus, detail: string | null = null) =>
   getCameraTarget({ focus, detail })
 
-describe('chaque focus cadre sa dalle', () => {
+describe('chaque focus cadre son univers', () => {
   // ⭐ Le cas `experiences` est l'exemple de `testing-strategy.md` §4.3 —
-  // « le cadrage de l'écran gauche ». Que ce cadrage vise le centre de sa dalle,
+  // « le cadrage de l'écran gauche ». Que ce cadrage vise le centre de son univers,
   // de face, est une propriété de `layout.ts`, tenue par `layout.test.ts`.
   for (const focus of FOCUSES) {
-    it(`${focus} → ${DALLE_ATTENDUE[focus] ?? 'aucune dalle, la vue d’ensemble'}`, () => {
-      expect(cadrage(focus).focusNodeId).toBe(DALLE_ATTENDUE[focus])
+    it(`${focus} → ${UNIVERS_ATTENDU[focus] ?? 'aucun univers, la vue d’ensemble'}`, () => {
+      expect(cadrage(focus).focusNodeId).toBe(UNIVERS_ATTENDU[focus])
     })
   }
 })

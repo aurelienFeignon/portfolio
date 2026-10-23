@@ -3,8 +3,8 @@
  *
  * `--color-text-muted` et non une opacité : une opacité change le rapport de
  * contraste sans que rien ne le dise, alors que ce token porte le sien dans
- * `globals.css`. ⚠️ Ici le fond est `--color-surface` et non `--color-background` :
- * le rapport est **6,7:1**, pas 7,2:1. Les deux valeurs sont notées à la source,
+ * `globals.css`. ⚠️ Ici le fond est `--color-panel` et non `--color-background` :
+ * le rapport est **7,7:1**, pas 8,8:1. Les deux valeurs sont notées à la source,
  * parce qu'un token de couleur n'a pas *un* contraste — il en a un par fond.
  *
  * La taille est portée par `.note` et non par `.inner` : `<small>` réduit déjà
@@ -12,7 +12,10 @@
  */
 
 .footer {
-  background: var(--color-surface);
+  /* Au-dessus de la scène : le texte garde sa surface (D11). */
+  position: relative;
+  z-index: 1;
+  background: var(--color-panel);
   border-top: 1px solid var(--color-border);
 }
 
@@ -21,6 +24,36 @@
 
   padding-block: var(--space-6);
   color: var(--color-text-muted);
+}
+
+/*
+ * Sur ordinateur, quand le panneau de lecture est une colonne fixe, le pied de
+ * page devient son socle : même largeur, même bord gauche, sous lui. Sans cela,
+ * il traverserait l'écran en bas — par-dessus la scène.
+ *
+ * ⭐ `:has()` lit la disposition dans le DOM : le layout racine ne sait pas quelle
+ * page il enveloppe, et ne doit pas l'apprendre.
+ */
+@media (min-width: 60rem) {
+  :global(body:has([data-reading-panel='aside'])) .footer {
+    position: fixed;
+    bottom: var(--space-4);
+    left: var(--space-6);
+    width: var(--panel-width);
+    min-height: var(--footer-h);
+    display: flex;
+    align-items: center;
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-sm);
+    background: var(--color-panel-glass);
+    backdrop-filter: blur(16px);
+    box-shadow: var(--glow-edge);
+  }
+
+  :global(body:has([data-reading-panel='aside'])) .inner {
+    padding-block: var(--space-3);
+    padding-inline: var(--space-6);
+  }
 }
 
 .note {

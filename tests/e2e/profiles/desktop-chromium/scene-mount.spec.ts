@@ -39,33 +39,73 @@ test.describe('montage de la scène', () => {
     await expect(focusables).toHaveCount(0)
   })
 
-  test('⛔ ne peut intercepter aucun clic — et par DEUX propriétés, pas une', async ({ page }) => {
+  test('⛔ le contenu reste AU-DESSUS de la scène, et la scène reçoit le pointeur ailleurs', async ({
+    page,
+  }) => {
     await page.goto('/fr')
     await expect(page.locator(`${RACINE} canvas`)).toBeAttached({ timeout: 10_000 })
 
     /*
-     * ⛔⛔ **La première écriture de ce test ne tenait rien.** Elle se contentait
-     * de cliquer un lien et de vérifier la navigation — or `z-index: -1` place
-     * déjà le décor sous tout élément dans le flux, donc le clic aboutissait
-     * **avec ou sans** `pointer-events: none`. Retirer la ligne de CSS que le
-     * test prétendait garder l'aurait laissé vert. Relevé en revue.
+     * ⭐⭐ **Le contrat a changé avec NEXUS (D11), et c'est écrit.** La Phase 5
+     * exigeait une scène insensible au pointeur (`pointer-events: none`,
+     * `z-index: -1`) parce qu'elle n'avait rien à cliquer. NEXUS a besoin du
+     * survol, du clic et du glisser : la couche reçoit le pointeur, et c'est
+     * l'EMPILEMENT qui protège le contenu.
      *
-     * Les deux propriétés sont donc affirmées séparément, parce qu'elles
-     * protègent contre deux choses différentes : l'empilement, qu'un futur
-     * contexte de superposition peut annuler, et l'insensibilité au pointeur,
-     * qui tient quel que soit l'empilement.
+     * ⛔ Les deux moitiés sont affirmées séparément, par ce qu'un pointeur
+     * TOUCHE réellement (`elementFromPoint`) et non par des valeurs de CSS : un
+     * contexte de superposition imprévu peut annuler un `z-index` sans que la
+     * valeur calculée change.
      */
-    const style = await page.locator(RACINE).evaluate((element) => {
-      const calcule = getComputedStyle(element)
-      return { pointerEvents: calcule.pointerEvents, zIndex: calcule.zIndex }
+    const touche = await page.evaluate(() => {
+      const panneau = document.querySelector('[data-reading-panel]') as HTMLElement
+      const cadre = panneau.getBoundingClientRect()
+      const auPanneau = document.elementFromPoint(cadre.left + cadre.width / 2, cadre.top + 40)
+      const aLaScene = document.elementFromPoint(window.innerWidth - 60, window.innerHeight / 2)
+      return {
+        panneauTouche: auPanneau !== null && panneau.contains(auPanneau),
+        sceneTouchee: aLaScene?.closest('[data-scene-root]') !== null && aLaScene !== null,
+      }
     })
 
-    expect(style.pointerEvents).toBe('none')
-    expect(Number(style.zIndex)).toBeLessThan(0)
+    expect(touche.panneauTouche).toBe(true)
+    expect(touche.sceneTouchee).toBe(true)
 
-    // Et le comportement, pour mémoire : le site reste navigable sous le décor.
+    // Et le site reste navigable au-dessus de la scène.
     await page.getByRole('link', { name: 'Expériences' }).first().click()
     await expect(page).toHaveURL(/\/fr\/experiences$/)
+  })
+
+  test('⭐ navigation hybride : un lien du DOM garde la scène, Échap ramène à la vue d’ensemble', async ({
+    page,
+  }) => {
+    await page.goto('/fr')
+    const canvas = page.locator(`${RACINE} canvas`)
+    await expect(canvas).toBeAttached({ timeout: 10_000 })
+
+    // Un marqueur posé sur LE canvas : s'il survit, la page n'a pas été rechargée.
+    await canvas.evaluate((element) => element.setAttribute('data-temoin', 'meme-canvas'))
+
+    await page.getByRole('link', { name: 'Projets' }).first().click()
+    await expect(page).toHaveURL(/\/fr\/projects$/)
+    await expect(page.locator(`${RACINE} canvas[data-temoin="meme-canvas"]`)).toBeAttached()
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Projets')
+
+    // Échap : une navigation comme une autre, vers l'accueil.
+    await page.keyboard.press('Escape')
+    await expect(page).toHaveURL(/\/fr$/)
+    await expect(page.locator(`${RACINE} canvas[data-temoin="meme-canvas"]`)).toBeAttached()
+  })
+
+  test('une fiche se lit sans scène : la couche reste montée, mais cachée', async ({ page }) => {
+    await page.goto('/fr/projects')
+    await expect(page.locator(`${RACINE} canvas`)).toBeAttached({ timeout: 10_000 })
+    await page
+      .getByRole('link', { name: /portfolio/i })
+      .first()
+      .click()
+    await expect(page.locator(RACINE)).toHaveAttribute('data-scene-visible', 'false')
+    await expect(page.locator(RACINE)).toBeHidden()
   })
 
   test('n’écrit aucun texte dans la page : rien n’y vit qui n’existe dans le DOM', async ({

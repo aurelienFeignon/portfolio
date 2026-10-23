@@ -37,6 +37,7 @@ import { homeStructuredData } from '../structured-data'
 
 import lead from '@/ui/lead.module.css'
 import page from '@/ui/page.module.css'
+import { ReadingPanel } from '@/ui/reading-panel'
 
 const LOCATION: PageLocation = { kind: 'home' }
 
@@ -62,17 +63,18 @@ export default async function HomePage({ params }: LocaleParams) {
   const structuredData = await homeStructuredData(contentRepository, locale)
 
   return (
-    <main id="main" className={page.page}>
+    <ReadingPanel variant="aside">
       {/* `Person` et `WebSite` (P4-09). Dans le `main` et non dans le layout :
           seule la page sait qu'elle est l'accueil, et c'est le seul endroit qui
           les porte. */}
       <JsonLd data={structuredData} />
-      <h1 className={page.title}>{messages.site.name}</h1>
+      <p className={page.eyebrow}>{messages.site.jobTitle}</p>
+      <h1 className={page.display}>{messages.site.name}</h1>
       <p className={lead.lead}>{messages.site.intro}</p>
 
       <SectionGuide locale={locale} links={sectionLinks(locale)} />
 
       <LanguageSwitcher current={locale} options={languageOptions(LOCATION, LOCALES)} />
-    </main>
+    </ReadingPanel>
   )
 }

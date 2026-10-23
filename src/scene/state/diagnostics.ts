@@ -29,6 +29,49 @@ export interface SceneReadings {
   readonly lastFrameMs: number | null
   /** Tas JavaScript en Mo — Chromium seulement. */
   readonly jsHeapMb: number | null
+  /*
+   * ⭐ Ce qui tranche la question de performance de NEXUS sur un appareil RÉEL
+   * (`nexus-prototype.md` §6) — le banc de mesure tourne sans GPU, et ne peut
+   * pas dire ce que coûte la première image avec un vrai pilote.
+   */
+  /** La carte graphique annoncée par le navigateur ; `null` s'il la masque. */
+  readonly gpu: string | null
+  /** `KHR_parallel_shader_compile` : sans elle, la compilation bloque. */
+  readonly parallelCompile: boolean | null
+  /** De la décision de monter la scène à sa première image, en ms. */
+  readonly firstFrameMs: number | null
+  /** Les tâches longues depuis cette décision ; `null` si le navigateur ne les observe pas. */
+  readonly longTasks: LongTaskSummary | null
+}
+
+export interface LongTaskSummary {
+  readonly count: number
+  /** La plus longue, en ms. */
+  readonly longestMs: number
+  /** Ce qu'elles bloquent au sens du TBT : la somme de ce qui dépasse 50 ms. */
+  readonly blockingMs: number
+}
+
+/** Au-delà de 50 ms, une tâche bloque (définition du TBT). */
+const SEUIL_TACHE_LONGUE_MS = 50
+
+/**
+ * Le résumé des tâches longues commencées à partir de `since` — celles de la
+ * page avant le montage de la scène ne sont pas imputées à la scène.
+ */
+export function summarizeLongTasks(
+  tasks: ReadonlyArray<{ readonly startTime: number; readonly duration: number }>,
+  since: number,
+): LongTaskSummary {
+  const retenues = tasks.filter((task) => task.startTime >= since)
+  return {
+    count: retenues.length,
+    longestMs: retenues.reduce((max, task) => Math.max(max, task.duration), 0),
+    blockingMs: retenues.reduce(
+      (somme, task) => somme + Math.max(0, task.duration - SEUIL_TACHE_LONGUE_MS),
+      0,
+    ),
+  }
 }
 
 /**
@@ -107,6 +150,33 @@ export function diagnosticLines(readings: SceneReadings): readonly DiagnosticLin
     {
       label: 'tas JS',
       value: readings.jsHeapMb === null ? INDISPONIBLE : `${readings.jsHeapMb} Mo`,
+    },
+    { label: 'GPU', value: readings.gpu ?? INDISPONIBLE },
+    {
+      label: 'compilation parallèle',
+      value:
+        readings.parallelCompile === null ? INDISPONIBLE : readings.parallelCompile ? 'oui' : 'non',
+    },
+    {
+      label: 'première image',
+      value:
+        readings.firstFrameMs === null
+          ? 'aucune'
+          : `${entier(Math.round(readings.firstFrameMs))} ms`,
+    },
+    {
+      label: 'tâches longues',
+      value:
+        readings.longTasks === null
+          ? INDISPONIBLE
+          : `${readings.longTasks.count} (max ${entier(Math.round(readings.longTasks.longestMs))} ms)`,
+    },
+    {
+      label: 'blocage (TBT)',
+      value:
+        readings.longTasks === null
+          ? INDISPONIBLE
+          : `${entier(Math.round(readings.longTasks.blockingMs))} ms`,
     },
   ]
 }

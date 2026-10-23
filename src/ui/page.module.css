@@ -48,3 +48,25 @@
   font-size: var(--text-2xl);
   line-height: 1.2;
 }
+
+/*
+ * L'accueil NEXUS (D11) : une ligne-titre en capitales espacées, puis le nom en
+ * grand. Ce que la page d'accueil de la Phase 4 n'avait pas : un premier niveau
+ * de lecture avant le nom.
+ */
+.eyebrow {
+  margin: 0;
+  color: var(--color-accent);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.display {
+  margin: 0;
+  font-size: var(--text-3xl);
+  font-weight: 600;
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+}
