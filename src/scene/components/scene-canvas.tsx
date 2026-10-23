@@ -11,7 +11,7 @@
  * NEXUS n'en importe aucun.
  */
 import { Canvas } from '@react-three/fiber'
-import type { ReactNode } from 'react'
+import { type ReactNode, useCallback, useState } from 'react'
 import { ACESFilmicToneMapping, SRGBColorSpace } from 'three'
 
 import type { Section } from '@/routing/sections'
@@ -23,6 +23,7 @@ import type { SceneFocus, SceneState } from '@/scene/state/scene-state'
 
 import { CameraRig } from './nexus/camera-rig'
 import { NexusScene } from './nexus/nexus-scene'
+import { ShaderWarmup } from './nexus/shader-warmup'
 
 export default function SceneCanvas({
   capability,
@@ -55,26 +56,32 @@ export default function SceneCanvas({
   const tier = capability.tier === 'none' ? 'lite' : capability.tier
   const animated = capability.motion === 'animated'
   /*
-   * ⛔⛔ **Au palier `lite`, l'ambiance est une image FIXE** — mesuré le
-   * 2026-10-23 (`nexus-prototype.md` §6). En boucle continue, l'accueil mobile
-   * montait à 1 126 ms de TBT médian et 4,7 s de thread principal : chaque image
-   * de l'ambiance, sur un CPU modeste, devient une tâche longue. ADR-0003 définit
-   * justement `lite` comme « scène décorative, ou visuel statique ». Les
-   * transitions de caméra, elles, restent fluides : le rig demande ses images.
+   * Au palier `lite`, l'ambiance est une image FIXE : ADR-0003 définit `lite`
+   * comme « scène décorative, ou visuel statique », et une boucle continue use
+   * la batterie d'un téléphone pour une pulsation. Les transitions de caméra
+   * restent fluides : le rig demande ses images.
+   * ⚠️ Ce n'était PAS la cause du TBT mobile (mesuré : 1 126 → 1 231 ms, sans
+   * effet). La cause désignée par la mesure est la compilation des shaders au
+   * premier rendu — voir `ShaderWarmup` et `nexus-prototype.md` §6.
    */
   const ambient = animated && tier !== 'lite'
   const initial = getCameraTarget(state)
+  // Aucune image avant que les shaders soient compilés (`ShaderWarmup`).
+  const [pret, setPret] = useState(false)
+  const quandPret = useCallback(() => setPret(true), [])
 
   return (
     <Canvas
       /*
        * ⭐ `always` seulement quand l'ambiance a quelque chose à montrer :
-       * - scène cachée (fiche) : `never`, aucune image ;
+       * - scène cachée (fiche) ou shaders en compilation : `never`, aucune image ;
        * - mouvement refusé ou palier `lite` : `demand`, le rig demande les
        *   images d'une transition ;
        * - sinon `always` — la pulsation et les flux sont l'objet même de la scène.
        */
-      frameloop={!visible ? 'never' : ambient ? 'always' : 'demand'}
+      frameloop={!visible || !pret ? 'never' : ambient ? 'always' : 'demand'}
+      // ⭐ Lu par la feuille de style : la scène apparaît en fondu une fois prête.
+      data-ready={pret}
       dpr={tier === 'full' ? [1, 2] : [1, 1.5]}
       gl={{ antialias: tier === 'full', alpha: true, powerPreference: 'high-performance' }}
       onCreated={({ gl }) => {
@@ -108,6 +115,7 @@ export default function SceneCanvas({
         onHover={onHover}
         onSelect={onSelect}
       />
+      <ShaderWarmup onReady={quandPret} />
       {probe}
     </Canvas>
   )

@@ -17,6 +17,26 @@
   touch-action: pan-y;
 }
 
+/*
+ * La scène apparaît en fondu une fois ses shaders compilés (`ShaderWarmup`) :
+ * jusque-là le canvas ne rend rien, et c'est le halo CSS du fond qui tient lieu
+ * de noyau.
+ */
+.decor :global([data-ready='false']) {
+  opacity: 0;
+}
+
+.decor :global([data-ready='true']) {
+  opacity: 1;
+  transition: opacity 900ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .decor :global([data-ready='true']) {
+    transition: none;
+  }
+}
+
 /* Une fiche se lit sans scène : cachée, et son canvas ne calcule plus rien. */
 .cachee {
   visibility: hidden;
