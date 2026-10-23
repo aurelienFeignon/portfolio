@@ -34,6 +34,7 @@ import {
   sceneReady,
 } from '@/scene/capability/mount-state'
 import { resolveCapability, shouldMountScene } from '@/scene/capability/resolve'
+import { tierMark } from '@/scene/capability/tier-mark'
 import { shouldShowDiagnostics } from '@/scene/state/debug-flag'
 import type { SceneReadings } from '@/scene/state/diagnostics'
 
@@ -111,6 +112,9 @@ export function SceneMount() {
        */
       auRepos(() => {
         const lu = resolveCapability(readCapability(window))
+        // ⭐ Posé à TOUS les paliers, `none` compris : c'est ce qui permet à une
+        // mesure de dire quelle scène elle a vue (`tier-mark.ts`).
+        performance.mark(tierMark(lu.tier))
         if (shouldMountScene(lu)) setEtat((precedent) => sceneReady(precedent, lu))
         /*
          * ⭐ L'URL est lue ici, à la main, et non par `useSearchParams` : ce hook

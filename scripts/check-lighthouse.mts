@@ -36,6 +36,8 @@
 import { chromium } from '@playwright/test'
 import lighthouse from 'lighthouse'
 
+import { FORM_FACTORS, pagesToAudit } from './lighthouse-profiles.mts'
+
 const BASE_URL = process.env['PLAYWRIGHT_BASE_URL'] ?? 'http://web:3000'
 const DEBUG_PORT = 9222
 
@@ -100,58 +102,6 @@ const THRESHOLDS = [
  */
 const LAB_ONLY_FAILURES = new Set(['is-on-https', 'redirects-http'])
 
-/**
- * Les deux pages que `performance-budget.md` §2 désigne comme profil de
- * référence : l'accueil et une page de détail.
- *
- * ⚠️ **La lecture du sitemap est refaite ici plutôt que partagée avec
- * `tests/e2e/support/sitemap.ts`, et c'est délibéré** : ce script vit dans
- * `scripts/`, l'autre dans `tests/`, et le second lit par l'`APIRequestContext`
- * de Playwright là où celui-ci n'a que `fetch`. Les mettre en commun demanderait
- * un troisième emplacement et une abstraction sur le client HTTP, pour six
- * lignes. Le déclencheur d'extraction est un **troisième** lecteur.
- *
- * ⚠️ **La fiche est déduite du sitemap**, jamais nommée : `content/` appartient à
- * l'auteur du site et change. C'est la règle que les parcours E2E appliquent
- * depuis P2-11, et la raison en est la même — un audit qui nomme une entité
- * mesure le contenu du jour.
- */
-async function pagesToAudit(): Promise<string[]> {
-  const xml = await (await fetch(`${BASE_URL}/sitemap.xml`)).text()
-  const paths = [...xml.matchAll(/<loc>([^<]+)<\/loc>/g)].map(
-    (match) => new URL(match[1] as string).pathname,
-  )
-
-  if (paths.length === 0) throw new Error('sitemap vide : rien à auditer')
-
-  const detail = paths.find((path) => path.startsWith('/fr/') && path.split('/').length === 4)
-  if (detail === undefined) throw new Error('aucune page de détail au sitemap')
-
-  return ['/fr', detail]
-}
-
-/** Le profil mobile de `performance-budget.md` §2, et le profil desktop. */
-const FORM_FACTORS = [
-  // Rien d'autre que le facteur de forme : le profil mobile de Lighthouse porte
-  // déjà son émulation d'écran et son bridage. Passer `screenEmulation:
-  // undefined` revenait à écrire explicitement ce que l'absence de clé dit mieux.
-  { name: 'mobile', settings: { formFactor: 'mobile' as const } },
-  {
-    name: 'desktop',
-    settings: {
-      formFactor: 'desktop' as const,
-      screenEmulation: {
-        mobile: false,
-        width: 1350,
-        height: 940,
-        deviceScaleFactor: 1,
-        disabled: false,
-      },
-      throttling: { rttMs: 40, throughputKbps: 10_240, cpuSlowdownMultiplier: 1 },
-    },
-  },
-]
-
 const browser = await chromium.launch({ args: [`--remote-debugging-port=${DEBUG_PORT}`] })
 
 type Reading = {
@@ -165,7 +115,7 @@ type Reading = {
 const readings: Reading[] = []
 
 try {
-  for (const path of await pagesToAudit()) {
+  for (const path of await pagesToAudit(BASE_URL)) {
     for (const factor of FORM_FACTORS) {
       const result = await lighthouse(
         `${BASE_URL}${path}`,
