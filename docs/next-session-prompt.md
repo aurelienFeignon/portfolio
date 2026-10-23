@@ -33,6 +33,7 @@ Lis, dans cet ordre, et ne me demande pas de te les résumer :
                                  tranchés, et ce que chaque tâche refuse d'affirmer.
 12. docs/phase-5-log.md       ← journal de la Phase 5, CLOSE. §10 porte le bilan et le seul relevé
                                  comparatif de Core Web Vitals du projet.
+12bis. docs/nexus-prototype.md ← ⭐⭐⭐ NEXUS, la scène en production : décisions, scène, mesures (§6).
 13. docs/phase-6-log.md       ← ⭐⭐ journal de la phase EN COURS. §3 porte les arbitrages
                                  d'ouverture, §5 l'ordre de travail et ses deux écarts assumés.
 14. deploy/README.md          ← exploitation réelle du serveur : déploiement, rollback, journaux,
@@ -45,11 +46,12 @@ Les Phases 0 à 4 sont TERMINÉES et validées. Ne les refais pas, ne les redisc
 
 Phases 0 à 4 : **DONE** — le jalon T1 est atteint, le portfolio documentaire est en ligne,
 supervisé, avec une checklist de mise en ligne et un rollback rejoué.
-**Phase 5 (Fondation Three.js) : CLOSE le 2026-08-25**, **9 tâches sur 10**, les quatre critères de
-sortie vérifiés par mesure (bilan : `phase-5-log.md` §10). **Seule P5-10 reste**, reportée après
-P6-04 : rien n'anime encore.
-**Phase 6 (Navigation spatiale) : OUVERTE le 2026-08-26**, **3 tâches sur 10** — P6-01, P6-03 et P6-02
-(fusionnée par #55 le 2026-10-23).
+**Phase 5 (Fondation Three.js) : CLOSE**, 10 tâches sur 10 — P5-10 close le 2026-10-23 avec #58.
+**Phase 6 (Navigation spatiale)** : **7 tâches sur 10** ; restent P6-07, P6-09 (en dette) et P6-10.
+⭐⭐ **NEXUS EST EN PRODUCTION depuis le 2026-10-23 (#58, `854d1fe`)** — D11 : le bureau 3D est
+remplacé par un noyau numérique et trois univers, avec navigation hybride et `ReadingPanel` en verre
+lumineux. **Lis `docs/nexus-prototype.md` avant toute chose** : décisions, architecture de la scène,
+et surtout §6, l'enquête de performance. Les Phases 7 à 9 sont réorientées dans la roadmap.
 **Tout ce qui suit est fusionné sur `main` et déployé**, les cinq jobs verts à chaque fois —
 publication GHCR et déploiement VPS compris.
 
@@ -275,23 +277,31 @@ mets l'ADR à jour et ajoute une ligne au journal des révisions. Jamais de chan
 
 ## Ta mission cette session
 
-⛔⛔ **Direction artistique NEXUS validée le 2026-10-23, PAS ENCORE CONSIGNÉE dans le dépôt.** Le
-bureau 3D (D10) sera remplacé par un univers sombre — noyau central, trois univers, orbite bornée,
-contenu long dans un `ReadingPanel` HTML non projeté, scène réservée à l'accueil et aux sections.
-La formaliser (D11, amendements d'ADR-0004 et d'ADR-0010) est l'étape 5 ci-dessous, pas avant.
-**Ordre d'exécution arrêté par l'utilisateur** :
-1. ~~Finaliser P6-02~~ — fait (#55).
-2. ~~Mesures de référence reproductibles~~ — fait le 2026-10-23 : `make perf-baseline`,
-   `performance-budget.md` §6.3. ⭐ **TBT mobile ~550–600 ms, dont ~+500 ms dus à la scène, en
-   palier `lite` (sans ombres)** — le 2 090 ms de §6.2 n'est pas reproduit.
-3. Lisibilité HTML : `ReadingPanel`.
-4. P6-04 contre l'interface générique `CameraSpec` — précédée de P6-09 ci-dessous.
-5. Formaliser les décisions NEXUS. 6. Prototype sur une branche isolée. 7. Validation visuelle
-   avant toute bascule. 8. Reprendre la roadmap existante, identifiants et historique conservés.
-⛔ Aucune seconde roadmap ; ne pas tester NEXUS en production.
+⭐ **L'ordre arrêté par l'utilisateur le 2026-10-23 est exécuté** : P6-02 (#55), mesure de
+référence (#57), `ReadingPanel`, P6-04, décisions NEXUS (D11 et amendements d'ADR 0002/0003/0004/0010),
+prototype, validation visuelle avec l'utilisateur, fusion et déploiement (#58), roadmap reprise.
 
-**P6-01, P6-03 et P6-02 sont livrées.** Côté Phase 6, la suivante est **P6-09** — l'ADR-0012, stratégie d'animation de
-caméra. Seule P5-10 reste de la Phase 5, reportée après P6-04. Tout le reste est livré et mesuré.
+**Ce qui reste, dans l'ordre où il se défend :**
+1. **P6-09 — l'ADR-0012, en dette** : la stratégie d'animation (interpolation maison `easeInOutCubic`,
+   1,6 s, interruptible, coupe sous `reduced-motion`) est **livrée sans son ADR**. L'écrire en
+   constatant ce qui est en place et ce qui a été écarté — pas en la présentant comme à trancher.
+2. **P6-10** — les parcours E2E manquants : précédent/suivant, lien direct, reduced-motion.
+3. **P6-07** — `data-scene-focus` exposé au DOM.
+4. **P8-11 — mesurer sur ce qui n'est pas couvert** : GPU intégré, téléphone réel, Safari. Sur une
+   RTX 5050 le TBT de la scène est de **0 ms** (154 ms processeur bridé ×4) ; le banc sans GPU annonce
+   1 231 ms et **surestime d'environ ×8** (`nexus-prototype.md` §6.4). Sans
+   `KHR_parallel_shader_compile`, on retombe sur le cas du banc.
+5. **P8-10** — alléger le premier rendu (72 draw calls sur ordinateur, cible 60 ; 14 programmes).
+6. **Phase 9** — décider, AVEC l'utilisateur, la forme des destinations (CV, GitHub, LinkedIn, à
+   propos) dans NEXUS, avant tout code.
+
+⛔ **Ne mesure pas un changement de la scène par le seul banc** (`make perf-baseline`) : il tourne sans
+GPU. Il compare deux versions entre elles ; ce que vit un visiteur se lit dans le panneau
+`?debug=scene`, dans un vrai navigateur, en **fenêtre privée neuve** (sinon le cache de shaders fausse
+la première visite).
+
+⚠️ **Ce qui suit date d'avant #58** et décrivait P6-09 comme une décision à prendre avant le rig ;
+elle a été prise dans le rig. Conservé pour l'historique de l'arbitrage, pas comme consigne.
 
 ⭐⭐⭐ **Ce que P6-09 doit tenir** : c'est une **décision**, pas du code — interpolation maison
 (`easeInOutCubic` sur 700 ms, déjà décrite par `transitionMs` et le dossier) contre bibliothèque de

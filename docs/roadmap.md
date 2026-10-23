@@ -20,10 +20,17 @@
 > Journal de la Phase 4 : [`phase-4-log.md`](./phase-4-log.md) — phases précédentes :
 > [`phase-3-log.md`](./phase-3-log.md), [`phase-2-log.md`](./phase-2-log.md),
 > [`phase-1-log.md`](./phase-1-log.md)
-> **PHASE 6 OUVERTE le 2026-08-26 — 3 tâches sur 10** : P6-01, P6-03 puis P6-02 (fusionnée par #55
-> le 2026-10-23). Les deux sens du flux d'ADR-0002 et le cadrage par état existent, purs et à 100 % ;
-> **aucun n'a encore d'appelant** — P6-04 sera le premier. Journal : [`phase-6-log.md`](./phase-6-log.md).
-> Dernière mise à jour : 2026-10-23 (**P6-02 fusionnée et déployée**)
+> **PHASE 6 — 7 tâches sur 10** (P6-01 à P6-06, P6-08), **P5-10 close avec elle**. Journal :
+> [`phase-6-log.md`](./phase-6-log.md).
+> ⭐⭐ **NEXUS EN PRODUCTION le 2026-10-23 (#58, `854d1fe`) — décision D11 : le bureau 3D est
+> remplacé** par un noyau numérique et trois univers, avec navigation hybride (route source de vérité,
+> transitions de caméra interruptibles, orbite bornée, Échap) et un `ReadingPanel` en verre lumineux.
+> Les Phases 7 à 9, conçues pour le bureau, sont **réorientées** ci-dessous : identifiants conservés,
+> tâches devenues sans objet passées `DROPPED` avec leur raison. Détail, mesures et décisions :
+> [`nexus-prototype.md`](./nexus-prototype.md).
+> ⚠️ **Dette ouverte par #58** : l'ADR-0012 (P6-09) n'est pas écrit alors que la décision d'animation
+> est prise ; 72 draw calls sur ordinateur (cible 60) ; GPU intégré, téléphone et Safari non mesurés.
+> Dernière mise à jour : 2026-10-23 (**NEXUS fusionné et déployé**)
 
 Ce document est la **source de vérité unique des tâches**. Les identifiants sont stables et ne
 sont jamais réutilisés, même si une tâche est abandonnée.
@@ -46,11 +53,11 @@ silencieusement.
 | 2 | Content layer | **DONE** *(2026-08-12)* | Markdown → objets typés validés, build cassé si invalide |
 | 3 | Internationalisation | **DONE** *(2026-08-14)* | `/fr` et `/en` résolus indépendamment, hreflang exact |
 | 4 | Portfolio HTML | **DONE** *(2026-08-20)* | **Produit utilisable sans Three.js** (phase obligatoire) |
-| 5 | Fondation Three.js | **DONE** *(2026-08-25)* — 9/10, P5-10 reportée après P6-04 | Scène primitive : le bureau réel, éclairé, budget tenu, isolation gardée |
-| 6 | Navigation spatiale | **IN_PROGRESS** *(ouverte le 2026-08-26)* — 3/10 : P6-01, P6-02, P6-03 | Route ↔ scène, testé sans WebGL |
-| 7 | Interfaces des écrans | TODO | Contenu affiché sur les moniteurs, instance unique |
-| 8 | Modélisation et direction artistique | TODO | Scène crédible, budgets mesurés à chaque ajout |
-| 9 | Interactions secondaires | TODO | CV, GitHub, LinkedIn, contact, à propos |
+| 5 | Fondation Three.js | **DONE** *(2026-08-25)* — 10/10, P5-10 close le 2026-10-23 avec #58 | Scène primitive : le bureau réel, éclairé, budget tenu, isolation gardée |
+| 6 | Navigation spatiale | **IN_PROGRESS** *(ouverte le 2026-08-26)* — 7/10 ; reste P6-07, P6-09, P6-10 | Route ↔ scène, testé sans WebGL |
+| 7 | Interfaces de lecture *(réorientée par D11)* | **IN_PROGRESS** — P7-03 et P7-08 livrées par #58 | Contenu dans un panneau HTML non projeté, instance unique |
+| 8 | Direction artistique NEXUS *(réorientée par D11)* | **IN_PROGRESS** — prototype en production (P8-09) | Scène crédible, budgets mesurés à chaque ajout |
+| 9 | Interactions secondaires | TODO — **objets à réévaluer** (D11 : plus de bureau) | CV, GitHub, LinkedIn, contact, à propos |
 | 10 | Envoi du CV | TODO | Server Action + fournisseur abstrait + anti-abus |
 | 11 | Performance | TODO | Audit Avant/Après/Gain, budgets en CI |
 | 12 | SEO et accessibilité | TODO | Audit complet, 0 violation serious/critical |
@@ -77,7 +84,7 @@ accessible et déployable. La 3D est ensuite livrée par incréments **sur un si
 | Tranche | Contenu | Cible | Résultat |
 |---|---|---|---|
 | **T1 — documentaire** | Phases 1 → 4, puis P4-13 à P4-15 | **début septembre 2026** | Portfolio complet en ligne, sans 3D |
-| **T2 — immersion** | Phases 5 → 7, plus Phase 10 (CV) | ensuite, par incréments | Scène et navigation spatiale ajoutées en production |
+| **T2 — immersion** | Phases 5 → 7, plus Phase 10 (CV) | ensuite, par incréments | Scène et navigation spatiale ajoutées en production — ⭐ **NEXUS en production le 2026-10-23 (#58)** |
 | **T3 — finition** | Phases 8 → 9, puis 11 → 15 | au long cours | Direction artistique, audits, durcissement, release finale |
 
 ### Chemin critique de T1
@@ -1151,7 +1158,7 @@ le 2026-08-18, jugé sur le corps : aller-retour par le même verbe, **~1 s d'or
 | P5-07 | Error boundary du canvas + gestion de `webglcontextlost` → palier `none` — **DONE** *(2026-08-24)* | P5-04 |
 | P5-08 | Panneau de diagnostic : coût d'image, draw calls, triangles, mémoire — **DONE** *(2026-08-25)* | P5-05 |
 | P5-09 | Test de non-régression : aucun module `three` dans les chunks initiaux — **DONE** *(2026-08-25)* | P5-04 |
-| P5-10 | Boucle de rendu à la demande, pause hors écran / onglet masqué — **REPORTÉE après P6-04** *(2026-08-25)* | P5-05 |
+| P5-10 | Boucle de rendu à la demande, pause hors écran / onglet masqué — **DONE** *(2026-10-23, #58)* | P5-05 |
 
 **P5-06 — Caméra, éclairage, environnement minimal**
 Status: **DONE** (2026-08-25) — les quatre intensités réglées **à l'œil** dans `preview.html` puis
@@ -1226,8 +1233,13 @@ Acceptance:
 - Le coût pour qui ne l'active pas est **mesuré**, pas supposé.
 
 **P5-10 — Boucle de rendu à la demande**
-Status: **REPORTÉE après P6-04** (2026-08-25), et pas faute de temps : **la moitié est déjà livrée et
-l'autre est sans objet.**
+Status: **DONE** (2026-10-23, livrée avec P6-04 par #58) — la boucle a désormais trois régimes, tenus
+par `scene-canvas.tsx` : `always` quand l'ambiance anime, `demand` au palier `lite` et sous
+`prefers-reduced-motion` (le rig demande les images d'une transition), `never` sur une fiche, où la
+scène est cachée — et jusqu'à ce que les shaders soient compilés. Un onglet masqué suspend
+`requestAnimationFrame` de lui-même. ⚠️ Ce qui suit est l'état du 2026-08-25, conservé pour mémoire.
+Ancien statut : **REPORTÉE après P6-04** (2026-08-25), et pas faute de temps : **la moitié est déjà
+livrée et l'autre est sans objet.**
 ⭐ `frameloop="demand"` est en place depuis P5-04, et **rien n'appelle `invalidate()`** — parce que
 rien n'anime. La scène rend une image au montage, puis se tait.
 ⛔⛔ **« Pause hors écran / onglet masqué » suppose une boucle à mettre en pause.** Une boucle qui ne
@@ -1453,13 +1465,13 @@ du score ne touche **ni le LCP ni le CLS**, mais le temps de blocage.
 | P6-01 | `resolveSceneState(pathname)` — pur, sans Three.js — **DONE** *(2026-08-26)* | P5-05 |
 | P6-02 | `getCameraTarget(state)` — positions cibles par écran — **DONE** *(2026-10-23, #55)* | P6-01 |
 | P6-03 | `getRouteForScreen(focus, locale)` + propriété d'aller-retour — **DONE** *(2026-08-26)* | P6-01 |
-| P6-04 | Transition de caméra pilotée par la route, interruptible | P6-02 |
-| P6-05 | Écrans interactifs : survol, focus, activation → `router.push` | P6-03 |
-| P6-06 | Équivalents DOM accessibles de chaque interaction (CF-06) | P6-05 |
+| P6-04 | Transition de caméra pilotée par la route, interruptible — **DONE** *(2026-10-23, #58)* | P6-02 |
+| P6-05 | Univers interactifs : survol, activation → `router.push` — **DONE** *(2026-10-23, #58)* ; le chemin clavier passe par le DOM (P6-06) | P6-03 |
+| P6-06 | Équivalents DOM accessibles de chaque interaction (CF-06) — **DONE** *(2026-10-23, #58)* : liens de navigation et « Vue d'ensemble », Échap | P6-05 |
 | P6-07 | `data-scene-focus` exposé au DOM pour l'observabilité et les tests | P6-04 |
-| P6-08 | Respect de `reduced-motion` : coupes instantanées | P6-04 |
-| P6-09 | ADR-0012 : stratégie d'animation de caméra | P6-04 |
-| P6-10 | E2E : back/forward, deep link, clavier, reduced-motion | P6-08 |
+| P6-08 | Respect de `reduced-motion` : coupes instantanées — **DONE** *(2026-10-23, #58)* ; son parcours E2E reste à P6-10 | P6-04 |
+| P6-09 | ADR-0012 : stratégie d'animation de caméra — **TODO, en dette** : la décision (interpolation maison `easeInOutCubic`, 1,6 s, interruptible) est prise et livrée par #58 **sans** l'ADR que l'ordre de travail plaçait avant | P6-04 |
+| P6-10 | E2E : back/forward, deep link, clavier, reduced-motion — **IN_PROGRESS** : navigation hybride (lien du DOM sans rechargement), Échap et fiche sans scène couverts par #58 ; restent précédent/suivant, lien direct, reduced-motion | P6-08 |
 
 **P6-01 — `resolveSceneState(pathname)`**
 Status: **DONE** (2026-08-26) — `src/scene/state/scene-state.ts` : `SceneFocus`, `SceneState`,
@@ -1583,18 +1595,22 @@ sur l'animation de caméra se pose avant d'écrire le rig, pas après (CT-08).
 
 ---
 
-## PHASE 7 — Interfaces des écrans
+## PHASE 7 — Interfaces de lecture *(réorientée par D11)*
+
+> ⭐ D11 : le contenu n'est plus projeté sur des écrans 3D — il vit dans un `ReadingPanel` HTML, sur sa
+> propre surface, et la caméra se cadre dans l'espace restant (ADR-0004 amendé). Le repli désigné de
+> l'ADR (P7-08) **est devenu la cible**. Les tâches de projection sont sans objet.
 
 | ID | Tâche | Dépend de |
 |---|---|---|
-| P7-01 | Conteneur superposé et projection des positions d'écran | P6-04 |
-| P7-02 | Mécanisme de portail à instance unique (ADR-0004) | P7-01 |
-| P7-03 | Branchement des contenus Projets / Expériences / Compétences | P7-02, P2-05 |
+| ~~P7-01~~ | ~~Conteneur superposé et projection des positions d'écran~~ — **DROPPED** (D11) : plus d'écran à projeter | P6-04 |
+| ~~P7-02~~ | ~~Mécanisme de portail à instance unique (ADR-0004)~~ — **DROPPED** (D11) : chaque page rend son contenu une fois, dans son panneau, sans portail | P7-01 |
+| P7-03 | Branchement des contenus Projets / Expériences / Compétences — **DONE** *(2026-10-23, #58)* : les pages dans le `ReadingPanel` | P2-05 |
 | P7-04 | Test d'intégration de non-duplication du contenu dans le DOM (R-01) | P7-03 |
 | P7-05 | Ordre de tabulation et focus cohérents en mode immersif | P7-03 |
 | P7-06 | Comportement lors des transitions (masquage/révélation du panneau) | P7-03 |
 | P7-07 | Bascule de locale et deep links en mode immersif | P7-03 |
-| P7-08 | Repli « panneau fixe » si le positionnement projeté est instable | P7-01 |
+| P7-08 | Panneau fixe indépendant de la scène — **DONE** *(2026-10-23, #58)* : le `ReadingPanel`, devenu la cible et non plus un repli | — |
 
 **Critères de sortie** — Chaque contenu présent **une seule fois** dans le DOM ; texte natif,
 sélectionnable, lu correctement ; deep link et bascule de langue corrects en immersif ; aucune
@@ -1602,18 +1618,24 @@ régression des Core Web Vitals.
 
 ---
 
-## PHASE 8 — Modélisation et direction artistique
+## PHASE 8 — Direction artistique NEXUS *(réorientée par D11)*
+
+> ⭐ D11 remplace le bureau par NEXUS. Les modèles du bureau sont sans objet ; la scène est
+> procédurale, et des assets importés ne viendront que si un gain les justifie (P8-01 reste valable).
 
 | ID | Tâche | Dépend de |
 |---|---|---|
-| P8-01 | ADR-0011 : provenance, licences et pipeline des assets 3D | P7-07 |
+| P8-01 | ADR-0011 : provenance, licences et pipeline des assets 3D — **seulement si** un asset importé est envisagé | P8-09 |
 | P8-02 | Chaîne de compression (Draco/Meshopt, KTX2) et chargement | P8-01 |
-| P8-03 | Bureau et écrans définitifs | P8-02 |
-| P8-04 | Ordinateur, clavier, souris | P8-03 |
-| P8-05 | Éclairage et ambiance | P8-04 |
-| P8-06 | Objets de décor porteurs de sens (support des interactions de la Phase 9) | P8-05 |
-| P8-07 | Mesure `Avant / Après / Gain` **après chaque ajout** (P8-03 à P8-06) | P8-03 |
+| ~~P8-03~~ | ~~Bureau et écrans définitifs~~ — **DROPPED** (D11) | P8-02 |
+| ~~P8-04~~ | ~~Ordinateur, clavier, souris~~ — **DROPPED** (D11) | P8-03 |
+| P8-05 | Éclairage et ambiance — **IN_PROGRESS** : première version NEXUS en production (#58) | P8-09 |
+| ~~P8-06~~ | ~~Objets de décor porteurs de sens (support des interactions de la Phase 9)~~ — **DROPPED** (D11) : plus de bureau où les poser ; voir la réévaluation de la Phase 9 | P8-05 |
+| P8-07 | Mesure `Avant / Après / Gain` **après chaque ajout** — banc `make perf-baseline` **et** panneau `?debug=scene` sur GPU réel (`nexus-prototype.md` §6) | P8-09 |
 | P8-08 | Vérification des contrastes sur la direction artistique finale | P8-05 |
+| P8-09 | Prototype NEXUS : noyau et plateforme, trois univers, ambiance, `ReadingPanel` en verre lumineux — **DONE** *(2026-10-23, #58)* | P6-04 |
+| P8-10 | Alléger le premier rendu : moins de variantes de matériaux et de draw calls (72 sur ordinateur, cible 60) | P8-09 |
+| P8-11 | Mesurer sur les appareils non couverts : GPU intégré, téléphone réel, Safari (`KHR_parallel_shader_compile`) | P8-09 |
 
 **Critères de sortie** — Budgets de `performance-budget.md` §5 tenus ; journal de mesures complet ;
 aucun objet ajouté sans justification d'usage ; contrastes conformes.
@@ -1622,13 +1644,18 @@ aucun objet ajouté sans justification d'usage ; contrastes conformes.
 
 ## PHASE 9 — Interactions secondaires
 
+> ⚠️ **Objets à réévaluer selon leur utilité réelle** (décision de l'utilisateur, 2026-10-23) : les
+> métaphores du bureau — document posé, terminal, téléphone, cadre — n'existent plus depuis D11. Les
+> **destinations** restent (CV, GitHub, LinkedIn, à propos) ; leur forme dans NEXUS est à décider avant
+> tout code. Les identifiants sont conservés.
+
 | ID | Tâche | Dépend de |
 |---|---|---|
-| P9-01 | Cadre d'interaction générique (objet ↔ action ↔ équivalent DOM) | P8-06 |
-| P9-02 | CV : document sur le bureau → page contact | P9-01 |
-| P9-03 | GitHub : terminal → lien externe | P9-01 |
-| P9-04 | LinkedIn : téléphone → lien externe | P9-01 |
-| P9-05 | À propos : cadre → `/[locale]/about` | P9-01 |
+| P9-01 | Cadre d'interaction générique (objet ↔ action ↔ équivalent DOM) | P8-09 |
+| P9-02 | CV : document sur le bureau → page contact — **à réévaluer** (D11) | P9-01 |
+| P9-03 | GitHub : terminal → lien externe — **à réévaluer** (D11) | P9-01 |
+| P9-04 | LinkedIn : téléphone → lien externe — **à réévaluer** (D11) | P9-01 |
+| P9-05 | À propos : cadre → `/[locale]/about` — **à réévaluer** (D11) | P9-01 |
 | P9-06 | Affordances : survol, curseur, focus visible sur les objets | P9-01 |
 | P9-07 | E2E clavier sur l'ensemble des interactions | P9-06 |
 

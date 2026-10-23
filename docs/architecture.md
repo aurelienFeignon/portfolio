@@ -469,6 +469,10 @@ désynchronisation possible (R-03), et le `back` navigateur fonctionne gratuitem
 
 ### 5.4 Interfaces des écrans [ADR-0004]
 
+> ⛔ **Amendé par D11 (2026-10-23)** : le contenu n'est plus projeté sur des écrans 3D — il vit dans un
+> `ReadingPanel` HTML non projeté, et la caméra se cadre dans l'espace restant. Ce qui suit décrit la
+> décision d'origine. État en vigueur : [`nexus-prototype.md`](./nexus-prototype.md) §3–4.
+
 **Décision** : le contenu affiché « sur » les moniteurs est du **DOM standard**, superposé au
 canvas et positionné par projection des coordonnées de l'écran 3D, et non du texte rasterisé en
 texture, ni (par défaut) du `<Html transform>` de drei.
@@ -644,7 +648,7 @@ portfolio/
 │   ├── routing/               construction et analyse d'URL
 │   ├── scene/
 │   │   ├── state/             PUR : mapping route ↔ scène, cibles caméra   ← zéro Three.js
-│   │   ├── components/        R3F : Canvas, Desk, Monitor, Rig
+│   │   ├── components/        R3F : Canvas, NEXUS (builders, rig, warmup) — D11
 │   │   └── capability/        détection de palier (pure + adaptateur navigateur)
 │   ├── ui/                    composants documentaires réutilisables
 │   ├── features/resume/       action, schéma, ResumeSender, RateLimiter

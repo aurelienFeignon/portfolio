@@ -40,6 +40,10 @@ et c'est la garantie structurelle qui protège le SEO, l'accessibilité et le mo
 
 ### 1.5 Métaphore de navigation
 
+> ⛔ **Remplacée le 2026-10-23 par D11 (NEXUS)** : le bureau et ses écrans ont laissé place à un noyau
+> numérique et trois univers — un par section, la même affectation. La description qui suit est celle
+> de D10, conservée pour l'historique. État en vigueur : [`nexus-prototype.md`](./nexus-prototype.md).
+
 ```text
                      ┌──────────────┐
                      │   Bureau     │
