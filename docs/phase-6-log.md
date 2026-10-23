@@ -568,3 +568,23 @@ premier. « Inchangé » n'affirme rien de plus.
 - ⚠️ **Le garde de §9.4 bis lit le SOURCE, pas le chunk.** Il tient la règle dès aujourd'hui, mais
   ce que P6-07 embarquera réellement reste à mesurer sur le build — le garde de P5-09 n'y voit que
   `three`, et le relevé du socle de P6-07 devra le dire.
+
+## 10. NEXUS — P6-04 à P6-06, P6-08 et P5-10 livrées par #58 (2026-10-23)
+
+La décision D11 a remplacé le bureau par NEXUS, et la Phase 6 a été achevée **dans** ce
+remplacement plutôt qu'avant lui : le rig de caméra (P6-04) a été écrit contre `CameraSpec`, qui a
+survécu au changement de scène — c'était l'objet de l'avoir rendu générique en P6-02.
+
+| Tâche | Livré | Où |
+|---|---|---|
+| P6-04 | transitions interruptibles, 1,6 s, `easeInOutCubic` | `state/camera-motion.ts` (pur, testé), `components/nexus/camera-rig.tsx` |
+| P6-05 | survol (étiquette HTML), clic → `router.push` | `components/nexus/nexus-scene.tsx`, `scene-mount.tsx` |
+| P6-06 | liens du DOM en navigation client, « Vue d'ensemble », Échap | `scene-mount.tsx`, `ui/reading-panel.tsx` |
+| P6-08 | coupe instantanée, horloge des shaders figée | `transitionMs(true) = 0`, `scene-canvas.tsx` |
+| P5-10 | boucle `always` / `demand` / `never` selon l'ambiance, le palier et la page | `scene-canvas.tsx` |
+
+⛔ **Écart à l'ordre de travail du §5** : P6-09 (l'ADR-0012) devait précéder P6-04. Elle ne l'a pas
+fait — la décision d'animation est livrée **sans** son ADR. C'est une dette, inscrite à la roadmap.
+
+Détail, captures, mesures et hypothèses réfutées : [`nexus-prototype.md`](./nexus-prototype.md).
+

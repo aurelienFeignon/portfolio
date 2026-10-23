@@ -1,7 +1,7 @@
 # NEXUS — le prototype
 
 > Branche `feat/nexus-prototype`, ouverte le 2026-10-23 depuis `main` (`2f8389b`).
-> **Prototype : rien n'est fusionné ni déployé.** Décision D11 (`phase-0-questions.md`) ;
+> ⭐ **Fusionné et déployé le 2026-10-23** (#58, `854d1fe`) — NEXUS est la scène de production. Décision D11 (`phase-0-questions.md`) ;
 > amendements d'ADR consignés dans le journal de `adr/README.md`.
 
 ## 1. Ce qui change, et ce qui ne change pas
