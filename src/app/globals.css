@@ -113,7 +113,7 @@
    */
   --header-h: 4.25rem;
   --footer-h: 3rem;
-  --panel-width: clamp(22rem, 34vw, 34rem);
+  --panel-width: clamp(24rem, 38vw, 38rem);
   --scene-band: 42svh;
 
   /*

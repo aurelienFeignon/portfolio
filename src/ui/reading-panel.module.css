@@ -78,7 +78,9 @@
     left: var(--space-6);
     width: var(--panel-width);
     margin: 0;
-    padding: var(--space-8) var(--space-6);
+    padding: var(--space-6);
+    /* Plus serré que la fiche : l'accueil doit tenir sans défiler sur un écran courant. */
+    gap: var(--space-3);
     overflow-y: auto;
     overscroll-behavior: contain;
     border-width: 1px;
@@ -87,6 +89,20 @@
     box-shadow: var(--shadow-panel), var(--glow-edge);
     scrollbar-width: thin;
     scrollbar-color: var(--color-border-strong) transparent;
+  }
+}
+
+/*
+ * Sur un écran bas (≤ 820 px), l'accueil défilait de 100 à 230 px : c'est
+ * l'introduction qui fait la hauteur, pas l'espacement. La typographie se
+ * compacte d'un cran — sans rien retirer du contenu. Au-delà, le panneau
+ * défile seul, comme prévu.
+ */
+@media (min-width: 60rem) and (max-height: 820px) {
+  .aside {
+    padding-block: var(--space-3);
+    font-size: var(--text-sm);
+    line-height: 1.45;
   }
 }
 

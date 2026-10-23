@@ -20,13 +20,13 @@
 
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
-  gap: var(--space-4);
+  gap: var(--space-3);
 }
 
 .card {
   composes: surface from './surface.module.css';
 
-  padding: var(--space-4);
+  padding: var(--space-3) var(--space-4);
 }
 
 .title {
