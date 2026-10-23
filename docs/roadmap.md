@@ -1677,7 +1677,7 @@ dépendance ajoutée au projet**.
 
 | ID | Tâche |
 |---|---|
-| P11-01 | Mesure de référence complète (`Avant`) : bundles, assets, Vitals, FPS |
+| P11-01 | Mesure de référence complète (`Avant`) : bundles, assets, Vitals, FPS — ⏳ **volet Vitals lab avancé le 2026-10-23** : protocole et premier relevé, `performance-budget.md` §6.3 ; bundles, assets et FPS restent à relever |
 | P11-02 | Analyse des bundles et découpage |
 | P11-03 | Optimisation des modèles et textures |
 | P11-04 | Optimisation de la boucle de rendu et des allocations |

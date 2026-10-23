@@ -1,0 +1,1140 @@
+{
+  "conditions": {
+    "startedAt": "2026-10-23T08:43:27.212Z",
+    "finishedAt": "2026-10-23T08:47:23.071Z",
+    "baseUrl": "http://web:3000",
+    "gitSha": "1ecfdb36c19609c60bfbc0b030a29e81b11f6b3f",
+    "imageId": "sha256:314608a9f007e5a7c31d9ae1f00e39f9912dbb9e22f03f57a455d817be0cbbaf",
+    "runsPerConfiguration": 5,
+    "lighthouseVersion": "13.4.1",
+    "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/151.0.7922.34 Safari/537.36",
+    "benchmarkIndex": 3154,
+    "hostCpus": 20,
+    "hostLoadBefore": [13.39, 11.01, 9.76],
+    "hostLoadAfter": [12.92, 12.1, 10.46]
+  },
+  "summary": [
+    {
+      "page": "/fr",
+      "factor": "mobile",
+      "mode": "scène",
+      "tiers": ["lite"],
+      "runs": 5,
+      "score": 86,
+      "metrics": {
+        "total-blocking-time": {
+          "median": 544.0000000000002,
+          "min": 509,
+          "max": 1113.4999999999995
+        },
+        "largest-contentful-paint": {
+          "median": 1655.8339999999998,
+          "min": 1506.4339999999997,
+          "max": 1769.9100000000003
+        },
+        "cumulative-layout-shift": {
+          "median": 0,
+          "min": 0,
+          "max": 0
+        },
+        "first-contentful-paint": {
+          "median": 906.434,
+          "min": 905.3520000000001,
+          "max": 922.394
+        },
+        "speed-index": {
+          "median": 906.434,
+          "min": 905.3520000000001,
+          "max": 1086.6644919949533
+        },
+        "mainthread-work-breakdown": {
+          "median": 1210.492000000004,
+          "min": 1073.804000000004,
+          "max": 2380.620000000006
+        },
+        "bootup-time": {
+          "median": 585.4879999999986,
+          "min": 526.7719999999988,
+          "max": 1033.2480000000012
+        }
+      }
+    },
+    {
+      "page": "/fr",
+      "factor": "mobile",
+      "mode": "témoin",
+      "tiers": ["none"],
+      "runs": 5,
+      "score": 100,
+      "metrics": {
+        "total-blocking-time": {
+          "median": 61,
+          "min": 52.00000000000023,
+          "max": 100
+        },
+        "largest-contentful-paint": {
+          "median": 1654.098,
+          "min": 904.8499999999999,
+          "max": 2078.384
+        },
+        "cumulative-layout-shift": {
+          "median": 0,
+          "min": 0,
+          "max": 0
+        },
+        "first-contentful-paint": {
+          "median": 904.6220000000001,
+          "min": 903.5040000000001,
+          "max": 906.384
+        },
+        "speed-index": {
+          "median": 904.6220000000001,
+          "min": 903.5040000000001,
+          "max": 906.384
+        },
+        "mainthread-work-breakdown": {
+          "median": 405.37199999999996,
+          "min": 298.1879999999998,
+          "max": 487.7119999999996
+        },
+        "bootup-time": {
+          "median": 169.17999999999984,
+          "min": 155.79200000000012,
+          "max": 204.2079999999995
+        }
+      }
+    },
+    {
+      "page": "/fr",
+      "factor": "desktop",
+      "mode": "scène",
+      "tiers": ["full"],
+      "runs": 5,
+      "score": 98,
+      "metrics": {
+        "total-blocking-time": {
+          "median": 135,
+          "min": 98,
+          "max": 207.0000000000001
+        },
+        "largest-contentful-paint": {
+          "median": 470.664,
+          "min": 444.616,
+          "max": 482.374
+        },
+        "cumulative-layout-shift": {
+          "median": 0,
+          "min": 0,
+          "max": 0
+        },
+        "first-contentful-paint": {
+          "median": 244.61599999999999,
+          "min": 243.664,
+          "max": 246.37400000000002
+        },
+        "speed-index": {
+          "median": 462.61515611586765,
+          "min": 430.4551699389795,
+          "max": 518.2146175898096
+        },
+        "mainthread-work-breakdown": {
+          "median": 410.10900000000123,
+          "min": 346.5650000000013,
+          "max": 520.3569999999995
+        },
+        "bootup-time": {
+          "median": 156.93700000000013,
+          "min": 136.9489999999994,
+          "max": 191.353
+        }
+      }
+    },
+    {
+      "page": "/fr",
+      "factor": "desktop",
+      "mode": "témoin",
+      "tiers": ["none"],
+      "runs": 5,
+      "score": 100,
+      "metrics": {
+        "total-blocking-time": {
+          "median": 0,
+          "min": 0,
+          "max": 0
+        },
+        "largest-contentful-paint": {
+          "median": 471.468,
+          "min": 470.458,
+          "max": 486.17999999999995
+        },
+        "cumulative-layout-shift": {
+          "median": 0,
+          "min": 0,
+          "max": 0
+        },
+        "first-contentful-paint": {
+          "median": 245.20600000000002,
+          "min": 244.45800000000003,
+          "max": 246.18
+        },
+        "speed-index": {
+          "median": 245.20600000000002,
+          "min": 244.45800000000003,
+          "max": 246.18
+        },
+        "mainthread-work-breakdown": {
+          "median": 80.62099999999997,
+          "min": 77.84899999999999,
+          "max": 142.353
+        },
+        "bootup-time": {
+          "median": 0,
+          "min": 0,
+          "max": 56.40299999999991
+        }
+      }
+    },
+    {
+      "page": "/fr/experiences/askor",
+      "factor": "mobile",
+      "mode": "scène",
+      "tiers": ["lite"],
+      "runs": 5,
+      "score": 85,
+      "metrics": {
+        "total-blocking-time": {
+          "median": 595.5000000000002,
+          "min": 473.9999999999998,
+          "max": 939.5
+        },
+        "largest-contentful-paint": {
+          "median": 1654.304,
+          "min": 1504.57,
+          "max": 1658.654
+        },
+        "cumulative-layout-shift": {
+          "median": 0,
+          "min": 0,
+          "max": 0
+        },
+        "first-contentful-paint": {
+          "median": 904.5699999999999,
+          "min": 903.9860000000001,
+          "max": 908.654
+        },
+        "speed-index": {
+          "median": 1102.588551858902,
+          "min": 1056.5150560279847,
+          "max": 1282.1759840646744
+        },
+        "mainthread-work-breakdown": {
+          "median": 1242.7960000000044,
+          "min": 1077.236000000003,
+          "max": 1900.0320000000022
+        },
+        "bootup-time": {
+          "median": 578.6999999999995,
+          "min": 533.9999999999992,
+          "max": 952.3080000000016
+        }
+      }
+    },
+    {
+      "page": "/fr/experiences/askor",
+      "factor": "mobile",
+      "mode": "témoin",
+      "tiers": ["none"],
+      "runs": 5,
+      "score": 99,
+      "metrics": {
+        "total-blocking-time": {
+          "median": 57,
+          "min": 49,
+          "max": 95
+        },
+        "largest-contentful-paint": {
+          "median": 1655.86,
+          "min": 1504.8359999999998,
+          "max": 2061.858
+        },
+        "cumulative-layout-shift": {
+          "median": 0,
+          "min": 0,
+          "max": 0
+        },
+        "first-contentful-paint": {
+          "median": 904.858,
+          "min": 903.356,
+          "max": 905.8599999999999
+        },
+        "speed-index": {
+          "median": 904.858,
+          "min": 903.356,
+          "max": 905.8599999999999
+        },
+        "mainthread-work-breakdown": {
+          "median": 382.3879999999998,
+          "min": 276.2279999999996,
+          "max": 506.04000000000025
+        },
+        "bootup-time": {
+          "median": 179.5879999999997,
+          "min": 154.88400000000007,
+          "max": 219.2400000000001
+        }
+      }
+    },
+    {
+      "page": "/fr/experiences/askor",
+      "factor": "desktop",
+      "mode": "scène",
+      "tiers": ["full"],
+      "runs": 5,
+      "score": 98,
+      "metrics": {
+        "total-blocking-time": {
+          "median": 134.5,
+          "min": 106,
+          "max": 189.9999999999999
+        },
+        "largest-contentful-paint": {
+          "median": 473.39599999999996,
+          "min": 468.448,
+          "max": 490.574
+        },
+        "cumulative-layout-shift": {
+          "median": 0,
+          "min": 0,
+          "max": 0
+        },
+        "first-contentful-paint": {
+          "median": 244.572,
+          "min": 243.44799999999998,
+          "max": 245.574
+        },
+        "speed-index": {
+          "median": 473.2190666672149,
+          "min": 465.4983966594557,
+          "max": 516.5628737614334
+        },
+        "mainthread-work-breakdown": {
+          "median": 402.7890000000008,
+          "min": 375.89600000000127,
+          "max": 481.33300000000145
+        },
+        "bootup-time": {
+          "median": 151.04200000000043,
+          "min": 140.36699999999945,
+          "max": 163.58499999999944
+        }
+      }
+    },
+    {
+      "page": "/fr/experiences/askor",
+      "factor": "desktop",
+      "mode": "témoin",
+      "tiers": ["none"],
+      "runs": 5,
+      "score": 100,
+      "metrics": {
+        "total-blocking-time": {
+          "median": 0,
+          "min": 0,
+          "max": 0
+        },
+        "largest-contentful-paint": {
+          "median": 472.246,
+          "min": 469.02,
+          "max": 473.782
+        },
+        "cumulative-layout-shift": {
+          "median": 0,
+          "min": 0,
+          "max": 0
+        },
+        "first-contentful-paint": {
+          "median": 244.01999999999998,
+          "min": 243.512,
+          "max": 245.288
+        },
+        "speed-index": {
+          "median": 244.01999999999998,
+          "min": 243.512,
+          "max": 245.288
+        },
+        "mainthread-work-breakdown": {
+          "median": 95.04699999999997,
+          "min": 83.20499999999998,
+          "max": 117.01
+        },
+        "bootup-time": {
+          "median": 0,
+          "min": 0,
+          "max": 1.1879999999999997
+        }
+      }
+    }
+  ],
+  "runs": [
+    {
+      "page": "/fr",
+      "factor": "mobile",
+      "mode": "scène",
+      "run": 1,
+      "tier": "lite",
+      "tierAtMs": 327.925,
+      "score": 87,
+      "metrics": {
+        "total-blocking-time": 509,
+        "largest-contentful-paint": 1672.3939999999998,
+        "cumulative-layout-shift": 0,
+        "first-contentful-paint": 922.394,
+        "speed-index": 1086.6644919949533,
+        "mainthread-work-breakdown": 1210.492000000004,
+        "bootup-time": 583.7879999999997
+      },
+      "benchmarkIndex": 2701.5
+    },
+    {
+      "page": "/fr",
+      "factor": "mobile",
+      "mode": "témoin",
+      "run": 1,
+      "tier": "none",
+      "tierAtMs": 341.404,
+      "score": 100,
+      "metrics": {
+        "total-blocking-time": 56.99999999999977,
+        "largest-contentful-paint": 1653.5040000000001,
+        "cumulative-layout-shift": 0,
+        "first-contentful-paint": 903.5040000000001,
+        "speed-index": 903.5040000000001,
+        "mainthread-work-breakdown": 487.7119999999996,
+        "bootup-time": 163.4039999999998
+      },
+      "benchmarkIndex": 3372.5
+    },
+    {
+      "page": "/fr",
+      "factor": "desktop",
+      "mode": "scène",
+      "run": 1,
+      "tier": "full",
+      "tierAtMs": 94.294,
+      "score": 99,
+      "metrics": {
+        "total-blocking-time": 116,
+        "largest-contentful-paint": 470.574,
+        "cumulative-layout-shift": 0,
+        "first-contentful-paint": 245.574,
+        "speed-index": 449.20530374352927,
+        "mainthread-work-breakdown": 382.80700000000144,
+        "bootup-time": 156.93700000000013
+      },
+      "benchmarkIndex": 3311.5
+    },
+    {
+      "page": "/fr",
+      "factor": "desktop",
+      "mode": "témoin",
+      "run": 1,
+      "tier": "none",
+      "tierAtMs": 79.314,
+      "score": 100,
+      "metrics": {
+        "total-blocking-time": 0,
+        "largest-contentful-paint": 471.206,
+        "cumulative-layout-shift": 0,
+        "first-contentful-paint": 245.20600000000002,
+        "speed-index": 245.20600000000002,
+        "mainthread-work-breakdown": 77.84899999999999,
+        "bootup-time": 0
+      },
+      "benchmarkIndex": 3418
+    },
+    {
+      "page": "/fr/experiences/askor",
+      "factor": "mobile",
+      "mode": "scène",
+      "run": 1,
+      "tier": "lite",
+      "tierAtMs": 89.609,
+      "score": 88,
+      "metrics": {
+        "total-blocking-time": 473.9999999999998,
+        "largest-contentful-paint": 1653.986,
+        "cumulative-layout-shift": 0,
+        "first-contentful-paint": 903.9860000000001,
+        "speed-index": 1071.707328030014,
+        "mainthread-work-breakdown": 1086.020000000004,
+        "bootup-time": 533.9999999999992
+      },
+      "benchmarkIndex": 3176
+    },
+    {
+      "page": "/fr/experiences/askor",
+      "factor": "mobile",
+      "mode": "témoin",
+      "run": 1,
+      "tier": "none",
+      "tierAtMs": 71.32,
+      "score": 100,
+      "metrics": {
+        "total-blocking-time": 49,
+        "largest-contentful-paint": 1504.8359999999998,
+        "cumulative-layout-shift": 0,
+        "first-contentful-paint": 904.836,
+        "speed-index": 904.836,
+        "mainthread-work-breakdown": 276.2279999999996,
+        "bootup-time": 154.88400000000007
+      },
+      "benchmarkIndex": 3397.5
+    },
+    {
+      "page": "/fr/experiences/askor",
+      "factor": "desktop",
+      "mode": "scène",
+      "run": 1,
+      "tier": "full",
+      "tierAtMs": 104.78,
+      "score": 99,
+      "metrics": {
+        "total-blocking-time": 106,
+        "largest-contentful-paint": 471.246,
+        "cumulative-layout-shift": 0,
+        "first-contentful-paint": 244.24599999999998,
+        "speed-index": 465.4983966594557,
+        "mainthread-work-breakdown": 375.89600000000127,
+        "bootup-time": 140.36699999999945
+      },
+      "benchmarkIndex": 3262.5
+    },
+    {
+      "page": "/fr/experiences/askor",
+      "factor": "desktop",
+      "mode": "témoin",
+      "run": 1,
+      "tier": "none",
+      "tierAtMs": 97.027,
+      "score": 100,
+      "metrics": {
+        "total-blocking-time": 0,
+        "largest-contentful-paint": 469.02,
+        "cumulative-layout-shift": 0,
+        "first-contentful-paint": 244.01999999999998,
+        "speed-index": 244.01999999999998,
+        "mainthread-work-breakdown": 95.04699999999997,
+        "bootup-time": 0
+      },
+      "benchmarkIndex": 3388.5
+    },
+    {
+      "page": "/fr",
+      "factor": "mobile",
+      "mode": "scène",
+      "run": 2,
+      "tier": "lite",
+      "tierAtMs": 78.97,
+      "score": 86,
+      "metrics": {
+        "total-blocking-time": 532.9999999999998,
+        "largest-contentful-paint": 1655.352,
+        "cumulative-layout-shift": 0,
+        "first-contentful-paint": 905.3520000000001,
+        "speed-index": 905.3520000000001,
+        "mainthread-work-breakdown": 1073.804000000004,
+        "bootup-time": 526.7719999999988
+      },
+      "benchmarkIndex": 3292.5
+    },
+    {
+      "page": "/fr",
+      "factor": "mobile",
+      "mode": "témoin",
+      "run": 2,
+      "tier": "none",
+      "tierAtMs": 109.355,
+      "score": 99,
+      "metrics": {
+        "total-blocking-time": 72,
+        "largest-contentful-paint": 2078.384,
+        "cumulative-layout-shift": 0,
+        "first-contentful-paint": 906.384,
+        "speed-index": 906.384,
+        "mainthread-work-breakdown": 412.18399999999986,
+        "bootup-time": 178.39599999999962
+      },
+      "benchmarkIndex": 3066.5
+    },
+    {
+      "page": "/fr",
+      "factor": "desktop",
+      "mode": "scène",
+      "run": 2,
+      "tier": "full",
+      "tierAtMs": 77.258,
+      "score": 99,
+      "metrics": {
+        "total-blocking-time": 98,
+        "largest-contentful-paint": 470.664,
+        "cumulative-layout-shift": 0,
+        "first-contentful-paint": 243.664,
+        "speed-index": 430.4551699389795,
+        "mainthread-work-breakdown": 346.5650000000013,
+        "bootup-time": 136.9489999999994
+      },
+      "benchmarkIndex": 3242.5
+    },
+    {
+      "page": "/fr",
+      "factor": "desktop",
+      "mode": "témoin",
+      "run": 2,
+      "tier": "none",
+      "tierAtMs": 81.224,
+      "score": 100,
+      "metrics": {
+        "total-blocking-time": 0,
+        "largest-contentful-paint": 471.468,
+        "cumulative-layout-shift": 0,
+        "first-contentful-paint": 245.46800000000002,
+        "speed-index": 245.46800000000002,
+        "mainthread-work-breakdown": 80.59199999999996,
+        "bootup-time": 0
+      },
+      "benchmarkIndex": 3058.5
+    },
+    {
+      "page": "/fr/experiences/askor",
+      "factor": "mobile",
+      "mode": "scène",
+      "run": 2,
+      "tier": "lite",
+      "tierAtMs": 101.674,
+      "score": 85,
+      "metrics": {
+        "total-blocking-time": 595.5000000000002,
+        "largest-contentful-paint": 1655.5120000000002,
+        "cumulative-layout-shift": 0,
+        "first-contentful-paint": 905.512,
+        "speed-index": 1120.2078080804822,
+        "mainthread-work-breakdown": 1242.7960000000044,
+        "bootup-time": 578.6999999999995
+      },
+      "benchmarkIndex": 3087
+    },
+    {
+      "page": "/fr/experiences/askor",
+      "factor": "mobile",
+      "mode": "témoin",
+      "run": 2,
+      "tier": "none",
+      "tierAtMs": 97.557,
+      "score": 99,
+      "metrics": {
+        "total-blocking-time": 95,
+        "largest-contentful-paint": 1655.812,
+        "cumulative-layout-shift": 0,
+        "first-contentful-paint": 905.8119999999999,
+        "speed-index": 905.8119999999999,
+        "mainthread-work-breakdown": 382.3879999999998,
+        "bootup-time": 212.3639999999996
+      },
+      "benchmarkIndex": 3172.5
+    },
+    {
+      "page": "/fr/experiences/askor",
+      "factor": "desktop",
+      "mode": "scène",
+      "run": 2,
+      "tier": "full",
+      "tierAtMs": 107.072,
+      "score": 99,
+      "metrics": {
+        "total-blocking-time": 112,
+        "largest-contentful-paint": 473.39599999999996,
+        "cumulative-layout-shift": 0,
+        "first-contentful-paint": 245.39600000000002,
+        "speed-index": 469.27656836456254,
+        "mainthread-work-breakdown": 401.3140000000003,
+        "bootup-time": 161.27900000000022
+      },
+      "benchmarkIndex": 3101
+    },
+    {
+      "page": "/fr/experiences/askor",
+      "factor": "desktop",
+      "mode": "témoin",
+      "run": 2,
+      "tier": "none",
+      "tierAtMs": 120.155,
+      "score": 100,
+      "metrics": {
+        "total-blocking-time": 0,
+        "largest-contentful-paint": 470.51200000000006,
+        "cumulative-layout-shift": 0,
+        "first-contentful-paint": 243.512,
+        "speed-index": 243.512,
+        "mainthread-work-breakdown": 117.01,
+        "bootup-time": 0.853
+      },
+      "benchmarkIndex": 3273
+    },
+    {
+      "page": "/fr",
+      "factor": "mobile",
+      "mode": "scène",
+      "run": 3,
+      "tier": "lite",
+      "tierAtMs": 243.006,
+      "score": 77,
+      "metrics": {
+        "total-blocking-time": 1113.4999999999995,
+        "largest-contentful-paint": 1769.9100000000003,
+        "cumulative-layout-shift": 0,
+        "first-contentful-paint": 915.9100000000001,
+        "speed-index": 1001.9320520124436,
+        "mainthread-work-breakdown": 2380.620000000006,
+        "bootup-time": 1033.2480000000012
+      },
+      "benchmarkIndex": 1903.5
+    },
+    {
+      "page": "/fr",
+      "factor": "mobile",
+      "mode": "témoin",
+      "run": 3,
+      "tier": "none",
+      "tierAtMs": 89.525,
+      "score": 99,
+      "metrics": {
+        "total-blocking-time": 100,
+        "largest-contentful-paint": 904.8499999999999,
+        "cumulative-layout-shift": 0,
+        "first-contentful-paint": 904.8499999999999,
+        "speed-index": 904.8499999999999,
+        "mainthread-work-breakdown": 335.3079999999996,
+        "bootup-time": 204.2079999999995
+      },
+      "benchmarkIndex": 2748
+    },
+    {
+      "page": "/fr",
+      "factor": "desktop",
+      "mode": "scène",
+      "run": 3,
+      "tier": "full",
+      "tierAtMs": 124.454,
+      "score": 93,
+      "metrics": {
+        "total-blocking-time": 207.0000000000001,
+        "largest-contentful-paint": 482.374,
+        "cumulative-layout-shift": 0,
+        "first-contentful-paint": 246.37400000000002,
+        "speed-index": 518.2146175898096,
+        "mainthread-work-breakdown": 520.3569999999995,
+        "bootup-time": 191.353
+      },
+      "benchmarkIndex": 2142.5
+    },
+    {
+      "page": "/fr",
+      "factor": "desktop",
+      "mode": "témoin",
+      "run": 3,
+      "tier": "none",
+      "tierAtMs": 142.838,
+      "score": 100,
+      "metrics": {
+        "total-blocking-time": 0,
+        "largest-contentful-paint": 486.17999999999995,
+        "cumulative-layout-shift": 0,
+        "first-contentful-paint": 246.18,
+        "speed-index": 246.18,
+        "mainthread-work-breakdown": 142.353,
+        "bootup-time": 56.40299999999991
+      },
+      "benchmarkIndex": 2808.5
+    },
+    {
+      "page": "/fr/experiences/askor",
+      "factor": "mobile",
+      "mode": "scène",
+      "run": 3,
+      "tier": "lite",
+      "tierAtMs": 186.8,
+      "score": 79,
+      "metrics": {
+        "total-blocking-time": 939.5,
+        "largest-contentful-paint": 1658.654,
+        "cumulative-layout-shift": 0,
+        "first-contentful-paint": 908.654,
+        "speed-index": 1282.1759840646744,
+        "mainthread-work-breakdown": 1900.0320000000022,
+        "bootup-time": 952.3080000000016
+      },
+      "benchmarkIndex": 2306.5
+    },
+    {
+      "page": "/fr/experiences/askor",
+      "factor": "mobile",
+      "mode": "témoin",
+      "run": 3,
+      "tier": "none",
+      "tierAtMs": 113.167,
+      "score": 100,
+      "metrics": {
+        "total-blocking-time": 62.99999999999977,
+        "largest-contentful-paint": 1655.86,
+        "cumulative-layout-shift": 0,
+        "first-contentful-paint": 905.8599999999999,
+        "speed-index": 905.8599999999999,
+        "mainthread-work-breakdown": 402.3399999999997,
+        "bootup-time": 179.5879999999997
+      },
+      "benchmarkIndex": 3090
+    },
+    {
+      "page": "/fr/experiences/askor",
+      "factor": "desktop",
+      "mode": "scène",
+      "run": 3,
+      "tier": "full",
+      "tierAtMs": 113.677,
+      "score": 95,
+      "metrics": {
+        "total-blocking-time": 189.9999999999999,
+        "largest-contentful-paint": 490.574,
+        "cumulative-layout-shift": 0,
+        "first-contentful-paint": 245.574,
+        "speed-index": 516.5628737614334,
+        "mainthread-work-breakdown": 481.33300000000145,
+        "bootup-time": 163.58499999999944
+      },
+      "benchmarkIndex": 2978
+    },
+    {
+      "page": "/fr/experiences/askor",
+      "factor": "desktop",
+      "mode": "témoin",
+      "run": 3,
+      "tier": "none",
+      "tierAtMs": 115.165,
+      "score": 100,
+      "metrics": {
+        "total-blocking-time": 0,
+        "largest-contentful-paint": 472.246,
+        "cumulative-layout-shift": 0,
+        "first-contentful-paint": 245.24599999999998,
+        "speed-index": 245.24599999999998,
+        "mainthread-work-breakdown": 109.497,
+        "bootup-time": 1.1879999999999997
+      },
+      "benchmarkIndex": 3135.5
+    },
+    {
+      "page": "/fr",
+      "factor": "mobile",
+      "mode": "scène",
+      "run": 4,
+      "tier": "lite",
+      "tierAtMs": 146.496,
+      "score": 84,
+      "metrics": {
+        "total-blocking-time": 668,
+        "largest-contentful-paint": 1506.4339999999997,
+        "cumulative-layout-shift": 0,
+        "first-contentful-paint": 906.434,
+        "speed-index": 906.434,
+        "mainthread-work-breakdown": 1429.0120000000052,
+        "bootup-time": 694.1399999999994
+      },
+      "benchmarkIndex": 3062
+    },
+    {
+      "page": "/fr",
+      "factor": "mobile",
+      "mode": "témoin",
+      "run": 4,
+      "tier": "none",
+      "tierAtMs": 114.95,
+      "score": 100,
+      "metrics": {
+        "total-blocking-time": 52.00000000000023,
+        "largest-contentful-paint": 1654.6219999999998,
+        "cumulative-layout-shift": 0,
+        "first-contentful-paint": 904.6220000000001,
+        "speed-index": 904.6220000000001,
+        "mainthread-work-breakdown": 405.37199999999996,
+        "bootup-time": 155.79200000000012
+      },
+      "benchmarkIndex": 2873.5
+    },
+    {
+      "page": "/fr",
+      "factor": "desktop",
+      "mode": "scène",
+      "run": 4,
+      "tier": "full",
+      "tierAtMs": 92.091,
+      "score": 98,
+      "metrics": {
+        "total-blocking-time": 135,
+        "largest-contentful-paint": 472.364,
+        "cumulative-layout-shift": 0,
+        "first-contentful-paint": 244.36399999999998,
+        "speed-index": 462.61515611586765,
+        "mainthread-work-breakdown": 410.10900000000123,
+        "bootup-time": 163.9310000000003
+      },
+      "benchmarkIndex": 2905
+    },
+    {
+      "page": "/fr",
+      "factor": "desktop",
+      "mode": "témoin",
+      "run": 4,
+      "tier": "none",
+      "tierAtMs": 81.572,
+      "score": 100,
+      "metrics": {
+        "total-blocking-time": 0,
+        "largest-contentful-paint": 474.75200000000007,
+        "cumulative-layout-shift": 0,
+        "first-contentful-paint": 244.752,
+        "speed-index": 244.752,
+        "mainthread-work-breakdown": 80.62099999999997,
+        "bootup-time": 0
+      },
+      "benchmarkIndex": 3211.5
+    },
+    {
+      "page": "/fr/experiences/askor",
+      "factor": "mobile",
+      "mode": "scène",
+      "run": 4,
+      "tier": "lite",
+      "tierAtMs": 77.431,
+      "score": 87,
+      "metrics": {
+        "total-blocking-time": 510.5,
+        "largest-contentful-paint": 1654.304,
+        "cumulative-layout-shift": 0,
+        "first-contentful-paint": 904.3040000000001,
+        "speed-index": 1056.5150560279847,
+        "mainthread-work-breakdown": 1077.236000000003,
+        "bootup-time": 547.5239999999991
+      },
+      "benchmarkIndex": 3196.5
+    },
+    {
+      "page": "/fr/experiences/askor",
+      "factor": "mobile",
+      "mode": "témoin",
+      "run": 4,
+      "tier": "none",
+      "tierAtMs": 129.692,
+      "score": 99,
+      "metrics": {
+        "total-blocking-time": 57,
+        "largest-contentful-paint": 2061.858,
+        "cumulative-layout-shift": 0,
+        "first-contentful-paint": 904.858,
+        "speed-index": 904.858,
+        "mainthread-work-breakdown": 506.04000000000025,
+        "bootup-time": 219.2400000000001
+      },
+      "benchmarkIndex": 3274.5
+    },
+    {
+      "page": "/fr/experiences/askor",
+      "factor": "desktop",
+      "mode": "scène",
+      "run": 4,
+      "tier": "full",
+      "tierAtMs": 92.081,
+      "score": 97,
+      "metrics": {
+        "total-blocking-time": 145,
+        "largest-contentful-paint": 476.572,
+        "cumulative-layout-shift": 0,
+        "first-contentful-paint": 244.572,
+        "speed-index": 486.8608849566519,
+        "mainthread-work-breakdown": 413.05600000000084,
+        "bootup-time": 147.20099999999968
+      },
+      "benchmarkIndex": 3171
+    },
+    {
+      "page": "/fr/experiences/askor",
+      "factor": "desktop",
+      "mode": "témoin",
+      "run": 4,
+      "tier": "none",
+      "tierAtMs": 87.645,
+      "score": 100,
+      "metrics": {
+        "total-blocking-time": 0,
+        "largest-contentful-paint": 473.288,
+        "cumulative-layout-shift": 0,
+        "first-contentful-paint": 245.288,
+        "speed-index": 245.288,
+        "mainthread-work-breakdown": 83.93599999999982,
+        "bootup-time": 0
+      },
+      "benchmarkIndex": 3081
+    },
+    {
+      "page": "/fr",
+      "factor": "mobile",
+      "mode": "scène",
+      "run": 5,
+      "tier": "lite",
+      "tierAtMs": 88.027,
+      "score": 86,
+      "metrics": {
+        "total-blocking-time": 544.0000000000002,
+        "largest-contentful-paint": 1655.8339999999998,
+        "cumulative-layout-shift": 0,
+        "first-contentful-paint": 905.8340000000001,
+        "speed-index": 905.8340000000001,
+        "mainthread-work-breakdown": 1151.3240000000037,
+        "bootup-time": 585.4879999999986
+      },
+      "benchmarkIndex": 3258.5
+    },
+    {
+      "page": "/fr",
+      "factor": "mobile",
+      "mode": "témoin",
+      "run": 5,
+      "tier": "none",
+      "tierAtMs": 77.851,
+      "score": 100,
+      "metrics": {
+        "total-blocking-time": 61,
+        "largest-contentful-paint": 1654.098,
+        "cumulative-layout-shift": 0,
+        "first-contentful-paint": 904.098,
+        "speed-index": 904.098,
+        "mainthread-work-breakdown": 298.1879999999998,
+        "bootup-time": 169.17999999999984
+      },
+      "benchmarkIndex": 3102.5
+    },
+    {
+      "page": "/fr",
+      "factor": "desktop",
+      "mode": "scène",
+      "run": 5,
+      "tier": "full",
+      "tierAtMs": 96.179,
+      "score": 97,
+      "metrics": {
+        "total-blocking-time": 154,
+        "largest-contentful-paint": 444.616,
+        "cumulative-layout-shift": 0,
+        "first-contentful-paint": 244.61599999999999,
+        "speed-index": 479.7715738023838,
+        "mainthread-work-breakdown": 433.6610000000002,
+        "bootup-time": 142.54200000000023
+      },
+      "benchmarkIndex": 3167
+    },
+    {
+      "page": "/fr",
+      "factor": "desktop",
+      "mode": "témoin",
+      "run": 5,
+      "tier": "none",
+      "tierAtMs": 86.075,
+      "score": 100,
+      "metrics": {
+        "total-blocking-time": 0,
+        "largest-contentful-paint": 470.458,
+        "cumulative-layout-shift": 0,
+        "first-contentful-paint": 244.45800000000003,
+        "speed-index": 244.45800000000003,
+        "mainthread-work-breakdown": 83.33099999999995,
+        "bootup-time": 0
+      },
+      "benchmarkIndex": 3328.5
+    },
+    {
+      "page": "/fr/experiences/askor",
+      "factor": "mobile",
+      "mode": "scène",
+      "run": 5,
+      "tier": "lite",
+      "tierAtMs": 92.057,
+      "score": 83,
+      "metrics": {
+        "total-blocking-time": 690.4999999999998,
+        "largest-contentful-paint": 1504.57,
+        "cumulative-layout-shift": 0,
+        "first-contentful-paint": 904.5699999999999,
+        "speed-index": 1102.588551858902,
+        "mainthread-work-breakdown": 1326.3640000000023,
+        "bootup-time": 673.8760000000003
+      },
+      "benchmarkIndex": 3171.5
+    },
+    {
+      "page": "/fr/experiences/askor",
+      "factor": "mobile",
+      "mode": "témoin",
+      "run": 5,
+      "tier": "none",
+      "tierAtMs": 74.172,
+      "score": 99,
+      "metrics": {
+        "total-blocking-time": 53,
+        "largest-contentful-paint": 2056.356,
+        "cumulative-layout-shift": 0,
+        "first-contentful-paint": 903.356,
+        "speed-index": 903.356,
+        "mainthread-work-breakdown": 299.55599999999964,
+        "bootup-time": 164.00400000000025
+      },
+      "benchmarkIndex": 2834
+    },
+    {
+      "page": "/fr/experiences/askor",
+      "factor": "desktop",
+      "mode": "scène",
+      "run": 5,
+      "tier": "full",
+      "tierAtMs": 88.015,
+      "score": 98,
+      "metrics": {
+        "total-blocking-time": 134.5,
+        "largest-contentful-paint": 468.448,
+        "cumulative-layout-shift": 0,
+        "first-contentful-paint": 243.44799999999998,
+        "speed-index": 473.2190666672149,
+        "mainthread-work-breakdown": 402.7890000000008,
+        "bootup-time": 151.04200000000043
+      },
+      "benchmarkIndex": 3141
+    },
+    {
+      "page": "/fr/experiences/askor",
+      "factor": "desktop",
+      "mode": "témoin",
+      "run": 5,
+      "tier": "none",
+      "tierAtMs": 94.694,
+      "score": 100,
+      "metrics": {
+        "total-blocking-time": 0,
+        "largest-contentful-paint": 473.782,
+        "cumulative-layout-shift": 0,
+        "first-contentful-paint": 243.78199999999998,
+        "speed-index": 243.78199999999998,
+        "mainthread-work-breakdown": 83.20499999999998,
+        "bootup-time": 0
+      },
+      "benchmarkIndex": 3198.5
+    }
+  ]
+}

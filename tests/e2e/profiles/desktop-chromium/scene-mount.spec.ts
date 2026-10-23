@@ -76,4 +76,21 @@ test.describe('montage de la scène', () => {
 
     await expect(page.locator(RACINE)).toHaveText('')
   })
+
+  test('annonce le palier qu’il a décidé, par un repère de performance', async ({ page }) => {
+    await page.goto('/fr')
+    await expect(page.locator(`${RACINE} canvas`)).toBeAttached({ timeout: 10_000 })
+
+    // ⭐ Ce repère est ce que lit `scripts/measure-performance.mts`. Le palier
+    // exact dépend de la machine — `reduced` sur un runner à 2 vCPU —, d'où une
+    // assertion sur « un palier monté » et non sur `full`.
+    const reperes = await page.evaluate(() =>
+      performance
+        .getEntriesByType('mark')
+        .map((repere) => repere.name)
+        .filter((nom) => nom.startsWith('scene:tier:')),
+    )
+    expect(reperes).toHaveLength(1)
+    expect(['scene:tier:full', 'scene:tier:reduced', 'scene:tier:lite']).toContain(reperes[0])
+  })
 })

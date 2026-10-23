@@ -37,7 +37,7 @@ install up up-d sh typecheck lint format test test-watch coverage bundle: | $(MO
 
 .PHONY: help doctor image install up up-d down sh logs ps reset typecheck lint format e2e \
         build prod-up prod-down e2e-prod bundle ci check-dns check-uptime check-content check-image-size \
-        lighthouse \
+        lighthouse perf-baseline \
         test test-watch coverage check-public-seo
 
 help: ## Affiche cette aide
@@ -105,6 +105,18 @@ e2e-prod: ## Tests end-to-end contre le BUILD DE PRODUCTION (testing-strategy §
 
 lighthouse: ## Audit Lighthouse contre le BUILD DE PRODUCTION (performance-budget §3)
 	$(COMPOSE_PROD) run --rm e2e node scripts/check-lighthouse.mts
+
+# ⭐ La mesure qui fait foi pour la performance (`performance-budget.md` §6.3) :
+# N tirs (RUNS, 5 par défaut), médiane, palier lu dans la page, témoin sans scène
+# sur la MÊME image. Pas un gate : 40 audits, quatre minutes environ.
+# L'image doit exister — `make build` d'abord ; son identifiant et le commit sont
+# consignés avec les chiffres, sans quoi une médiane ne se compare à rien.
+perf-baseline: ## Mesure de référence : 5 tirs, médiane, palier relevé, témoin sans scène
+	@docker image inspect portfolio:local >/dev/null 2>&1 || \
+	  { echo "  ✗ image portfolio:local absente — lancer 'make build' d'abord."; exit 1; }
+	GIT_SHA="$$(git rev-parse HEAD)$$(git diff --quiet HEAD || echo -dirty)" \
+	IMAGE_ID="$$(docker image inspect portfolio:local --format '{{.Id}}')" \
+	$(COMPOSE_PROD) run --rm -e GIT_SHA -e IMAGE_ID -e RUNS e2e node scripts/measure-performance.mts
 
 check-dns: ## Vérifie la zone DNS et l'authentification d'expédition (P1-17)
 	$(RUN) node scripts/check-dns.mts

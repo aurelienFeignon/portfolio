@@ -343,6 +343,77 @@ au premier rendu, réduire la carte d'ombre au montage.
 montage de la fenêtre de mesure de Lighthouse. Le coût ne disparaîtrait pas — seul l'instrument
 cesserait de le voir.
 
+⛔⛔ **Le 2 090 ms de ce tableau n'a pas été reproduit** par la mesure de référence du 2026-10-23
+(§6.3) : médiane **544 ms** sur 5 tirs, au même endroit. C'était une valeur unique, lue à la main, et
+§6.3 montre qu'un tir isolé peut s'écarter d'un facteur 4. La dette existe — elle est **mesurée** en
+§6.3 —, mais son chiffre est celui-là, pas celui-ci.
+
+### 6.3 ⭐⭐ La mesure de référence — protocole et premier relevé, 2026-10-23
+
+**Pourquoi.** §6.2 reposait sur une seule valeur par métrique, lue à la main dans des rapports jamais
+archivés, sans savoir quel palier la scène avait monté ; `check-lighthouse.mts` ne sort aucun temps.
+Aucune commande ne pouvait reproduire le chiffre sur lequel la Phase 11 et la refonte NEXUS doivent
+se juger.
+
+**Le protocole** — `make build && make perf-baseline` (`scripts/measure-performance.mts`) :
+
+| Élément | Règle | Ce qu'elle évite |
+|---|---|---|
+| Tirs | **5** par configuration (`RUNS`), médiane et étendue | prendre un tir aberrant pour un effet |
+| Configurations | `/fr` et une fiche, mobile et desktop — les profils du gate, **partagés** (`scripts/lighthouse-profiles.mts`) | deux séries bridées différemment, donc incomparables |
+| Témoin | la **même image**, Chromium lancé sans API 3D | attribuer à la scène ce qui vient du reste du site |
+| Palier | **lu dans la page** (`performance.mark('scene:tier:…')`, audit `user-timings`) ; un témoin qui ne rapporte pas `none` **arrête** la mesure | mesurer une scène dont on ignore la forme |
+| Ordre | tirs entrelacés scène / témoin | qu'une dérive de charge pèse sur une seule série |
+| Conditions | commit, image, Lighthouse, Chromium, `benchmarkIndex`, charge de l'hôte — dans le résumé | une médiane qui ne se compare à rien |
+
+Le résumé de chaque relevé est versionné dans [`docs/mesures/`](./mesures/) ; les rapports complets
+restent dans `.perf/`, hors dépôt. ⚠️ **Sur cette machine**, `docker-compose.prod.yml` publie le port
+3001 que Grafana occupe : surcharger avec `ports: !override []` (fichier hors dépôt passé par
+`COMPOSE_PROD`), comme pour `make e2e-prod`.
+
+**Premier relevé** — commit `1ecfdb3` (le code servi en production, `2fa1f4f`, plus le repère de
+palier), image `sha256:314608a9…`, Lighthouse 13.4.1, HeadlessChrome 151, sans GPU (SwiftShader),
+`benchmarkIndex` médian 3 154, hôte à 20 cœurs chargé à ~13. Résumé :
+[`2026-10-23-reference-1ecfdb3.json`](./mesures/2026-10-23-reference-1ecfdb3.json).
+
+| Page · profil | Palier | TBT scène | TBT témoin | **Coût de la scène** | Thread principal (écart) | LCP scène / témoin |
+|---|---|---|---|---|---|---|
+| `/fr` · mobile | `lite` | 544 ms *(509–1 113)* | 61 ms | **+483 ms** | +805 ms | 1 656 / 1 654 ms |
+| fiche · mobile | `lite` | 596 ms *(474–940)* | 57 ms | **+539 ms** | +860 ms | 1 654 / 1 656 ms |
+| `/fr` · desktop | `full` | 135 ms *(98–207)* | 0 ms | **+135 ms** | +329 ms | 471 / 471 ms |
+| fiche · desktop | `full` | 135 ms *(106–190)* | 0 ms | **+135 ms** | +308 ms | 473 / 472 ms |
+
+CLS **0** partout.
+
+**✅ Établi par cette mesure :**
+
+1. **Le TBT de référence est ~550–600 ms en mobile, pas 2 090.** Le tir le plus haut de la série
+   (1 113 ms) coïncide avec un `benchmarkIndex` tombé à 1 904 contre ~3 200 : un pic de charge de
+   l'hôte, pas le site. Le tir d'essai qui a précédé la série a rendu **2 182 ms** pour un indice
+   normal — un seul échantillon, cause non établie. ⭐⭐ *Un tir isolé peut s'écarter d'un facteur 4 :
+   aucun chiffre de TBT de ce dépôt ne s'énonce plus sans sa médiane et son étendue.*
+2. **En mobile, la scène mesurée est `lite` — sans ombres.** L'émulation mobile de Lighthouse rend
+   `(pointer: fine)` faux. La carte d'ombre 2048² ne peut donc **pas** expliquer le TBT mobile, et la
+   piste « réduire la carte d'ombre » de §6.2 ne vaut que pour le desktop.
+3. **Le coût est entièrement celui de la scène.** Sans elle, le site tient la cible de §2 (TBT ≤ 200
+   ms) avec une large marge ; avec elle, il dépasse le seuil bloquant (300 ms) en mobile. LCP et CLS
+   ne bougent pas : ADR-0003 tient — le canvas n'entre pas dans le chemin critique.
+4. **Ce n'est pas l'analyse du chunk 3D qui coûte.** Décomposition du thread principal en mobile
+   (`mainthread-work-breakdown`, écart des médianes) : *Script Evaluation* **+361 à +393 ms**,
+   *Other* **+293 à +468 ms**, *Script Parsing & Compilation* **+57 à +60 ms** seulement. Le chunk de
+   three, à lui seul, porte 611 à 655 ms d'exécution (`bootup-time`).
+
+**⚠️ Encore des hypothèses :**
+
+- *Other* serait le travail WebGL — création des contextes, compilation des shaders sous
+  SwiftShader. Lighthouse ne l'attribue pas ; une trace de performance le dirait.
+- La part de la **double création de contexte** (sonde de capacité, puis `<Canvas>`) n'est pas isolée.
+- Le coût sur un appareil réel, GPU présent, reste inconnu — la Phase 13 le mesurera.
+
+**Pour la suite** : toute comparaison — NEXUS contre le bureau, une optimisation contre son point de
+départ — se fait **par ce protocole, sur la même machine, à `benchmarkIndex` comparable**. Un relevé
+dont l'indice médian s'écarte de plus de 20 % de celui de la référence se refait.
+
 ---
 
 ## 7. Budget serveur (VPS)
@@ -438,6 +509,7 @@ placé sur un volume persistant, pour ne pas recalculer après chaque déploieme
 | Phase 5, 8, 11, 13 | Triangles, draw calls, mémoire GPU | `renderer.info` relevé dans un panneau de diagnostic activable |
 | Phase 5, 8, 11, 13 | FPS | Relevé sur matériel réel, pas en émulation |
 | Phase 11, 15 | Core Web Vitals lab | Lighthouse, profils desktop et mobile |
+| Avant et après tout changement de la scène | TBT, LCP, CLS, thread principal — avec et sans scène | `make perf-baseline`, protocole de §6.3 : 5 tirs, médiane, palier lu, témoin |
 | Phase 11, 15 | TTFB multi-région | Mesure depuis au moins deux localisations |
 | Continu (post-release) | Vitals terrain | Mesure côté client sans cookie, agrégée — si et seulement si H-08 tient |
 

@@ -281,8 +281,9 @@ contenu long dans un `ReadingPanel` HTML non projeté, scène réservée à l'ac
 La formaliser (D11, amendements d'ADR-0004 et d'ADR-0010) est l'étape 5 ci-dessous, pas avant.
 **Ordre d'exécution arrêté par l'utilisateur** :
 1. ~~Finaliser P6-02~~ — fait (#55).
-2. **Mesures de référence reproductibles** (Lighthouse : TBT/LCP/CLS extraits, médiane de 5 tirs,
-   palier monté relevé, témoin sans scène) sur l'image servie en production.
+2. ~~Mesures de référence reproductibles~~ — fait le 2026-10-23 : `make perf-baseline`,
+   `performance-budget.md` §6.3. ⭐ **TBT mobile ~550–600 ms, dont ~+500 ms dus à la scène, en
+   palier `lite` (sans ombres)** — le 2 090 ms de §6.2 n'est pas reproduit.
 3. Lisibilité HTML : `ReadingPanel`.
 4. P6-04 contre l'interface générique `CameraSpec` — précédée de P6-09 ci-dessous.
 5. Formaliser les décisions NEXUS. 6. Prototype sur une branche isolée. 7. Validation visuelle

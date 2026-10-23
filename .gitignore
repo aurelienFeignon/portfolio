@@ -35,5 +35,9 @@ Thumbs.db
 *.tsbuildinfo
 .turbo/
 
+# Rapports Lighthouse complets de `make perf-baseline` : seul le résumé est
+# versionné, dans `docs/mesures/`.
+.perf/
+
 # Extractions jetables (texte des PDF du CV, sondes) : jamais versionnées.
 .tmp/
