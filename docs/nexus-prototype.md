@@ -138,6 +138,36 @@ aucune image ; **l'accueil double** par rapport au bureau.
 6. ⚠️ Deux relevés ultérieurs sont **invalides** au sens du §6.3 (indice 2 253 puis 1 400–1 900,
    charge de l'hôte à 27) et ne sont pas cités.
 
-**Pistes non essayées** : moins de variantes de matériaux (fusionner les matériaux de base et de
+### 6.4 ✅ Sur un appareil réel — mesuré le 2026-10-23
+
+Panneau `?debug=scene` (première image chronométrée jusqu'à la fin de son rendu, tâches longues
+imputées à la scène à partir de sa décision de montage), dans le Chrome de l'utilisateur.
+Machine : **NVIDIA GeForce RTX 5050 Laptop** (ANGLE / Direct3D 11), **compilation parallèle : oui**.
+
+| Relevé | Tâches longues | Blocage (TBT) | Première image | Draw calls |
+|---|---|---|---|---|
+| Normal | 0 | **0 ms** | 712 ms | 72 |
+| Fenêtre privée neuve (cache de shaders vide) | 0 | **0 ms** | 738 ms | 72 |
+| Processeur bridé ×4 | 5 (max 134 ms) | **154 ms** | 869 ms | 35 ¹ |
+| *Banc, pour mémoire (SwiftShader, sans compilation parallèle)* | *21 (max 755 ms)* | *882 ms* | *1 239 ms* | *72* |
+
+¹ fenêtre rétrécie par les outils de développement : la caméra cadre moins d'objets.
+
+**Ce que cela établit :**
+
+1. ✅ **L'hypothèse du §6.3 point 5 est confirmée** : le coût du banc venait du rendu logiciel et de
+   l'absence de compilation parallèle. Sur un vrai GPU, `ShaderWarmup` (`compileAsync`) prépare les
+   shaders en arrière-plan : **aucune tâche longue**, y compris sur une vraie première visite.
+2. ✅ **Avec un processeur de téléphone simulé, 154 ms de blocage** — sous la cible de 200 ms. Le banc
+   annonçait 1 231 ms en mobile : il surestime ce coût d'un facteur ~8.
+3. ⭐ Les ~700 ms de « première image » ne bloquent rien : c'est le délai avant le fondu
+   d'apparition (chunk 3D, compilation en arrière-plan), pendant lequel la page reste utilisable.
+
+**Ce qui reste NON vérifié** : un GPU intégré, un vrai téléphone, et Safari (qui n'offre peut-être
+pas `KHR_parallel_shader_compile` — sans elle, on retombe sur la compilation synchrone du banc).
+⚠️ **Conséquence pour l'outillage** : `make perf-baseline` mesure le banc sans GPU. Il reste juste
+pour comparer deux versions entre elles ; il ne dit pas ce que vit un visiteur équipé d'un GPU.
+
+**Pistes non essayées, à garder pour les appareils sans compilation parallèle** : moins de variantes de matériaux (fusionner les matériaux de base et de
 lignes), compiler par étapes en rendant les objets un à un pendant le fondu, et surtout **mesurer
 sur un appareil réel** avant d'optimiser davantage.
