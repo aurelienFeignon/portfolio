@@ -15,12 +15,14 @@ import { expect, test } from '../../support/test'
  * d'évitement sauté —, et au lien de retour après l'ouverture d'une fiche —
  * l'en-tête entier sauté. Chaque entrée posait son propre départ.
  *
- * ⭐ **La règle retenue : une navigation client se comporte comme un chargement.**
- * Le focus repart du début du document, sans anneau, et le premier Tab rend le
- * lien d'évitement — exactement ce que vit un visiteur sans WebGL ni JavaScript,
- * pour qui chaque lien est un chargement (ADR-0003 : la scène enrichit, elle ne
- * change pas le parcours clavier). Le nom de la page est dit par l'annonceur de
- * route de Next, qu'on ne déplace pas : le focus ne le répète pas.
+ * ⭐ **La règle retenue : une navigation client se comporte comme un chargement**
+ * (`src/routing/focus-reset.ts`). Le premier Tab rend le lien d'évitement, sans
+ * anneau autour de la page, et le nom de la page est dit par l'annonceur de
+ * route de Next — exactement ce que vit un visiteur sans WebGL ni JavaScript.
+ *
+ * ⭐ **Joué sous Chromium ET WebKit** (`scene-mounted/`) : l'assertion sur
+ * l'anneau tient sous Chromium même sans `focusVisible: false` — mutation
+ * survivante à bon droit —, et ne rougit que sous WebKit (2 cas sur 4, mesuré).
  *
  * ⛔ **Le témoin posé sur le canvas n'est pas décoratif** : sans lui, une
  * navigation qui rechargerait la page passerait ce parcours au vert — un
@@ -37,46 +39,59 @@ async function monterLaScene(page: Page, chemin: string) {
   await canvas.evaluate((element) => element.setAttribute('data-temoin', 'meme-canvas'))
 }
 
-async function attendreUnDepartDeChargement(page: Page) {
+function navigationPrincipale(page: Page) {
+  return page.getByRole('navigation', { name: 'Navigation principale' })
+}
+
+async function attendreLeDebutDuDocument(page: Page) {
   await expect(page.locator(TEMOIN)).toBeAttached()
 
   await expect.poll(() => page.evaluate(() => document.activeElement === document.body)).toBe(true)
   // Le `tabindex` posé pour prendre le focus ne survit pas : `<body>` ne doit
   // pas devenir un arrêt de tabulation.
   await expect(page.locator('body')).not.toHaveAttribute('tabindex')
-  // ⭐ Aucun anneau autour de la page entière. Sous Chromium cette assertion tient
-  // même sans `focusVisible: false` — mutation survivante À BON DROIT ; sous
-  // WebKit, elle rougit sans l'option (2 cas sur 4, mesuré le 2026-10-26 par une
-  // configuration ponctuelle). Ce profil ne joue que Chromium : WebKit n'est pas
-  // gardé par le banc.
   expect(await page.evaluate(() => document.body.matches(':focus-visible'))).toBe(false)
-
-  // ⭐ L'annonce est celle de Next. On ne la produit pas, mais c'est elle qui
-  // rend ce choix sûr : sans elle, un lecteur d'écran n'entendrait rien.
-  await expect
-    .poll(() =>
-      page.evaluate(() => {
-        const annonce =
-          document.querySelector('next-route-announcer')?.shadowRoot?.textContent ?? ''
-        return annonce !== '' && document.title.includes(annonce)
-      }),
-    )
-    .toBe(true)
 
   await page.keyboard.press('Tab')
   await expect(page.getByRole('link', { name: 'Aller au contenu principal' })).toBeFocused()
 }
 
+/**
+ * L'annonce est celle de Next : on ne la produit pas, mais c'est elle qui rend
+ * ce choix sûr — sans elle, un lecteur d'écran n'entendrait rien.
+ *
+ * ⛔ Elle doit nommer la page **d'arrivée** : le titre, ou le `h1` quand Next lit
+ * avant que le titre soit posé (mesuré). Une simple inclusion dans le titre
+ * passait sur l'annonce précédente, pas encore remplacée.
+ */
+async function attendreLAnnonce(page: Page) {
+  await expect
+    .poll(() =>
+      page.evaluate(() => {
+        const annonce = document.querySelector('next-route-announcer')?.shadowRoot?.textContent
+        const titre = document.querySelector('main h1')?.textContent?.trim()
+        return annonce !== '' && (annonce === document.title || annonce === titre)
+      }),
+    )
+    .toBe(true)
+}
+
 test.describe('focus après une navigation client', () => {
   test('un lien d’en-tête, activé au clavier', async ({ page }) => {
     await monterLaScene(page, '/fr')
-    await page
-      .getByRole('navigation', { name: 'Navigation principale' })
-      .getByRole('link', { name: 'Projets' })
-      .focus()
+    await navigationPrincipale(page).getByRole('link', { name: 'Projets' }).focus()
     await page.keyboard.press('Enter')
     await expect(page).toHaveURL(/\/fr\/projects$/)
-    await attendreUnDepartDeChargement(page)
+    await attendreLAnnonce(page)
+    await attendreLeDebutDuDocument(page)
+  })
+
+  test('un lien vers la page affichée, dont le chemin ne change pas', async ({ page }) => {
+    await monterLaScene(page, '/fr/projects')
+    await navigationPrincipale(page).getByRole('link', { name: 'Projets' }).focus()
+    await page.keyboard.press('Enter')
+    await expect(page).toHaveURL(/\/fr\/projects$/)
+    await attendreLeDebutDuDocument(page)
   })
 
   test('un lien du panneau vers une fiche', async ({ page }) => {
@@ -84,8 +99,9 @@ test.describe('focus après une navigation client', () => {
     await monterLaScene(page, '/fr/projects')
     await page.locator(`main a[href="${fiche}"]`).first().focus()
     await page.keyboard.press('Enter')
-    await expect(page).toHaveURL(new RegExp(`${fiche}$`))
-    await attendreUnDepartDeChargement(page)
+    await expect(page).toHaveURL((url) => url.pathname === fiche)
+    await attendreLAnnonce(page)
+    await attendreLeDebutDuDocument(page)
   })
 
   test('Échap, depuis une section', async ({ page }) => {
@@ -95,18 +111,17 @@ test.describe('focus après une navigation client', () => {
     await page.locator('main a').first().focus()
     await page.keyboard.press('Escape')
     await expect(page).toHaveURL(/\/fr$/)
-    await attendreUnDepartDeChargement(page)
+    await attendreLAnnonce(page)
+    await attendreLeDebutDuDocument(page)
   })
 
   test('le bouton Précédent du navigateur', async ({ page }) => {
     await monterLaScene(page, '/fr')
-    await page
-      .getByRole('navigation', { name: 'Navigation principale' })
-      .getByRole('link', { name: 'Expériences' })
-      .click()
+    await navigationPrincipale(page).getByRole('link', { name: 'Expériences' }).click()
     await expect(page).toHaveURL(/\/fr\/experiences$/)
     await page.goBack()
     await expect(page).toHaveURL(/\/fr$/)
-    await attendreUnDepartDeChargement(page)
+    await attendreLAnnonce(page)
+    await attendreLeDebutDuDocument(page)
   })
 })

@@ -288,9 +288,10 @@ prototype, validation visuelle avec l'utilisateur, fusion et déploiement (#58),
 document, comme un chargement — premier Tab sur le lien d'évitement, nom de la page dit par
 l'annonceur de route de Next (choix de l'utilisateur, parmi `h1` et `<main>`). ⭐⭐ Le défaut mesuré :
 le focus tombait sur `<body>` avec un point de départ propre à chaque entrée — le lien d'évitement
-sauté après un lien d'en-tête, l'en-tête entier après l'ouverture d'une fiche. ⚠️ **WebKit n'est
-pas gardé par le banc** : `focusVisible: false` y est indispensable (sans lui, un anneau autour de la
-page, 2 cas sur 4), mesuré par une configuration ponctuelle ; le profil ne joue que Chromium.
+sauté après un lien d'en-tête, l'en-tête entier après l'ouverture d'une fiche. ⭐ Le geste vit dans
+`src/routing/focus-reset.ts` (unitaire) ; le parcours dans `tests/e2e/profiles/scene-mounted/`, **joué
+sous Chromium ET WebKit** — `focusVisible: false` ne se juge que sous WebKit (sans lui, un anneau
+autour de la page entière). Firefox headless ne monte pas la scène : non couvert.
 
 **Reste à faire — dans l'ordre recommandé le 2026-10-23 :**
 

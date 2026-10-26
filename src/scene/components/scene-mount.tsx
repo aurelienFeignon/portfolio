@@ -26,6 +26,7 @@ import dynamic from 'next/dynamic'
 import { usePathname, useRouter } from 'next/navigation'
 import { useCallback, useEffect, useRef, useState } from 'react'
 
+import { resetFocusToDocumentStart } from '@/routing/focus-reset'
 import { homePath, localeFromPathname, parsePagePath } from '@/routing/paths'
 import type { Section } from '@/routing/sections'
 
@@ -131,27 +132,6 @@ function lienInterne(event: MouseEvent): string | null {
   return parsePagePath(url.pathname) === null ? null : url.pathname
 }
 
-/**
- * Remet le focus au début du document, comme le ferait un chargement (P7-05).
- *
- * ⛔ Sans cela, le lien activé disparaît avec le layout de son endroit et le
- * focus tombe sur `<body>` en gardant un point de départ qui dépend de l'endroit
- * où était ce lien : le Tab suivant sautait le lien d'évitement, ou l'en-tête
- * entier, selon l'entrée.
- *
- * ⭐ C'est le parcours d'un visiteur sans scène, pour qui chaque lien est un
- * chargement (ADR-0003) : premier Tab sur le lien d'évitement, et le nom de la
- * page dit par l'annonceur de route de Next — que le focus ne répète pas, d'où
- * `<body>` plutôt que le `h1`. Même geste que SvelteKit, `tabindex` retiré
- * aussitôt pour que `<body>` ne devienne pas un arrêt de tabulation.
- */
-function repartirDuDebut() {
-  const corps = document.body
-  corps.tabIndex = -1
-  corps.focus({ preventScroll: true, focusVisible: false })
-  corps.removeAttribute('tabindex')
-}
-
 export function SceneMount({ labels }: { readonly labels: Readonly<Record<Section, string>> }) {
   const [etat, setEtat] = useState<SceneMountState>(SCENE_WAITING)
   const [diagnostics, setDiagnostics] = useState(false)
@@ -242,14 +222,15 @@ export function SceneMount({ labels }: { readonly labels: Readonly<Record<Sectio
 
   /*
    * Chaque changement de chemin est une navigation client — un chargement ne
-   * rend pas ce composant une seconde fois. Pas de garde sur `monte` : un retour
+   * rend pas ce composant une seconde fois —, et elle repart du début comme un
+   * chargement (P7-05, `focus-reset.ts`). Pas de garde sur `monte` : un retour
    * arrière reste une navigation client même après la chute de la scène.
    */
   const cheminPrecedent = useRef(chemin)
   useEffect(() => {
     if (cheminPrecedent.current === chemin) return
     cheminPrecedent.current = chemin
-    repartirDuDebut()
+    resetFocusToDocumentStart(document)
   }, [chemin])
 
   // Les liens du DOM empruntent la même transition qu'un clic dans la scène.
@@ -259,6 +240,9 @@ export function SceneMount({ labels }: { readonly labels: Readonly<Record<Sectio
       const cible = lienInterne(event)
       if (cible === null) return
       event.preventDefault()
+      // ⛔ Vers la page affichée, le chemin ne change pas et l'effet ci-dessus ne
+      // voit rien — là où, sans scène, le même clic recharge la page.
+      if (cible === window.location.pathname) resetFocusToDocumentStart(document)
       routeur.push(cible)
     }
     document.addEventListener('click', intercepter)
