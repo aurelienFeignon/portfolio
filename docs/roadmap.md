@@ -55,7 +55,7 @@ silencieusement.
 | 4 | Portfolio HTML | **DONE** *(2026-08-20)* | **Produit utilisable sans Three.js** (phase obligatoire) |
 | 5 | Fondation Three.js | **DONE** *(2026-08-25)* — 10/10, P5-10 close le 2026-10-23 avec #58 | Scène primitive : le bureau réel, éclairé, budget tenu, isolation gardée |
 | 6 | Navigation spatiale | **IN_PROGRESS** *(ouverte le 2026-08-26)* — 7/10 ; reste P6-07, P6-09, P6-10 | Route ↔ scène, testé sans WebGL |
-| 7 | Interfaces de lecture *(réorientée par D11)* | **IN_PROGRESS** — P7-03 et P7-08 livrées par #58 | Contenu dans un panneau HTML non projeté, instance unique |
+| 7 | Interfaces de lecture *(réorientée par D11)* | **IN_PROGRESS** — P7-03 et P7-08 livrées par #58, P7-05 le 2026-10-26 | Contenu dans un panneau HTML non projeté, instance unique |
 | 8 | Direction artistique NEXUS *(réorientée par D11)* | **IN_PROGRESS** — prototype en production (P8-09) | Scène crédible, budgets mesurés à chaque ajout |
 | 9 | Interactions secondaires | TODO — **objets à réévaluer** (D11 : plus de bureau) | CV, GitHub, LinkedIn, contact, à propos |
 | 10 | Envoi du CV | TODO | Server Action + fournisseur abstrait + anti-abus |
@@ -1607,7 +1607,7 @@ sur l'animation de caméra se pose avant d'écrire le rig, pas après (CT-08).
 | ~~P7-02~~ | ~~Mécanisme de portail à instance unique (ADR-0004)~~ — **DROPPED** (D11) : chaque page rend son contenu une fois, dans son panneau, sans portail | P7-01 |
 | P7-03 | Branchement des contenus Projets / Expériences / Compétences — **DONE** *(2026-10-23, #58)* : les pages dans le `ReadingPanel` | P2-05 |
 | P7-04 | Test d'intégration de non-duplication du contenu dans le DOM (R-01) | P7-03 |
-| P7-05 | Ordre de tabulation et focus cohérents en mode immersif | P7-03 |
+| P7-05 | Ordre de tabulation et focus cohérents en mode immersif — **DONE** *(2026-10-26)* : une navigation client remet le focus au début du document, comme un chargement (E2E-15) | P7-03 |
 | P7-06 | Comportement lors des transitions (masquage/révélation du panneau) | P7-03 |
 | P7-07 | Bascule de locale et deep links en mode immersif | P7-03 |
 | P7-08 | Panneau fixe indépendant de la scène — **DONE** *(2026-10-23, #58)* : le `ReadingPanel`, devenu la cible et non plus un repli | — |

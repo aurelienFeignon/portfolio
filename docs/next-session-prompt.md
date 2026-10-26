@@ -281,15 +281,20 @@ mets l'ADR à jour et ajoute une ligne au journal des révisions. Jamais de chan
 référence (#57), `ReadingPanel`, P6-04, décisions NEXUS (D11 et amendements d'ADR 0002/0003/0004/0010),
 prototype, validation visuelle avec l'utilisateur, fusion et déploiement (#58), roadmap reprise.
 
-⛔ **Avant toute chose, vérifie la fusion de #59** (cette mise à jour de roadmap et de prompt) :
-`gh pr view 59 --json state`. Et l'aperçu local `nexus-preview` (port 3100) n'a plus d'objet depuis
-le déploiement : `docker ps --filter name=nexus-preview`, l'arrêter s'il tourne encore.
+⛔ **Avant toute chose, vérifie la fusion de la PR de P7-05** (branche
+`feat/p7-05-focus-navigation-client`) : `gh pr list --state all --head feat/p7-05-focus-navigation-client`.
+
+✅ **P7-05 est livrée** (2026-10-26, E2E-15) : une navigation client remet le focus au début du
+document, comme un chargement — premier Tab sur le lien d'évitement, nom de la page dit par
+l'annonceur de route de Next (choix de l'utilisateur, parmi `h1` et `<main>`). ⭐⭐ Le défaut mesuré :
+le focus tombait sur `<body>` avec un point de départ propre à chaque entrée — le lien d'évitement
+sauté après un lien d'en-tête, l'en-tête entier après l'ouverture d'une fiche. ⚠️ **WebKit n'est
+pas gardé par le banc** : `focusVisible: false` y est indispensable (sans lui, un anneau autour de la
+page, 2 cas sur 4), mesuré par une configuration ponctuelle ; le profil ne joue que Chromium.
 
 **Reste à faire — dans l'ordre recommandé le 2026-10-23 :**
 
-1. **P7-05 — le focus après une navigation client** ⭐ *accessibilité, en premier*. Depuis #58, quand
-   la scène est montée, les liens ne rechargent plus la page (`router.push`). Vérifier où va le focus
-   clavier et ce qu'annonce un lecteur d'écran à chaque changement de route — aucun banc ne le garde.
+1. ~~P7-05~~ — livrée, ci-dessus.
 2. **P6-09 — l'ADR-0012, en dette** : la stratégie d'animation (interpolation maison `easeInOutCubic`,
    1,6 s, interruptible, coupe sous `reduced-motion`) est **livrée sans son ADR**. L'écrire en
    constatant ce qui est en place et ce qui a été écarté — pas en la présentant comme à trancher.
