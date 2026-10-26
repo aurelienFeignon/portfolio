@@ -126,3 +126,58 @@ export function framingFor(
     aspect: free.width / free.height,
   }
 }
+
+/**
+ * La consigne de parallaxe pour un pointeur, en coordonnées normalisées de la
+ * fenêtre (−1 à gauche et en bas, +1 à droite et en haut).
+ *
+ * ⭐ La caméra va **vers** le pointeur : à droite de la fenêtre, elle tourne vers
+ * la droite autour de sa cible, et la scène pivote en sens inverse — la
+ * profondeur se lit dans ce décalage. Une entrée hors de `[-1, 1]` (pointeur
+ * hors de la fenêtre) est ramenée au bord.
+ */
+export function parallaxFor(
+  pointerX: number,
+  pointerY: number,
+  limits: { readonly yawDeg: number; readonly pitchDeg: number },
+): { readonly yawDeg: number; readonly pitchDeg: number } {
+  const clamp = (value: number) => Math.min(1, Math.max(-1, value))
+  return { yawDeg: clamp(pointerX) * limits.yawDeg, pitchDeg: clamp(pointerY) * limits.pitchDeg }
+}
+
+/**
+ * Le dégagement, en pixels, entre le point d'accroche d'une étiquette et le bord
+ * de la zone libre. ⭐ Il se mesure depuis l'ACCROCHE — le milieu du bord bas de
+ * l'étiquette —, donc il couvre la demi-largeur de l'étiquette sur les côtés et
+ * toute sa hauteur au-dessus : sans cela, une étiquette « visible » déborde sous
+ * le panneau ou hors de l'écran (capture du gros plan Compétences).
+ */
+export const LABEL_CLEARANCE_PX = { side: 112, top: 56, bottom: 16 } as const
+
+/**
+ * Où poser l'étiquette d'un univers, à partir de la projection de son ancre
+ * (coordonnées normalisées de l'appareil, celles de `Vector3.project`).
+ *
+ * ⛔ **Visible seulement dans la zone libre** : une étiquette qui passerait sous
+ * le panneau de lecture, ou derrière la caméra (`z` hors de `[-1, 1]`), est
+ * cachée — jamais posée sur le contenu. Sans panneau, la zone libre est l'écran.
+ */
+export function labelPlacement(
+  ndc: Vec3,
+  width: number,
+  height: number,
+  free: Rect | null,
+): { readonly x: number; readonly y: number; readonly visible: boolean } {
+  const x = ((ndc[0] + 1) / 2) * width
+  const y = ((1 - ndc[1]) / 2) * height
+  const zone =
+    free !== null && free.width > 0 && free.height > 0 ? free : { x: 0, y: 0, width, height }
+  const visible =
+    ndc[2] > -1 &&
+    ndc[2] < 1 &&
+    x >= zone.x + LABEL_CLEARANCE_PX.side &&
+    x <= zone.x + zone.width - LABEL_CLEARANCE_PX.side &&
+    y >= zone.y + LABEL_CLEARANCE_PX.top &&
+    y <= zone.y + zone.height - LABEL_CLEARANCE_PX.bottom
+  return { x, y, visible }
+}

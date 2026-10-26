@@ -9,9 +9,9 @@
  * pointeur.
  *
  * ⛔ **Aucun univers ne porte de donnée de contenu.** `scene` ne lit pas
- * `content` (`architecture.md` §1.2) : ces formes sont des emblèmes — une
- * chronologie, un réseau, une constellation —, pas des graphiques qui
- * prétendraient compter les expériences ou les projets.
+ * `content` (`architecture.md` §1.2) : ces formes sont des emblèmes — une pile
+ * de couches, un prisme, un gyroscope —, pas des graphiques qui prétendraient
+ * compter les expériences ou les projets.
  */
 import { type ThreeEvent, useFrame, useThree } from '@react-three/fiber'
 import { type ReactNode, useEffect, useMemo, useRef } from 'react'
@@ -24,12 +24,12 @@ import type { SceneFocus } from '@/scene/state/scene-state'
 import {
   type Built,
   buildConnections,
-  buildArchitecture,
-  buildConstellation,
   buildCore,
+  buildGyroscope,
   buildParticles,
   buildPlatform,
-  buildTimeline,
+  buildPrism,
+  buildStack,
 } from './builders'
 
 /** L'heure des shaders sous `prefers-reduced-motion` : impulsions visibles à l'arrêt. */
@@ -38,10 +38,10 @@ const FROZEN_TIME = 2.4
 /** Au-delà de ce déplacement (pixels), un appui est une rotation, pas un clic. */
 const CLICK_TOLERANCE_PX = 6
 
-const BUILD_UNIVERSE: Readonly<Record<Section, (density: Density) => Built>> = {
-  experiences: () => buildTimeline(),
-  projects: buildArchitecture,
-  skills: buildConstellation,
+const BUILD_UNIVERSE: Readonly<Record<Section, () => Built>> = {
+  experiences: buildStack,
+  projects: buildPrism,
+  skills: buildGyroscope,
 }
 
 export function NexusScene({
@@ -70,7 +70,7 @@ export function NexusScene({
     ]
     const universes = SECTIONS.map((section) => ({
       section,
-      built: BUILD_UNIVERSE[section](density),
+      built: BUILD_UNIVERSE[section](),
     }))
     return { ambient, universes }
   }, [density, pixelRatio])

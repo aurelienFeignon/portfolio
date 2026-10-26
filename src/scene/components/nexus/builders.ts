@@ -18,45 +18,43 @@ import {
   BoxGeometry,
   type BufferGeometry,
   CanvasTexture,
-  Color,
+  CircleGeometry,
   CylinderGeometry,
-  DoubleSide,
+  DodecahedronGeometry,
   EdgesGeometry,
   GridHelper,
   Group,
   IcosahedronGeometry,
-  InstancedMesh,
   Line,
-  LineLoop,
   LineBasicMaterial,
   LineSegments,
   type Material,
   Mesh,
   MeshBasicMaterial,
   MeshStandardMaterial,
-  Object3D,
+  type Object3D,
   OctahedronGeometry,
-  PlaneGeometry,
   Points,
   type ShaderMaterial,
   SphereGeometry,
   Sprite,
   SpriteMaterial,
   TorusGeometry,
+  WireframeGeometry,
 } from 'three'
 
 import { SECTIONS, type Section } from '@/routing/sections'
 import { CORE_RADIUS, type Density, PALETTE, UNIVERSES, type Vec3 } from '@/scene/state/layout'
-import {
-  arc,
-  constellation,
-  helix,
-  isoArchitecture,
-  particleShell,
-} from '@/scene/state/nexus-geometry'
+import { arc, particleShell, plateStack, polylineLength } from '@/scene/state/nexus-geometry'
 
-import { pointsGeometry, polylineGeometry, segmentsGeometry } from './buffers'
-import { beamMaterial, flowLineMaterial, fresnelMaterial, softPointsMaterial } from './materials'
+import { pointsGeometry, polylineGeometry } from './buffers'
+import {
+  beamMaterial,
+  dashedBeamMaterial,
+  flowLineMaterial,
+  fresnelMaterial,
+  softPointsMaterial,
+} from './materials'
 
 /** Ce qu'une image transmet à chaque objet. */
 export interface Frame {
@@ -273,20 +271,22 @@ export function buildParticles(density: Density, pixelRatio: number): Built {
 }
 
 /**
- * Les connexions du noyau vers chaque univers : des **arcs** soulevés — trois
+ * Les faisceaux du noyau vers chaque univers : des **arcs** soulevés — trois
  * traits droits issus d'un centre se lisent comme un schéma, trois courbes comme
- * des flux.
+ * des flux —, en **pointillés** qui courent vers l'univers, chacun dans sa teinte.
  */
 export function buildConnections(): Built {
   const root = new Group()
-  const byUniverse = SECTIONS.map((section, i) => {
+  const byUniverse = SECTIONS.map((section) => {
     const to = UNIVERSES[section].position
     const length = Math.hypot(...to)
-    // Départ à la surface des coques : le trait naît du noyau, pas de son centre.
-    const scale = (CORE_RADIUS * 2.3) / length
-    const from: Vec3 = [to[0] * scale, to[1] * scale, to[2] * scale]
-    const material = flowLineMaterial(PALETTE.cyan, PALETTE.violet, 0.28, 0.16 + i * 0.03)
-    root.add(new Line(polylineGeometry(arc(from, to, 1.1, 64)), material))
+    // Le trait naît à la surface des coques et s'arrête au voile de l'univers :
+    // il relie deux objets, il ne traverse ni l'un ni l'autre.
+    const from = scaled(to, (CORE_RADIUS * 2.3) / length)
+    const end = scaled(to, (length - VEIL_RADIUS) / length)
+    const points = arc(from, end, 1.1, 96)
+    const material = dashedBeamMaterial(tone(section), 0.9, polylineLength(points))
+    root.add(new Line(polylineGeometry(points), material))
     return { section, material }
   })
 
@@ -304,176 +304,160 @@ export function buildConnections(): Built {
 
 /* =================================================================== univers */
 
-/** Les plaques de la chronologie : du bas (le plus ancien) vers le haut. */
-const TIMELINE_PLATES = 6
-const PLATE_W = 1.05
-const PLATE_H = 0.62
+/** Le rayon du voile filaire qui enveloppe chaque univers, sous sa sphère de sélection. */
+const VEIL_RADIUS = 1.6
+
+const tone = (section: Section): string => PALETTE[UNIVERSES[section].tone]
+
+const scaled = (point: Vec3, factor: number): Vec3 => [
+  point[0] * factor,
+  point[1] * factor,
+  point[2] * factor,
+]
 
 /**
- * Expériences — une chronologie de verre : six plaques translucides, disposées
- * en spirale le long de l'axe du temps, chacune avec son liseré lumineux et
- * quelques traits qui évoquent des lignes de texte. Une hélice parcourue
- * d'impulsions les relie. (Référence « les interfaces » : des panneaux
- * semi-transparents aux bordures fines.)
+ * Le voile d'un univers : une sphère filaire à peine visible, qui s'éclaire quand
+ * l'univers est survolé ou cadré — elle dit où cliquer sans rien écrire.
+ */
+function buildVeil(color: string): {
+  readonly object: LineSegments
+  readonly material: LineBasicMaterial
+} {
+  const sphere = new SphereGeometry(VEIL_RADIUS, 18, 12)
+  const material = additiveLines(color, 0.05)
+  const object = new LineSegments(new WireframeGeometry(sphere), material)
+  // ⭐ La sphère n'a servi qu'à tracer le fil : elle est rendue tout de suite.
+  sphere.dispose()
+  return { object, material }
+}
+
+/** Un léger flottement vertical, propre à chaque univers. */
+const bob = (time: number, speed: number, phase: number): number =>
+  Math.sin(time * speed + phase) * 0.12
+
+/**
+ * Expériences — une pile de plateaux de verre, du plus large au plus étroit :
+ * une architecture en couches, chaque couche cerclée de lumière et traversée par
+ * un axe parcouru d'impulsions.
  *
- * ⛔ Six est un nombre de COMPOSITION, pas le nombre d'expériences : la scène ne
- * lit pas le contenu, et une plaque par poste ferait mentir l'image au premier
+ * ⛔ Trois est un nombre de COMPOSITION, pas le nombre d'expériences : la scène
+ * ne lit pas le contenu, et une plaque par poste ferait mentir l'image au premier
  * poste ajouté.
  */
-export function buildTimeline(): Built {
+export function buildStack(): Built {
+  const color = tone('experiences')
   const root = new Group()
-  root.rotation.set(0.12, 0, -0.08)
+  root.rotation.set(0.1, 0, -0.06)
   const spin = new Group()
   root.add(spin)
 
-  const axisMaterial = flowLineMaterial(PALETTE.cyan, PALETTE.violet, 0.3, 0.08)
-  root.add(
+  const glass = new MeshStandardMaterial({
+    color: '#0f2240',
+    metalness: 0.4,
+    roughness: 0.3,
+    transparent: true,
+    opacity: 0.45,
+    emissive: color,
+    emissiveIntensity: 0.05,
+    depthWrite: false,
+  })
+  const edges = additiveLines(color, 0.75)
+  const plates = plateStack(3, 1.8, 0.35, 0.75).map((level, i) => {
+    const geometry = new BoxGeometry(level.size, 0.1, level.size)
+    const plate = new Group()
+    plate.position.y = level.y
+    plate.add(new Mesh(geometry, glass))
+    plate.add(new LineSegments(new EdgesGeometry(geometry), edges))
+    spin.add(plate)
+    return { plate, y: level.y, phase: i * 1.3 }
+  })
+
+  const axisMaterial = flowLineMaterial(color, PALETTE.violet, 0.35, 0.12)
+  spin.add(
     new Line(
       polylineGeometry([
-        [0, -1.5, 0],
-        [0, 1.55, 0],
+        [0, -1.25, 0],
+        [0, 1.25, 0],
       ]),
       axisMaterial,
     ),
   )
 
-  const fill = new MeshBasicMaterial({
-    color: '#0f2240',
-    transparent: true,
-    opacity: 0.42,
-    side: DoubleSide,
-    depthWrite: false,
-  })
-  const plateGeometry = new PlaneGeometry(PLATE_W, PLATE_H)
-  const borderGeometry = new EdgesGeometry(plateGeometry)
-  // Trois « lignes de texte » de longueurs différentes, en un seul objet.
-  const lines = segmentsGeometry(
-    [
-      [-0.42, 0.14, 0.001],
-      [0.3, 0.14, 0.001],
-      [-0.42, 0.02, 0.001],
-      [0.12, 0.02, 0.001],
-      [-0.42, -0.1, 0.001],
-      [0.22, -0.1, 0.001],
-    ],
-    [
-      [0, 1],
-      [2, 3],
-      [4, 5],
-    ],
-  )
-  const borders = [additiveLines(PALETTE.violet, 0.85), additiveLines(PALETTE.cyan, 0.85)]
-  const textLines = additiveLines(PALETTE.text, 0.35)
-  for (let i = 0; i < TIMELINE_PLATES; i += 1) {
-    const t = i / (TIMELINE_PLATES - 1)
-    const angle = t * Math.PI * 2.2
-    const plate = new Group()
-    plate.position.set(Math.cos(angle) * 0.55, -1.25 + t * 2.5, Math.sin(angle) * 0.55)
-    // Chaque plaque regarde vers l'extérieur de la spirale.
-    plate.rotation.y = -angle + Math.PI / 2
-    plate.add(new Mesh(plateGeometry, fill))
-    plate.add(new LineSegments(borderGeometry, borders[i % 2] as LineBasicMaterial))
-    plate.add(new LineSegments(lines, textLines))
-    spin.add(plate)
-  }
-
-  const spiralMaterial = flowLineMaterial(PALETTE.violet, PALETTE.cyan, 0.4, 0.12)
-  spin.add(new Line(polylineGeometry(helix(2.2, 2.5, 0.55, 160)), spiralMaterial))
+  const veil = buildVeil(color)
+  root.add(veil.object)
 
   return {
     root,
     update({ time, delta, animated, highlight }) {
-      setTime([axisMaterial, spiralMaterial], time)
-      setHighlight([axisMaterial, spiralMaterial], highlight.experiences)
-      fill.opacity = 0.36 + 0.2 * highlight.experiences
-      for (const border of borders) border.opacity = 0.65 + 0.35 * highlight.experiences
-      if (animated) spin.rotation.y += delta * 0.07
+      const h = highlight.experiences
+      setTime([axisMaterial], time)
+      setHighlight([axisMaterial], h)
+      glass.opacity = 0.4 + 0.2 * h
+      edges.opacity = 0.65 + 0.35 * h
+      veil.material.opacity = 0.04 + 0.06 * h
+      root.position.y = bob(time, 1.2, 0)
+      // Les plateaux respirent chacun à leur rythme : la pile vit sans se défaire.
+      for (const { plate, y, phase } of plates)
+        plate.position.y = y + Math.sin(time * 1.1 + phase) * 0.06
+      if (animated) spin.rotation.y += delta * 0.12
     },
     dispose: () => disposeTree(root),
   }
 }
 
 /**
- * Projets — une architecture isométrique : des plateaux de verre superposés,
- * des blocs posés dessus comme des composants techniques, et des flux de
- * données qui courent en équerre d'un bloc à l'autre et d'un étage à l'autre.
- * Tous les blocs en un seul draw call.
+ * Projets — un prisme : un octaèdre de métal sombre à facettes, doublé de ses
+ * arêtes lumineuses, que ceint un anneau portant une perle.
  */
-export function buildArchitecture(density: Density): Built {
+export function buildPrism(): Built {
+  const color = tone('projects')
   const root = new Group()
-  // ⭐ Tourné de 45° : vu de trois quarts, un plateau carré se lit en losange,
-  // ce qui donne l'isométrie sans caméra orthographique.
-  root.rotation.y = Math.PI / 4
-  const { slabs, blocks, links } = isoArchitecture(3, density.projectNodes, 7)
 
-  const slabMaterial = new MeshStandardMaterial({
-    color: '#12223d',
-    metalness: 0.5,
-    roughness: 0.35,
-    transparent: true,
-    opacity: 0.55,
-    emissive: PALETTE.cyan,
-    emissiveIntensity: 0.04,
-  })
-  const slabEdges = new LineBasicMaterial({
-    color: PALETTE.cyan,
-    transparent: true,
-    opacity: 0.7,
-    blending: AdditiveBlending,
-    depthWrite: false,
-  })
-  for (const slab of slabs) {
-    const geometry = new BoxGeometry(slab.size, 0.06, slab.size)
-    const plate = new Mesh(geometry, slabMaterial)
-    plate.position.y = slab.y
-    root.add(plate)
-    const edges = new LineSegments(new EdgesGeometry(geometry), slabEdges)
-    edges.position.y = slab.y
-    root.add(edges)
-  }
-
-  const blockMaterial = new MeshStandardMaterial({
-    color: '#16294a',
-    metalness: 0.6,
+  const prism = new Group()
+  root.add(prism)
+  const facetsMaterial = new MeshStandardMaterial({
+    color: '#140f30',
+    metalness: 0.85,
     roughness: 0.3,
-    emissive: PALETTE.cyan,
-    emissiveIntensity: 0.12,
+    flatShading: true,
+    emissive: color,
+    emissiveIntensity: 0.14,
   })
-  const instances = new InstancedMesh(
-    new BoxGeometry(0.22, 0.3, 0.22),
-    blockMaterial,
-    blocks.length,
-  )
-  const dummy = new Object3D()
-  blocks.forEach((block, i) => {
-    dummy.position.set(...block)
-    dummy.scale.set(1, 0.7 + ((i * 37) % 10) / 15, 1)
-    dummy.updateMatrix()
-    instances.setMatrixAt(i, dummy.matrix)
-    instances.setColorAt(i, new Color(i % 4 === 0 ? PALETTE.violet : '#3f8fa6'))
-  })
-  root.add(instances)
+  prism.add(new Mesh(new OctahedronGeometry(1.1, 0), facetsMaterial))
+  const edges = additiveLines(color, 0.8)
+  prism.add(new LineSegments(new EdgesGeometry(new OctahedronGeometry(1.13, 0)), edges))
 
-  const linkMaterial = flowLineMaterial(PALETTE.cyan, PALETTE.violet, 0.8, 0.35)
-  const ends = links.flatMap(([a, b]) => [a, b])
-  root.add(
-    new LineSegments(
-      segmentsGeometry(
-        ends,
-        links.map((_, i) => [i * 2, i * 2 + 1] as const),
-      ),
-      linkMaterial,
-    ),
+  const tilt = new Group()
+  tilt.rotation.set(Math.PI / 3, 0, 0.2)
+  root.add(tilt)
+  const ring = new Group()
+  tilt.add(ring)
+  const ringMaterial = additive(color, 0.6)
+  ring.add(new Mesh(new TorusGeometry(1.75, 0.012, 6, 160), ringMaterial))
+  const pearl = new Mesh(
+    new SphereGeometry(0.06, 12, 8),
+    new MeshBasicMaterial({ color: PALETTE.text }),
   )
+  pearl.position.set(1.75, 0, 0)
+  ring.add(pearl)
+
+  const veil = buildVeil(color)
+  root.add(veil.object)
 
   return {
     root,
     update({ time, delta, animated, highlight }) {
-      setTime([linkMaterial], time)
-      setHighlight([linkMaterial], highlight.projects)
-      blockMaterial.emissiveIntensity = 0.1 + 0.35 * highlight.projects
-      slabEdges.opacity = 0.55 + 0.4 * highlight.projects
-      if (animated) root.rotation.y += delta * 0.05
+      const h = highlight.projects
+      // ⛔ Une réponse plus forte fait du prisme un aplat violet en gros plan.
+      facetsMaterial.emissiveIntensity = 0.14 + 0.1 * h
+      edges.opacity = 0.75 + 0.25 * h
+      ringMaterial.opacity = 0.5 + 0.4 * h
+      veil.material.opacity = 0.04 + 0.06 * h
+      root.position.y = bob(time, 1.1, 2)
+      if (!animated) return
+      prism.rotation.y += delta * 0.3
+      prism.rotation.x += delta * 0.18
+      ring.rotation.z -= delta * 0.25
     },
     dispose: () => disposeTree(root),
   }
@@ -481,29 +465,60 @@ export function buildArchitecture(density: Density): Built {
 
 /* ================================================================ plateforme */
 
+/** Un disque de lumière peint une fois : clair au centre, évanoui au bord. */
+function floorGlowTexture(): CanvasTexture {
+  const size = 128
+  const canvas = document.createElement('canvas')
+  canvas.width = size
+  canvas.height = size
+  const context = canvas.getContext('2d')
+  if (context !== null) {
+    const half = size / 2
+    const gradient = context.createRadialGradient(half, half, 0, half, half, half)
+    gradient.addColorStop(0, 'rgba(40, 217, 245, 0.35)')
+    gradient.addColorStop(0.45, 'rgba(40, 217, 245, 0.12)')
+    gradient.addColorStop(0.8, 'rgba(137, 115, 245, 0.05)')
+    gradient.addColorStop(1, 'rgba(0, 0, 0, 0)')
+    context.fillStyle = gradient
+    context.fillRect(0, 0, size, size)
+  }
+  return new CanvasTexture(canvas)
+}
+
 /**
- * La plateforme du noyau : trois disques de métal sombre en gradins, chacun
- * cerclé d'une bande lumineuse ; une colonne de lumière qui monte vers le noyau ;
- * et une grille de sol, qui donne l'échelle et s'efface dans le brouillard.
+ * La plateforme du noyau : un socle **holographique** — trois anneaux lumineux
+ * posés au sol, une nappe de lumière qui s'évanouit vers le bord, une colonne de
+ * lumière qui monte vers le noyau — et une grille de sol, qui donne l'échelle et
+ * s'efface dans le brouillard.
+ *
+ * ⛔ Plus de disques de métal opaques : ils se lisaient comme des trous noirs
+ * sous le noyau, et alourdissaient une scène faite de lumière (retour de
+ * l'utilisateur, 2026-10-26).
  */
 export function buildPlatform(): Built {
   const root = new Group()
   root.position.y = -2.7
 
-  const metal = new MeshStandardMaterial({ color: '#0c1628', metalness: 0.85, roughness: 0.35 })
+  const glowMaterial = new MeshBasicMaterial({
+    map: floorGlowTexture(),
+    transparent: true,
+    blending: AdditiveBlending,
+    depthWrite: false,
+  })
+  const glow = new Mesh(new CircleGeometry(3.4, 64), glowMaterial)
+  glow.rotation.x = -Math.PI / 2
+  root.add(glow)
+
   const tiers = [
-    { radius: 2.8, y: 0 },
-    { radius: 2.2, y: 0.09 },
-    { radius: 1.5, y: 0.18 },
+    { radius: 2.8, y: 0.01 },
+    { radius: 2.2, y: 0.06 },
+    { radius: 1.5, y: 0.11 },
   ]
   const strips = tiers.map((tier, i) => {
-    const disc = new Mesh(new CylinderGeometry(tier.radius, tier.radius * 1.02, 0.09, 72), metal)
-    disc.position.y = tier.y
-    root.add(disc)
     const strip = additive(i === 1 ? PALETTE.violet : PALETTE.cyan, 0.8)
-    const ring = new Mesh(new TorusGeometry(tier.radius * 1.01, 0.012, 6, 160), strip)
+    const ring = new Mesh(new TorusGeometry(tier.radius, 0.014, 6, 160), strip)
     ring.rotation.x = Math.PI / 2
-    ring.position.y = tier.y + 0.046
+    ring.position.y = tier.y
     root.add(ring)
     return strip
   })
@@ -527,6 +542,7 @@ export function buildPlatform(): Built {
     root,
     update({ time }) {
       setTime([beam], time)
+      glowMaterial.opacity = 0.75 + 0.25 * (0.5 + 0.5 * Math.sin(time * 0.55))
       // Les bandes respirent avec le noyau, en léger décalage de l'une à l'autre.
       strips.forEach((strip, i) => {
         strip.opacity = 0.55 + 0.35 * (0.5 + 0.5 * Math.sin(time * 0.55 - i * 0.6))
@@ -536,97 +552,80 @@ export function buildPlatform(): Built {
   }
 }
 
-const SKILL_DOMAINS = 5
+/** Les anneaux du gyroscope : rayon, teinte, axe de rotation, vitesse (rad/s). */
+const GIMBALS = [
+  { radius: 1.45, color: PALETTE.sky, axis: 'x', speed: 0.45 },
+  { radius: 1.05, color: PALETTE.cyan, axis: 'y', speed: 0.35 },
+] as const
 
 /**
- * Compétences — une constellation : un amas de points par domaine, des moyeux
- * reliés en anneau, le tout scintillant lentement.
+ * Compétences — un gyroscope : deux anneaux de métal lumineux qui tournent
+ * chacun sur son axe autour d'un dodécaèdre taillé. Des savoir-faire distincts
+ * qui tournent autour d'un même centre.
  */
-export function buildConstellation(density: Density): Built {
+export function buildGyroscope(): Built {
+  const color = tone('skills')
   const root = new Group()
-  // ⭐ Inclinée vers le visiteur : de profil, l'anneau et le disque de visée
-  // s'aplatissaient en traits (cinquième capture, gros plan Compétences).
-  root.rotation.set(0.9, 0, 0.18)
-  const { points, centers } = constellation(SKILL_DOMAINS, density.skillPointsPerCluster, 11)
+  root.rotation.set(0.25, 0, 0.15)
 
-  // ⭐ Des points plus gros que les particules d’ambiance : la constellation se lit
-  // comme une matière, pas comme un semis (troisième capture).
-  const pointsMaterial = softPointsMaterial(PALETTE.cyan, PALETTE.violet, 120, 1)
-  root.add(
-    new Points(
-      pointsGeometry(
-        new Float32Array(points.flat()),
-        new Float32Array(points.map((_, i) => (i * 2.399) % (Math.PI * 2))),
-      ),
-      pointsMaterial,
-    ),
+  const gimbalMaterials = GIMBALS.map(
+    (gimbal) =>
+      new MeshStandardMaterial({
+        color: gimbal.color,
+        metalness: 0.6,
+        roughness: 0.3,
+        emissive: gimbal.color,
+        emissiveIntensity: 0.3,
+      }),
   )
-
-  const linkMaterial = flowLineMaterial(PALETTE.cyan, PALETTE.violet, 0.3, 0.15)
-  root.add(
-    new LineSegments(
-      segmentsGeometry(
-        centers,
-        centers.map((_, i) => [i, (i + 1) % centers.length] as const),
-      ),
-      linkMaterial,
-    ),
-  )
-
-  const hub = new SphereGeometry(0.05, 12, 8)
-  const hubMaterial = new MeshBasicMaterial({ color: PALETTE.text })
-  for (const center of centers) {
-    const mesh = new Mesh(hub, hubMaterial)
-    mesh.position.set(...center)
-    root.add(mesh)
-  }
-
-  /*
-   * ⭐ La structure qui fait d'un semis une constellation : un moyeu central
-   * relié à chaque domaine par un rayon lumineux, un anneau orbital qui porte
-   * les amas, et un disque de visée en dessous — l'organisation se lit avant
-   * les points.
-   */
-  const core = new Mesh(
-    new OctahedronGeometry(0.12, 0),
-    new MeshBasicMaterial({ color: PALETTE.cyan }),
-  )
-  root.add(core)
-  const spokeMaterial = flowLineMaterial(PALETTE.cyan, PALETTE.violet, 0.35, 0.2)
-  root.add(
-    new LineSegments(
-      segmentsGeometry(
-        [[0, 0, 0], ...centers],
-        centers.map((_, i) => [0, i + 1] as const),
-      ),
-      spokeMaterial,
-    ),
-  )
-  const orbit = new Mesh(new TorusGeometry(1.18, 0.006, 6, 160), additive(PALETTE.cyan, 0.45))
-  orbit.rotation.x = Math.PI / 2
-  root.add(orbit)
-  const radar = additiveLines(PALETTE.cyan, 0.18)
-  for (const radius of [0.45, 0.8, 1.45]) {
-    const ring = new LineLoop(
-      polylineGeometry(
-        Array.from({ length: 96 }, (_, k) => {
-          const angle = (k / 96) * Math.PI * 2
-          return [Math.cos(angle) * radius, -0.42, Math.sin(angle) * radius] as Vec3
-        }),
-      ),
-      radar,
+  const bead = new SphereGeometry(0.06, 12, 8)
+  const beadMaterial = new MeshBasicMaterial({ color: PALETTE.text })
+  const gimbals = GIMBALS.map((gimbal, i) => {
+    const holder = new Group()
+    holder.add(
+      new Mesh(new TorusGeometry(gimbal.radius, 0.03, 12, 120), gimbalMaterials[i] as Material),
     )
-    root.add(ring)
-  }
+    const pearl = new Mesh(bead, beadMaterial)
+    pearl.position.set(gimbal.radius, 0, 0)
+    holder.add(pearl)
+    // Le second anneau part déjà de biais : à l'arrêt, les deux ne se confondent pas.
+    if (i === 1) holder.rotation.y = Math.PI / 2.5
+    root.add(holder)
+    return holder
+  })
+
+  const heart = new Group()
+  root.add(heart)
+  const facetsMaterial = new MeshStandardMaterial({
+    color: '#0d1830',
+    metalness: 0.85,
+    roughness: 0.3,
+    flatShading: true,
+    emissive: color,
+    emissiveIntensity: 0.08,
+  })
+  heart.add(new Mesh(new DodecahedronGeometry(0.55, 0), facetsMaterial))
+  const edges = additiveLines(PALETTE.cyan, 0.8)
+  heart.add(new LineSegments(new EdgesGeometry(new DodecahedronGeometry(0.57, 0)), edges))
+
+  const veil = buildVeil(color)
+  root.add(veil.object)
 
   return {
     root,
     update({ time, delta, animated, highlight }) {
-      setTime([pointsMaterial, linkMaterial, spokeMaterial], time)
-      setHighlight([pointsMaterial, linkMaterial, spokeMaterial], highlight.skills)
-      radar.opacity = 0.14 + 0.2 * highlight.skills
-      if (animated) core.rotation.y += delta * 0.6
-      if (animated) root.rotation.y -= delta * 0.07
+      const h = highlight.skills
+      for (const material of gimbalMaterials) material.emissiveIntensity = 0.25 + 0.45 * h
+      facetsMaterial.emissiveIntensity = 0.06 + 0.25 * h
+      edges.opacity = 0.65 + 0.35 * h
+      veil.material.opacity = 0.04 + 0.06 * h
+      root.position.y = bob(time, 0.9, 1)
+      if (!animated) return
+      GIMBALS.forEach((gimbal, i) => {
+        const holder = gimbals[i]
+        if (holder) holder.rotation[gimbal.axis] += delta * gimbal.speed
+      })
+      heart.rotation.y -= delta * 0.4
     },
     dispose: () => disposeTree(root),
   }

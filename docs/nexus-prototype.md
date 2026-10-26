@@ -22,16 +22,17 @@ noyau central et trois univers, un par section.
 | Élément | Construction | Pourquoi |
 |---|---|---|
 | **Noyau** | icosaèdre subdivisé, métal sombre à facettes ; structure filaire tournant à contre-sens ; 2 coques de Fresnel (cyan, violet) ; halo en sprite ; 4 anneaux orbitaux inclinés, chacun avec sa perle | Une silhouette taillée, de la profondeur par couches, une lueur **sans bloom** |
-| **Plateforme** | trois disques de métal sombre en gradins, cerclés de bandes lumineuses qui respirent avec le noyau ; colonne de lumière (shader de faisceau) ; grille de sol qui s'efface dans le brouillard | Le noyau est posé, pas suspendu ; la grille donne l'échelle (référence « univers central ») |
-| **Expériences** | six plaques de verre translucides en spirale le long de l'axe du temps, liseré lumineux et traits évoquant des lignes de texte, reliées par une hélice parcourue d'impulsions | Une chronologie faite d'« interfaces » empilées (référence « les interfaces ») — six est un nombre de composition, pas le nombre de postes |
-| **Projets** | architecture isométrique : trois plateaux de verre en gradins (tournés de 45°), blocs instanciés posés dessus, flux de données en équerre sur chaque plateau et verticaux entre étages | Des composants techniques et leurs flux (référence « les projets ») |
-| **Compétences** | 5 amas de points doux (un par domaine) sur un anneau orbital, moyeu central relié à chaque domaine par un rayon lumineux, disque de visée en dessous ; inclinée vers le visiteur | Une constellation organisée : la structure se lit avant les points |
-| **Ambiance** | 1 800 particules en galaxie aplatie (`full`) ; 3 arcs lumineux du noyau vers chaque univers | Profondeur et connexions animées |
+| **Plateforme** | socle holographique : trois anneaux lumineux posés au sol, qui respirent avec le noyau, sur une nappe de lumière qui s'évanouit vers le bord ; colonne de lumière (shader de faisceau) ; grille de sol qui s'efface dans le brouillard. Les disques de métal opaques d'origine sont retirés (2026-10-26) : ils se lisaient comme des trous noirs | Le noyau est posé, pas suspendu ; la grille donne l'échelle (référence « univers central ») |
+| **Expériences** (cyan) | pile de trois plateaux de verre, du plus large au plus étroit, cerclés de lumière et respirant chacun à son rythme, traversés d'un axe parcouru d'impulsions | Une architecture en couches — trois est un nombre de composition, pas le nombre de postes |
+| **Projets** (violet) | prisme : octaèdre de métal sombre à facettes doublé de ses arêtes lumineuses, ceint d'un anneau incliné portant une perle | Un objet taillé, réalisé |
+| **Compétences** (bleu ciel) | gyroscope : deux anneaux de métal lumineux tournant chacun sur son axe autour d'un dodécaèdre taillé | Des savoir-faire distincts autour d'un même centre |
+| **Voiles** | une sphère filaire à peine visible autour de chaque univers, qui s'éclaire au survol | Elle dit où cliquer sans rien écrire |
+| **Ambiance** | 1 800 particules en galaxie aplatie (`full`) ; 3 arcs en **pointillés** qui courent du noyau vers chaque univers, chacun dans la teinte de son univers | Profondeur, et un faisceau qui se lit comme celui de CET univers |
 | **Lumière** | ponctuelle cyan au cœur, principale froide de face, contre-jour violet | Les facettes accrochent la lumière, la silhouette se détache |
 
 - **Aucun post-traitement, aucune dépendance ajoutée, aucun module drei.** La lueur est dans la
   géométrie : coques de Fresnel et points en mélange additif, lignes dont l'intensité circule
-  (`components/nexus/materials.ts`, trois shaders courts).
+  (`components/nexus/materials.ts`, des shaders courts).
 - **Formes procédurales et déterministes** (`state/nexus-geometry.ts`, générateur à graine) : la même
   scène à chaque visite, et des bancs qui affirment des propriétés sur une sortie connue.
 - **Aucune donnée de contenu dans la scène** : `scene` ne lit pas `content`. Les formes sont des
@@ -49,8 +50,11 @@ lien du DOM ─────────┼─▶ router.push(route) ─▶ URL �
 Échap ───────────────┘
 ```
 
-- **Survol** : le nom de l'univers s'affiche dans une étiquette HTML, sur sa propre surface, en bas à
-  droite — hors de la racine de scène, qui reste sans texte.
+- **Étiquettes** : chaque univers porte son nom et une accroche, en HTML posé à la projection de son
+  point d'accroche (`LabelProjector`) — hors de la racine de scène, qui reste sans texte. Cachées
+  hors de la zone libre (`labelPlacement`) ; en gros plan, seule celle de l'univers cadré reste. Au
+  mobile, l'accroche est retirée ; la bande de scène est souvent trop étroite pour qu'elles y tiennent.
+- **Survol** : l'univers grandit d'un dixième, son voile et son étiquette s'allument.
 - **Clic** sur un univers (sphère de sélection invisible ; un glisser de plus de 6 px n'est pas un
   clic) → la route de la section.
 - **Liens du DOM** (en-tête, panneau, clavier) : quand la scène est montée, `SceneMount` intercepte les
@@ -59,6 +63,8 @@ lien du DOM ─────────┼─▶ router.push(route) ─▶ URL �
 - **Échap** → vue d'ensemble. Lien « Vue d'ensemble » en tête de chaque section.
 - **Orbite bornée** : glisser à la souris, ±28° en lacet, ±12° en tangage, amortie ; état de
   présentation, remis à zéro à chaque route. **Désactivée au tactile** : le doigt fait défiler la page.
+- **Parallaxe** : sans glisser, la caméra s'incline vers la souris, de 5° en lacet et 3° en tangage au
+  plus, ajoutés à l'orbite et bornés avec elle. Souris seule, jamais sous `prefers-reduced-motion`.
 - **Transition** : 1,6 s, `easeInOutCubic`, interruptible (repart de la pose affichée) ; **coupe
   instantanée** sous `prefers-reduced-motion`.
 - **Cadrage dans la zone libre** : `SceneMount` mesure le panneau dans le DOM et la caméra décale son

@@ -24,10 +24,10 @@
  */
 import dynamic from 'next/dynamic'
 import { usePathname, useRouter } from 'next/navigation'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 
 import { homePath, localeFromPathname, parsePagePath } from '@/routing/paths'
-import type { Section } from '@/routing/sections'
+import { SECTIONS, type Section } from '@/routing/sections'
 
 import { readCapability } from '@/scene/capability/adapter'
 import {
@@ -44,6 +44,7 @@ import { shouldShowDiagnostics } from '@/scene/state/debug-flag'
 import { getRouteForScreen, resolveSceneState } from '@/scene/state/scene-state'
 import type { SceneReadings } from '@/scene/state/diagnostics'
 
+import type { LabelAnchors } from './nexus/label-projector'
 import { SceneBoundary } from './scene-boundary'
 import styles from './scene-mount.module.css'
 
@@ -131,13 +132,25 @@ function lienInterne(event: MouseEvent): string | null {
   return parsePagePath(url.pathname) === null ? null : url.pathname
 }
 
-export function SceneMount({ labels }: { readonly labels: Readonly<Record<Section, string>> }) {
+/** L'étiquette d'un univers : son nom, et une accroche qui dit ce qu'on y trouve. */
+export interface UniverseLabel {
+  readonly name: string
+  readonly tagline: string
+}
+
+export function SceneMount({
+  labels,
+}: {
+  readonly labels: Readonly<Record<Section, UniverseLabel>>
+}) {
   const [etat, setEtat] = useState<SceneMountState>(SCENE_WAITING)
   const [diagnostics, setDiagnostics] = useState(false)
   const [releves, setReleves] = useState<SceneReadings | null>(null)
   // Le survol est rattaché au chemin où il a eu lieu : il ne survit pas à une navigation.
   const [survolAt, setSurvolAt] = useState<{ section: Section; chemin: string } | null>(null)
   const [libre, setLibre] = useState<Rect | null>(null)
+  // Les étiquettes, que la scène place à chaque image (`LabelProjector`).
+  const ancres = useRef<LabelAnchors>({})
 
   /*
    * ⭐ **La route est la seule source de vérité** (ADR-0002) : l'état de scène
@@ -270,6 +283,7 @@ export function SceneMount({ labels }: { readonly labels: Readonly<Record<Sectio
             free={libre}
             visible={visible}
             hovered={survol}
+            labelAnchors={ancres}
             onHover={survoler}
             onSelect={choisir}
             onContextLost={surPerteDeContexte}
@@ -278,14 +292,35 @@ export function SceneMount({ labels }: { readonly labels: Readonly<Record<Sectio
         </SceneBoundary>
       </div>
       {/*
-       * ⭐ Le nom de l'univers survolé, HORS de `data-scene-root` : la racine de
-       * scène ne contient aucun texte (ADR-0003, banc E2E). Il double un lien
-       * qui existe déjà dans la navigation — d'où `aria-hidden`.
+       * ⭐ Les étiquettes des univers, HORS de `data-scene-root` : la racine de
+       * scène ne contient aucun texte (ADR-0003, banc E2E). Elles doublent des
+       * liens qui existent déjà dans la navigation — d'où `aria-hidden`. Leur
+       * position est écrite par la scène ; jusqu'à la première image, elles
+       * restent invisibles (`data-visible` absent).
        */}
-      {survol !== null && visible ? (
-        <p aria-hidden="true" className={styles.etiquette}>
-          {labels[survol]}
-        </p>
+      {visible ? (
+        <div aria-hidden="true" className={styles.etiquettes}>
+          {SECTIONS.map((section) => (
+            <p
+              key={section}
+              ref={(element) => {
+                ancres.current[section] = element
+              }}
+              data-section={section}
+              data-active={survol === section || scene.focus === section}
+              /*
+               * ⭐ En gros plan, seule l'étiquette de l'univers cadré reste : les
+               * autres univers passent au premier plan ou au bord du champ, et
+               * leurs étiquettes se posaient sur celui qu'on regarde.
+               */
+              data-eclipsed={scene.focus !== 'overview' && scene.focus !== section}
+              className={styles.etiquette}
+            >
+              <span className={styles.nom}>{labels[section].name}</span>
+              <span className={styles.accroche}>{labels[section].tagline}</span>
+            </p>
+          ))}
+        </div>
       ) : null}
       {/*
        * ⛔ Le panneau est HORS de `data-scene-root`, et ce n'est pas un détail de

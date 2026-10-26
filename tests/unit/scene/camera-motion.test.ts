@@ -9,11 +9,13 @@ import {
   easeInOutCubic,
   framingFor,
   interpolatePose,
+  labelPlacement,
   orbitAround,
+  parallaxFor,
   poseOf,
   transitionProgress,
 } from '@/scene/state/camera-motion'
-import { CAMERAS } from '@/scene/state/layout'
+import { CAMERAS, PARALLAX } from '@/scene/state/layout'
 
 const distance = (a: readonly number[], b: readonly number[]) =>
   Math.hypot((a[0] ?? 0) - (b[0] ?? 0), (a[1] ?? 0) - (b[1] ?? 0), (a[2] ?? 0) - (b[2] ?? 0))
@@ -117,5 +119,65 @@ describe('le cadrage dans la zone libre', () => {
       offsetY: 0,
       aspect: 1,
     })
+  })
+})
+
+describe('la parallaxe', () => {
+  it('au centre de la fenêtre, ne tourne rien', () => {
+    expect(parallaxFor(0, 0, PARALLAX)).toEqual({ yawDeg: 0, pitchDeg: 0 })
+  })
+
+  it('va vers le pointeur, jusqu’à ses limites aux bords', () => {
+    expect(parallaxFor(1, 1, PARALLAX)).toEqual(PARALLAX)
+    expect(parallaxFor(-1, -1, PARALLAX)).toEqual({
+      yawDeg: -PARALLAX.yawDeg,
+      pitchDeg: -PARALLAX.pitchDeg,
+    })
+    expect(parallaxFor(0.5, 0, PARALLAX).yawDeg).toBeCloseTo(PARALLAX.yawDeg / 2)
+  })
+
+  it('⛔ un pointeur hors de la fenêtre ne dépasse pas les limites', () => {
+    expect(parallaxFor(7, -3, PARALLAX)).toEqual({
+      yawDeg: PARALLAX.yawDeg,
+      pitchDeg: -PARALLAX.pitchDeg,
+    })
+  })
+
+  it('tourne la caméra du côté du pointeur', () => {
+    const { position, target } = CAMERAS.accueil
+    const { yawDeg, pitchDeg } = parallaxFor(1, 1, PARALLAX)
+    const tournee = orbitAround(position, target, yawDeg, pitchDeg)
+    expect(tournee[0]).toBeGreaterThan(position[0])
+    expect(tournee[1]).toBeGreaterThan(position[1])
+  })
+})
+
+describe('le placement des étiquettes', () => {
+  it('convertit la projection en pixels : le centre de l’écran au centre', () => {
+    expect(labelPlacement([0, 0, 0.5], 1600, 900, null)).toEqual({ x: 800, y: 450, visible: true })
+    const coin = labelPlacement([-1, 1, 0.5], 1600, 900, null)
+    expect([coin.x, coin.y]).toEqual([0, 0])
+  })
+
+  it('⛔ cache une ancre derrière la caméra, ou au-delà du plan lointain', () => {
+    expect(labelPlacement([0, 0, 1.2], 1600, 900, null).visible).toBe(false)
+    expect(labelPlacement([0, 0, -1.2], 1600, 900, null).visible).toBe(false)
+  })
+
+  it('⛔ cache une étiquette qui tomberait sous le panneau de lecture', () => {
+    const libre = { x: 600, y: 64, width: 1000, height: 836 }
+    // x = 400 px : sous le panneau, à gauche de la zone libre.
+    expect(labelPlacement([-0.5, 0, 0.5], 1600, 900, libre).visible).toBe(false)
+    // x = 640 px : à droite du panneau, mais l'étiquette en mordrait le bord.
+    expect(labelPlacement([-0.2, 0, 0.5], 1600, 900, libre).visible).toBe(false)
+    // x = 1 200 px : dans la zone libre.
+    expect(labelPlacement([0.5, 0, 0.5], 1600, 900, libre).visible).toBe(true)
+  })
+
+  it('cache une étiquette qui déborderait du bord, plutôt que de la couper', () => {
+    // L'accroche est dans l'écran, mais la demi-largeur de l'étiquette n'y tient pas.
+    expect(labelPlacement([0.95, 0, 0.5], 1600, 900, null).visible).toBe(false)
+    // Trop près du haut : l'étiquette, posée au-dessus de son accroche, sortirait.
+    expect(labelPlacement([0, 0.95, 0.5], 1600, 900, null).visible).toBe(false)
   })
 })

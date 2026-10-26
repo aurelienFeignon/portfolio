@@ -13,8 +13,10 @@
  * 1. **La transition**, interruptible : un nouvel état repart de la pose
  *    AFFICHÉE, jamais de la pose de départ de la précédente.
  * 2. **L'orbite bornée** : un glisser à la souris fait tourner la vue autour de
- *    la cible, dans `ORBIT_LIMITS`. C'est un état de présentation — il revient à
- *    zéro à chaque changement de route, et n'entre jamais dans l'URL.
+ *    la cible, et la **parallaxe** l'incline de quelques degrés vers le pointeur,
+ *    sans glisser — le tout dans `ORBIT_LIMITS`. C'est un état de présentation :
+ *    l'orbite revient à zéro à chaque changement de route, et rien n'entre
+ *    jamais dans l'URL.
  * 3. **Le cadrage dans la zone libre** : le panneau de lecture occupe une partie
  *    de l'écran, la scène se centre dans le reste (`framingFor`).
  */
@@ -29,13 +31,14 @@ import {
   framingFor,
   interpolatePose,
   orbitAround,
+  parallaxFor,
   type Pose,
   poseOf,
   type Rect,
   transitionProgress,
 } from '@/scene/state/camera-motion'
 import { fovForAspect } from '@/scene/state/framing'
-import { ORBIT_LIMITS, transitionMs } from '@/scene/state/layout'
+import { ORBIT_LIMITS, PARALLAX, transitionMs } from '@/scene/state/layout'
 import type { SceneState } from '@/scene/state/scene-state'
 
 export function CameraRig({
@@ -58,6 +61,7 @@ export function CameraRig({
   const started = useRef<number | null>(null)
   const orbitGoal = useRef({ yawDeg: 0, pitchDeg: 0 })
   const orbitNow = useRef({ yawDeg: 0, pitchDeg: 0 })
+  const parallax = useRef({ yawDeg: 0, pitchDeg: 0 })
 
   // Un nouvel état : la transition repart d'où la caméra EST.
   useEffect(() => {
@@ -77,6 +81,20 @@ export function CameraRig({
       last = { x: event.clientX, y: event.clientY }
     }
     const move = (event: PointerEvent) => {
+      /*
+       * ⭐ La parallaxe suit la souris seule : au tactile, le doigt fait défiler
+       * la page, et un stylet qui survole ne doit pas faire tanguer la scène.
+       * Et jamais sous `prefers-reduced-motion` — un mouvement que personne n'a
+       * demandé est précisément ce que cette préférence refuse.
+       */
+      if (animated && event.pointerType === 'mouse') {
+        parallax.current = parallaxFor(
+          (event.clientX / window.innerWidth) * 2 - 1,
+          1 - (event.clientY / window.innerHeight) * 2,
+          PARALLAX,
+        )
+        get().invalidate()
+      }
       if (last === null) return
       const dx = event.clientX - last.x
       const dy = event.clientY - last.y
@@ -99,7 +117,7 @@ export function CameraRig({
       window.removeEventListener('pointermove', move)
       window.removeEventListener('pointerup', up)
     }
-  }, [orbit, get])
+  }, [orbit, animated, get])
 
   useFrame(({ clock, size, invalidate }, delta) => {
     const { camera } = get()
@@ -113,11 +131,16 @@ export function CameraRig({
     shown.current = pose
 
     // L'orbite rattrape sa consigne avec amortissement ; sans mouvement, elle saute.
+    // La consigne est la somme du glisser et de la parallaxe, bornée ensemble.
+    const consigne = clampOrbit(
+      orbitGoal.current.yawDeg + parallax.current.yawDeg,
+      orbitGoal.current.pitchDeg + parallax.current.pitchDeg,
+      ORBIT_LIMITS,
+    )
     const k = animated ? Math.min(1, delta * 5) : 1
     orbitNow.current = {
-      yawDeg: orbitNow.current.yawDeg + (orbitGoal.current.yawDeg - orbitNow.current.yawDeg) * k,
-      pitchDeg:
-        orbitNow.current.pitchDeg + (orbitGoal.current.pitchDeg - orbitNow.current.pitchDeg) * k,
+      yawDeg: orbitNow.current.yawDeg + (consigne.yawDeg - orbitNow.current.yawDeg) * k,
+      pitchDeg: orbitNow.current.pitchDeg + (consigne.pitchDeg - orbitNow.current.pitchDeg) * k,
     }
     const position = orbitAround(
       pose.position,
@@ -146,8 +169,8 @@ export function CameraRig({
     // ⭐ En `demand`, c'est le rig qui demande l'image suivante tant qu'il bouge.
     const moving =
       t < 1 ||
-      Math.abs(orbitGoal.current.yawDeg - orbitNow.current.yawDeg) > 0.01 ||
-      Math.abs(orbitGoal.current.pitchDeg - orbitNow.current.pitchDeg) > 0.01
+      Math.abs(consigne.yawDeg - orbitNow.current.yawDeg) > 0.01 ||
+      Math.abs(consigne.pitchDeg - orbitNow.current.pitchDeg) > 0.01
     if (moving) invalidate()
   })
 
