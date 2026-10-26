@@ -24,8 +24,9 @@
  */
 import dynamic from 'next/dynamic'
 import { usePathname, useRouter } from 'next/navigation'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 
+import { resetFocusToDocumentStart } from '@/routing/focus-reset'
 import { homePath, localeFromPathname, parsePagePath } from '@/routing/paths'
 import type { Section } from '@/routing/sections'
 
@@ -219,6 +220,19 @@ export function SceneMount({ labels }: { readonly labels: Readonly<Record<Sectio
     }
   }, [monte, chemin])
 
+  /*
+   * Chaque changement de chemin est une navigation client — un chargement ne
+   * rend pas ce composant une seconde fois —, et elle repart du début comme un
+   * chargement (P7-05, `focus-reset.ts`). Pas de garde sur `monte` : un retour
+   * arrière reste une navigation client même après la chute de la scène.
+   */
+  const cheminPrecedent = useRef(chemin)
+  useEffect(() => {
+    if (cheminPrecedent.current === chemin) return
+    cheminPrecedent.current = chemin
+    resetFocusToDocumentStart(document)
+  }, [chemin])
+
   // Les liens du DOM empruntent la même transition qu'un clic dans la scène.
   useEffect(() => {
     if (!monte) return
@@ -226,6 +240,9 @@ export function SceneMount({ labels }: { readonly labels: Readonly<Record<Sectio
       const cible = lienInterne(event)
       if (cible === null) return
       event.preventDefault()
+      // ⛔ Vers la page affichée, le chemin ne change pas et l'effet ci-dessus ne
+      // voit rien — là où, sans scène, le même clic recharge la page.
+      if (cible === window.location.pathname) resetFocusToDocumentStart(document)
       routeur.push(cible)
     }
     document.addEventListener('click', intercepter)

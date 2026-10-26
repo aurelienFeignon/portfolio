@@ -208,14 +208,18 @@ export function parsePagePath(pathname: string): ParsedPage | null {
   if (slug === '') return { locale, location: { kind: 'section', section } }
   if (!isSectionWithDetail(section)) return null
 
-  const decode = slugFromSegment(slug)
+  const decode = safeDecodeURIComponent(slug)
   return decode === null
     ? { locale, location: { kind: 'section', section } }
     : { locale, location: { kind: 'entity', section, slug: decode } }
 }
 
-/** L'aller-retour de l'`encodeURIComponent` qu'`entityPath` applique. */
-function slugFromSegment(segment: string): string | null {
+/**
+ * L'aller-retour de l'`encodeURIComponent` qu'`entityPath` applique — `null` sur
+ * un échappement tronqué plutôt qu'une exception. Partagé avec la lecture du
+ * fragment (`focus-reset.ts`), exposée à la même adresse tapée à la main.
+ */
+export function safeDecodeURIComponent(segment: string): string | null {
   try {
     return decodeURIComponent(segment)
   } catch {
