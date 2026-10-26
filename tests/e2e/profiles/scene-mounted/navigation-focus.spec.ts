@@ -8,17 +8,11 @@ import { expect, test } from '../../support/test'
  *
  * P7-05 — le focus après une navigation **client**, quand la scène est montée.
  *
- * ⛔⛔ **Le défaut que ce parcours a vu rouge** : depuis NEXUS (#58), un lien ne
- * recharge plus la page (`router.push`), et le lien activé disparaît avec le
- * layout de son endroit. Le focus tombait sur `<body>` **sans point de départ** :
- * le Tab suivant allait au lien « accueil » après un lien d'en-tête — le lien
- * d'évitement sauté —, et au lien de retour après l'ouverture d'une fiche —
- * l'en-tête entier sauté. Chaque entrée posait son propre départ.
- *
- * ⭐ **La règle retenue : une navigation client se comporte comme un chargement**
- * (`src/routing/focus-reset.ts`). Le premier Tab rend le lien d'évitement, sans
- * anneau autour de la page, et le nom de la page est dit par l'annonceur de
- * route de Next — exactement ce que vit un visiteur sans WebGL ni JavaScript.
+ * Le défaut — le Tab suivant sautait le lien d'évitement ou l'en-tête entier,
+ * selon l'entrée — et la règle qui le corrige — une navigation client se
+ * comporte comme un chargement — sont décrits une seule fois, dans
+ * `src/routing/focus-reset.ts`. Ce parcours tient ce que jsdom ne voit pas : le
+ * Tab suivant, l'anneau, et l'annonce de Next.
  *
  * ⭐ **Joué sous Chromium ET WebKit** (`scene-mounted/`) : l'assertion sur
  * l'anneau tient sous Chromium même sans `focusVisible: false` — mutation

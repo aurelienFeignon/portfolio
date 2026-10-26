@@ -2,6 +2,9 @@ import { defineConfig, devices } from '@playwright/test'
 
 // Le service `e2e` cible le service `web` par le réseau Docker interne. La
 // variable permet de viser une autre origine (build de production en P1-13, CI).
+// Ce qui exige une scène MONTÉE : joué par les deux moteurs qui en montent une.
+const SCENE_MOUNTED = '**/profiles/scene-mounted/**/*.spec.ts'
+
 const baseURL = process.env['PLAYWRIGHT_BASE_URL'] ?? 'http://web:3000'
 
 export default defineConfig({
@@ -45,7 +48,7 @@ export default defineConfig({
       testMatch: [
         '**/shared/**/*.spec.ts',
         '**/profiles/desktop-chromium/**/*.spec.ts',
-        '**/profiles/scene-mounted/**/*.spec.ts',
+        SCENE_MOUNTED,
       ],
       use: { ...devices['Desktop Chrome'], viewport: { width: 1440, height: 900 } },
     },
@@ -59,7 +62,7 @@ export default defineConfig({
       testMatch: [
         '**/shared/**/*.spec.ts',
         '**/profiles/mobile-safari/**/*.spec.ts',
-        '**/profiles/scene-mounted/**/*.spec.ts',
+        SCENE_MOUNTED,
       ],
       use: { ...devices['iPhone 14'] },
     },

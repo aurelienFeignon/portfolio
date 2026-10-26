@@ -54,6 +54,14 @@ describe('resetFocusToDocumentStart', () => {
     expect(document.activeElement).toBe(document.body)
   })
 
+  it('retombe sur `<body>` quand le fragment est mal échappé, sans jeter', () => {
+    window.location.hash = '#%E0%A4%A'
+
+    resetFocusToDocumentStart(document)
+
+    expect(document.activeElement).toBe(document.body)
+  })
+
   it('vide la sélection, qui désignerait un contenu disparu', () => {
     document.body.innerHTML = '<p>ancien contenu</p>'
     const plage = document.createRange()

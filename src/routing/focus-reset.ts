@@ -1,3 +1,5 @@
+import { safeDecodeURIComponent } from './paths'
+
 /**
  * Remet le focus là où le poserait un chargement de page (P7-05).
  *
@@ -37,6 +39,6 @@ export function resetFocusToDocumentStart(document: Document): void {
 }
 
 function fragmentTarget(document: Document): HTMLElement | null {
-  const fragment = document.location.hash.slice(1)
-  return fragment === '' ? null : document.getElementById(decodeURIComponent(fragment))
+  const fragment = safeDecodeURIComponent(document.location.hash.slice(1))
+  return fragment === null || fragment === '' ? null : document.getElementById(fragment)
 }
