@@ -48,6 +48,7 @@ Phases 0 à 4 : **DONE** — le jalon T1 est atteint, le portfolio documentaire 
 supervisé, avec une checklist de mise en ligne et un rollback rejoué.
 **Phase 5 (Fondation Three.js) : CLOSE**, 10 tâches sur 10 — P5-10 close le 2026-10-23 avec #58.
 **Phase 6 (Navigation spatiale)** : **7 tâches sur 10** ; restent P6-07, P6-09 (en dette) et P6-10.
+**Phase 7 (Interfaces de lecture)** : P7-03, P7-05 et P7-08 livrées ; restent P7-04, P7-06, P7-07.
 ⭐⭐ **NEXUS EST EN PRODUCTION depuis le 2026-10-23 (#58, `854d1fe`)** — D11 : le bureau 3D est
 remplacé par un noyau numérique et trois univers, avec navigation hybride et `ReadingPanel` en verre
 lumineux. **Lis `docs/nexus-prototype.md` avant toute chose** : décisions, architecture de la scène,
@@ -281,10 +282,10 @@ mets l'ADR à jour et ajoute une ligne au journal des révisions. Jamais de chan
 référence (#57), `ReadingPanel`, P6-04, décisions NEXUS (D11 et amendements d'ADR 0002/0003/0004/0010),
 prototype, validation visuelle avec l'utilisateur, fusion et déploiement (#58), roadmap reprise.
 
-⛔ **Avant toute chose, vérifie la fusion de la PR de P7-05** (branche
-`feat/p7-05-focus-navigation-client`) : `gh pr list --state all --head feat/p7-05-focus-navigation-client`.
+⛔ **Avant toute chose, vérifie la fusion de cette mise à jour du prompt** (branche
+`docs/prompt-apres-p7-05`) : `gh pr list --state all --head docs/prompt-apres-p7-05`.
 
-✅ **P7-05 est livrée** (2026-10-26, E2E-15) : une navigation client remet le focus au début du
+✅ **P7-05 est livrée et fusionnée** (2026-10-26, #70, `34d8c49`, E2E-15 ; déploiement à **lire**, pas à supposer — voir « État ») : une navigation client remet le focus au début du
 document, comme un chargement — premier Tab sur le lien d'évitement, nom de la page dit par
 l'annonceur de route de Next (choix de l'utilisateur, parmi `h1` et `<main>`). ⭐⭐ Le défaut mesuré :
 le focus tombait sur `<body>` avec un point de départ propre à chaque entrée — le lien d'évitement
@@ -293,24 +294,38 @@ sauté après un lien d'en-tête, l'en-tête entier après l'ouverture d'une fic
 sous Chromium ET WebKit** — `focusVisible: false` ne se juge que sous WebKit (sans lui, un anneau
 autour de la page entière). Firefox headless ne monte pas la scène : non couvert.
 
+⚠️ **Ce que P7-05 a appris du banc local, et qui resservira :**
+- **Les ports 3000 et 3001 de l'hôte peuvent être pris** par d'autres piles (constaté : frontend
+  Augure, Grafana) : `make e2e` échoue alors au démarrage de `web`. Le conteneur `e2e` joint `web` par
+  le réseau compose, le port hôte est inutile : une surcharge **hors dépôt** avec
+  `services: web: ports: !reset []`, passée en second `-f`, suffit.
+- **Contre le serveur de DEV, trois échecs préexistent sur `main`** (`not-found` noindex, deux cibles
+  tactiles `responsive`) — la porte CI joue le build de production, où ils ne se produisent pas.
+- **Un `toHaveURL` qui expire n'est pas un verdict** : juste après une modification de source, le
+  serveur de dev recompile, et sous une charge d'hôte élevée (57-77 relevés) les navigations dépassent
+  5 s. Une passe à blanc, puis la passe qui compte ; `--workers=2` sous charge.
+- **Un worktree d'une autre session peut vivre dans `.worktrees/`** (exclu de git) : `make lint` le
+  parcourt et rougit sur SON code. Lancer ESLint sur `src tests` pour juger le sien.
+
 **Reste à faire — dans l'ordre recommandé le 2026-10-23 :**
 
-1. ~~P7-05~~ — livrée, ci-dessus.
-2. **P6-09 — l'ADR-0012, en dette** : la stratégie d'animation (interpolation maison `easeInOutCubic`,
+1. **P6-09 — l'ADR-0012, en dette** : la stratégie d'animation (interpolation maison `easeInOutCubic`,
    1,6 s, interruptible, coupe sous `reduced-motion`) est **livrée sans son ADR**. L'écrire en
    constatant ce qui est en place et ce qui a été écarté — pas en la présentant comme à trancher.
-3. **P8-11 — mesurer sur ce qui n'est pas couvert**, dès qu'un appareil est disponible : GPU intégré,
+2. **P8-11 — mesurer sur ce qui n'est pas couvert**, dès qu'un appareil est disponible : GPU intégré,
    téléphone réel, Safari. Sur une RTX 5050, le TBT de la scène est de **0 ms** (154 ms processeur
    bridé ×4) ; le banc sans GPU annonce 1 231 ms et **surestime d'environ ×8**
    (`nexus-prototype.md` §6.4). Sans `KHR_parallel_shader_compile`, on retombe sur le cas du banc.
    Un téléphone ne joint pas `localhost` : il faudra exposer l'aperçu sur le réseau local.
-4. **P6-10** — les parcours E2E manquants : précédent/suivant, lien direct, reduced-motion.
-5. **P7-04, P7-06, P7-07** — non-duplication du contenu dans le DOM, comportement du panneau pendant
+3. **P6-10** — les parcours E2E manquants : précédent/suivant, lien direct, reduced-motion.
+   ⭐ Précédent est déjà joué par E2E-15 côté focus, pas côté état de scène. Le dossier
+   `profiles/scene-mounted/` (Chromium + WebKit) est le bon endroit pour ce qui exige une scène montée.
+4. **P7-04, P7-06, P7-07** — non-duplication du contenu dans le DOM, comportement du panneau pendant
    une transition, bascule de langue et liens directs en mode immersif.
-6. **P6-07** — `data-scene-focus` exposé au DOM.
-7. **P8-10** — alléger le premier rendu (72 draw calls sur ordinateur, cible 60 ; 14 programmes), à
+5. **P6-07** — `data-scene-focus` exposé au DOM.
+6. **P8-10** — alléger le premier rendu (72 draw calls sur ordinateur, cible 60 ; 14 programmes), à
    prioriser si P8-11 montre un problème.
-8. **P8-05, P8-08** — ambiance et contrastes sur la direction artistique **finale** : la scène
+7. **P8-05, P8-08** — ambiance et contrastes sur la direction artistique **finale** : la scène
    actuelle est **indicative**, l'utilisateur l'a dit ; la mécanique, elle, est stable.
 
 **Décisions qui appartiennent à l'utilisateur — les poser, ne pas les trancher :**
