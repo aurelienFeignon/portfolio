@@ -1,5 +1,13 @@
 import type { Page } from '@playwright/test'
 
+import {
+  CANVAS,
+  monterLaScene,
+  navigationPrincipale,
+  PREMIERE_IMAGE_MS,
+  RACINE,
+  TEMOIN,
+} from '../../support/scene'
 import { detailPath } from '../../support/sitemap'
 import { expect, test } from '../../support/test'
 
@@ -8,49 +16,24 @@ import { expect, test } from '../../support/test'
  * @covers E2E-02 — Deep link sur une fiche : état de scène cohérent (la traversée et l'URL sont
  * tenues par `navigation-journey.spec.ts`)
  *
- * P6-10, sur les attributs de P6-07, jamais sur des pixels (`testing-strategy.md`
- * §4). Deux lectures, parce qu'elles peuvent diverger :
- * - `data-scene-focus` : l'état que l'URL désigne ;
- * - `data-camera-focus`, sur le canvas : l'état que le rig a **reçu et rendu**.
- *   Sans elle, « état restauré » serait déduit de l'URL déjà vérifiée, et un rig
- *   sourd à Précédent passerait au vert.
- *
- * ⛔ **Le témoin posé sur le canvas n'est pas décoratif** : un rechargement
- * restaurerait l'état par construction, et ce parcours passerait au vert sans
- * avoir rien prouvé de la navigation client. Il doit survivre à tout le trajet.
+ * P6-10, sur les attributs de P6-07 (`testing-strategy.md` §4). Deux lectures,
+ * parce qu'elles peuvent diverger : `data-scene-focus`, l'état que l'URL désigne,
+ * et `data-camera-focus`, celui que le rig a reçu. Sans la seconde, un rig sourd à
+ * Précédent passerait au vert.
  */
-const RACINE = '[data-scene-root]'
-const CANVAS = `${RACINE} canvas`
-const TEMOIN = `${CANVAS}[data-temoin="meme-canvas"]`
-const PREMIERE_IMAGE_MS = 20_000
-
-async function monterLaScene(page: Page, chemin: string) {
-  await page.goto(chemin)
-  await expect(page.locator(CANVAS)).toBeAttached({ timeout: 10_000 })
-  await page
-    .locator(CANVAS)
-    .evaluate((element) => element.setAttribute('data-temoin', 'meme-canvas'))
-}
 
 /**
- * L'état de scène que le DOM expose — et, quand la scène est montrée, celui que
- * la caméra a reçu. Une fiche arrête la boucle (`never`) : rien n'y est rendu,
- * donc rien à lire côté caméra.
+ * L'état de scène exposé — et, scène montrée, celui que la caméra a reçu. Une
+ * fiche arrête la boucle (`never`) : rien n'y est rendu côté caméra.
  */
 async function etatDeScene(page: Page, focus: string, visible: boolean) {
   await expect(page.locator(RACINE)).toHaveAttribute('data-scene-focus', focus)
   await expect(page.locator(RACINE)).toHaveAttribute('data-scene-visible', String(visible))
-  // ⛔ Le délai couvre la PREMIÈRE image, compilation des shaders comprise : sous
-  // WebKit et une charge d'hôte élevée, elle a dépassé les 5 s par défaut (mesuré).
   if (visible) {
     await expect(page.locator(CANVAS)).toHaveAttribute('data-camera-focus', focus, {
       timeout: PREMIERE_IMAGE_MS,
     })
   }
-}
-
-function navigationPrincipale(page: Page) {
-  return page.getByRole('navigation', { name: 'Navigation principale' })
 }
 
 test.describe('état de scène', () => {
@@ -92,11 +75,11 @@ test.describe('état de scène', () => {
   })
 
   test('un lien direct pose l’état de la page demandée', async ({ page }) => {
-    // Quatre chargements complets, chacun avec sa première image : 37 s une fois
+    // Trois chargements complets, chacun avec sa première image : 37 s une fois
     // sur 54 sous une charge d'hôte de 100, au-delà des 30 s du test entier.
+    // L'accueil chargé directement est déjà tenu par le test précédent.
     test.slow()
     for (const [chemin, focus] of [
-      ['/fr', 'overview'],
       ['/fr/experiences', 'experiences'],
       ['/en/skills', 'skills'],
     ] as const) {
@@ -109,14 +92,8 @@ test.describe('état de scène', () => {
     await etatDeScene(page, 'projects', false)
   })
 
-  /*
-   * ⭐ Le TÉMOIN de E2E-14 (`profiles/reduced-motion/camera-cut.spec.ts`) : sans
-   * préférence de mouvement réduit, la même navigation ouvre une transition, et
-   * `data-camera-transition` le DIT. Sans ce cas, « aucun `true` » sous mouvement
-   * réduit pourrait venir d'un attribut que rien n'écrit.
-   * ⛔ L'attribut ne porte que la transition de route : la parallaxe, que le
-   * clic déclenche en déplaçant la souris, ne peut pas le faire passer à `true`.
-   */
+  // Le témoin de E2E-14 (`reduced-motion/camera-cut.spec.ts`) : sans mouvement
+  // réduit, la même navigation DOIT ouvrir une transition.
   test('sans mouvement réduit, une navigation ouvre une transition', async ({ page }) => {
     await monterLaScene(page, '/fr')
     // La transition d'arrivée finie : on part d'une caméra immobile.

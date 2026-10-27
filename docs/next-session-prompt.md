@@ -308,10 +308,7 @@ prototype, validation visuelle avec l'utilisateur, fusion et déploiement (#58),
 `test/p6-10-parcours-scene`) : `gh pr list --state all --head test/p6-10-parcours-scene`. La
 précédente, `docs/adr-0012-animation`, est fusionnée (#74).
 
-✅ **P6-07 et P6-10 closes le 2026-10-27** : l'état de scène se lit dans `data-scene-focus`, le
-ce que la caméra a reçu dans `data-camera-focus` et `data-camera-transition` ; E2E-13 (Précédent/Suivant), E2E-02 (lien direct) et
-E2E-14 (coupe sous mouvement réduit) sont couverts, chacun avec son témoin. Détail :
-`phase-6-log.md` §11.
+✅ **P6-07 et P6-10 closes le 2026-10-27** : voir `phase-6-log.md` §11.
 
 ✅ **P6-09 soldée le 2026-10-27** : [ADR-0012](./adr/0012-camera-animation-strategy.md), écrit après
 coup, alternatives chiffrées par mesure. Ses suites ouvertes sont devenues **P6-11** et **P6-12**.

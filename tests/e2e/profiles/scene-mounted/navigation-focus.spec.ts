@@ -1,5 +1,6 @@
 import type { Page } from '@playwright/test'
 
+import { monterLaScene, navigationPrincipale, TEMOIN } from '../../support/scene'
 import { detailPath } from '../../support/sitemap'
 import { expect, test } from '../../support/test'
 
@@ -23,20 +24,6 @@ import { expect, test } from '../../support/test'
  * chargement remet le focus au début par construction. Il prouve que c'est bien
  * une navigation client qui a été jugée.
  */
-const RACINE = '[data-scene-root]'
-const TEMOIN = `${RACINE} canvas[data-temoin="meme-canvas"]`
-
-async function monterLaScene(page: Page, chemin: string) {
-  await page.goto(chemin)
-  const canvas = page.locator(`${RACINE} canvas`)
-  await expect(canvas).toBeAttached({ timeout: 10_000 })
-  await canvas.evaluate((element) => element.setAttribute('data-temoin', 'meme-canvas'))
-}
-
-function navigationPrincipale(page: Page) {
-  return page.getByRole('navigation', { name: 'Navigation principale' })
-}
-
 async function attendreLeDebutDuDocument(page: Page) {
   await expect(page.locator(TEMOIN)).toBeAttached()
 

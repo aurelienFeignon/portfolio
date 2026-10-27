@@ -62,10 +62,6 @@ export function CameraRig({
   const orbitGoal = useRef({ yawDeg: 0, pitchDeg: 0 })
   const orbitNow = useRef({ yawDeg: 0, pitchDeg: 0 })
   const parallax = useRef({ yawDeg: 0, pitchDeg: 0 })
-  const ecrit = useRef<{ focus: string | null; transition: boolean | null }>({
-    focus: null,
-    transition: null,
-  })
 
   // Un nouvel état : la transition repart d'où la caméra EST.
   useEffect(() => {
@@ -187,32 +183,22 @@ export function CameraRig({
     camera.updateProjectionMatrix()
 
     // ⭐ En `demand`, c'est le rig qui demande l'image suivante tant qu'il bouge.
+    const enTransition = t < 1
     const moving =
-      t < 1 ||
+      enTransition ||
       Math.abs(consigne.yawDeg - orbitNow.current.yawDeg) > 0.01 ||
       Math.abs(consigne.pitchDeg - orbitNow.current.pitchDeg) > 0.01
     if (moving) invalidate()
 
     /*
-     * ⭐ Ce que la caméra fait, lisible du DOM sur le canvas, sans un pixel :
-     * - `data-camera-focus` : l'état que le rig a REÇU et rendu dans CETTE image
-     *   — pas celui de l'URL, qu'un rig sourd aux changements laisserait diverger ;
-     * - `data-camera-transition` : une transition de route en cours (`t < 1`), et
-     *   elle seule. L'orbite et la parallaxe en sont exclues : un pointeur qui
-     *   bouge n'est pas une navigation animée.
-     * Écrits ensemble, dans l'image qui les produit, et au changement seulement.
-     * ⚠️ Sur une fiche, la boucle s'arrête (`never`) : les valeurs restent celles
-     * de la dernière image rendue.
+     * ⭐ Pour le banc E2E, sans pixel : l'état que le rig a REÇU — il diverge de
+     * l'URL si le rig devient sourd — et la transition de route seule, orbite et
+     * parallaxe exclues. ⚠️ Sur une fiche (`never`), ils gardent la dernière image.
      */
     const dataset = get().gl.domElement.dataset
-    if (state.focus !== ecrit.current.focus) {
-      ecrit.current.focus = state.focus
-      dataset['cameraFocus'] = state.focus
-    }
-    if (t < 1 !== ecrit.current.transition) {
-      ecrit.current.transition = t < 1
-      dataset['cameraTransition'] = String(t < 1)
-    }
+    if (dataset['cameraFocus'] !== state.focus) dataset['cameraFocus'] = state.focus
+    if (dataset['cameraTransition'] !== String(enTransition))
+      dataset['cameraTransition'] = String(enTransition)
   })
 
   return null

@@ -614,15 +614,14 @@ Détail, captures, mesures et hypothèses réfutées : [`nexus-prototype.md`](./
 ⚠️ **Mesuré sous une charge d'hôte de 55 à 100**, due à d'autres builds. Trois ajustements en
 découlent, aucun ne masque une assertion :
 - **La première image a dépassé 5 s sous WebKit**, compilation des shaders comprise : la lecture de
-  `data-camera-focus` qui la suit attend 20 s.
-- **Précédent/Suivant** (sept navigations) et **lien direct** (quatre chargements) sont marqués
+  `data-camera-focus` qui la suit attend `PREMIERE_IMAGE_MS` (20 s), désormais partagé avec le
+  montage de scène dans `tests/e2e/support/scene.ts`.
+- **Précédent/Suivant** (sept navigations) et **lien direct** (trois chargements) sont marqués
   `test.slow()` : ils ont dépassé une fois le délai de 30 s du test **entier**, jamais une assertion.
 - **Un rouge voisin a été instruit, pas supposé** : « chaque élément focusable porte un indicateur
-  de focus », dans `accessibility.spec.ts`, a dépassé son délai deux fois sur cette branche. Rejoué
-  sur l'image de `main`, à charge égale et en alternance, il a rendu 9,4 / 16,1 / 16,5 s sur la
-  branche contre 2,5 / 2,6 / 3,2 s sur `main` au premier tour, puis 3,4 / 4,1 / 4,3 contre 4,3 /
-  5,3 / 5,8 au second. C'est du bruit de charge, pas un coût de la branche : les attributs ne
-  s'écrivent qu'au changement.
+  de focus » (`accessibility.spec.ts`) a dépassé son délai deux fois sur la branche. Rejoué en
+  alternance avec l'image de `main`, à charge égale : la branche était 3 à 6 fois plus lente au
+  premier tour, plus rapide au second. Du bruit de charge, pas un coût de la branche.
 
 **Mesures** : première visite inchangée, **12,9 Ko** par route, aucun module 3D ; chunk 3D **+39
 octets** (248 356 en `gzip -9`) — le coût de l'écriture de l'attribut.
