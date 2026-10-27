@@ -53,15 +53,13 @@ const SceneCanvas = dynamic(() => import('./scene-canvas'), { ssr: false })
 
 /*
  * ⭐ Le panneau de diagnostic est chargé **à la demande** (P5-08). Sans
- * `?debug=scene`, ces deux imports ne sont jamais résolus : un visiteur ordinaire
- * ne paie pas un octet pour un outil qui ne s'adresse qu'à l'auteur du site.
+ * `?debug=scene`, cet import n'est jamais résolu : un visiteur ordinaire ne paie
+ * pas un octet pour un outil qui ne s'adresse qu'à l'auteur du site. La sonde,
+ * elle, est chargée par `SceneCanvas` : elle se rend dans le `<Canvas>`, où
+ * `next/dynamic` ne fonctionne plus.
  */
 const DiagnosticsPanel = dynamic(
   () => import('./scene-diagnostics').then((module) => module.DiagnosticsPanel),
-  { ssr: false },
-)
-const DiagnosticsProbe = dynamic(
-  () => import('./scene-diagnostics').then((module) => module.DiagnosticsProbe),
   { ssr: false },
 )
 
@@ -324,7 +322,7 @@ export function SceneMount({
             onHover={survoler}
             onSelect={choisir}
             onContextLost={surPerteDeContexte}
-            {...(diagnostics ? { probe: <DiagnosticsProbe onReadings={setReleves} /> } : {})}
+            {...(diagnostics ? { onReadings: setReleves } : {})}
           />
         </SceneBoundary>
       </div>
