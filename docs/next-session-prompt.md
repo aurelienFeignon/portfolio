@@ -57,7 +57,8 @@ et surtout §6, l'enquête de performance. Les Phases 7 à 9 sont réorientées 
 **Tout ce qui suit est fusionné sur `main` et déployé**, les cinq jobs verts à chaque fois —
 publication GHCR et déploiement VPS compris.
 
-⭐ **Le 2026-10-27, neuf PR fusionnées et déployées** (dernier `main` : `5efbe40`, cinq jobs verts) :
+⭐ **Le 2026-10-27, dix PR fusionnées et déployées** (dernier `main` : `5efbe40`, cinq jobs verts) —
+#71 (ce prompt après P7-05), puis :
 - **#72** — la scène NEXUS reprend quatre idées d'une maquette Stitch : emblèmes des univers (pile de
   plateaux, prisme, gyroscope), faisceaux en pointillés, parallaxe vers la souris, **étiquettes
   permanentes** en HTML hors de la racine de scène (ADR-0003/0004 précisés), socle holographique.
@@ -304,8 +305,8 @@ référence (#57), `ReadingPanel`, P6-04, décisions NEXUS (D11 et amendements d
 prototype, validation visuelle avec l'utilisateur, fusion et déploiement (#58), roadmap reprise.
 
 ⛔ **Avant toute chose, vérifie la fusion de cette mise à jour du prompt** (branche
-`docs/adr-0012-animation`, qui porte aussi `docs/prompt-apres-p7-05`) :
-`gh pr list --state all --head docs/adr-0012-animation`.
+`docs/adr-0012-animation`) : `gh pr list --state all --head docs/adr-0012-animation`. La mise à jour
+précédente, `docs/prompt-apres-p7-05`, est déjà fusionnée (#71).
 
 ✅ **P6-09 est soldée** (2026-10-27) : [ADR-0012](./adr/0012-camera-animation-strategy.md), écrit
 **après coup**, constate la décision livrée par #58 — `easeInOutCubic`, 1,6 s, interruptible depuis la

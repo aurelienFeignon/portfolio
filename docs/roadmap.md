@@ -1592,6 +1592,9 @@ ce dossier ; back/forward et deep links corrects ; mapping écran ↔ section ex
 → P6-07 → P6-08 → P6-05 → P6-06 → P6-10. Deux écarts assumés : P6-03 ferme l'aller-retour de
 navigation avant que P6-02 n'ouvre la dépendance à `layout.ts`, et **P6-09 précède P6-04** — un ADR
 sur l'animation de caméra se pose avant d'écrire le rig, pas après (CT-08).
+⛔ **Le second n'a pas été tenu** : P6-04 a été livrée par #58 sans l'ADR, et P6-09 n'a été soldée
+qu'après coup, le 2026-10-27 ([ADR-0012](./adr/0012-camera-animation-strategy.md)). La règle reste
+juste, et c'est son non-respect qui est consigné ici, pas une révision.
 
 ---
 

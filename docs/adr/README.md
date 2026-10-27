@@ -43,8 +43,9 @@ Statuts : `PROPOSÉ` · `ACCEPTÉ` · `REMPLACÉ PAR ADR-xxxx` · `ABANDONNÉ`
 |---|---|---|---|
 | [0012](./0012-camera-animation-strategy.md) | Animation de caméra : interpolation maison à durée fixe, sans bibliothèque | ACCEPTÉ *(livré par #58, écrit après coup)* | 6 |
 
-⭐ **Le saut de 0010 à 0016 est délibéré** : 0011 à 0015 restent réservés aux décisions planifiées
-ci-dessous, dont l'une est nommée par la tâche P8-01. Un numéro réservé ne se reprend pas.
+⭐ **Le saut de 0010 à 0016 est délibéré** : 0011 à 0015 ont été réservés dès la Phase 0 aux
+décisions planifiées ci-dessous, dont l'une est nommée par la tâche P8-01. Un numéro réservé ne se
+reprend pas. **0012 est tranché** (Phase 6) ; 0011 et 0013 à 0015 restent réservés.
 
 ## Décisions identifiées, à instruire plus tard
 

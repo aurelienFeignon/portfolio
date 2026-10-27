@@ -47,7 +47,7 @@ S'y ajoute CT-10 : la logique de caméra doit être **testable sans WebGL**.
 | Courbe | `easeInOutCubic`, lente au départ et à l'arrivée, « le mouvement d'une grue, pas d'un projectile » | `state/camera-motion.ts` |
 | Durée | **1,6 s**, quelle que soit la distance | `transitionMs` dans `state/layout.ts` |
 | Ce qui est interpolé | position, cible et `fov`, linéairement sur la valeur adoucie | `interpolatePose` |
-| Interruption | la nouvelle transition part de `shown`, la pose affichée à l'image précédente | `camera-rig.tsx` |
+| Interruption | la nouvelle transition part de `shown` : la pose **interpolée** de l'image précédente, avant l'orbite et la correction de format. L'orbite, elle, décroît séparément vers zéro : c'est cette indépendance qui évite le saut | `camera-rig.tsx` |
 | Mouvement réduit | `transitionMs(true) = 0`, et `transitionProgress` rend **1** sur une durée nulle : une coupe | `camera-motion.ts` |
 | Horloge | l'heure de la **première image** rendue après le changement d'état, pas celle de la navigation | `camera-rig.tsx` |
 
@@ -76,10 +76,15 @@ transition à durée fixe repartirait de zéro à chaque `pointermove` et ne fin
 
 ### Ce que les deux mécanismes partagent
 
-- **Tout le calcul est pur** dans `state/camera-motion.ts`, sans import de three, et éprouvé sans
+- **La part pure** vit dans `state/camera-motion.ts`, sans import de three, et elle est éprouvée sans
   navigateur (`tests/unit/scene/camera-motion.test.ts`) : courbe et bornes, avancement, coupe à durée
-  nulle, interruption sans saut, orbite bornée qui ne zoome pas, parallaxe. Le rig ne fait
-  qu'appliquer ces fonctions image par image (CT-10).
+  nulle, interruption sans saut, orbite bornée qui ne zoome pas, parallaxe (CT-10).
+- ⚠️ **Elle n'est pas tout.** Restent dans le rig (`camera-rig.tsx`), **sans banc unitaire** :
+  - l'approche exponentielle de l'orbite ;
+  - la somme du glisser et de la parallaxe ;
+  - les sensibilités du glisser (0,18 et 0,12) ;
+  - le seuil de convergence (0,01°) ;
+  - l'application de `fovForAspect` à la valeur **interpolée**.
 - **Le rig demande ses images** : `invalidate()` tant que `t < 1` ou que l'orbite n'a pas rejoint sa
   consigne à 0,01° près. Hors de là, `demand` ne rend rien.
 
@@ -126,7 +131,10 @@ s'articule mal avec `frameloop='demand'` (P5-10), puisqu'il faudrait lui faire r
 **Ce qui est obtenu.**
 - Zéro octet et zéro dépendance pour l'animation de caméra.
 - Une durée exacte, que la coupe sous `reduced-motion` réduit à zéro sans cas à part.
-- Les quatre exigences tenues, chacune épinglée par un banc unitaire.
+- Les quatre exigences tenues. ⚠️ **Deux seulement sont épinglées par un banc unitaire** :
+  l'interruption (1) et la durée nulle (4). La correction de format sur la valeur interpolée (2) et
+  l'`invalidate()` image par image (3) ne vivent que dans le rig. Seuls le parcours E2E et la
+  relecture les gardent : une régression y passerait avec tous les bancs unitaires au vert.
 
 **Ce qui est accepté.**
 - **L'interruption repart de la pose, pas de la vitesse.** Une navigation au milieu d'un déplacement
@@ -137,9 +145,22 @@ s'articule mal avec `frameloop='demand'` (P5-10), puisqu'il faudrait lui faire r
   durée exacte. Une durée fonction de la distance resterait compatible avec cette décision, car seule
   `transitionMs` changerait.
 - **`k = min(1, δ × 5)` n'est qu'approximativement indépendant de la cadence.** La forme exacte
-  serait `1 − e^(−5δ)`. L'écart est faible aux cadences réelles : après une seconde, il reste
-  0,54 % de l'écart à 60 i/s et 0,42 % à 30 i/s, contre 0,67 % pour la forme exacte. Il n'est pas
-  corrigé, mais il est noté, pour qu'on ne l'interprète pas comme une instabilité.
+  serait `1 − e^(−5δ)`. En rendu continu, l'écart est faible : après une seconde, il reste 0,54 % de
+  l'écart à 60 i/s et 0,42 % à 30 i/s, contre 0,67 % pour la forme exacte.
+  ⛔ **Il n'en va pas de même en `frameloop='demand'`.** La première image après un repos porte une
+  durée δ égale à tout ce repos, donc `k = 1`, et l'orbite **saute** à sa consigne sans amortissement.
+  Le défaut ne se voit pas aujourd'hui, mais **par configuration seulement** : la boucle ne passe en
+  `demand` qu'au palier `lite`, où l'orbite et la parallaxe sont désactivées, et sous mouvement
+  réduit, où `k = 1` est voulu. ⚠️ Un futur palier qui garderait l'orbite en `demand` le rendrait
+  visible : plafonner δ ou passer à la forme exacte n'y suffirait pas seul, il faudrait repartir
+  d'une image courte.
+
+**Ce qui reste ouvert, non démontré.**
+- **L'interruption remet `from` et `started` dans un `useEffect`**, passif. Si une image est rendue
+  entre la validation du nouvel état par React et l'exécution de l'effet, elle lit le **nouvel**
+  objectif avec l'**ancien** départ. Une transition déjà finie (`t = 1`) poserait alors la caméra
+  directement sur la cible : une coupe, là où l'ADR promet un mouvement. Rien ne l'a observé à ce
+  jour. Un `useLayoutEffect` fermerait cette fenêtre : à vérifier, puis à corriger dans le rig.
 
 **Ce qui rouvrirait la décision.**
 - Un **besoin de suivi continu** à durée inconnue, comme une caméra qui accompagne un objet animé.
