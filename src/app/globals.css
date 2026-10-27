@@ -38,6 +38,8 @@
   /* Violet : décoratif seulement (4,1:1 sur surface). Pour du texte : `--color-violet-text`. */
   --color-violet: #8973f5;
   --color-violet-text: #a796ff; /* 7,8:1 · 6,9:1 · 6,0:1 */
+  /* Bleu ciel : la teinte de l'univers Compétences, décorative seulement. */
+  --color-sky: #38bdf8;
   --color-border: #22314d; /* trait de séparation, décoratif */
   --color-border-strong: #2c3f63;
 

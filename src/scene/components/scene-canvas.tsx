@@ -4,14 +4,15 @@
  * Le `<canvas>` React Three Fiber — **le seul endroit du site qui touche Three.js**.
  *
  * Il porte la scène NEXUS (D11) : le noyau, les trois univers, l'ambiance, et le
- * rig de caméra qui suit la route. Ni texte, ni information : le nom d'un univers
- * survolé est affiché **hors** du canvas, par `SceneMount` (ADR-0003).
+ * rig de caméra qui suit la route. Ni texte, ni information : les étiquettes des
+ * univers sont du HTML rendu **hors** du canvas, par `SceneMount` (ADR-0003) — la
+ * scène ne fait que leur donner leur position (`LabelProjector`).
  *
  * ⛔ `drei` s'importe composant par composant, jamais en entier (ADR-0016) — et
  * NEXUS n'en importe aucun.
  */
 import { Canvas } from '@react-three/fiber'
-import { type ReactNode, useCallback, useState } from 'react'
+import { type ReactNode, type RefObject, useCallback, useState } from 'react'
 import { ACESFilmicToneMapping, SRGBColorSpace } from 'three'
 
 import type { Section } from '@/routing/sections'
@@ -22,6 +23,7 @@ import { DENSITY, PALETTE } from '@/scene/state/layout'
 import type { SceneFocus, SceneState } from '@/scene/state/scene-state'
 
 import { CameraRig } from './nexus/camera-rig'
+import { type LabelAnchors, LabelProjector } from './nexus/label-projector'
 import { NexusScene } from './nexus/nexus-scene'
 import { ShaderWarmup } from './nexus/shader-warmup'
 
@@ -31,6 +33,8 @@ export default function SceneCanvas({
   free,
   visible,
   hovered,
+  labelAnchors,
+  labelZone,
   onHover,
   onSelect,
   onContextLost,
@@ -43,6 +47,10 @@ export default function SceneCanvas({
   /** Faux sur une fiche : la scène est cachée et ne calcule plus d'image. */
   readonly visible: boolean
   readonly hovered: SceneFocus | null
+  /** Les étiquettes HTML des univers, que la scène place à chaque image. */
+  readonly labelAnchors: RefObject<LabelAnchors>
+  /** Où les étiquettes peuvent se poser : hors du panneau, sous l'en-tête. */
+  readonly labelZone: Rect | null
   readonly onHover: (section: Section | null) => void
   readonly onSelect: (section: Section) => void
   readonly onContextLost: () => void
@@ -107,6 +115,8 @@ export default function SceneCanvas({
     >
       <fog attach="fog" args={[PALETTE.background, 16, 42]} />
       <CameraRig state={state} free={free} animated={animated} orbit={tier !== 'lite'} />
+      {/* Après le rig : la projection lit la pose que le rig vient de poser. */}
+      <LabelProjector anchors={labelAnchors} zone={labelZone} />
       <NexusScene
         density={DENSITY[tier]}
         animated={ambient}

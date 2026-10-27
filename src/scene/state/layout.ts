@@ -24,6 +24,8 @@ export const PALETTE = {
   surface: '#111C30',
   cyan: '#28D9F5',
   violet: '#8973F5',
+  /** Bleu ciel : la troisième teinte des univers, entre le cyan et le violet. */
+  sky: '#38BDF8',
   text: '#F1F5FB',
 } as const
 
@@ -33,8 +35,12 @@ export interface UniverseSpec {
   readonly position: Vec3
   /** Rayon de la sphère de sélection — ce que le pointeur doit toucher. */
   readonly hitRadius: number
-  /** La couleur dominante ; l'autre teinte de la palette sert d'accent. */
-  readonly tone: 'cyan' | 'violet'
+  /**
+   * La teinte de l'univers : son emblème, son faisceau et la pastille de son
+   * étiquette. ⭐ Une teinte par univers — cyan, violet, bleu ciel —, pour que le
+   * faisceau se lise comme celui qui va vers CET univers.
+   */
+  readonly tone: 'cyan' | 'violet' | 'sky'
 }
 
 /**
@@ -44,9 +50,19 @@ export interface UniverseSpec {
  * alors à travers lui vers le noyau, ce qui donne au gros plan sa profondeur.
  */
 export const UNIVERSES: Readonly<Record<Section, UniverseSpec>> = {
-  experiences: { position: [-5.6, 0, 1], hitRadius: 1.9, tone: 'violet' },
-  projects: { position: [1.2, 3.6, -5.8], hitRadius: 1.9, tone: 'cyan' },
-  skills: { position: [5.4, -0.6, 1.4], hitRadius: 1.9, tone: 'cyan' },
+  experiences: { position: [-5.6, 0, 1], hitRadius: 1.9, tone: 'cyan' },
+  projects: { position: [1.2, 3.6, -5.8], hitRadius: 1.9, tone: 'violet' },
+  skills: { position: [5.4, -0.6, 1.4], hitRadius: 1.9, tone: 'sky' },
+}
+
+/**
+ * Le point d'accroche de l'étiquette d'un univers : juste au-dessus de sa sphère
+ * de sélection. L'étiquette est du HTML posé à la projection de ce point, jamais
+ * un texte peint dans la scène (ADR-0004).
+ */
+export function labelAnchor(universe: Section): Vec3 {
+  const { position, hitRadius } = UNIVERSES[universe]
+  return [position[0], position[1] + hitRadius * 0.95, position[2]]
 }
 
 /** Le noyau : rayon du polyèdre central. Le reste de sa silhouette en dérive. */
@@ -136,6 +152,16 @@ export const transitionMs = (reducedMotion: boolean): number => (reducedMotion ?
  */
 export const ORBIT_LIMITS = { yawDeg: 28, pitchDeg: 12 } as const
 
+/**
+ * La parallaxe : la caméra suit le pointeur, sans glisser, de quelques degrés au
+ * plus — aux bords de la fenêtre. Ajoutée à l'orbite, le tout reste dans
+ * `ORBIT_LIMITS`.
+ *
+ * ⭐ Assez pour que la scène réponde au moindre geste, trop peu pour qu'elle
+ * bouge sous le pointeur de qui lit le panneau.
+ */
+export const PARALLAX = { yawDeg: 5, pitchDeg: 3 } as const
+
 /* ---------------------------------------------------------------- densité */
 
 export type DensityTier = 'full' | 'reduced' | 'lite'
@@ -143,10 +169,6 @@ export type DensityTier = 'full' | 'reduced' | 'lite'
 export interface Density {
   /** Particules d'ambiance. */
   readonly particles: number
-  /** Nœuds du réseau Projets. */
-  readonly projectNodes: number
-  /** Points par domaine de la constellation Compétences. */
-  readonly skillPointsPerCluster: number
   /** Coques translucides autour du noyau. */
   readonly shells: number
 }
@@ -156,7 +178,7 @@ export interface Density {
  * mêmes formes, moins peuplées. Les retirer ferait d'un univers un autre objet.
  */
 export const DENSITY: Readonly<Record<DensityTier, Density>> = {
-  full: { particles: 1800, projectNodes: 14, skillPointsPerCluster: 26, shells: 2 },
-  reduced: { particles: 1000, projectNodes: 12, skillPointsPerCluster: 20, shells: 2 },
-  lite: { particles: 500, projectNodes: 10, skillPointsPerCluster: 14, shells: 1 },
+  full: { particles: 1800, shells: 2 },
+  reduced: { particles: 1000, shells: 2 },
+  lite: { particles: 500, shells: 1 },
 }
