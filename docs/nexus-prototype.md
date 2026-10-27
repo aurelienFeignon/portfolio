@@ -52,7 +52,8 @@ lien du DOM ─────────┼─▶ router.push(route) ─▶ URL �
 
 - **Étiquettes** : chaque univers porte son nom et une accroche, en HTML posé à la projection de son
   point d'accroche (`LabelProjector`) — hors de la racine de scène, qui reste sans texte. Cachées
-  hors de la zone libre (`labelPlacement`) ; en gros plan, seule celle de l'univers cadré reste. Au
+  hors de la zone libre — ni sous le panneau, ni sous l'en-tête —, jugée sur la taille **rendue** de
+  l'étiquette (`labelPlacement`) ; en gros plan, seule celle de l'univers cadré reste. Au
   mobile, l'accroche est retirée ; la bande de scène est souvent trop étroite pour qu'elles y tiennent.
 - **Survol** : l'univers grandit d'un dixième, son voile et son étiquette s'allument.
 - **Clic** sur un univers (sphère de sélection invisible ; un glisser de plus de 6 px n'est pas un

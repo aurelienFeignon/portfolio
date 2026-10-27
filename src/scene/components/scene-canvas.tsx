@@ -34,6 +34,7 @@ export default function SceneCanvas({
   visible,
   hovered,
   labelAnchors,
+  header,
   onHover,
   onSelect,
   onContextLost,
@@ -48,6 +49,8 @@ export default function SceneCanvas({
   readonly hovered: SceneFocus | null
   /** Les étiquettes HTML des univers, que la scène place à chaque image. */
   readonly labelAnchors: RefObject<LabelAnchors>
+  /** La hauteur de l'en-tête : aucune étiquette ne se pose dessous. */
+  readonly header: number
   readonly onHover: (section: Section | null) => void
   readonly onSelect: (section: Section) => void
   readonly onContextLost: () => void
@@ -113,7 +116,7 @@ export default function SceneCanvas({
       <fog attach="fog" args={[PALETTE.background, 16, 42]} />
       <CameraRig state={state} free={free} animated={animated} orbit={tier !== 'lite'} />
       {/* Après le rig : la projection lit la pose que le rig vient de poser. */}
-      <LabelProjector anchors={labelAnchors} free={free} />
+      <LabelProjector anchors={labelAnchors} free={free} header={header} />
       <NexusScene
         density={DENSITY[tier]}
         animated={ambient}

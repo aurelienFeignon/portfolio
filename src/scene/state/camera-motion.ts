@@ -145,39 +145,52 @@ export function parallaxFor(
   return { yawDeg: clamp(pointerX) * limits.yawDeg, pitchDeg: clamp(pointerY) * limits.pitchDeg }
 }
 
-/**
- * Le dégagement, en pixels, entre le point d'accroche d'une étiquette et le bord
- * de la zone libre. ⭐ Il se mesure depuis l'ACCROCHE — le milieu du bord bas de
- * l'étiquette —, donc il couvre la demi-largeur de l'étiquette sur les côtés et
- * toute sa hauteur au-dessus : sans cela, une étiquette « visible » déborde sous
- * le panneau ou hors de l'écran (capture du gros plan Compétences).
- */
-export const LABEL_CLEARANCE_PX = { side: 112, top: 56, bottom: 16 } as const
+/** La marge, en pixels, entre l'accroche d'une étiquette et le bas de la zone libre. */
+const LABEL_MARGIN_BOTTOM_PX = 16
+
+/** Ce que voit l'écran au moment de placer les étiquettes. */
+export interface LabelViewport {
+  readonly width: number
+  readonly height: number
+  /** La zone hors du panneau de lecture, `null` sans panneau. */
+  readonly free: Rect | null
+  /** La hauteur de l'en-tête, qui passe au-dessus des étiquettes. */
+  readonly header: number
+}
 
 /**
  * Où poser l'étiquette d'un univers, à partir de la projection de son ancre
  * (coordonnées normalisées de l'appareil, celles de `Vector3.project`).
  *
  * ⛔ **Visible seulement dans la zone libre** : une étiquette qui passerait sous
- * le panneau de lecture, ou derrière la caméra (`z` hors de `[-1, 1]`), est
- * cachée — jamais posée sur le contenu. Sans panneau, la zone libre est l'écran.
+ * le panneau de lecture ou sous l'en-tête, ou derrière la caméra (`z` hors de
+ * `[-1, 1]`), est cachée — jamais posée sur le contenu. Sans panneau, la zone
+ * libre est l'écran sous l'en-tête.
+ *
+ * ⭐ Le dégagement se mesure depuis l'ACCROCHE — le milieu du bord bas de
+ * l'étiquette — avec la taille RENDUE de l'étiquette (`label`) : la demi-largeur
+ * sur les côtés, toute la hauteur au-dessus. Une taille supposée se trompait
+ * dans les deux sens — une accroche longue débordait, une étiquette réduite au
+ * nom (mobile) se cachait sans raison.
  */
 export function labelPlacement(
   ndc: Vec3,
-  width: number,
-  height: number,
-  free: Rect | null,
+  viewport: LabelViewport,
+  label: { readonly width: number; readonly height: number },
 ): { readonly x: number; readonly y: number; readonly visible: boolean } {
+  const { width, height, free, header } = viewport
   const x = ((ndc[0] + 1) / 2) * width
   const y = ((1 - ndc[1]) / 2) * height
   const zone =
-    free !== null && free.width > 0 && free.height > 0 ? free : { x: 0, y: 0, width, height }
+    free !== null && free.width > 0 && free.height > 0
+      ? free
+      : { x: 0, y: header, width, height: height - header }
   const visible =
     ndc[2] > -1 &&
     ndc[2] < 1 &&
-    x >= zone.x + LABEL_CLEARANCE_PX.side &&
-    x <= zone.x + zone.width - LABEL_CLEARANCE_PX.side &&
-    y >= zone.y + LABEL_CLEARANCE_PX.top &&
-    y <= zone.y + zone.height - LABEL_CLEARANCE_PX.bottom
+    x >= zone.x + label.width / 2 &&
+    x <= zone.x + zone.width - label.width / 2 &&
+    y >= zone.y + label.height &&
+    y <= zone.y + zone.height - LABEL_MARGIN_BOTTOM_PX
   return { x, y, visible }
 }

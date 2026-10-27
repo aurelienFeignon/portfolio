@@ -86,6 +86,24 @@ export function polylineLength(points: readonly Vec3[]): number {
 }
 
 /**
+ * La fraction de longueur parcourue à chaque sommet, de 0 à 1 — l'abscisse
+ * curviligne normalisée.
+ *
+ * ⛔ Pas l'indice du sommet divisé par leur nombre : une courbe de Bézier
+ * échantillonnée à pas de paramètre constant va plus vite à ses bouts qu'en son
+ * milieu, et un motif posé sur l'indice s'y étirerait.
+ */
+export function arcFractions(points: readonly Vec3[]): number[] {
+  const total = polylineLength(points)
+  if (total === 0) return points.map(() => 0)
+  let length = 0
+  return points.map((point, i) => {
+    if (i > 0) length += polylineLength([points[i - 1] as Vec3, point])
+    return length / total
+  })
+}
+
+/**
  * Expériences — des plateaux carrés empilés, du plus large (bas) au plus étroit
  * (haut), centrés sur l'origine : une architecture en couches.
  */

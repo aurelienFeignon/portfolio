@@ -127,7 +127,7 @@ const additive = (color: string, opacity: number) =>
 /* ===================================================================== noyau */
 
 /** Un dégradé radial peint une fois dans un canvas 2D : la texture du halo. */
-function haloTexture(): CanvasTexture {
+function radialTexture(stops: readonly (readonly [number, string])[]): CanvasTexture {
   const size = 128
   const canvas = document.createElement('canvas')
   canvas.width = size
@@ -136,15 +136,20 @@ function haloTexture(): CanvasTexture {
   if (context !== null) {
     const half = size / 2
     const gradient = context.createRadialGradient(half, half, 0, half, half, half)
-    gradient.addColorStop(0, 'rgba(120, 236, 255, 0.55)')
-    gradient.addColorStop(0.25, 'rgba(40, 217, 245, 0.2)')
-    gradient.addColorStop(0.6, 'rgba(137, 115, 245, 0.06)')
-    gradient.addColorStop(1, 'rgba(0, 0, 0, 0)')
+    for (const [offset, color] of stops) gradient.addColorStop(offset, color)
     context.fillStyle = gradient
     context.fillRect(0, 0, size, size)
   }
   return new CanvasTexture(canvas)
 }
+
+const haloTexture = (): CanvasTexture =>
+  radialTexture([
+    [0, 'rgba(120, 236, 255, 0.55)'],
+    [0.25, 'rgba(40, 217, 245, 0.2)'],
+    [0.6, 'rgba(137, 115, 245, 0.06)'],
+    [1, 'rgba(0, 0, 0, 0)'],
+  ])
 
 /** Les anneaux : rayon, épaisseur, inclinaison (degrés), vitesse (rad/s), teinte. */
 const RINGS = [
@@ -280,10 +285,11 @@ export function buildConnections(): Built {
   const byUniverse = SECTIONS.map((section) => {
     const to = UNIVERSES[section].position
     const length = Math.hypot(...to)
-    // Le trait naît à la surface des coques et s'arrête au voile de l'univers :
-    // il relie deux objets, il ne traverse ni l'un ni l'autre.
+    // Le trait naît à la surface des coques et s'arrête au voile de l'univers —
+    // au voile agrandi par le survol : il relie deux objets, il ne traverse ni
+    // l'un ni l'autre, même quand l'univers grandit.
     const from = scaled(to, (CORE_RADIUS * 2.3) / length)
-    const end = scaled(to, (length - VEIL_RADIUS) / length)
+    const end = scaled(to, (length - VEIL_RADIUS * HOVER_SCALE) / length)
     const points = arc(from, end, 1.1, 96)
     const material = dashedBeamMaterial(tone(section), 0.9, polylineLength(points))
     root.add(new Line(polylineGeometry(points), material))
@@ -304,8 +310,15 @@ export function buildConnections(): Built {
 
 /* =================================================================== univers */
 
-/** Le rayon du voile filaire qui enveloppe chaque univers, sous sa sphère de sélection. */
+/**
+ * Le rayon du voile filaire qui enveloppe chaque univers, sous sa sphère de
+ * sélection. ⛔ Tout emblème tient dedans : c'est la borne où s'arrêtent les
+ * faisceaux.
+ */
 const VEIL_RADIUS = 1.6
+
+/** L'agrandissement d'un univers survolé. */
+export const HOVER_SCALE = 1.1
 
 const tone = (section: Section): string => PALETTE[UNIVERSES[section].tone]
 
@@ -433,12 +446,12 @@ export function buildPrism(): Built {
   const ring = new Group()
   tilt.add(ring)
   const ringMaterial = additive(color, 0.6)
-  ring.add(new Mesh(new TorusGeometry(1.75, 0.012, 6, 160), ringMaterial))
+  ring.add(new Mesh(new TorusGeometry(1.5, 0.012, 6, 160), ringMaterial))
   const pearl = new Mesh(
     new SphereGeometry(0.06, 12, 8),
     new MeshBasicMaterial({ color: PALETTE.text }),
   )
-  pearl.position.set(1.75, 0, 0)
+  pearl.position.set(1.5, 0, 0)
   ring.add(pearl)
 
   const veil = buildVeil(color)
@@ -466,24 +479,13 @@ export function buildPrism(): Built {
 /* ================================================================ plateforme */
 
 /** Un disque de lumière peint une fois : clair au centre, évanoui au bord. */
-function floorGlowTexture(): CanvasTexture {
-  const size = 128
-  const canvas = document.createElement('canvas')
-  canvas.width = size
-  canvas.height = size
-  const context = canvas.getContext('2d')
-  if (context !== null) {
-    const half = size / 2
-    const gradient = context.createRadialGradient(half, half, 0, half, half, half)
-    gradient.addColorStop(0, 'rgba(40, 217, 245, 0.35)')
-    gradient.addColorStop(0.45, 'rgba(40, 217, 245, 0.12)')
-    gradient.addColorStop(0.8, 'rgba(137, 115, 245, 0.05)')
-    gradient.addColorStop(1, 'rgba(0, 0, 0, 0)')
-    context.fillStyle = gradient
-    context.fillRect(0, 0, size, size)
-  }
-  return new CanvasTexture(canvas)
-}
+const floorGlowTexture = (): CanvasTexture =>
+  radialTexture([
+    [0, 'rgba(40, 217, 245, 0.35)'],
+    [0.45, 'rgba(40, 217, 245, 0.12)'],
+    [0.8, 'rgba(137, 115, 245, 0.05)'],
+    [1, 'rgba(0, 0, 0, 0)'],
+  ])
 
 /**
  * La plateforme du noyau : un socle **holographique** — trois anneaux lumineux

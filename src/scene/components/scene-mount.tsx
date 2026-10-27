@@ -94,10 +94,13 @@ function auRepos(callback: () => void): () => void {
  * - panneau **fixe** (ordinateur) : tout ce qui est à sa droite, sous l'en-tête ;
  * - panneau **dans le flux** (mobile) : la bande entre l'en-tête et son bord haut.
  */
+const hauteurEntete = (): number =>
+  document.querySelector('header')?.getBoundingClientRect().height ?? 0
+
 function zoneLibre(): Rect | null {
   const panneau = document.querySelector<HTMLElement>('[data-reading-panel]')
   if (panneau === null) return null
-  const entete = document.querySelector('header')?.getBoundingClientRect().height ?? 0
+  const entete = hauteurEntete()
   const cadre = panneau.getBoundingClientRect()
   if (getComputedStyle(panneau).position === 'fixed') {
     return {
@@ -149,6 +152,7 @@ export function SceneMount({
   // Le survol est rattaché au chemin où il a eu lieu : il ne survit pas à une navigation.
   const [survolAt, setSurvolAt] = useState<{ section: Section; chemin: string } | null>(null)
   const [libre, setLibre] = useState<Rect | null>(null)
+  const [entete, setEntete] = useState(0)
   // Les étiquettes, que la scène place à chaque image (`LabelProjector`).
   const ancres = useRef<LabelAnchors>({})
 
@@ -223,7 +227,10 @@ export function SceneMount({
   // La zone libre se remesure à chaque route et à chaque redimensionnement.
   useEffect(() => {
     if (!monte) return
-    const mesurer = () => setLibre(zoneLibre())
+    const mesurer = () => {
+      setLibre(zoneLibre())
+      setEntete(hauteurEntete())
+    }
     const image = requestAnimationFrame(mesurer)
     window.addEventListener('resize', mesurer)
     return () => {
@@ -284,6 +291,7 @@ export function SceneMount({
             visible={visible}
             hovered={survol}
             labelAnchors={ancres}
+            header={entete}
             onHover={survoler}
             onSelect={choisir}
             onContextLost={surPerteDeContexte}
@@ -297,31 +305,35 @@ export function SceneMount({
        * liens qui existent déjà dans la navigation — d'où `aria-hidden`. Leur
        * position est écrite par la scène ; jusqu'à la première image, elles
        * restent invisibles (`data-visible` absent).
+       * ⛔ Cachées sur une fiche, jamais démontées : remontées au retour, elles
+       * repartaient sans position et attendaient une image que `demand` ne
+       * rend pas forcément — la scène revenait sans ses étiquettes.
        */}
-      {visible ? (
-        <div aria-hidden="true" className={styles.etiquettes}>
-          {SECTIONS.map((section) => (
-            <p
-              key={section}
-              ref={(element) => {
-                ancres.current[section] = element
-              }}
-              data-section={section}
-              data-active={survol === section || scene.focus === section}
-              /*
-               * ⭐ En gros plan, seule l'étiquette de l'univers cadré reste : les
-               * autres univers passent au premier plan ou au bord du champ, et
-               * leurs étiquettes se posaient sur celui qu'on regarde.
-               */
-              data-eclipsed={scene.focus !== 'overview' && scene.focus !== section}
-              className={styles.etiquette}
-            >
-              <span className={styles.nom}>{labels[section].name}</span>
-              <span className={styles.accroche}>{labels[section].tagline}</span>
-            </p>
-          ))}
-        </div>
-      ) : null}
+      <div
+        aria-hidden="true"
+        className={[styles.etiquettes, visible ? '' : styles.cachee].filter(Boolean).join(' ')}
+      >
+        {SECTIONS.map((section) => (
+          <p
+            key={section}
+            ref={(element) => {
+              ancres.current[section] = element
+            }}
+            data-section={section}
+            data-active={survol === section || scene.focus === section}
+            /*
+             * ⭐ En gros plan, seule l'étiquette de l'univers cadré reste : les
+             * autres univers passent au premier plan ou au bord du champ, et
+             * leurs étiquettes se posaient sur celui qu'on regarde.
+             */
+            data-eclipsed={scene.focus !== 'overview' && scene.focus !== section}
+            className={styles.etiquette}
+          >
+            <span className={styles.nom}>{labels[section].name}</span>
+            <span className={styles.accroche}>{labels[section].tagline}</span>
+          </p>
+        ))}
+      </div>
       {/*
        * ⛔ Le panneau est HORS de `data-scene-root`, et ce n'est pas un détail de
        * mise en page : un parcours E2E exige que cette racine ne contienne pas un

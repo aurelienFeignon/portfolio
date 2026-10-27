@@ -16,7 +16,7 @@ import { type RefObject, useRef } from 'react'
 import { type Camera, Vector3 } from 'three'
 
 import { SECTIONS, type Section } from '@/routing/sections'
-import { labelPlacement, type Rect } from '@/scene/state/camera-motion'
+import { labelPlacement, type LabelViewport } from '@/scene/state/camera-motion'
 import { labelAnchor } from '@/scene/state/layout'
 
 export type LabelAnchors = Partial<Record<Section, HTMLElement | null>>
@@ -30,20 +30,26 @@ export type LabelAnchors = Partial<Record<Section, HTMLElement | null>>
 function placeLabels(
   anchors: LabelAnchors,
   camera: Camera,
-  width: number,
-  height: number,
-  free: Rect | null,
+  viewport: LabelViewport,
   point: Vector3,
 ): void {
   // ⛔ Le rig vient de déplacer la caméra : sa matrice monde n'est recalculée
   // qu'au rendu, donc projeter sans cette ligne placerait l'étiquette sur la
   // pose de l'image PRÉCÉDENTE — un retard d'une image, visible en transition.
   camera.updateMatrixWorld()
-  for (const section of SECTIONS) {
+  /*
+   * ⭐ Toutes les LECTURES de taille d'abord, toutes les écritures ensuite :
+   * entrelacées, chaque `offsetWidth` forcerait le navigateur à recalculer la
+   * mise en page que l'écriture précédente vient de salir.
+   */
+  const placements = SECTIONS.flatMap((section) => {
     const element = anchors[section]
-    if (!element) continue
+    if (!element) return []
     const ndc = point.set(...labelAnchor(section)).project(camera)
-    const { x, y, visible } = labelPlacement([ndc.x, ndc.y, ndc.z], width, height, free)
+    const label = { width: element.offsetWidth, height: element.offsetHeight }
+    return [{ element, ...labelPlacement([ndc.x, ndc.y, ndc.z], viewport, label) }]
+  })
+  for (const { element, x, y, visible } of placements) {
     element.style.transform = `translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, 0)`
     element.dataset['visible'] = String(visible)
   }
@@ -52,14 +58,21 @@ function placeLabels(
 export function LabelProjector({
   anchors,
   free,
+  header,
 }: {
   readonly anchors: RefObject<LabelAnchors>
-  readonly free: Rect | null
+  readonly free: LabelViewport['free']
+  readonly header: number
 }) {
   const point = useRef(new Vector3())
 
   useFrame(({ camera, size }) => {
-    placeLabels(anchors.current, camera, size.width, size.height, free, point.current)
+    placeLabels(
+      anchors.current,
+      camera,
+      { width: size.width, height: size.height, free, header },
+      point.current,
+    )
   })
 
   return null

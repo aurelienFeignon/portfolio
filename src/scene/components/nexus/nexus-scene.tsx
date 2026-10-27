@@ -30,6 +30,7 @@ import {
   buildPlatform,
   buildPrism,
   buildStack,
+  HOVER_SCALE,
 } from './builders'
 
 /** L'heure des shaders sous `prefers-reduced-motion` : impulsions visibles à l'arrêt. */
@@ -61,27 +62,34 @@ export function NexusScene({
 }) {
   const pixelRatio = useThree((state) => state.viewport.dpr)
 
-  const world = useMemo(() => {
-    const ambient = [
+  const ambient = useMemo(
+    () => [
       buildPlatform(),
       buildCore(density),
       buildParticles(density, pixelRatio),
       buildConnections(),
-    ]
-    const universes = SECTIONS.map((section) => ({
-      section,
-      built: BUILD_UNIVERSE[section](),
-    }))
-    return { ambient, universes }
-  }, [density, pixelRatio])
+    ],
+    [density, pixelRatio],
+  )
+  // ⭐ Les univers ne dépendent ni de la densité ni de la résolution : un écran
+  // changé ne les reconstruit pas, ni ne recompile leurs shaders.
+  const universes = useMemo(
+    () => SECTIONS.map((section) => ({ section, built: BUILD_UNIVERSE[section]() })),
+    [],
+  )
 
   // ⭐ La mémoire du GPU est rendue au démontage, et à chaque reconstruction.
   useEffect(
     () => () => {
-      for (const built of world.ambient) built.dispose()
-      for (const { built } of world.universes) built.dispose()
+      for (const built of ambient) built.dispose()
     },
-    [world],
+    [ambient],
+  )
+  useEffect(
+    () => () => {
+      for (const { built } of universes) built.dispose()
+    },
+    [universes],
   )
 
   const highlight = useRef<Record<Section, number>>({ experiences: 0, projects: 0, skills: 0 })
@@ -93,7 +101,7 @@ export function NexusScene({
       const goal = hovered === section || focus === section ? 1 : 0
       highlight.current[section] += (goal - highlight.current[section]) * ease
       // ⭐ Le survol grandit l'univers d'un dixième — doucement, jamais d'un coup.
-      const scaleGoal = hovered === section ? 1.1 : 1
+      const scaleGoal = hovered === section ? HOVER_SCALE : 1
       scale.current[section] +=
         (scaleGoal - scale.current[section]) * (animated ? Math.min(1, delta * 6) : 1)
     }
@@ -103,8 +111,8 @@ export function NexusScene({
       animated,
       highlight: highlight.current,
     }
-    for (const built of world.ambient) built.update(frame)
-    for (const { built } of world.universes) built.update(frame)
+    for (const built of ambient) built.update(frame)
+    for (const { built } of universes) built.update(frame)
   })
 
   const hit = useMemo(
@@ -129,11 +137,11 @@ export function NexusScene({
       <directionalLight color="#9fe9ff" intensity={1.6} position={[7, 6, 10]} />
       <directionalLight color={PALETTE.violet} intensity={1.4} position={[-8, 4, -6]} />
 
-      {world.ambient.map((built, i) => (
+      {ambient.map((built, i) => (
         <primitive key={i} object={built.root} />
       ))}
 
-      {world.universes.map(({ section, built }) => {
+      {universes.map(({ section, built }) => {
         const spec = UNIVERSES[section]
         return (
           <group key={section} position={spec.position as unknown as [number, number, number]}>

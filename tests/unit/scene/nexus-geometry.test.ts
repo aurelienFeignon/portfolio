@@ -6,6 +6,7 @@ import { describe, expect, it } from 'vitest'
 
 import {
   arc,
+  arcFractions,
   particleShell,
   plateStack,
   polylineLength,
@@ -75,6 +76,21 @@ describe('l’arc et sa longueur', () => {
     const corde = 4
     expect(polylineLength(arc([0, 0, 0], [4, 0, 0], 2, 64))).toBeGreaterThan(corde)
     expect(polylineLength(arc([0, 0, 0], [4, 0, 0], 0, 64))).toBeCloseTo(corde)
+  })
+
+  it('⭐ la fraction parcourue suit la LONGUEUR, pas l’indice du sommet', () => {
+    expect(
+      arcFractions([
+        [0, 0, 0],
+        [3, 0, 0],
+        [3, 4, 0],
+      ]),
+    ).toEqual([0, 3 / 7, 1])
+    expect(arcFractions([[1, 2, 3]])).toEqual([0])
+    // Un arc soulevé va plus vite à ses bouts : son premier pas couvre plus que 1/n.
+    const fractions = arcFractions(arc([0, 0, 0], [4, 0, 0], 2, 64))
+    expect(fractions[1]).toBeGreaterThan(1 / 64)
+    expect(fractions.at(-1)).toBeCloseTo(1)
   })
 })
 

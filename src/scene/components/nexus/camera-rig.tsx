@@ -86,8 +86,11 @@ export function CameraRig({
        * la page, et un stylet qui survole ne doit pas faire tanguer la scène.
        * Et jamais sous `prefers-reduced-motion` — un mouvement que personne n'a
        * demandé est précisément ce que cette préférence refuse.
+       * ⛔ Et figée pendant un glisser : la parallaxe suit le pointeur vers la
+       * droite quand le glisser tourne la vue vers la gauche — les deux se
+       * contrariaient, et le geste paraissait freiné.
        */
-      if (animated && event.pointerType === 'mouse') {
+      if (animated && event.pointerType === 'mouse' && last === null) {
         parallax.current = parallaxFor(
           (event.clientX / window.innerWidth) * 2 - 1,
           1 - (event.clientY / window.innerHeight) * 2,
@@ -109,13 +112,26 @@ export function CameraRig({
     const up = () => {
       last = null
     }
+    // ⭐ La souris quitte la fenêtre (ou la fenêtre le focus) : la scène se redresse,
+    // au lieu de rester inclinée vers le dernier bord touché.
+    const recentrer = () => {
+      parallax.current = { yawDeg: 0, pitchDeg: 0 }
+      get().invalidate()
+    }
+    const sortie = (event: PointerEvent) => {
+      if (event.relatedTarget === null) recentrer()
+    }
     element.addEventListener('pointerdown', down)
     window.addEventListener('pointermove', move)
     window.addEventListener('pointerup', up)
+    window.addEventListener('pointerout', sortie)
+    window.addEventListener('blur', recentrer)
     return () => {
       element.removeEventListener('pointerdown', down)
       window.removeEventListener('pointermove', move)
       window.removeEventListener('pointerup', up)
+      window.removeEventListener('pointerout', sortie)
+      window.removeEventListener('blur', recentrer)
     }
   }, [orbit, animated, get])
 
