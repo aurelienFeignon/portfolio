@@ -16,6 +16,12 @@ export interface Pose {
   readonly fov: number
 }
 
+/** Lacet et tangage, en degrés : la forme de l'orbite et de la parallaxe. */
+export interface OrbitAngles {
+  readonly yawDeg: number
+  readonly pitchDeg: number
+}
+
 export const poseOf = (spec: CameraSpec): Pose => ({
   position: spec.position,
   target: spec.target,
@@ -62,11 +68,7 @@ export function interpolatePose(from: Pose, to: Pose, t: number): Pose {
 }
 
 /** Ramène un angle dans `[-limite, +limite]`. */
-export function clampOrbit(
-  yawDeg: number,
-  pitchDeg: number,
-  limits: { readonly yawDeg: number; readonly pitchDeg: number },
-): { readonly yawDeg: number; readonly pitchDeg: number } {
+export function clampOrbit(yawDeg: number, pitchDeg: number, limits: OrbitAngles): OrbitAngles {
   const clamp = (value: number, limit: number) => Math.min(limit, Math.max(-limit, value))
   return { yawDeg: clamp(yawDeg, limits.yawDeg), pitchDeg: clamp(pitchDeg, limits.pitchDeg) }
 }
@@ -137,11 +139,7 @@ export function framingFor(
  * profondeur se lit dans ce décalage. Une entrée hors de `[-1, 1]` (pointeur
  * hors de la fenêtre) est ramenée au bord.
  */
-export function parallaxFor(
-  pointerX: number,
-  pointerY: number,
-  limits: { readonly yawDeg: number; readonly pitchDeg: number },
-): { readonly yawDeg: number; readonly pitchDeg: number } {
+export function parallaxFor(pointerX: number, pointerY: number, limits: OrbitAngles): OrbitAngles {
   return clampOrbit(pointerX * limits.yawDeg, pointerY * limits.pitchDeg, limits)
 }
 
@@ -183,14 +181,8 @@ export function labelPlacement(
 
 /* ------------------------------------------------------------ une image du rig */
 
-/** Lacet et tangage, en degrés : la forme de l'orbite et de la parallaxe. */
-export interface OrbitAngles {
-  readonly yawDeg: number
-  readonly pitchDeg: number
-}
-
 /** Degrés d'orbite par pixel glissé : lacet à l'horizontale, tangage à la verticale. */
-export const DRAG_DEG_PER_PX = { yaw: 0.18, pitch: 0.12 } as const
+const DRAG_DEG_PER_PX = { yaw: 0.18, pitch: 0.12 } as const
 
 /**
  * La consigne d'orbite après un glisser de `dx`, `dy` pixels, bornée. Glisser vers
@@ -213,13 +205,22 @@ export function dragOrbit(
 const ORBIT_EASE_PER_S = 5
 
 /**
- * ⛔ La durée d'image la plus longue qu'on accepte. En `frameloop='demand'`, la
- * première image après un repos porte une durée égale à TOUT ce repos : sans
- * plafond, l'orbite sautait à sa consigne en une image (ADR-0012, P6-11). Plafonnée,
- * cette image avance comme une image ordinaire, et les suivantes — demandées tant
- * que l'orbite bouge — arrivent à la cadence de l'écran.
+ * La durée qu'une image fait avancer — temps de transition comme rattrapage de
+ * l'orbite.
+ *
+ * ⛔ **Au réveil, une image courte.** En `frameloop='demand'`, la première image
+ * après un repos porte une durée égale à TOUT ce repos : l'orbite sautait à sa
+ * consigne d'un coup. Une image qui suit un repos compte donc pour `REVEIL_S`.
+ * ⛔ **En mouvement, une image figée ne saute pas.** Un onglet en arrière-plan,
+ * une compilation : au-delà de `IMAGE_MAX_S`, l'image ne compte que pour lui.
+ * ⭐ Entre les deux, la durée réelle : un appareil à 20 i/s n'est pas ralenti.
  */
-export const MAX_FRAME_S = 1 / 30
+export const REVEIL_S = 1 / 60
+export const IMAGE_MAX_S = 0.1
+
+export function frameStepS(deltaS: number, wasMoving: boolean): number {
+  return wasMoving ? Math.min(deltaS, IMAGE_MAX_S) : REVEIL_S
+}
 
 /**
  * L'orbite affichée qui rattrape sa consigne : une approche exponentielle,
@@ -229,10 +230,10 @@ export const MAX_FRAME_S = 1 / 30
 export function approachOrbit(
   now: OrbitAngles,
   consigne: OrbitAngles,
-  deltaS: number,
+  stepS: number,
   animated: boolean,
 ): OrbitAngles {
-  const k = animated ? 1 - Math.exp(-ORBIT_EASE_PER_S * Math.min(deltaS, MAX_FRAME_S)) : 1
+  const k = animated ? 1 - Math.exp(-ORBIT_EASE_PER_S * stepS) : 1
   return {
     yawDeg: now.yawDeg + (consigne.yawDeg - now.yawDeg) * k,
     pitchDeg: now.pitchDeg + (consigne.pitchDeg - now.pitchDeg) * k,
@@ -240,7 +241,7 @@ export function approachOrbit(
 }
 
 /** L'écart d'orbite, en degrés, en deçà duquel l'orbite est arrivée. */
-export const ORBIT_SETTLED_DEG = 0.01
+const ORBIT_SETTLED_DEG = 0.01
 
 /** Ce que le rig applique à la caméra pour une image. */
 export interface RigFrame {
@@ -251,6 +252,8 @@ export interface RigFrame {
   /** Le champ vertical, corrigé pour le format À PARTIR de la valeur interpolée. */
   readonly fov: number
   readonly orbit: OrbitAngles
+  /** Le temps de transition écoulé APRÈS cette image, à rendre à l'image suivante. */
+  readonly elapsedMs: number
   /** Une transition de route en cours (`t < 1`), orbite exclue. */
   readonly transitioning: boolean
   /** Une image de plus est nécessaire : transition, ou orbite pas encore arrivée. */
@@ -260,10 +263,17 @@ export interface RigFrame {
 /**
  * Une image du rig, en nombres purs : tout ce que `camera-rig.tsx` faisait de tête
  * dans `useFrame`, et qu'aucun banc ne voyait (ADR-0012, exigences 2 et 3).
+ *
+ * ⛔⛔ **Le temps de transition s'ACCUMULE, image par image** — il ne se lit pas
+ * sur l'horloge de R3F. `setFrameloop` remet `clock.elapsedTime` à zéro à chaque
+ * changement de boucle, et une fiche fait passer la boucle par `never` : lu sur
+ * l'horloge, le temps écoulé devenait NÉGATIF au retour, `t` retombait à 0, et la
+ * caméra rejouait une transition déjà finie depuis son ancien départ (P6-11).
  */
 export function rigFrame(input: {
   readonly from: Pose
   readonly goal: Pose
+  /** Le temps de transition accumulé avant cette image ; 0 à chaque nouvel état. */
   readonly elapsedMs: number
   readonly durationMs: number
   readonly orbitNow: OrbitAngles
@@ -271,10 +281,14 @@ export function rigFrame(input: {
   readonly parallax: OrbitAngles
   readonly limits: OrbitAngles
   readonly deltaS: number
+  /** L'image précédente bougeait-elle ? Sinon, celle-ci est un réveil. */
+  readonly wasMoving: boolean
   readonly animated: boolean
   readonly aspect: number
 }): RigFrame {
-  const t = easeInOutCubic(transitionProgress(input.elapsedMs, input.durationMs))
+  const step = frameStepS(input.deltaS, input.wasMoving)
+  const elapsedMs = input.elapsedMs + step * 1000
+  const t = easeInOutCubic(transitionProgress(elapsedMs, input.durationMs))
   const shown = interpolatePose(input.from, input.goal, t)
   // La consigne est la somme du glisser et de la parallaxe, bornée ensemble.
   const consigne = clampOrbit(
@@ -282,7 +296,7 @@ export function rigFrame(input: {
     input.drag.pitchDeg + input.parallax.pitchDeg,
     input.limits,
   )
-  const orbit = approachOrbit(input.orbitNow, consigne, input.deltaS, input.animated)
+  const orbit = approachOrbit(input.orbitNow, consigne, step, input.animated)
   const transitioning = t < 1
   return {
     shown,
@@ -290,6 +304,7 @@ export function rigFrame(input: {
     target: shown.target,
     fov: fovForAspect(shown.fov, input.aspect),
     orbit,
+    elapsedMs,
     transitioning,
     moving:
       transitioning ||

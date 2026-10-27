@@ -1472,7 +1472,7 @@ du score ne touche **ni le LCP ni le CLS**, mais le temps de blocage.
 | P6-08 | Respect de `reduced-motion` : coupes instantanées — **DONE** *(2026-10-23, #58)* ; son parcours E2E est E2E-14 (P6-10) | P6-04 |
 | P6-09 | ADR-0012 : stratégie d'animation de caméra — **DONE** *(2026-10-27)*, après coup : voir [ADR-0012](./adr/0012-camera-animation-strategy.md) | P6-04 |
 | P6-10 | E2E : back/forward, deep link, clavier, reduced-motion — **DONE** *(2026-10-27)* : E2E-13, E2E-02 complété, E2E-14 ; détail : [`phase-6-log.md`](./phase-6-log.md) §11 | P6-08 |
-| P6-11 | Sortir la part non pure du rig dans `camera-motion.ts`, avec ses bancs — **DONE** *(2026-10-27)* : `rigFrame`, `approachOrbit`, `dragOrbit` ; saut de l'orbite en `demand` fermé (durée d'image plafonnée) ; détail : [`phase-6-log.md`](./phase-6-log.md) §12 | P6-04 |
+| P6-11 | Sortir la part non pure du rig dans `camera-motion.ts`, avec ses bancs — **DONE** *(2026-10-27)* : `rigFrame`, pur ; ⛔ a trouvé un défaut **en production** (une transition finie rejouée au retour d'une fiche, horloge de R3F remise à zéro) ; saut de l'orbite en `demand` fermé ; détail : [`phase-6-log.md`](./phase-6-log.md) §12 | P6-04 |
 | P6-12 | Fermer la fenêtre entre la validation d'un nouvel état et la remise à zéro de la transition — **DONE** *(2026-10-27)* : `useLayoutEffect` ; détail : [`phase-6-log.md`](./phase-6-log.md) §12 | P6-04 |
 
 **P6-01 — `resolveSceneState(pathname)`**

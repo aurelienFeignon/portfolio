@@ -309,6 +309,8 @@ prototype, validation visuelle avec l'utilisateur, fusion et déploiement (#58),
 précédente, `test/p6-10-parcours-scene`, est fusionnée (#75).
 
 ✅ **Phase 6 close le 2026-10-27** : P6-07 et P6-10 (`phase-6-log.md` §11), P6-11 et P6-12 (§12).
+⛔ P6-11 a trouvé un défaut **en production** : `setFrameloop` remet l'horloge de R3F à zéro, et une
+transition finie se rejouait au retour d'une fiche. Ne jamais mesurer un temps sur `clock.elapsedTime`.
 
 ✅ **P6-09 soldée le 2026-10-27** : [ADR-0012](./adr/0012-camera-animation-strategy.md), écrit après
 coup, alternatives chiffrées par mesure. Ses suites ouvertes sont devenues **P6-11** et **P6-12**.

@@ -9,12 +9,15 @@ import {
   clampOrbit,
   dragOrbit,
   easeInOutCubic,
+  frameStepS,
+  IMAGE_MAX_S,
   framingFor,
   interpolatePose,
   labelPlacement,
   orbitAround,
   parallaxFor,
   poseOf,
+  REVEIL_S,
   rigFrame,
   transitionProgress,
 } from '@/scene/state/camera-motion'
@@ -220,25 +223,35 @@ describe('le glisser', () => {
   })
 })
 
+describe('la durée qu’une image fait avancer', () => {
+  it('⛔ au réveil d’un repos, une image courte, quelle que soit la durée du repos', () => {
+    // En `demand`, la première image après un repos porte tout le repos.
+    expect(frameStepS(10, false)).toBe(REVEIL_S)
+  })
+
+  it('en mouvement, la durée réelle — un appareil à 20 i/s n’est pas ralenti', () => {
+    expect(frameStepS(1 / 20, true)).toBe(1 / 20)
+  })
+
+  it('⛔ en mouvement, une image figée ne compte que pour la durée maximale', () => {
+    expect(frameStepS(5, true)).toBe(IMAGE_MAX_S)
+  })
+})
+
 describe('l’orbite qui rattrape sa consigne', () => {
   const zero = { yawDeg: 0, pitchDeg: 0 }
   const consigne = { yawDeg: 10, pitchDeg: 0 }
+  const uneSeconde = (cadence: number) => {
+    let orbite = zero
+    for (let i = 0; i < cadence; i += 1) orbite = approachOrbit(orbite, consigne, 1 / cadence, true)
+    return orbite
+  }
 
-  it('approche sans dépasser, et ne dépend pas de la cadence', () => {
-    let a60 = zero
-    for (let i = 0; i < 60; i += 1) a60 = approachOrbit(a60, consigne, 1 / 60, true)
-    let a30 = zero
-    for (let i = 0; i < 30; i += 1) a30 = approachOrbit(a30, consigne, 1 / 30, true)
-    // Une seconde à 60 i/s et à 30 i/s : le même reste, e^(−5) de l'écart.
-    expect(10 - a60.yawDeg).toBeCloseTo(10 * Math.exp(-5), 6)
-    expect(a30.yawDeg).toBeCloseTo(a60.yawDeg, 6)
-  })
-
-  it('⛔ ne saute pas après un repos : une image de 10 s avance comme une image courte', () => {
-    // En `demand`, la première image après un repos porte tout le repos.
-    const apresRepos = approachOrbit(zero, consigne, 10, true)
-    expect(apresRepos.yawDeg).toBeLessThan(2)
-    expect(apresRepos).toEqual(approachOrbit(zero, consigne, 1 / 30, true))
+  it('approche sans dépasser, et ne dépend pas de la cadence — 20 i/s compris', () => {
+    // Une seconde à 60, 30 et 20 i/s : le même reste, e^(−5) de l'écart.
+    expect(10 - uneSeconde(60).yawDeg).toBeCloseTo(10 * Math.exp(-5), 6)
+    expect(uneSeconde(30).yawDeg).toBeCloseTo(uneSeconde(60).yawDeg, 6)
+    expect(uneSeconde(20).yawDeg).toBeCloseTo(uneSeconde(60).yawDeg, 6)
   })
 
   it('sans mouvement (reduced-motion), saute à la consigne : c’est voulu', () => {
@@ -261,6 +274,7 @@ describe('une image du rig', () => {
       parallax: repos,
       limits: ORBIT_LIMITS,
       deltaS: 1 / 60,
+      wasMoving: true,
       animated: true,
       aspect: 16 / 9,
       ...patch,
@@ -274,8 +288,9 @@ describe('une image du rig', () => {
     // format de 1,6, pas un portrait : en portrait, les deux butent sur le plafond
     // de 50° et redeviennent indiscernables.
     const etroit = image({ from: { ...de, fov: 30 }, goal: { ...vers, fov: 50 }, aspect: 1.6 })
-    expect(etroit.shown.fov).toBeCloseTo(40)
-    expect(etroit.fov).toBeCloseTo(fovForAspect(40, 1.6))
+    expect(etroit.shown.fov).toBeGreaterThan(35)
+    expect(etroit.shown.fov).toBeLessThan(45)
+    expect(etroit.fov).toBeCloseTo(fovForAspect(etroit.shown.fov, 1.6))
     expect(etroit.fov).not.toBeCloseTo(fovForAspect(50, 1.6))
   })
 
@@ -296,6 +311,22 @@ describe('une image du rig', () => {
     expect(arrivee.transitioning).toBe(false)
     expect(arrivee.moving).toBe(false)
     arrivee.position.forEach((valeur, i) => expect(valeur).toBeCloseTo(vers.position[i] ?? NaN))
+  })
+
+  it('⛔⛔ une transition finie ne se rejoue pas, quel que soit le temps passé hors image', () => {
+    // Le retour d'une fiche : la boucle repasse par `never`, et R3F remet son
+    // horloge à zéro. Le temps est accumulé, pas lu sur l'horloge : une image de
+    // réveil, même après 12 s de fiche, laisse la transition finie.
+    const retour = image({ elapsedMs: 1600, deltaS: 12, wasMoving: false })
+    expect(retour.transitioning).toBe(false)
+    expect(retour.shown.fov).toBeCloseTo(vers.fov)
+    retour.shown.position.forEach((valeur, i) =>
+      expect(valeur).toBeCloseTo(vers.position[i] ?? NaN),
+    )
+  })
+
+  it('accumule le temps de transition, et le rend à l’image suivante', () => {
+    expect(image({ elapsedMs: 800, deltaS: 1 / 60 }).elapsedMs).toBeCloseTo(800 + 1000 / 60)
   })
 
   it('sous reduced-motion, la première image est déjà l’arrivée', () => {

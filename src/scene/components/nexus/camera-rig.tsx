@@ -28,6 +28,7 @@ import { getCameraTarget } from '@/scene/state/camera-target'
 import {
   dragOrbit,
   framingFor,
+  type OrbitAngles,
   parallaxFor,
   type Pose,
   poseOf,
@@ -54,10 +55,11 @@ export function CameraRig({
 
   const shown = useRef<Pose>(poseOf(goal))
   const from = useRef<Pose>(poseOf(goal))
-  const started = useRef<number | null>(null)
-  const orbitGoal = useRef({ yawDeg: 0, pitchDeg: 0 })
-  const orbitNow = useRef({ yawDeg: 0, pitchDeg: 0 })
-  const parallax = useRef({ yawDeg: 0, pitchDeg: 0 })
+  const elapsed = useRef(0)
+  const wasMoving = useRef(false)
+  const orbitGoal = useRef<OrbitAngles>({ yawDeg: 0, pitchDeg: 0 })
+  const orbitNow = useRef<OrbitAngles>({ yawDeg: 0, pitchDeg: 0 })
+  const parallax = useRef<OrbitAngles>({ yawDeg: 0, pitchDeg: 0 })
 
   /*
    * Un nouvel état : la transition repart d'où la caméra EST.
@@ -68,7 +70,7 @@ export function CameraRig({
    */
   useLayoutEffect(() => {
     from.current = shown.current
-    started.current = null
+    elapsed.current = 0
     orbitGoal.current = { yawDeg: 0, pitchDeg: 0 }
     get().invalidate()
   }, [goal, get])
@@ -133,30 +135,31 @@ export function CameraRig({
     }
   }, [orbit, animated, get])
 
-  useFrame(({ clock, size, invalidate }, delta) => {
+  useFrame(({ size, invalidate }, delta) => {
     const { camera } = get()
     if (!(camera instanceof PerspectiveCamera)) return
 
-    const now = clock.elapsedTime * 1000
-    if (started.current === null) started.current = now
     const framing = framingFor(free, size.width, size.height)
     // Tout le calcul de l'image est pur (`rigFrame`, éprouvé sans navigateur) :
     // le rig ne fait que l'appliquer.
     const image = rigFrame({
       from: from.current,
       goal: poseOf(goal),
-      elapsedMs: now - started.current,
+      elapsedMs: elapsed.current,
       durationMs: transitionMs(!animated),
       orbitNow: orbitNow.current,
       drag: orbitGoal.current,
       parallax: parallax.current,
       limits: ORBIT_LIMITS,
       deltaS: delta,
+      wasMoving: wasMoving.current,
       animated,
       aspect: framing.aspect,
     })
     shown.current = image.shown
     orbitNow.current = image.orbit
+    elapsed.current = image.elapsedMs
+    wasMoving.current = image.moving
 
     camera.position.set(...image.position)
     camera.lookAt(...image.target)

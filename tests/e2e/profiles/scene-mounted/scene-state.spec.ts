@@ -92,6 +92,55 @@ test.describe('état de scène', () => {
     await etatDeScene(page, 'projects', false)
   })
 
+  /*
+   * ⛔⛔ Le défaut que P6-11 a trouvé : R3F remet son horloge à zéro à chaque
+   * changement de boucle, et une fiche fait passer la boucle par `never`. Le rig
+   * lisait ses transitions sur cette horloge : au retour, une transition finie
+   * repartait de zéro et la caméra la rejouait.
+   * ⚠️ La valeur se lit TOUT DE SUITE, sans l'attente de `toHaveAttribute` : elle
+   * patienterait jusqu'à la fin de la transition rejouée, et passerait sur le défaut.
+   */
+  test('revenir d’une fiche ne rejoue pas une transition finie', async ({ page }) => {
+    const fiche = await detailPath(page.request, 'fr', 'projects')
+    await monterLaScene(page, '/fr/projects')
+    const canvas = page.locator(CANVAS)
+    await expect(canvas).toHaveAttribute('data-camera-transition', 'false', {
+      timeout: PREMIERE_IMAGE_MS,
+    })
+
+    await page.locator(`main a[href="${fiche}"]`).first().click()
+    await expect(page.locator(RACINE)).toHaveAttribute('data-scene-visible', 'false')
+    await canvas.evaluate((element) => {
+      const quittees: Array<string | null> = []
+      Object.assign(window, { __transitions: quittees })
+      new MutationObserver((changements) => {
+        for (const changement of changements) quittees.push(changement.oldValue)
+      }).observe(element, {
+        attributes: true,
+        attributeFilter: ['data-camera-transition'],
+        attributeOldValue: true,
+      })
+    })
+
+    await page.goBack()
+    await expect(page.locator(RACINE)).toHaveAttribute('data-scene-visible', 'true')
+    // Dix images rendues après le retour : de quoi lancer une transition rejouée.
+    await page.evaluate(
+      () =>
+        new Promise<void>((fin) => {
+          let images = 0
+          const suivante = () => (++images >= 10 ? fin() : requestAnimationFrame(suivante))
+          requestAnimationFrame(suivante)
+        }),
+    )
+
+    expect(await canvas.getAttribute('data-camera-transition')).toBe('false')
+    const quittees = await page.evaluate(
+      () => (window as unknown as { __transitions: Array<string | null> }).__transitions,
+    )
+    expect(quittees, 'aucune transition rejouée').not.toContain('true')
+  })
+
   // Le témoin de E2E-14 (`reduced-motion/camera-cut.spec.ts`) : sans mouvement
   // réduit, la même navigation DOIT ouvrir une transition.
   test('sans mouvement réduit, une navigation ouvre une transition', async ({ page }) => {

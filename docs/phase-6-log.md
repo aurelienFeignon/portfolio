@@ -633,7 +633,8 @@ octets** (248 356 en `gzip -9`) — le coût de l'écriture de l'attribut.
 | Tâche | Livré | Où |
 |---|---|---|
 | P6-11 | `rigFrame` : tout le calcul d'une image (interpolation, consigne glisser + parallaxe, approche de l'orbite, correction de format, demande d'image), pur et éprouvé sans navigateur ; `dragOrbit`, `approachOrbit` ; le rig ne fait plus que l'appliquer | `state/camera-motion.ts`, `nexus/camera-rig.tsx` |
-| P6-11 | **Saut de l'orbite en `demand` fermé** : la durée d'image est plafonnée à 1/30 s, et l'approche prend sa forme exacte `1 − e^(−5δ)` | `approachOrbit` |
+| P6-11 | **Saut de l'orbite en `demand` fermé** : une image de réveil compte pour 1/60 s, une image figée en mouvement pour 0,1 s au plus ; l'approche prend sa forme exacte `1 − e^(−5δ)` | `frameStepS`, `approachOrbit` |
+| P6-11 | ⛔⛔ **Défaut en production, trouvé par la revue** : le temps de transition se lisait sur l'horloge de R3F, que `setFrameloop` remet à zéro — au retour d'une fiche, une transition finie se rejouait. Le temps s'accumule désormais image par image | `rigFrame`, parcours « revenir d'une fiche » |
 | P6-12 | La remise à zéro de la transition passe de `useEffect` à `useLayoutEffect` : plus aucune image ne peut lire le nouvel objectif avec l'ancien départ | `nexus/camera-rig.tsx` |
 
 ⭐⭐ **Un banc qui ne distingue rien ne garde rien** : toutes les caméras de la scène ont un `fov` de
@@ -642,9 +643,18 @@ d'arrivée. Il prend donc des `fov` différents (30° → 50°), et un format de
 deux valeurs butent sur le plafond de 50° et redeviennent indiscernables (mesuré, premier essai
 rouge pour cette raison).
 
-⭐ **Quatre mutations, toutes tuées**, chacune par le banc attendu : correction de format sur le fov
-d'arrivée ; plafond de durée retiré ; transition oubliée dans la demande d'image ; retour à
-`min(1, δ × 5)`.
+⭐⭐ **Le défaut de l'horloge, prouvé avant d'être corrigé** : `setFrameloop` remet
+`clock.elapsedTime` à zéro (lu dans R3F 9.8.2). Le parcours « revenir d'une fiche ne rejoue pas une
+transition finie » **rougit sur l'image de `main`**, sous Chromium et WebKit
+(`data-camera-transition` vaut `true` au retour), et passe sur la branche. Il relit la valeur tout
+de suite : l'attente de `toHaveAttribute` aurait patienté jusqu'à la fin de la transition rejouée.
+⛔ *La revue a aussi écarté une première écriture qui plafonnait toutes les images à 1/30 s* : elle
+fermait le saut en `demand`, mais ralentissait l'orbite sous 30 i/s.
+
+⭐ **Sept mutations, toutes tuées**, chacune par le banc attendu : correction de format sur le fov
+d'arrivée ; transition oubliée dans la demande d'image ; retour à `min(1, δ × 5)` ; image de réveil
+ignorée ; image figée non plafonnée ; temps de transition non accumulé ; et, d'abord, le plafond
+retiré de la première écriture.
 
 ⚠️ **P6-12 n'a pas de banc** : le défaut n'a jamais été observé, et l'effet de mise en page le rend
 impossible par construction. C'est une garantie de structure, pas une mesure.
@@ -653,10 +663,10 @@ impossible par construction. C'est une garantie de structure, pas une mesure.
 - couverture de `src/scene/state/**` : 100 % des lignes, 98,4 % des branches ;
 - première visite inchangée, 12,9 Ko par route ;
 - chunk 3D +200 octets (248 556 en `gzip -9`) ;
-- E2E de production : 172/173. Le seul rouge, « chaque élément focusable porte un indicateur de
-  focus » (`accessibility.spec.ts`), prend 3,5 s seul et ne dépasse son délai qu'en suite complète
-  sous charge. C'est une fragilité préexistante du banc local, déjà rencontrée sur P6-10 (§11) ; la
-  CI le passe.
+- E2E de production : **175/175** à charge normale. Sous une charge de 60, « chaque élément focusable
+  porte un indicateur de focus » (`accessibility.spec.ts`) avait dépassé son délai : il prend 3,5 s
+  seul. C'est une fragilité préexistante du banc local en suite complète, déjà rencontrée sur P6-10
+  (§11) ; la CI le passe.
 
 ✅ **La Phase 6 est close**, 12/12, tous critères de sortie cochés (§6).
 

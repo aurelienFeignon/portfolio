@@ -47,7 +47,7 @@ S'y ajoute CT-10 : la logique de caméra doit être **testable sans WebGL**.
 | Ce qui est interpolé | position, cible et `fov`, linéairement sur la valeur adoucie | `interpolatePose` |
 | Interruption | la nouvelle transition part de `shown` : la pose **interpolée** de l'image précédente, avant l'orbite et la correction de format. L'orbite, elle, décroît séparément vers zéro : c'est cette indépendance qui évite le saut. La remise à zéro se fait dans un `useLayoutEffect`, avant toute image (P6-12) | `camera-rig.tsx` |
 | Mouvement réduit | `transitionMs(true) = 0`, et `transitionProgress` rend **1** sur une durée nulle : une coupe | `camera-motion.ts` |
-| Horloge | l'heure de la **première image** rendue après le changement d'état, pas celle de la navigation | `camera-rig.tsx` |
+| Horloge | un temps **accumulé image par image**, remis à zéro au changement d'état, jamais l'horloge de R3F (révisé le 2026-10-27, voir plus bas) | `rigFrame` |
 
 ⭐ **La durée est née du ressenti.** La première valeur, 0,7 s, a été abandonnée au prototype : un
 déplacement de 13 unités autour du noyau lu en 0,7 s se perçoit comme un saut, pas comme un
@@ -64,7 +64,7 @@ Le glisser (±28° en lacet, ±12° en tangage) et la parallaxe vers la souris (
 **consigne**, bornée par `clampOrbit`. L'orbite affichée la rattrape à chaque image :
 
 ```text
-orbite += (consigne − orbite) × k,   k = 1 − e^(−5 · min(δ, 1/30 s))   (δ : durée de l'image)
+orbite += (consigne − orbite) × k,   k = 1 − e^(−5 · pas)   (pas : `frameStepS`, voir plus bas)
 ```
 
 *Révisé le 2026-10-27 (P6-11) : la règle d'origine était `k = min(1, δ × 5)`. Voir « Ce qui est
@@ -158,18 +158,26 @@ s'articule mal avec `frameloop='demand'` (P5-10), puisqu'il faudrait lui faire r
 - **1,6 s pour tout trajet**, court ou long. Un trajet court paraît lent : c'est le prix d'une
   durée exacte. Une durée fonction de la distance resterait compatible avec cette décision, car seule
   `transitionMs` changerait.
-- **Une durée d'image plafonnée à 1/30 s** pour l'orbite : une image qui arrive après un repos avance
-  comme une image ordinaire, et les suivantes, demandées tant que l'orbite bouge, prennent le relais.
+- **Le pas d'une image** (`frameStepS`) n'est pas toujours sa durée réelle : une image de réveil,
+  après un repos, compte pour 1/60 s ; une image figée en plein mouvement (onglet en arrière-plan,
+  compilation) compte au plus pour 0,1 s. Entre les deux, la durée réelle : un appareil à 20 i/s
+  n'est pas ralenti.
 
-**Révisé le 2026-10-27 (P6-11, P6-12)** — ces trois points étaient consignés comme ouverts, ils
-sont soldés :
+**Révisé le 2026-10-27 (P6-11, P6-12)** — quatre défauts, dont un en production :
+- ⛔⛔ **Le temps de transition se lisait sur l'horloge de R3F, que `setFrameloop` remet à zéro**
+  (vérifié dans R3F 9.8.2) : une fiche fait passer la boucle par `never`. Au retour, le temps écoulé
+  devenait négatif, `t` retombait à 0, et la caméra **rejouait** une transition déjà finie depuis son
+  ancien départ. Le défaut était en production, et un parcours E2E rougit sur l'image d'avant le
+  correctif, sous Chromium comme sous WebKit. Le temps est désormais accumulé image par image
+  (`rigFrame`), et l'horloge n'est plus lue.
 - **`k = min(1, δ × 5)`** n'était qu'approximativement indépendant de la cadence : il restait, après
   une seconde, 0,54 % de l'écart à 60 i/s et 0,42 % à 30 i/s, contre `e^(−5)` = 0,67 %. Remplacé par
   la forme exacte, épinglée par un banc (même reste à 60 et à 30 i/s).
 - **Le saut de l'orbite en `frameloop='demand'`** : la première image après un repos porte une durée
   égale à tout ce repos, donc `k = 1`. Le défaut était latent, masqué par configuration (`demand` ne
-  sert qu'au palier `lite`, orbite désactivée, et sous mouvement réduit). Il est fermé par le plafond
-  ci-dessus, et un banc l'épingle : une image de 10 s avance comme une image de 1/30 s.
+  sert qu'au palier `lite`, orbite désactivée, et sous mouvement réduit). Il est fermé par l'image de
+  réveil ci-dessus, et un banc l'épingle. *Une première écriture plafonnait TOUTES les images à
+  1/30 s : elle ralentissait l'orbite sous 30 i/s, et la revue l'a écartée.*
 - **La remise à zéro de la transition dans un `useEffect` passif** : une image rendue avant l'effet
   aurait lu le nouvel objectif avec l'ancien départ, et une transition déjà finie serait devenue une
   coupe. Elle passe dans un `useLayoutEffect`, qui s'exécute au commit, avant toute image. ⚠️ Le
