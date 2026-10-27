@@ -5,17 +5,25 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  approachOrbit,
   clampOrbit,
+  dragOrbit,
   easeInOutCubic,
+  frameStepS,
+  IMAGE_MAX_S,
   framingFor,
   interpolatePose,
   labelPlacement,
   orbitAround,
   parallaxFor,
   poseOf,
+  REVEIL_S,
+  rigFrame,
   transitionProgress,
+  ORBIT_REST,
 } from '@/scene/state/camera-motion'
-import { CAMERAS, PARALLAX } from '@/scene/state/layout'
+import { fovForAspect } from '@/scene/state/framing'
+import { CAMERAS, ORBIT_LIMITS, PARALLAX, type Vec3 } from '@/scene/state/layout'
 
 const distance = (a: readonly number[], b: readonly number[]) =>
   Math.hypot((a[0] ?? 0) - (b[0] ?? 0), (a[1] ?? 0) - (b[1] ?? 0), (a[2] ?? 0) - (b[2] ?? 0))
@@ -198,5 +206,133 @@ describe('le placement des étiquettes', () => {
     // x = 1 504 px : 96 px du bord droit, moins que la demi-largeur de 112 px.
     expect(placer([0.88, 0, 0.5]).visible).toBe(false)
     expect(placer([0.88, 0, 0.5], ecran, { width: 120, height: 32 }).visible).toBe(true)
+  })
+})
+
+describe('le glisser', () => {
+  it('vers la droite tourne la vue vers la gauche, vers le bas la penche', () => {
+    const apres = dragOrbit({ yawDeg: 0, pitchDeg: 0 }, 10, 10, ORBIT_LIMITS)
+    expect(apres.yawDeg).toBeCloseTo(-1.8)
+    expect(apres.pitchDeg).toBeCloseTo(1.2)
+  })
+
+  it('reste dans les bornes de l’orbite', () => {
+    expect(dragOrbit({ yawDeg: 0, pitchDeg: 0 }, -10_000, 10_000, ORBIT_LIMITS)).toEqual({
+      yawDeg: ORBIT_LIMITS.yawDeg,
+      pitchDeg: ORBIT_LIMITS.pitchDeg,
+    })
+  })
+})
+
+describe('la durée qu’une image fait avancer', () => {
+  it('⛔ au réveil d’un repos, une image courte, quelle que soit la durée du repos', () => {
+    // En `demand`, la première image après un repos porte tout le repos.
+    expect(frameStepS(10, false)).toBe(REVEIL_S)
+  })
+
+  it('en mouvement, la durée réelle — un appareil à 20 i/s n’est pas ralenti', () => {
+    expect(frameStepS(1 / 20, true)).toBe(1 / 20)
+  })
+
+  it('⛔ en mouvement, une image figée ne compte que pour la durée maximale', () => {
+    expect(frameStepS(5, true)).toBe(IMAGE_MAX_S)
+  })
+})
+
+describe('l’orbite qui rattrape sa consigne', () => {
+  const consigne = { yawDeg: 10, pitchDeg: 0 }
+  const uneSeconde = (cadence: number) => {
+    let orbite = ORBIT_REST
+    for (let i = 0; i < cadence; i += 1) orbite = approachOrbit(orbite, consigne, 1 / cadence, true)
+    return orbite
+  }
+
+  it('approche sans dépasser, et ne dépend pas de la cadence — 20 i/s compris', () => {
+    // Une seconde à 60, 30 et 20 i/s : le même reste, e^(−5) de l'écart.
+    expect(10 - uneSeconde(60).yawDeg).toBeCloseTo(10 * Math.exp(-5), 6)
+    expect(uneSeconde(30).yawDeg).toBeCloseTo(uneSeconde(60).yawDeg, 6)
+    expect(uneSeconde(20).yawDeg).toBeCloseTo(uneSeconde(60).yawDeg, 6)
+  })
+
+  it('sans mouvement (reduced-motion), saute à la consigne : c’est voulu', () => {
+    expect(approachOrbit(ORBIT_REST, consigne, 1 / 60, false)).toEqual(consigne)
+  })
+})
+
+describe('une image du rig', () => {
+  const de = poseOf(CAMERAS.accueil)
+  const vers = poseOf(CAMERAS.projets)
+  const image = (patch: Partial<Parameters<typeof rigFrame>[0]>) =>
+    rigFrame({
+      from: de,
+      goal: vers,
+      elapsedMs: 800,
+      orbitNow: ORBIT_REST,
+      drag: ORBIT_REST,
+      parallax: ORBIT_REST,
+      limits: ORBIT_LIMITS,
+      deltaS: 1 / 60,
+      wasMoving: true,
+      animated: true,
+      aspect: 16 / 9,
+      ...patch,
+    })
+
+  /** La pose d'arrivée, position et fov. */
+  const expectArrivee = (pose: { position: Vec3; fov?: number }) => {
+    pose.position.forEach((valeur, i) => expect(valeur).toBeCloseTo(vers.position[i] ?? NaN))
+    if (pose.fov !== undefined) expect(pose.fov).toBeCloseTo(vers.fov)
+  }
+
+  it('⭐ corrige le format sur le fov INTERPOLÉ, jamais sur celui de l’arrivée', () => {
+    // Un écran plus étroit que 16:9 : la correction élargit. À mi-chemin, elle
+    // part du fov du milieu de la transition, pas du fov cible (exigence 2).
+    // ⛔ Des fov DIFFÉRENTS au départ et à l'arrivée : toutes les caméras de la
+    // scène sont à 40°, et un banc sur elles ne distinguerait pas les deux. Et un
+    // format de 1,6, pas un portrait : en portrait, les deux butent sur le plafond
+    // de 50° et redeviennent indiscernables.
+    const etroit = image({ from: { ...de, fov: 30 }, goal: { ...vers, fov: 50 }, aspect: 1.6 })
+    expect(etroit.shown.fov).toBeGreaterThan(35)
+    expect(etroit.shown.fov).toBeLessThan(45)
+    expect(etroit.fov).toBeCloseTo(fovForAspect(etroit.shown.fov, 1.6))
+    expect(etroit.fov).not.toBeCloseTo(fovForAspect(50, 1.6))
+  })
+
+  it('⭐ demande une image tant qu’une transition est en cours (exigence 3)', () => {
+    const enCours = image({})
+    expect(enCours.transitioning).toBe(true)
+    expect(enCours.moving).toBe(true)
+  })
+
+  it('demande une image tant que l’orbite n’a pas rejoint sa consigne, sans être une transition', () => {
+    const parallaxe = image({ elapsedMs: 5000, parallax: { yawDeg: 5, pitchDeg: 0 } })
+    expect(parallaxe.transitioning).toBe(false)
+    expect(parallaxe.moving).toBe(true)
+  })
+
+  it('au repos, ne demande plus rien', () => {
+    const arrivee = image({ elapsedMs: 5000 })
+    expect(arrivee.transitioning).toBe(false)
+    expect(arrivee.moving).toBe(false)
+    expectArrivee({ position: arrivee.position })
+  })
+
+  it('⛔⛔ une transition finie ne se rejoue pas, quel que soit le temps passé hors image', () => {
+    // Le retour d'une fiche : la boucle repasse par `never`, et R3F remet son
+    // horloge à zéro. Le temps est accumulé, pas lu sur l'horloge : une image de
+    // réveil, même après 12 s de fiche, laisse la transition finie.
+    const retour = image({ elapsedMs: 1600, deltaS: 12, wasMoving: false })
+    expect(retour.transitioning).toBe(false)
+    expectArrivee(retour.shown)
+  })
+
+  it('accumule le temps de transition, et le rend à l’image suivante', () => {
+    expect(image({ elapsedMs: 800, deltaS: 1 / 60 }).elapsedMs).toBeCloseTo(800 + 1000 / 60)
+  })
+
+  it('sous reduced-motion, la première image est déjà l’arrivée', () => {
+    const coupe = image({ elapsedMs: 0, animated: false })
+    expect(coupe.transitioning).toBe(false)
+    expectArrivee(coupe.shown)
   })
 })

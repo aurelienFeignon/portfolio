@@ -21,24 +21,22 @@
  *    de l'écran, la scène se centre dans le reste (`framingFor`).
  */
 import { useFrame, useThree } from '@react-three/fiber'
-import { useEffect, useRef } from 'react'
+import { useEffect, useLayoutEffect, useRef } from 'react'
 import { PerspectiveCamera } from 'three'
 
 import { getCameraTarget } from '@/scene/state/camera-target'
 import {
-  clampOrbit,
-  easeInOutCubic,
+  dragOrbit,
   framingFor,
-  interpolatePose,
-  orbitAround,
+  ORBIT_REST,
+  type OrbitAngles,
   parallaxFor,
   type Pose,
   poseOf,
   type Rect,
-  transitionProgress,
+  rigFrame,
 } from '@/scene/state/camera-motion'
-import { fovForAspect } from '@/scene/state/framing'
-import { ORBIT_LIMITS, PARALLAX, transitionMs } from '@/scene/state/layout'
+import { ORBIT_LIMITS, PARALLAX } from '@/scene/state/layout'
 import type { SceneState } from '@/scene/state/scene-state'
 
 export function CameraRig({
@@ -58,16 +56,23 @@ export function CameraRig({
 
   const shown = useRef<Pose>(poseOf(goal))
   const from = useRef<Pose>(poseOf(goal))
-  const started = useRef<number | null>(null)
-  const orbitGoal = useRef({ yawDeg: 0, pitchDeg: 0 })
-  const orbitNow = useRef({ yawDeg: 0, pitchDeg: 0 })
-  const parallax = useRef({ yawDeg: 0, pitchDeg: 0 })
+  const elapsed = useRef(0)
+  const wasMoving = useRef(false)
+  const drag = useRef<OrbitAngles>(ORBIT_REST)
+  const orbitNow = useRef<OrbitAngles>(ORBIT_REST)
+  const parallax = useRef<OrbitAngles>(ORBIT_REST)
 
-  // Un nouvel état : la transition repart d'où la caméra EST.
-  useEffect(() => {
+  /*
+   * Un nouvel état : la transition repart d'où la caméra EST.
+   * ⛔ `useLayoutEffect`, pas `useEffect` (P6-12) : un effet passif peut s'exécuter
+   * APRÈS une image, qui lirait alors le nouvel objectif avec l'ancien départ —
+   * une transition déjà finie (`t = 1`) devenait une coupe. L'effet de mise en
+   * page s'exécute au commit, avant toute image.
+   */
+  useLayoutEffect(() => {
     from.current = shown.current
-    started.current = null
-    orbitGoal.current = { yawDeg: 0, pitchDeg: 0 }
+    elapsed.current = 0
+    drag.current = ORBIT_REST
     get().invalidate()
   }, [goal, get])
 
@@ -102,11 +107,7 @@ export function CameraRig({
       const dx = event.clientX - last.x
       const dy = event.clientY - last.y
       last = { x: event.clientX, y: event.clientY }
-      orbitGoal.current = clampOrbit(
-        orbitGoal.current.yawDeg - dx * 0.18,
-        orbitGoal.current.pitchDeg + dy * 0.12,
-        ORBIT_LIMITS,
-      )
+      drag.current = dragOrbit(drag.current, dx, dy, ORBIT_LIMITS)
       get().invalidate()
     }
     const up = () => {
@@ -115,7 +116,7 @@ export function CameraRig({
     // ⭐ La souris quitte la fenêtre (ou la fenêtre le focus) : la scène se redresse,
     // au lieu de rester inclinée vers le dernier bord touché.
     const recentrer = () => {
-      parallax.current = { yawDeg: 0, pitchDeg: 0 }
+      parallax.current = ORBIT_REST
       get().invalidate()
     }
     const sortie = (event: PointerEvent) => {
@@ -135,41 +136,34 @@ export function CameraRig({
     }
   }, [orbit, animated, get])
 
-  useFrame(({ clock, size, invalidate }, delta) => {
+  useFrame(({ size, invalidate }, delta) => {
     const { camera } = get()
     if (!(camera instanceof PerspectiveCamera)) return
 
-    const now = clock.elapsedTime * 1000
-    if (started.current === null) started.current = now
-    const duration = transitionMs(!animated)
-    const t = easeInOutCubic(transitionProgress(now - started.current, duration))
-    const pose = interpolatePose(from.current, poseOf(goal), t)
-    shown.current = pose
-
-    // L'orbite rattrape sa consigne avec amortissement ; sans mouvement, elle saute.
-    // La consigne est la somme du glisser et de la parallaxe, bornée ensemble.
-    const consigne = clampOrbit(
-      orbitGoal.current.yawDeg + parallax.current.yawDeg,
-      orbitGoal.current.pitchDeg + parallax.current.pitchDeg,
-      ORBIT_LIMITS,
-    )
-    const k = animated ? Math.min(1, delta * 5) : 1
-    orbitNow.current = {
-      yawDeg: orbitNow.current.yawDeg + (consigne.yawDeg - orbitNow.current.yawDeg) * k,
-      pitchDeg: orbitNow.current.pitchDeg + (consigne.pitchDeg - orbitNow.current.pitchDeg) * k,
-    }
-    const position = orbitAround(
-      pose.position,
-      pose.target,
-      orbitNow.current.yawDeg,
-      orbitNow.current.pitchDeg,
-    )
-
-    camera.position.set(...position)
-    camera.lookAt(...pose.target)
-
     const framing = framingFor(free, size.width, size.height)
-    camera.fov = fovForAspect(pose.fov, framing.aspect)
+    // Tout le calcul de l'image est pur (`rigFrame`, éprouvé sans navigateur) :
+    // le rig ne fait que l'appliquer.
+    const image = rigFrame({
+      from: from.current,
+      goal: poseOf(goal),
+      elapsedMs: elapsed.current,
+      orbitNow: orbitNow.current,
+      drag: drag.current,
+      parallax: parallax.current,
+      limits: ORBIT_LIMITS,
+      deltaS: delta,
+      wasMoving: wasMoving.current,
+      animated,
+      aspect: framing.aspect,
+    })
+    shown.current = image.shown
+    orbitNow.current = image.orbit
+    elapsed.current = image.elapsedMs
+    wasMoving.current = image.moving
+
+    camera.position.set(...image.position)
+    camera.lookAt(...image.shown.target)
+    camera.fov = image.fov
     if (framing.offsetX === 0 && framing.offsetY === 0) camera.clearViewOffset()
     else
       camera.setViewOffset(
@@ -183,12 +177,7 @@ export function CameraRig({
     camera.updateProjectionMatrix()
 
     // ⭐ En `demand`, c'est le rig qui demande l'image suivante tant qu'il bouge.
-    const enTransition = t < 1
-    const moving =
-      enTransition ||
-      Math.abs(consigne.yawDeg - orbitNow.current.yawDeg) > 0.01 ||
-      Math.abs(consigne.pitchDeg - orbitNow.current.pitchDeg) > 0.01
-    if (moving) invalidate()
+    if (image.moving) invalidate()
 
     /*
      * ⭐ Pour le banc E2E, sans pixel : l'état que le rig a REÇU — il diverge de
@@ -197,8 +186,8 @@ export function CameraRig({
      */
     const dataset = get().gl.domElement.dataset
     if (dataset['cameraFocus'] !== state.focus) dataset['cameraFocus'] = state.focus
-    if (dataset['cameraTransition'] !== String(enTransition))
-      dataset['cameraTransition'] = String(enTransition)
+    const enTransition = String(image.transitioning)
+    if (dataset['cameraTransition'] !== enTransition) dataset['cameraTransition'] = enTransition
   })
 
   return null

@@ -104,15 +104,17 @@ Deux écarts par rapport à l'ordre des identifiants, dictés par les dépendanc
 
 ## 6. Critères de sortie (rappel, `roadmap.md`)
 
-- [ ] Couverture **≥ 95 %** sur `src/scene/state/**`, **zéro import Three.js** dans ce dossier.
+- [x] Couverture **≥ 95 %** sur `src/scene/state/**`, **zéro import Three.js** dans ce dossier —
+      mesuré le 2026-10-27 : 100 % des lignes, 98,4 % des branches (§12) ; l'import est gardé par lint.
 - [x] Back/forward et deep links corrects — **E2E-13 et E2E-02**, sous Chromium et WebKit (§11).
-- [ ] Mapping écran ↔ section **exhaustif et testé**.
+- [x] Mapping écran ↔ section **exhaustif et testé** — par le type et un oracle (P6-02, §9).
 
 S'y ajoutent trois vérifications héritées, qui deviennent réelles ici :
 
-- [ ] La transition **invalide image par image** sans laisser la boucle en `always` (P5-10, reportée
-      derrière P6-04).
-- [ ] Le `fov` est **interpolé avec la position**, et passe par `fovForAspect` (P5-05, P5-06).
+- [x] La transition **invalide image par image** sans laisser la boucle en `always` (P5-10, reportée
+      derrière P6-04) — épinglé par un banc de `rigFrame` (§12).
+- [x] Le `fov` est **interpolé avec la position**, et passe par `fovForAspect` (P5-05, P5-06) —
+      épinglé par un banc de `rigFrame`, sur des `fov` différents au départ et à l'arrivée (§12).
 - [x] `data-scene-focus` n'amène **aucun** module Three.js dans le chunk de première visite (P5-09) —
       mesuré le 2026-10-27 : 12,9 Ko par route, aucun module 3D (§11).
 
@@ -625,4 +627,50 @@ découlent, aucun ne masque une assertion :
 
 **Mesures** : première visite inchangée, **12,9 Ko** par route, aucun module 3D ; chunk 3D **+39
 octets** (248 356 en `gzip -9`) — le coût de l'écriture de l'attribut.
+
+## 12. P6-11 et P6-12 — le rig devenu pur, et la phase close (2026-10-27)
+
+| Tâche | Livré | Où |
+|---|---|---|
+| P6-11 | `rigFrame` : tout le calcul d'une image (interpolation, consigne glisser + parallaxe, approche de l'orbite, correction de format, demande d'image), pur et éprouvé sans navigateur ; `dragOrbit`, `approachOrbit` ; le rig ne fait plus que l'appliquer | `state/camera-motion.ts`, `nexus/camera-rig.tsx` |
+| P6-11 | **Saut de l'orbite en `demand` fermé** : une image de réveil compte pour 1/60 s, une image figée en mouvement pour 0,1 s au plus ; l'approche prend sa forme exacte `1 − e^(−5δ)` | `frameStepS`, `approachOrbit` |
+| P6-11 | ⛔⛔ **Défaut en production, trouvé par la revue** : le temps de transition se lisait sur l'horloge de R3F, que `setFrameloop` remet à zéro — au retour d'une fiche, une transition finie se rejouait. Le temps s'accumule désormais image par image | `rigFrame`, parcours « revenir d'une fiche » |
+| P6-12 | La remise à zéro de la transition passe de `useEffect` à `useLayoutEffect` : plus aucune image ne peut lire le nouvel objectif avec l'ancien départ | `nexus/camera-rig.tsx` |
+
+⭐⭐ **Un banc qui ne distingue rien ne garde rien** : toutes les caméras de la scène ont un `fov` de
+40°. Écrit sur elles, le banc « correction de format sur le fov interpolé » serait passé avec le fov
+d'arrivée. Il prend donc des `fov` différents (30° → 50°), et un format de 1,6 : en portrait, les
+deux valeurs butent sur le plafond de 50° et redeviennent indiscernables (mesuré, premier essai
+rouge pour cette raison).
+
+⭐⭐ **Le défaut de l'horloge, prouvé avant d'être corrigé** : `setFrameloop` remet
+`clock.elapsedTime` à zéro (lu dans R3F 9.8.2). Le parcours « revenir d'une fiche ne rejoue pas une
+transition finie » **rougit sur l'image de `main`**, sous Chromium et WebKit
+(`data-camera-transition` vaut `true` au retour), et passe sur la branche. Il relit la valeur tout
+de suite : l'attente de `toHaveAttribute` aurait patienté jusqu'à la fin de la transition rejouée.
+⛔ *La revue a aussi écarté une première écriture qui plafonnait toutes les images à 1/30 s* : elle
+fermait le saut en `demand`, mais ralentissait l'orbite sous 30 i/s.
+
+⭐ **Sept mutations, toutes tuées**, chacune par le banc attendu : correction de format sur le fov
+d'arrivée ; transition oubliée dans la demande d'image ; retour à `min(1, δ × 5)` ; image de réveil
+ignorée ; image figée non plafonnée ; temps de transition non accumulé ; et, d'abord, le plafond
+retiré de la première écriture.
+
+⚠️ **P6-12 n'a pas de banc** : le défaut n'a jamais été observé, et l'effet de mise en page le rend
+impossible par construction. C'est une garantie de structure, pas une mesure.
+
+**Mesures** :
+- couverture de `src/scene/state/**` : 100 % des lignes, 98,4 % des branches ;
+- première visite inchangée, 12,9 Ko par route ;
+- chunk 3D +200 octets (248 556 en `gzip -9`) ;
+- E2E de production : **175/175** à charge normale. Sous une charge de 60, « chaque élément focusable
+  porte un indicateur de focus » (`accessibility.spec.ts`) avait dépassé son délai : il prend 3,5 s
+  seul. C'est une fragilité préexistante du banc local en suite complète, déjà rencontrée sur P6-10
+  (§11) ; la CI le passe.
+
+**Ce que `/simplify` a laissé ouvert** : le shader de `nexus-scene.tsx` lit la même horloge, remise à
+zéro par `setFrameloop`. Au retour d'une fiche, son animation ambiante repart de 0 : même cause,
+effet cosmétique, hors du périmètre de P6-11. Reporté au prompt de reprise, point 5.
+
+✅ **La Phase 6 est close**, 12/12, tous critères de sortie cochés (§6).
 
