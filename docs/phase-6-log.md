@@ -104,15 +104,17 @@ Deux écarts par rapport à l'ordre des identifiants, dictés par les dépendanc
 
 ## 6. Critères de sortie (rappel, `roadmap.md`)
 
-- [ ] Couverture **≥ 95 %** sur `src/scene/state/**`, **zéro import Three.js** dans ce dossier.
+- [x] Couverture **≥ 95 %** sur `src/scene/state/**`, **zéro import Three.js** dans ce dossier —
+      mesuré le 2026-10-27 : 100 % des lignes, 98,4 % des branches (§12) ; l'import est gardé par lint.
 - [x] Back/forward et deep links corrects — **E2E-13 et E2E-02**, sous Chromium et WebKit (§11).
-- [ ] Mapping écran ↔ section **exhaustif et testé**.
+- [x] Mapping écran ↔ section **exhaustif et testé** — par le type et un oracle (P6-02, §9).
 
 S'y ajoutent trois vérifications héritées, qui deviennent réelles ici :
 
-- [ ] La transition **invalide image par image** sans laisser la boucle en `always` (P5-10, reportée
-      derrière P6-04).
-- [ ] Le `fov` est **interpolé avec la position**, et passe par `fovForAspect` (P5-05, P5-06).
+- [x] La transition **invalide image par image** sans laisser la boucle en `always` (P5-10, reportée
+      derrière P6-04) — épinglé par un banc de `rigFrame` (§12).
+- [x] Le `fov` est **interpolé avec la position**, et passe par `fovForAspect` (P5-05, P5-06) —
+      épinglé par un banc de `rigFrame`, sur des `fov` différents au départ et à l'arrivée (§12).
 - [x] `data-scene-focus` n'amène **aucun** module Three.js dans le chunk de première visite (P5-09) —
       mesuré le 2026-10-27 : 12,9 Ko par route, aucun module 3D (§11).
 
@@ -625,4 +627,36 @@ découlent, aucun ne masque une assertion :
 
 **Mesures** : première visite inchangée, **12,9 Ko** par route, aucun module 3D ; chunk 3D **+39
 octets** (248 356 en `gzip -9`) — le coût de l'écriture de l'attribut.
+
+## 12. P6-11 et P6-12 — le rig devenu pur, et la phase close (2026-10-27)
+
+| Tâche | Livré | Où |
+|---|---|---|
+| P6-11 | `rigFrame` : tout le calcul d'une image (interpolation, consigne glisser + parallaxe, approche de l'orbite, correction de format, demande d'image), pur et éprouvé sans navigateur ; `dragOrbit`, `approachOrbit` ; le rig ne fait plus que l'appliquer | `state/camera-motion.ts`, `nexus/camera-rig.tsx` |
+| P6-11 | **Saut de l'orbite en `demand` fermé** : la durée d'image est plafonnée à 1/30 s, et l'approche prend sa forme exacte `1 − e^(−5δ)` | `approachOrbit` |
+| P6-12 | La remise à zéro de la transition passe de `useEffect` à `useLayoutEffect` : plus aucune image ne peut lire le nouvel objectif avec l'ancien départ | `nexus/camera-rig.tsx` |
+
+⭐⭐ **Un banc qui ne distingue rien ne garde rien** : toutes les caméras de la scène ont un `fov` de
+40°. Écrit sur elles, le banc « correction de format sur le fov interpolé » serait passé avec le fov
+d'arrivée. Il prend donc des `fov` différents (30° → 50°), et un format de 1,6 : en portrait, les
+deux valeurs butent sur le plafond de 50° et redeviennent indiscernables (mesuré, premier essai
+rouge pour cette raison).
+
+⭐ **Quatre mutations, toutes tuées**, chacune par le banc attendu : correction de format sur le fov
+d'arrivée ; plafond de durée retiré ; transition oubliée dans la demande d'image ; retour à
+`min(1, δ × 5)`.
+
+⚠️ **P6-12 n'a pas de banc** : le défaut n'a jamais été observé, et l'effet de mise en page le rend
+impossible par construction. C'est une garantie de structure, pas une mesure.
+
+**Mesures** :
+- couverture de `src/scene/state/**` : 100 % des lignes, 98,4 % des branches ;
+- première visite inchangée, 12,9 Ko par route ;
+- chunk 3D +200 octets (248 556 en `gzip -9`) ;
+- E2E de production : 172/173. Le seul rouge, « chaque élément focusable porte un indicateur de
+  focus » (`accessibility.spec.ts`), prend 3,5 s seul et ne dépasse son délai qu'en suite complète
+  sous charge. C'est une fragilité préexistante du banc local, déjà rencontrée sur P6-10 (§11) ; la
+  CI le passe.
+
+✅ **La Phase 6 est close**, 12/12, tous critères de sortie cochés (§6).
 

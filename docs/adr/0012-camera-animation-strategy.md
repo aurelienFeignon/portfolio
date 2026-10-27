@@ -45,7 +45,7 @@ S'y ajoute CT-10 : la logique de caméra doit être **testable sans WebGL**.
 | Courbe | `easeInOutCubic`, lente au départ et à l'arrivée, « le mouvement d'une grue, pas d'un projectile » | `state/camera-motion.ts` |
 | Durée | **1,6 s**, quelle que soit la distance | `transitionMs` dans `state/layout.ts` |
 | Ce qui est interpolé | position, cible et `fov`, linéairement sur la valeur adoucie | `interpolatePose` |
-| Interruption | la nouvelle transition part de `shown` : la pose **interpolée** de l'image précédente, avant l'orbite et la correction de format. L'orbite, elle, décroît séparément vers zéro : c'est cette indépendance qui évite le saut | `camera-rig.tsx` |
+| Interruption | la nouvelle transition part de `shown` : la pose **interpolée** de l'image précédente, avant l'orbite et la correction de format. L'orbite, elle, décroît séparément vers zéro : c'est cette indépendance qui évite le saut. La remise à zéro se fait dans un `useLayoutEffect`, avant toute image (P6-12) | `camera-rig.tsx` |
 | Mouvement réduit | `transitionMs(true) = 0`, et `transitionProgress` rend **1** sur une durée nulle : une coupe | `camera-motion.ts` |
 | Horloge | l'heure de la **première image** rendue après le changement d'état, pas celle de la navigation | `camera-rig.tsx` |
 
@@ -64,8 +64,11 @@ Le glisser (±28° en lacet, ±12° en tangage) et la parallaxe vers la souris (
 **consigne**, bornée par `clampOrbit`. L'orbite affichée la rattrape à chaque image :
 
 ```text
-orbite += (consigne − orbite) × k,   k = min(1, δ × 5)   (δ : durée de l'image, en secondes)
+orbite += (consigne − orbite) × k,   k = 1 − e^(−5 · min(δ, 1/30 s))   (δ : durée de l'image)
 ```
+
+*Révisé le 2026-10-27 (P6-11) : la règle d'origine était `k = min(1, δ × 5)`. Voir « Ce qui est
+accepté ».*
 
 Sans mouvement (`reduced-motion`), `k = 1` : l'orbite saute à sa consigne.
 
@@ -74,16 +77,13 @@ transition à durée fixe repartirait de zéro à chaque `pointermove` et ne fin
 
 ### Ce que les deux mécanismes partagent
 
-- **La part pure** vit dans `state/camera-motion.ts`, sans import de three, et elle est éprouvée sans
-  navigateur (`tests/unit/scene/camera-motion.test.ts`) : courbe et bornes, avancement, coupe à durée
-  nulle, interruption sans saut, orbite bornée qui ne zoome pas, parallaxe (CT-10).
-- ⚠️ **Elle n'est pas tout.** Restent dans le rig (`camera-rig.tsx`), **sans banc unitaire**
-  (P6-11) :
-  - l'approche exponentielle de l'orbite ;
-  - la somme du glisser et de la parallaxe ;
-  - les sensibilités du glisser (0,18 et 0,12) ;
-  - le seuil de convergence (0,01°) ;
-  - l'application de `fovForAspect` à la valeur **interpolée**.
+- **Tout le calcul d'une image est pur** depuis P6-11 : `rigFrame`, dans `state/camera-motion.ts`,
+  sans import de three, éprouvée sans navigateur (`tests/unit/scene/camera-motion.test.ts`, CT-10).
+  Elle porte la courbe, la coupe à durée nulle, l'interruption, la somme du glisser et de la
+  parallaxe, l'approche de l'orbite (`approachOrbit`), les sensibilités du glisser (`dragOrbit`), le
+  seuil de convergence et la correction de format sur la valeur **interpolée**. Le rig ne fait que
+  l'appliquer à la caméra.
+  *Jusqu'à P6-11, une partie de ce calcul vivait dans le rig, sans banc.*
 - **Le rig demande ses images** : `invalidate()` tant que `t < 1` ou que l'orbite n'a pas rejoint sa
   consigne à 0,01° près. Hors de là, `demand` ne rend rien.
 
@@ -145,10 +145,10 @@ s'articule mal avec `frameloop='demand'` (P5-10), puisqu'il faudrait lui faire r
 **Ce qui est obtenu.**
 - Zéro octet et zéro dépendance pour l'animation de caméra.
 - Une durée exacte, que la coupe sous `reduced-motion` réduit à zéro sans cas à part.
-- Les quatre exigences tenues. ⚠️ **Deux seulement sont épinglées par un banc unitaire** :
-  l'interruption (1) et la durée nulle (4). La correction de format sur la valeur interpolée (2) et
-  l'`invalidate()` image par image (3) ne vivent que dans le rig. Une régression y passerait avec
-  tous les bancs unitaires au vert : c'est P6-11.
+- Les quatre exigences tenues, **chacune épinglée par un banc unitaire** depuis P6-11 : la
+  correction de format sur la valeur interpolée (2) et la demande d'image tant qu'une transition dure
+  (3) se lisent désormais dans `rigFrame`. Les quatre mutations correspondantes sont tuées.
+  *Avant P6-11, seules (1) et (4) l'étaient.*
 
 **Ce qui est accepté.**
 - **L'interruption repart de la pose, pas de la vitesse.** Une navigation au milieu d'un déplacement
@@ -158,23 +158,23 @@ s'articule mal avec `frameloop='demand'` (P5-10), puisqu'il faudrait lui faire r
 - **1,6 s pour tout trajet**, court ou long. Un trajet court paraît lent : c'est le prix d'une
   durée exacte. Une durée fonction de la distance resterait compatible avec cette décision, car seule
   `transitionMs` changerait.
-- **`k = min(1, δ × 5)` n'est qu'approximativement indépendant de la cadence.** La forme exacte
-  serait `1 − e^(−5δ)`. En rendu continu, l'écart est faible : après une seconde, il reste
-  `(1 − 5δ)^(1/δ)` de l'écart, soit 0,54 % à 60 i/s et 0,42 % à 30 i/s, contre `e^(−5)` = 0,67 %
-  pour la forme exacte.
+- **Une durée d'image plafonnée à 1/30 s** pour l'orbite : une image qui arrive après un repos avance
+  comme une image ordinaire, et les suivantes, demandées tant que l'orbite bouge, prennent le relais.
 
-**Ce qui reste ouvert**, suivi par la roadmap :
-- **[P6-11](../roadmap.md)** — la part du rig sans banc unitaire. Il s'agit de sortir l'approche de l'orbite et la
-  correction de format dans `camera-motion.ts`, avec des bancs. ⛔ La même tâche porte un défaut
-  latent : en `frameloop='demand'`, la première image après un repos a une durée δ égale à tout ce
-  repos, donc `k = 1`, et l'orbite **saute** à sa consigne. Rien ne le montre aujourd'hui, mais
-  **par configuration seulement** : `demand` ne sert qu'au palier `lite`, où l'orbite est
-  désactivée, et sous mouvement réduit, où `k = 1` est voulu. Il est à traiter avant tout palier qui
-  garderait l'orbite en `demand`.
-- **[P6-12](../roadmap.md)** — l'interruption remet `from` et `started` dans un `useEffect` passif. Une image rendue
-  entre la validation du nouvel état et l'effet lirait le **nouvel** objectif avec l'**ancien**
-  départ, et une transition déjà finie (`t = 1`) deviendrait une coupe. Rien ne l'a observé à ce
-  jour. Un `useLayoutEffect` fermerait la fenêtre : à vérifier, puis à corriger.
+**Révisé le 2026-10-27 (P6-11, P6-12)** — ces trois points étaient consignés comme ouverts, ils
+sont soldés :
+- **`k = min(1, δ × 5)`** n'était qu'approximativement indépendant de la cadence : il restait, après
+  une seconde, 0,54 % de l'écart à 60 i/s et 0,42 % à 30 i/s, contre `e^(−5)` = 0,67 %. Remplacé par
+  la forme exacte, épinglée par un banc (même reste à 60 et à 30 i/s).
+- **Le saut de l'orbite en `frameloop='demand'`** : la première image après un repos porte une durée
+  égale à tout ce repos, donc `k = 1`. Le défaut était latent, masqué par configuration (`demand` ne
+  sert qu'au palier `lite`, orbite désactivée, et sous mouvement réduit). Il est fermé par le plafond
+  ci-dessus, et un banc l'épingle : une image de 10 s avance comme une image de 1/30 s.
+- **La remise à zéro de la transition dans un `useEffect` passif** : une image rendue avant l'effet
+  aurait lu le nouvel objectif avec l'ancien départ, et une transition déjà finie serait devenue une
+  coupe. Elle passe dans un `useLayoutEffect`, qui s'exécute au commit, avant toute image. ⚠️ Le
+  défaut n'a jamais été observé : le changement le rend impossible par construction, aucun banc ne
+  le montre.
 
 **Ce qui rouvrirait la décision.**
 - Un **besoin de suivi continu** à durée inconnue, comme une caméra qui accompagne un objet animé.

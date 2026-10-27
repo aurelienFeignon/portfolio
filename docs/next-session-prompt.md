@@ -47,8 +47,8 @@ Les Phases 0 à 4 sont TERMINÉES et validées. Ne les refais pas, ne les redisc
 Phases 0 à 4 : **DONE** — le jalon T1 est atteint, le portfolio documentaire est en ligne,
 supervisé, avec une checklist de mise en ligne et un rollback rejoué.
 **Phase 5 (Fondation Three.js) : CLOSE**, 10 tâches sur 10 — P5-10 close le 2026-10-23 avec #58.
-**Phase 6 (Navigation spatiale)** : **10 tâches sur 12** — P6-07 et P6-10 closes le 2026-10-27 ; restent P6-11 / P6-12,
-nées de l'ADR-0012 (P6-09, soldée le 2026-10-27).
+**Phase 6 (Navigation spatiale) : CLOSE** le 2026-10-27, 12 tâches sur 12 — `phase-6-log.md` §11
+et §12.
 **Phase 7 (Interfaces de lecture)** : P7-03, P7-05 et P7-08 livrées ; restent P7-04, P7-06, P7-07.
 ⭐⭐ **NEXUS EST EN PRODUCTION depuis le 2026-10-23 (#58, `854d1fe`)** — D11 : le bureau 3D est
 remplacé par un noyau numérique et trois univers, avec navigation hybride et `ReadingPanel` en verre
@@ -305,10 +305,10 @@ référence (#57), `ReadingPanel`, P6-04, décisions NEXUS (D11 et amendements d
 prototype, validation visuelle avec l'utilisateur, fusion et déploiement (#58), roadmap reprise.
 
 ⛔ **Avant toute chose, vérifie la fusion de cette mise à jour du prompt** (branche
-`test/p6-10-parcours-scene`) : `gh pr list --state all --head test/p6-10-parcours-scene`. La
-précédente, `docs/adr-0012-animation`, est fusionnée (#74).
+`fix/rig-camera-p6-11-12`) : `gh pr list --state all --head fix/rig-camera-p6-11-12`. La
+précédente, `test/p6-10-parcours-scene`, est fusionnée (#75).
 
-✅ **P6-07 et P6-10 closes le 2026-10-27** : voir `phase-6-log.md` §11.
+✅ **Phase 6 close le 2026-10-27** : P6-07 et P6-10 (`phase-6-log.md` §11), P6-11 et P6-12 (§12).
 
 ✅ **P6-09 soldée le 2026-10-27** : [ADR-0012](./adr/0012-camera-animation-strategy.md), écrit après
 coup, alternatives chiffrées par mesure. Ses suites ouvertes sont devenues **P6-11** et **P6-12**.
@@ -344,13 +344,11 @@ autour de la page entière). Firefox headless ne monte pas la scène : non couve
    bridé ×4) ; le banc sans GPU annonce 1 231 ms et **surestime d'environ ×8**
    (`nexus-prototype.md` §6.4). Sans `KHR_parallel_shader_compile`, on retombe sur le cas du banc.
    Un téléphone ne joint pas `localhost` : il faudra exposer l'aperçu sur le réseau local.
-2. **P6-11, P6-12** — les suites de l'ADR-0012 : sortir la part non pure du rig avec ses bancs (et le
-   saut latent de l'orbite en `demand`), puis fermer la fenêtre `useEffect` à l'interruption.
-3. **P7-04, P7-06, P7-07** — non-duplication du contenu dans le DOM, comportement du panneau pendant
+2. **P7-04, P7-06, P7-07** — non-duplication du contenu dans le DOM, comportement du panneau pendant
    une transition, bascule de langue et liens directs en mode immersif.
-4. **P8-10** — alléger le premier rendu (72 draw calls sur ordinateur, cible 60 ; 14 programmes), à
+3. **P8-10** — alléger le premier rendu (72 draw calls sur ordinateur, cible 60 ; 14 programmes), à
    prioriser si P8-11 montre un problème.
-5. **P8-05, P8-08** — ambiance et contrastes sur la direction artistique **finale** : la scène
+4. **P8-05, P8-08** — ambiance et contrastes sur la direction artistique **finale** : la scène
    actuelle est **indicative**, l'utilisateur l'a dit ; la mécanique, elle, est stable.
 
 **Décisions qui appartiennent à l'utilisateur — les poser, ne pas les trancher :**

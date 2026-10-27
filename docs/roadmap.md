@@ -29,9 +29,8 @@
 > tâches devenues sans objet passées `DROPPED` avec leur raison. Détail, mesures et décisions :
 > [`nexus-prototype.md`](./nexus-prototype.md).
 > ⚠️ **Dette ouverte par #58** : 72 draw calls sur ordinateur (cible 60) ; GPU intégré, téléphone et
-> Safari non mesurés ; rig de caméra en partie sans banc et saut latent de l'orbite en `demand`
-> (P6-11) ; fenêtre `useEffect` à l'interruption, non démontrée (P6-12).
-> Dernière mise à jour : 2026-10-27 (ADR-0012 écrit ; **P6-07 et P6-10 closes**)
+> Safari non mesurés.
+> Dernière mise à jour : 2026-10-27 (**Phase 6 close**, 12/12)
 
 Ce document est la **source de vérité unique des tâches**. Les identifiants sont stables et ne
 sont jamais réutilisés, même si une tâche est abandonnée.
@@ -55,7 +54,7 @@ silencieusement.
 | 3 | Internationalisation | **DONE** *(2026-08-14)* | `/fr` et `/en` résolus indépendamment, hreflang exact |
 | 4 | Portfolio HTML | **DONE** *(2026-08-20)* | **Produit utilisable sans Three.js** (phase obligatoire) |
 | 5 | Fondation Three.js | **DONE** *(2026-08-25)* — 10/10, P5-10 close le 2026-10-23 avec #58 | Scène primitive : le bureau réel, éclairé, budget tenu, isolation gardée |
-| 6 | Navigation spatiale | **IN_PROGRESS** *(ouverte le 2026-08-26)* — 10/12 ; reste P6-11, P6-12 | Route ↔ scène, testé sans WebGL |
+| 6 | Navigation spatiale | **CLOSE** *(2026-08-26 → 2026-10-27)* — 12/12 |  Route ↔ scène, testé sans WebGL |
 | 7 | Interfaces de lecture *(réorientée par D11)* | **IN_PROGRESS** — P7-03 et P7-08 livrées par #58, P7-05 le 2026-10-26 | Contenu dans un panneau HTML non projeté, instance unique |
 | 8 | Direction artistique NEXUS *(réorientée par D11)* | **IN_PROGRESS** — prototype en production (P8-09) | Scène crédible, budgets mesurés à chaque ajout |
 | 9 | Interactions secondaires | TODO — **objets à réévaluer** (D11 : plus de bureau) | CV, GitHub, LinkedIn, contact, à propos |
@@ -1473,8 +1472,8 @@ du score ne touche **ni le LCP ni le CLS**, mais le temps de blocage.
 | P6-08 | Respect de `reduced-motion` : coupes instantanées — **DONE** *(2026-10-23, #58)* ; son parcours E2E est E2E-14 (P6-10) | P6-04 |
 | P6-09 | ADR-0012 : stratégie d'animation de caméra — **DONE** *(2026-10-27)*, après coup : voir [ADR-0012](./adr/0012-camera-animation-strategy.md) | P6-04 |
 | P6-10 | E2E : back/forward, deep link, clavier, reduced-motion — **DONE** *(2026-10-27)* : E2E-13, E2E-02 complété, E2E-14 ; détail : [`phase-6-log.md`](./phase-6-log.md) §11 | P6-08 |
-| P6-11 | Sortir la part non pure du rig dans `camera-motion.ts`, avec ses bancs : approche de l'orbite, somme glisser + parallaxe, correction de format sur la valeur **interpolée** (ADR-0012, exigences 2 et 3 sans banc). ⛔ Y traiter le **saut de l'orbite en `demand`** (δ d'un repos ⇒ `k = 1`), latent tant que `demand` ne sert qu'à `lite` et au mouvement réduit — **avant** tout palier qui garderait l'orbite en `demand` | P6-04 |
-| P6-12 | Vérifier, puis fermer, la fenêtre entre la validation d'un nouvel état et le `useEffect` passif qui remet `from`/`started` : une image rendue entre les deux changerait une transition en coupe (ADR-0012). Piste : `useLayoutEffect` | P6-04 |
+| P6-11 | Sortir la part non pure du rig dans `camera-motion.ts`, avec ses bancs — **DONE** *(2026-10-27)* : `rigFrame`, `approachOrbit`, `dragOrbit` ; saut de l'orbite en `demand` fermé (durée d'image plafonnée) ; détail : [`phase-6-log.md`](./phase-6-log.md) §12 | P6-04 |
+| P6-12 | Fermer la fenêtre entre la validation d'un nouvel état et la remise à zéro de la transition — **DONE** *(2026-10-27)* : `useLayoutEffect` ; détail : [`phase-6-log.md`](./phase-6-log.md) §12 | P6-04 |
 
 **P6-01 — `resolveSceneState(pathname)`**
 Status: **DONE** (2026-08-26) — `src/scene/state/scene-state.ts` : `SceneFocus`, `SceneState`,
