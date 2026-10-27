@@ -217,6 +217,33 @@ export default tseslint.config(
     },
   },
 
+  // ⛔⛔ Ce qui se rend DANS le `<Canvas>` passe par le réconciliateur de R3F, pas
+  // par celui de React DOM — et depuis Next 16.4, un composant `next/dynamic` s'y
+  // résout par un `use()` que ce réconciliateur refuse (React #438) : la scène
+  // tombait sous `?debug=scene`, et bloquait la mise à jour de sécurité de Next
+  // (#63). Rien de Next n'a donc à entrer dans l'arbre de la scène.
+  {
+    files: [
+      'src/scene/components/scene-canvas.tsx',
+      'src/scene/components/scene-diagnostics.tsx',
+      'src/scene/components/nexus/**/*.{ts,tsx}',
+    ],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['next', 'next/*'],
+              message:
+                'Rien de Next dans l’arbre du `<Canvas>` : le réconciliateur de R3F refuse le `use()` de `next/dynamic` (React #438). Charge par `import()` dans un effet (`useSonde`).',
+            },
+          ],
+        },
+      ],
+    },
+  },
+
   // En dernier : neutralise les règles ESLint qui se battraient avec Prettier.
   prettier,
 )

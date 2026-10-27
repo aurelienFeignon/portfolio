@@ -133,7 +133,7 @@ export default function SceneCanvas({
   )
 }
 
-type Sonde = ComponentType<{ readonly onReadings: (readings: SceneReadings) => void }>
+type SondeComposant = ComponentType<{ readonly onReadings: (readings: SceneReadings) => void }>
 
 /**
  * La sonde de diagnostic, chargée **à la demande** (P5-08) : sans `?debug=scene`,
@@ -147,18 +147,28 @@ type Sonde = ComponentType<{ readonly onReadings: (readings: SceneReadings) => v
  * (#63). Un composant ordinaire, posé une fois chargé, ne demande rien au
  * réconciliateur.
  */
-function useSonde(active: boolean): Sonde | null {
-  const [sonde, setSonde] = useState<Sonde | null>(null)
+function useSonde(active: boolean): SondeComposant | null {
+  const [sonde, setSonde] = useState<SondeComposant | null>(null)
+  const [echec, setEchec] = useState<unknown>(null)
   useEffect(() => {
     if (!active) return
     let vivant = true
-    void import('./scene-diagnostics').then((module) => {
-      // Un composant dans un état se pose par une fonction : sinon React l'appellerait.
-      if (vivant) setSonde(() => module.DiagnosticsProbe)
-    })
+    import('./scene-diagnostics').then(
+      (module) => {
+        // Un composant dans un état se pose par une fonction : sinon React l'appellerait.
+        if (vivant) setSonde(() => module.DiagnosticsProbe)
+      },
+      (erreur: unknown) => {
+        if (vivant) setEchec(erreur ?? new Error('sonde de diagnostic introuvable'))
+      },
+    )
     return () => {
       vivant = false
     }
   }, [active])
+  // ⭐ Un chunk introuvable (déploiement entre deux visites) remonte à
+  // `SceneBoundary`, comme le faisait `next/dynamic` : jamais un panneau qui
+  // attend en silence des relevés qui ne viendront pas.
+  if (echec !== null) throw echec
   return active ? sonde : null
 }
