@@ -47,22 +47,107 @@
 }
 
 /*
- * Le nom de l'univers survolé : une étiquette sur sa propre surface, jamais un
- * texte posé sur le WebGL. En bas de l'écran, côté scène.
+ * Les étiquettes des univers : du HTML sur sa propre surface, jamais un texte
+ * posé sur le WebGL (ADR-0004). La scène écrit leur position à chaque image ;
+ * elles ne reçoivent pas le pointeur, qui passe à l'univers en dessous.
+ *
+ * ⛔ `z-index: 0`, comme la scène, et non au-dessus : placées après elle dans le
+ * DOM, elles la recouvrent, mais le panneau de lecture (`z-index: 1`) passe
+ * DEVANT elles quand il défile sur la bande de scène, au mobile.
  */
-.etiquette {
+.etiquettes {
   position: fixed;
-  right: var(--space-6);
-  bottom: var(--space-6);
-  z-index: 2;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.etiquette {
+  --tone: var(--color-accent);
+
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1);
   margin: 0;
-  padding: var(--space-3) var(--space-4);
-  background: var(--color-panel);
-  border: 1px solid var(--color-border-strong);
+  padding: var(--space-1) var(--space-3);
+  /* Ancrée par le milieu de son bord bas : elle se pose au-dessus de l'univers. */
+  translate: -50% -100%;
+  background: rgb(8 13 24 / 0.8);
+  border: 1px solid color-mix(in srgb, var(--tone) 45%, transparent);
   border-radius: var(--radius-md);
+  box-shadow: 0 0 1.25rem -0.5rem var(--tone);
   color: var(--color-text);
+  white-space: nowrap;
+  opacity: 0;
+  transition:
+    opacity 300ms ease-out,
+    border-color 300ms ease-out,
+    box-shadow 300ms ease-out;
+  will-change: transform;
+}
+
+.etiquette[data-section='projects'] {
+  --tone: var(--color-violet);
+}
+
+.etiquette[data-section='skills'] {
+  --tone: var(--color-sky);
+}
+
+.etiquette[data-visible='true'] {
+  opacity: 0.9;
+}
+
+.etiquette[data-eclipsed='true'] {
+  opacity: 0;
+}
+
+/* L'univers survolé ou cadré : son étiquette s'allume. */
+.etiquette[data-visible='true'][data-active='true'] {
+  opacity: 1;
+  border-color: var(--tone);
+  box-shadow: 0 0 1.5rem -0.25rem var(--tone);
+}
+
+.nom {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
   font-size: var(--text-sm);
+  font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  pointer-events: none;
+}
+
+/* La pastille de teinte : la même couleur que le faisceau qui mène à l'univers. */
+.nom::before {
+  width: 0.4rem;
+  height: 0.4rem;
+  border-radius: 50%;
+  background: var(--tone);
+  content: '';
+}
+
+/* La bande de scène du mobile est étroite : le nom y suffit. */
+.accroche {
+  display: none;
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+
+@media (min-width: 60rem) {
+  .accroche {
+    display: block;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .etiquette {
+    transition: none;
+  }
 }
