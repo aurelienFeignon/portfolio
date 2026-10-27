@@ -16,7 +16,7 @@ import type { ReactNode } from 'react'
 import { LOCALES } from '@/i18n/locales'
 import { getMessages } from '@/i18n/messages'
 import { SECTIONS } from '@/routing/sections'
-import { SceneMount } from '@/scene/components/scene-mount'
+import { SceneMount, type UniverseLabel } from '@/scene/components/scene-mount'
 import { getSiteUrl } from '@/seo/site-url'
 import { SiteFooter } from '@/ui/site-footer'
 
@@ -115,8 +115,14 @@ export default async function LocaleLayout({
         <SceneMount
           labels={
             Object.fromEntries(
-              SECTIONS.map((section) => [section, messages.sections[section].name]),
-            ) as Record<(typeof SECTIONS)[number], string>
+              SECTIONS.map((section) => [
+                section,
+                {
+                  name: messages.sections[section].name,
+                  tagline: messages.sections[section].tagline,
+                },
+              ]),
+            ) as Record<(typeof SECTIONS)[number], UniverseLabel>
           }
         />
       </body>
