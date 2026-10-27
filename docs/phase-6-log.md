@@ -105,7 +105,7 @@ Deux écarts par rapport à l'ordre des identifiants, dictés par les dépendanc
 ## 6. Critères de sortie (rappel, `roadmap.md`)
 
 - [ ] Couverture **≥ 95 %** sur `src/scene/state/**`, **zéro import Three.js** dans ce dossier.
-- [ ] Back/forward et deep links corrects.
+- [x] Back/forward et deep links corrects — **E2E-13 et E2E-02**, sous Chromium et WebKit (§11).
 - [ ] Mapping écran ↔ section **exhaustif et testé**.
 
 S'y ajoutent trois vérifications héritées, qui deviennent réelles ici :
@@ -113,7 +113,8 @@ S'y ajoutent trois vérifications héritées, qui deviennent réelles ici :
 - [ ] La transition **invalide image par image** sans laisser la boucle en `always` (P5-10, reportée
       derrière P6-04).
 - [ ] Le `fov` est **interpolé avec la position**, et passe par `fovForAspect` (P5-05, P5-06).
-- [ ] `data-scene-focus` n'amène **aucun** module Three.js dans le chunk de première visite (P5-09).
+- [x] `data-scene-focus` n'amène **aucun** module Three.js dans le chunk de première visite (P5-09) —
+      mesuré le 2026-10-27 : 12,9 Ko par route, aucun module 3D (§11).
 
 ---
 
@@ -589,4 +590,32 @@ fait — la décision d'animation est livrée **sans** son ADR. C'est une dette,
 constate la décision et chiffre ses alternatives par mesure au lieu de les présenter comme ouvertes.
 
 Détail, captures, mesures et hypothèses réfutées : [`nexus-prototype.md`](./nexus-prototype.md).
+
+## 11. P6-07 et P6-10 — l'état de scène lisible du DOM, et les parcours qui l'exercent (2026-10-27)
+
+| Tâche | Livré | Où |
+|---|---|---|
+| P6-07 | `data-scene-focus` sur `[data-scene-root]`, tiré de `resolveSceneState` comme la caméra ; `data-camera-moving` sur le canvas, écrit par le rig **au changement seulement** | `scene-mount.tsx`, `nexus/camera-rig.tsx` |
+| P6-10 | **E2E-13** : Précédent/Suivant restaurent l'URL **et** l'état de scène ; **E2E-02** complété : un lien direct pose l'état de la page demandée | `tests/e2e/profiles/scene-mounted/scene-state.spec.ts`, Chromium et WebKit |
+| P6-10 | **E2E-14** : sous mouvement réduit, une navigation coupe — aucune valeur `true` de `data-camera-moving` relevée par un `MutationObserver` posé avant | `tests/e2e/profiles/reduced-motion/camera-cut.spec.ts` |
+
+⭐⭐ **Deux témoins, parce qu'une absence ne prouve rien seule** :
+- **E2E-13** porte un marqueur sur le canvas, qui doit survivre à tout le trajet. Un rechargement
+  restaurerait l'état par construction, et le parcours passerait au vert sans rien prouver de la
+  navigation client.
+- **E2E-14** a son pendant **sans** mouvement réduit, qui exige de voir `true` : « aucun `true` »
+  passerait aussi sur un attribut que rien n'écrit.
+
+⭐ **Vus rouges avant d'être crus** — deux mutations, chacune construite en image de production :
+- `transitionMs(true)` portée de 0 à 1 600 ms : E2E-14 rougit, par l'assertion attendue (« la caméra
+  n'a jamais été en mouvement ») ;
+- `data-scene-focus` figé à `overview` : E2E-13 et le lien direct rougissent, sous les deux moteurs.
+
+⚠️ **Le parcours Précédent/Suivant est marqué `test.slow()`** : sept navigations d'affilée ont dépassé
+une fois le délai de 30 s du test entier (1 sur 24), sous une charge d'hôte de 84 due à d'autres
+builds. C'était le délai du test, jamais une assertion. L'E2E complet a ensuite rendu 173/173 sous
+une charge de 90.
+
+**Mesures** : première visite inchangée, **12,9 Ko** par route, aucun module 3D ; chunk 3D **+39
+octets** (248 356 en `gzip -9`) — le coût de l'écriture de l'attribut.
 

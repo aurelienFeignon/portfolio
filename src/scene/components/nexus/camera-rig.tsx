@@ -62,6 +62,7 @@ export function CameraRig({
   const orbitGoal = useRef({ yawDeg: 0, pitchDeg: 0 })
   const orbitNow = useRef({ yawDeg: 0, pitchDeg: 0 })
   const parallax = useRef({ yawDeg: 0, pitchDeg: 0 })
+  const enMouvement = useRef<boolean | null>(null)
 
   // Un nouvel état : la transition repart d'où la caméra EST.
   useEffect(() => {
@@ -188,6 +189,17 @@ export function CameraRig({
       Math.abs(consigne.yawDeg - orbitNow.current.yawDeg) > 0.01 ||
       Math.abs(consigne.pitchDeg - orbitNow.current.pitchDeg) > 0.01
     if (moving) invalidate()
+
+    /*
+     * ⭐ Le mouvement, lisible du DOM sur le canvas (`data-camera-moving`) : c'est
+     * ce qui permet au banc E2E de prouver qu'une navigation sous
+     * `prefers-reduced-motion` est une COUPE, sans regarder un pixel (E2E-14).
+     * Écrit au changement seulement, jamais à chaque image.
+     */
+    if (moving !== enMouvement.current) {
+      enMouvement.current = moving
+      get().gl.domElement.dataset['cameraMoving'] = String(moving)
+    }
   })
 
   return null
