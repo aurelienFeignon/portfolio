@@ -47,14 +47,17 @@ export const en: Messages = {
     experiences: {
       name: 'Experience',
       description: 'Professional background: roles, assignments and achievements.',
+      tagline: 'Roles and assignments',
     },
     projects: {
       name: 'Projects',
       description: 'Personal, professional and open-source projects.',
+      tagline: 'Apps and open source',
     },
     skills: {
       name: 'Skills',
       description: 'Languages, frameworks, tooling, infrastructure and practices.',
+      tagline: 'Stack and architecture',
     },
   },
 
