@@ -6,11 +6,10 @@ import { describe, expect, it } from 'vitest'
 
 import {
   arc,
-  constellation,
-  helix,
-  isoArchitecture,
-  nearestEdges,
+  arcFractions,
   particleShell,
+  plateStack,
+  polylineLength,
   seededRandom,
 } from '@/scene/state/nexus-geometry'
 
@@ -54,80 +53,61 @@ describe('la coquille de particules', () => {
   })
 })
 
-describe('les arêtes aux plus proches voisins', () => {
-  it('n’a ni doublon, ni boucle, et chaque arête est ordonnée', () => {
-    const { points } = constellation(2, 7, 7)
-    const edges = nearestEdges(points, 3)
-    const cles = edges.map(([a, b]) => `${a}-${b}`)
-    expect(new Set(cles).size).toBe(cles.length)
-    for (const [a, b] of edges) expect(a).toBeLessThan(b)
-  })
-
-  it('relie chaque point à au moins un autre', () => {
-    const { points } = constellation(2, 5, 2)
-    const relies = new Set(nearestEdges(points, 2).flat())
-    expect(relies.size).toBe(10)
-  })
-})
-
-describe('la constellation', () => {
-  it('rend `amas × points` points, chacun rattaché à son amas', () => {
-    const { points, cluster, centers } = constellation(5, 12, 11)
-    expect(points).toHaveLength(60)
-    expect(cluster).toHaveLength(60)
-    expect(centers).toHaveLength(5)
-    expect(new Set(cluster)).toEqual(new Set([0, 1, 2, 3, 4]))
-  })
-})
-
-describe('l’hélice et l’arc', () => {
-  it('l’hélice va de −h/2 à +h/2, au rayon constant', () => {
-    const points = helix(2, 4, 0.5, 40)
-    expect(points).toHaveLength(41)
-    expect(points[0]![1]).toBeCloseTo(-2)
-    expect(points[40]![1]).toBeCloseTo(2)
-    for (const [x, , z] of points) expect(Math.hypot(x, z)).toBeCloseTo(0.5)
-  })
-
+describe('l’arc et sa longueur', () => {
   it('l’arc part de son origine, arrive à sa cible et se soulève à mi-course', () => {
     const points = arc([0, 0, 0], [4, 0, 0], 2, 10)
     expect(points[0]).toEqual([0, 0, 0])
     expect(points[10]).toEqual([4, 0, 0])
     expect(points[5]![1]).toBeCloseTo(1)
   })
+
+  it('la longueur d’une polyligne est la somme de ses segments', () => {
+    expect(
+      polylineLength([
+        [0, 0, 0],
+        [3, 0, 0],
+        [3, 4, 0],
+      ]),
+    ).toBe(7)
+    expect(polylineLength([[1, 2, 3]])).toBe(0)
+  })
+
+  it('un arc soulevé est plus long que la corde, jamais plus court', () => {
+    const corde = 4
+    expect(polylineLength(arc([0, 0, 0], [4, 0, 0], 2, 64))).toBeGreaterThan(corde)
+    expect(polylineLength(arc([0, 0, 0], [4, 0, 0], 0, 64))).toBeCloseTo(corde)
+  })
+
+  it('⭐ la fraction parcourue suit la LONGUEUR, pas l’indice du sommet', () => {
+    expect(
+      arcFractions([
+        [0, 0, 0],
+        [3, 0, 0],
+        [3, 4, 0],
+      ]),
+    ).toEqual([0, 3 / 7, 1])
+    expect(arcFractions([[1, 2, 3]])).toEqual([0])
+    // Un arc soulevé va plus vite à ses bouts : son premier pas couvre plus que 1/n.
+    const fractions = arcFractions(arc([0, 0, 0], [4, 0, 0], 2, 64))
+    expect(fractions[1]).toBeGreaterThan(1 / 64)
+    expect(fractions.at(-1)).toBeCloseTo(1)
+  })
 })
 
-describe('l’architecture isométrique', () => {
-  const { slabs, blocks, links } = isoArchitecture(3, 12, 5)
+describe('la pile de plateaux', () => {
+  const pile = plateStack(3, 1.8, 0.35, 0.75)
 
-  it('empile des plateaux qui rétrécissent en montant', () => {
-    expect(slabs).toHaveLength(3)
-    for (let i = 1; i < slabs.length; i += 1) {
-      expect(slabs[i]!.y).toBeGreaterThan(slabs[i - 1]!.y)
-      expect(slabs[i]!.size).toBeLessThan(slabs[i - 1]!.size)
+  it('empile des plateaux qui rétrécissent en montant, sans s’annuler', () => {
+    expect(pile).toHaveLength(3)
+    for (let i = 1; i < pile.length; i += 1) {
+      expect(pile[i]!.y).toBeGreaterThan(pile[i - 1]!.y)
+      expect(pile[i]!.size).toBeLessThan(pile[i - 1]!.size)
     }
+    expect(pile[pile.length - 1]!.size).toBeGreaterThan(0)
   })
 
-  it('pose chaque bloc sur un plateau, à l’intérieur de ses bords', () => {
-    expect(blocks.length).toBeGreaterThan(0)
-    expect(blocks.length).toBeLessThanOrEqual(12)
-    for (const [x, y, z] of blocks) {
-      const slab = slabs.find((candidate) => Math.abs(candidate.y + 0.18 - y) < 1e-9)
-      expect(slab).toBeDefined()
-      expect(Math.abs(x)).toBeLessThan(slab!.size / 2)
-      expect(Math.abs(z)).toBeLessThan(slab!.size / 2)
-    }
-  })
-
-  it('trace des liaisons en équerre — chaque segment suit un seul axe', () => {
-    expect(links.length).toBeGreaterThan(0)
-    for (const [a, b] of links) {
-      const axes = [0, 1, 2].filter((i) => Math.abs(a[i]! - b[i]!) > 1e-9)
-      expect(axes.length).toBeLessThanOrEqual(1)
-    }
-  })
-
-  it('est déterministe', () => {
-    expect(isoArchitecture(3, 12, 5)).toEqual(isoArchitecture(3, 12, 5))
+  it('est centrée sur l’origine : l’univers pivote autour de son milieu', () => {
+    expect(pile[0]!.y + pile[2]!.y).toBeCloseTo(0)
+    expect(pile[1]!.y).toBeCloseTo(0)
   })
 })
