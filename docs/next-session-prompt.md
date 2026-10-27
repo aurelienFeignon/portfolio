@@ -309,7 +309,7 @@ prototype, validation visuelle avec l'utilisateur, fusion et déploiement (#58),
 précédente, `docs/adr-0012-animation`, est fusionnée (#74).
 
 ✅ **P6-07 et P6-10 closes le 2026-10-27** : l'état de scène se lit dans `data-scene-focus`, le
-mouvement de caméra dans `data-camera-moving` ; E2E-13 (Précédent/Suivant), E2E-02 (lien direct) et
+ce que la caméra a reçu dans `data-camera-focus` et `data-camera-transition` ; E2E-13 (Précédent/Suivant), E2E-02 (lien direct) et
 E2E-14 (coupe sous mouvement réduit) sont couverts, chacun avec son témoin. Détail :
 `phase-6-log.md` §11.
 

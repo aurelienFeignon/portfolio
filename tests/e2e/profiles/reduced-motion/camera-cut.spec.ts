@@ -5,54 +5,60 @@ import { expect, test } from '../../support/test'
  *
  * P6-10. Sous `prefers-reduced-motion`, une navigation est une **coupe** :
  * `transitionMs(true) = 0` (P6-08, éprouvé en unitaire). Ce parcours tient ce que
- * l'unitaire ne voit pas — que le rig, dans un vrai navigateur, ne bouge jamais.
+ * l'unitaire ne voit pas — que le rig, dans un vrai navigateur, ne lance jamais de
+ * transition.
  *
- * ⭐ Sans pixel : le rig écrit `data-camera-moving` sur le canvas à chaque
- * changement d'état. Un `MutationObserver`, posé AVANT la navigation, relève
- * toutes les valeurs écrites : aucune ne doit être `true`.
- * ⛔ « Aucun `true` » ne vaut que si l'attribut est vraiment écrit quand la caméra
- * bouge : c'est le témoin de `scene-mounted/scene-state.spec.ts`, joué sans
- * mouvement réduit.
+ * ⭐ Sans pixel ni délai : le rig écrit sur le canvas, **dans l'image même** qui
+ * les produit, l'état reçu (`data-camera-focus`) et la transition en cours
+ * (`data-camera-transition`). On attend que la caméra ait reçu le nouvel état —
+ * preuve qu'une image l'a rendu —, puis on relit tout ce qui a été écrit : une
+ * coupe n'a jamais écrit `true`. Un `MutationObserver` posé AVANT la navigation
+ * garde chaque changement **avec son ancienne valeur**, pour qu'un `true` aussitôt
+ * remplacé ne se perde pas.
+ * ⛔ « Aucun `true` » ne vaut que si l'attribut est vraiment écrit quand une
+ * transition a lieu : c'est le témoin de `scene-mounted/scene-state.spec.ts`,
+ * joué sans mouvement réduit.
  */
 const RACINE = '[data-scene-root]'
 const CANVAS = `${RACINE} canvas`
 
 test.describe('mouvement réduit', () => {
-  test('une navigation coupe : la caméra ne bouge jamais', async ({ page }) => {
+  test('une navigation coupe : aucune transition de caméra', async ({ page }) => {
     await page.goto('/fr')
     const canvas = page.locator(CANVAS)
-    await expect(canvas).toHaveAttribute('data-camera-moving', 'false', { timeout: 10_000 })
+    // Le délai couvre la première image, compilation des shaders comprise.
+    await expect(canvas).toHaveAttribute('data-camera-focus', 'overview', { timeout: 20_000 })
+    await expect(canvas).toHaveAttribute('data-camera-transition', 'false')
 
     await canvas.evaluate((element) => {
-      const vus: string[] = []
-      Object.assign(window, { __mouvements: vus })
-      new MutationObserver(() => vus.push(element.dataset['cameraMoving'] ?? '')).observe(element, {
+      const ecrits: Array<string | null> = []
+      Object.assign(window, { __transitions: ecrits })
+      new MutationObserver((changements) => {
+        for (const changement of changements) {
+          ecrits.push(changement.oldValue, element.dataset['cameraTransition'] ?? null)
+        }
+      }).observe(element, {
         attributes: true,
-        attributeFilter: ['data-camera-moving'],
+        attributeFilter: ['data-camera-transition'],
+        attributeOldValue: true,
       })
     })
 
     const nav = page.getByRole('navigation', { name: 'Navigation principale' })
-    for (const [lien, chemin, focus] of [
-      ['Projets', /\/fr\/projects$/, 'projects'],
-      ['Compétences', /\/fr\/skills$/, 'skills'],
+    for (const [lien, focus] of [
+      ['Projets', 'projects'],
+      ['Compétences', 'skills'],
     ] as const) {
       await nav.getByRole('link', { name: lien }).click()
-      await expect(page).toHaveURL(chemin)
-      await expect(page.locator(RACINE)).toHaveAttribute('data-scene-focus', focus)
-      /*
-       * ⛔ Une ABSENCE ne s'attend pas, elle se laisse le temps d'arriver : une
-       * transition animée écrirait `true` dès l'image qui suit le changement
-       * d'état, soit en quelques dizaines de millisecondes. 500 ms couvrent
-       * largement ce délai, et restent loin des 1,6 s qu'elle durerait.
-       */
-      await page.waitForTimeout(500)
+      // L'image qui a reçu le nouvel état est rendue : c'est elle qui aurait
+      // ouvert une transition.
+      await expect(canvas).toHaveAttribute('data-camera-focus', focus)
     }
 
-    const vus = await page.evaluate(
-      () => (window as unknown as { __mouvements: string[] }).__mouvements,
+    const ecrits = await page.evaluate(
+      () => (window as unknown as { __transitions: Array<string | null> }).__transitions,
     )
-    expect(vus, 'la caméra n’a jamais été en mouvement').not.toContain('true')
-    await expect(canvas).toHaveAttribute('data-camera-moving', 'false')
+    expect(ecrits, 'aucune transition de caméra n’a été ouverte').not.toContain('true')
+    await expect(canvas).toHaveAttribute('data-camera-transition', 'false')
   })
 })

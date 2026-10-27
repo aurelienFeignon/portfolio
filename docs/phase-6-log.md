@@ -595,9 +595,9 @@ Détail, captures, mesures et hypothèses réfutées : [`nexus-prototype.md`](./
 
 | Tâche | Livré | Où |
 |---|---|---|
-| P6-07 | `data-scene-focus` sur `[data-scene-root]`, tiré de `resolveSceneState` comme la caméra ; `data-camera-moving` sur le canvas, écrit par le rig **au changement seulement** | `scene-mount.tsx`, `nexus/camera-rig.tsx` |
+| P6-07 | `data-scene-focus` sur `[data-scene-root]`, tiré de `resolveSceneState` comme la caméra ; sur le canvas, `data-camera-focus` (état **reçu** par la caméra) et `data-camera-transition` (transition de route, orbite exclue), écrits **dans l'image qui les produit**, au changement seulement | `scene-mount.tsx`, `nexus/camera-rig.tsx` |
 | P6-10 | **E2E-13** : Précédent/Suivant restaurent l'URL **et** l'état de scène ; **E2E-02** complété : un lien direct pose l'état de la page demandée | `tests/e2e/profiles/scene-mounted/scene-state.spec.ts`, Chromium et WebKit |
-| P6-10 | **E2E-14** : sous mouvement réduit, une navigation coupe — aucune valeur `true` de `data-camera-moving` relevée par un `MutationObserver` posé avant | `tests/e2e/profiles/reduced-motion/camera-cut.spec.ts` |
+| P6-10 | **E2E-14** : sous mouvement réduit, une navigation coupe — aucune valeur `true` de `data-camera-transition` (anciennes valeurs comprises) relevée par un `MutationObserver` posé avant, lue après l'image qui a reçu le nouvel état | `tests/e2e/profiles/reduced-motion/camera-cut.spec.ts` |
 
 ⭐⭐ **Deux témoins, parce qu'une absence ne prouve rien seule** :
 - **E2E-13** porte un marqueur sur le canvas, qui doit survivre à tout le trajet. Un rechargement
@@ -611,10 +611,18 @@ Détail, captures, mesures et hypothèses réfutées : [`nexus-prototype.md`](./
   n'a jamais été en mouvement ») ;
 - `data-scene-focus` figé à `overview` : E2E-13 et le lien direct rougissent, sous les deux moteurs.
 
-⚠️ **Le parcours Précédent/Suivant est marqué `test.slow()`** : sept navigations d'affilée ont dépassé
-une fois le délai de 30 s du test entier (1 sur 24), sous une charge d'hôte de 84 due à d'autres
-builds. C'était le délai du test, jamais une assertion. L'E2E complet a ensuite rendu 173/173 sous
-une charge de 90.
+⚠️ **Mesuré sous une charge d'hôte de 55 à 100**, due à d'autres builds. Trois ajustements en
+découlent, aucun ne masque une assertion :
+- **La première image a dépassé 5 s sous WebKit**, compilation des shaders comprise : la lecture de
+  `data-camera-focus` qui la suit attend 20 s.
+- **Précédent/Suivant** (sept navigations) et **lien direct** (quatre chargements) sont marqués
+  `test.slow()` : ils ont dépassé une fois le délai de 30 s du test **entier**, jamais une assertion.
+- **Un rouge voisin a été instruit, pas supposé** : « chaque élément focusable porte un indicateur
+  de focus », dans `accessibility.spec.ts`, a dépassé son délai deux fois sur cette branche. Rejoué
+  sur l'image de `main`, à charge égale et en alternance, il a rendu 9,4 / 16,1 / 16,5 s sur la
+  branche contre 2,5 / 2,6 / 3,2 s sur `main` au premier tour, puis 3,4 / 4,1 / 4,3 contre 4,3 /
+  5,3 / 5,8 au second. C'est du bruit de charge, pas un coût de la branche : les attributs ne
+  s'écrivent qu'au changement.
 
 **Mesures** : première visite inchangée, **12,9 Ko** par route, aucun module 3D ; chunk 3D **+39
 octets** (248 356 en `gzip -9`) — le coût de l'écriture de l'attribut.

@@ -62,7 +62,10 @@ export function CameraRig({
   const orbitGoal = useRef({ yawDeg: 0, pitchDeg: 0 })
   const orbitNow = useRef({ yawDeg: 0, pitchDeg: 0 })
   const parallax = useRef({ yawDeg: 0, pitchDeg: 0 })
-  const enMouvement = useRef<boolean | null>(null)
+  const ecrit = useRef<{ focus: string | null; transition: boolean | null }>({
+    focus: null,
+    transition: null,
+  })
 
   // Un nouvel état : la transition repart d'où la caméra EST.
   useEffect(() => {
@@ -191,14 +194,24 @@ export function CameraRig({
     if (moving) invalidate()
 
     /*
-     * ⭐ Le mouvement, lisible du DOM sur le canvas (`data-camera-moving`) : c'est
-     * ce qui permet au banc E2E de prouver qu'une navigation sous
-     * `prefers-reduced-motion` est une COUPE, sans regarder un pixel (E2E-14).
-     * Écrit au changement seulement, jamais à chaque image.
+     * ⭐ Ce que la caméra fait, lisible du DOM sur le canvas, sans un pixel :
+     * - `data-camera-focus` : l'état que le rig a REÇU et rendu dans CETTE image
+     *   — pas celui de l'URL, qu'un rig sourd aux changements laisserait diverger ;
+     * - `data-camera-transition` : une transition de route en cours (`t < 1`), et
+     *   elle seule. L'orbite et la parallaxe en sont exclues : un pointeur qui
+     *   bouge n'est pas une navigation animée.
+     * Écrits ensemble, dans l'image qui les produit, et au changement seulement.
+     * ⚠️ Sur une fiche, la boucle s'arrête (`never`) : les valeurs restent celles
+     * de la dernière image rendue.
      */
-    if (moving !== enMouvement.current) {
-      enMouvement.current = moving
-      get().gl.domElement.dataset['cameraMoving'] = String(moving)
+    const dataset = get().gl.domElement.dataset
+    if (state.focus !== ecrit.current.focus) {
+      ecrit.current.focus = state.focus
+      dataset['cameraFocus'] = state.focus
+    }
+    if (t < 1 !== ecrit.current.transition) {
+      ecrit.current.transition = t < 1
+      dataset['cameraTransition'] = String(t < 1)
     }
   })
 
