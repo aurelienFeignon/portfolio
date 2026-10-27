@@ -306,6 +306,12 @@ export function SceneMount({
         aria-hidden="true"
         data-scene-root
         data-scene-visible={visible}
+        /*
+         * ⭐ L'état de scène, lisible du DOM (P6-07) : la valeur que la caméra
+         * reçoit, tirée de la même `resolveSceneState`. Le banc E2E assère dessus
+         * au lieu de pixels (`testing-strategy.md` §4).
+         */
+        data-scene-focus={scene.focus}
         className={[styles.decor, visible ? '' : styles.cachee, survol ? styles.pointe : '']
           .filter(Boolean)
           .join(' ')}

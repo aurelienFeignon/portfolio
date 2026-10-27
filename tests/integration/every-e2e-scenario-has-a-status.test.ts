@@ -77,13 +77,9 @@ function awaitedTask(status: Status): string | undefined {
  */
 const STATUS: Record<string, Status> = {
   'E2E-01': { covered: true },
-  // La traversée et l'URL sont tenues ; « état de scène cohérent » suppose
-  // `data-scene-focus`, que P6-07 expose et que P6-10 exerce.
-  'E2E-02': {
-    covered: true,
-    completedBy: 'P6-10',
-    missing: 'l’état de scène, qui n’existe pas avant la Phase 6',
-  },
+  // La traversée et l'URL dans `navigation-journey` ; l'état de scène, depuis
+  // P6-10, par `data-scene-focus` (P6-07).
+  'E2E-02': { covered: true },
   'E2E-03': { covered: true },
   'E2E-04': { deferredTo: 'P10-10', why: 'le formulaire de CV n’existe pas avant la Phase 10' },
   'E2E-05': { deferredTo: 'P10-10', why: 'le formulaire de CV n’existe pas avant la Phase 10' },
@@ -100,12 +96,8 @@ const STATUS: Record<string, Status> = {
   },
   'E2E-11': { covered: true },
   'E2E-12': { covered: true },
-  // ⚠️ La moitié « back/forward » est exercée par le retour de E2E-01, qui revient
-  // par le bouton du navigateur. Ce qui manque est l'autre moitié du scénario —
-  // « et état de scène restauré » —, qui suppose `data-scene-focus` (P6-07). Le
-  // déclarer couvert aujourd'hui affirmerait la partie qui n'existe pas.
-  'E2E-13': { deferredTo: 'P6-10', why: 'l’état de scène n’existe pas avant la Phase 6' },
-  'E2E-14': { deferredTo: 'P6-10', why: 'il n’y a aucune animation de caméra à supprimer' },
+  'E2E-13': { covered: true },
+  'E2E-14': { covered: true },
   'E2E-15': { covered: true },
 }
 

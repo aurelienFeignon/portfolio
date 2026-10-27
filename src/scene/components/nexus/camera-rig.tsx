@@ -183,11 +183,22 @@ export function CameraRig({
     camera.updateProjectionMatrix()
 
     // ⭐ En `demand`, c'est le rig qui demande l'image suivante tant qu'il bouge.
+    const enTransition = t < 1
     const moving =
-      t < 1 ||
+      enTransition ||
       Math.abs(consigne.yawDeg - orbitNow.current.yawDeg) > 0.01 ||
       Math.abs(consigne.pitchDeg - orbitNow.current.pitchDeg) > 0.01
     if (moving) invalidate()
+
+    /*
+     * ⭐ Pour le banc E2E, sans pixel : l'état que le rig a REÇU — il diverge de
+     * l'URL si le rig devient sourd — et la transition de route seule, orbite et
+     * parallaxe exclues. ⚠️ Sur une fiche (`never`), ils gardent la dernière image.
+     */
+    const dataset = get().gl.domElement.dataset
+    if (dataset['cameraFocus'] !== state.focus) dataset['cameraFocus'] = state.focus
+    if (dataset['cameraTransition'] !== String(enTransition))
+      dataset['cameraTransition'] = String(enTransition)
   })
 
   return null

@@ -211,6 +211,12 @@ banc finit par annoncer couvert ce qui ne l'est pas, et c'est arrivé.
 expose son état sous forme d'attribut de données (`data-scene-focus="projects"`), alimenté par la
 même fonction pure que la caméra. On assère sur cet attribut. C'est stable, lisible, et cela ne
 crée pas de dette : l'attribut sert aussi au débogage.
+⭐ **La caméra aussi** (P6-10) : le rig écrit sur le canvas, dans l'image qui les produit,
+`data-camera-focus` (l'état qu'il a **reçu** — il peut diverger de l'URL si le rig devient sourd) et
+`data-camera-transition` (une transition de route, l'orbite exclue). E2E-14 attend que la caméra ait
+reçu le nouvel état, puis relit chaque valeur écrite, anciennes comprises : aucune ne doit être
+`true`. Son témoin, joué sans mouvement réduit, exige d'en voir une — « aucun `true` » ne prouverait
+rien d'un attribut que rien n'écrit.
 
 ---
 

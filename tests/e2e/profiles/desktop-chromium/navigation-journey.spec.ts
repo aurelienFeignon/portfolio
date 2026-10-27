@@ -101,9 +101,9 @@ test.describe('parcours de navigation', () => {
      * la section rendrait un document parfaitement valide et perdrait l'entité,
      * sans qu'aucune assertion de structure ne bouge.
      *
-     * ⚠️ La part « état de scène cohérent » du scénario n'est pas ici : elle
-     * suppose `data-scene-focus`, qui n'existe pas avant P6-07. L'inventaire la
-     * porte comme reportée plutôt que de la faire semblant tenue.
+     * La part « état de scène cohérent » du scénario est tenue par
+     * `profiles/scene-mounted/scene-state.spec.ts` (P6-10), sur l'état que la
+     * caméra a reçu.
      */
     const fiche = await detailPath(request, 'fr', 'experiences')
 
