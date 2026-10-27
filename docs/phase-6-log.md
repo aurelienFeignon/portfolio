@@ -668,5 +668,9 @@ impossible par construction. C'est une garantie de structure, pas une mesure.
   seul. C'est une fragilité préexistante du banc local en suite complète, déjà rencontrée sur P6-10
   (§11) ; la CI le passe.
 
+**Ce que `/simplify` a laissé ouvert** : le shader de `nexus-scene.tsx` lit la même horloge, remise à
+zéro par `setFrameloop`. Au retour d'une fiche, son animation ambiante repart de 0 : même cause,
+effet cosmétique, hors du périmètre de P6-11. Reporté au prompt de reprise, point 5.
+
 ✅ **La Phase 6 est close**, 12/12, tous critères de sortie cochés (§6).
 

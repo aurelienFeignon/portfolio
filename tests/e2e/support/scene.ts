@@ -36,3 +36,28 @@ export async function monterLaScene(page: Page, chemin: string) {
 export function navigationPrincipale(page: Page) {
   return page.getByRole('navigation', { name: 'Navigation principale' })
 }
+
+/**
+ * Écoute chaque valeur que `data-camera-transition` QUITTE : un `true` aussitôt
+ * remplacé ne se perd pas, là où une lecture ponctuelle le manquerait.
+ */
+export async function ecouterLesTransitions(page: Page) {
+  await page.locator(CANVAS).evaluate((element) => {
+    const quittees: Array<string | null> = []
+    Object.assign(window, { __transitions: quittees })
+    new MutationObserver((changements) => {
+      for (const changement of changements) quittees.push(changement.oldValue)
+    }).observe(element, {
+      attributes: true,
+      attributeFilter: ['data-camera-transition'],
+      attributeOldValue: true,
+    })
+  })
+}
+
+/** Les valeurs quittées depuis `ecouterLesTransitions`. */
+export function transitionsQuittees(page: Page) {
+  return page.evaluate(
+    () => (window as unknown as { __transitions: Array<string | null> }).__transitions,
+  )
+}

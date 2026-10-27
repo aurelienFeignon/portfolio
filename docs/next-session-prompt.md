@@ -352,6 +352,11 @@ autour de la page entière). Firefox headless ne monte pas la scène : non couve
    prioriser si P8-11 montre un problème.
 4. **P8-05, P8-08** — ambiance et contrastes sur la direction artistique **finale** : la scène
    actuelle est **indicative**, l'utilisateur l'a dit ; la mécanique, elle, est stable.
+5. **Le temps des shaders** : `nexus-scene.tsx` lit encore `state.clock.elapsedTime`, que
+   `setFrameloop` remet à zéro — au retour d'une fiche, l'animation ambiante repart de 0. Même cause
+   que le défaut de P6-11, effet cosmétique (la scène était cachée). Piste : une source de temps de
+   scène accumulée, lue par le rig ET les shaders, et la même approche exponentielle
+   (`approachOrbit`) pour les `Math.min(1, delta * 4)` voisins, qui dépendent de la cadence.
 
 **Décisions qui appartiennent à l'utilisateur — les poser, ne pas les trancher :**
 

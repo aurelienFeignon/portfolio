@@ -1,4 +1,10 @@
-import { CANVAS, navigationPrincipale, PREMIERE_IMAGE_MS } from '../../support/scene'
+import {
+  CANVAS,
+  ecouterLesTransitions,
+  navigationPrincipale,
+  PREMIERE_IMAGE_MS,
+  transitionsQuittees,
+} from '../../support/scene'
 import { expect, test } from '../../support/test'
 
 /**
@@ -18,17 +24,7 @@ test.describe('mouvement réduit', () => {
     await expect(canvas).toHaveAttribute('data-camera-transition', 'false')
 
     // Chaque ANCIENNE valeur : un `true` aussitôt remplacé ne se perd pas.
-    await canvas.evaluate((element) => {
-      const quittees: Array<string | null> = []
-      Object.assign(window, { __transitions: quittees })
-      new MutationObserver((changements) => {
-        for (const changement of changements) quittees.push(changement.oldValue)
-      }).observe(element, {
-        attributes: true,
-        attributeFilter: ['data-camera-transition'],
-        attributeOldValue: true,
-      })
-    })
+    await ecouterLesTransitions(page)
 
     for (const [lien, focus] of [
       ['Projets', 'projects'],
@@ -38,9 +34,7 @@ test.describe('mouvement réduit', () => {
       await expect(canvas).toHaveAttribute('data-camera-focus', focus)
     }
 
-    const quittees = await page.evaluate(
-      () => (window as unknown as { __transitions: Array<string | null> }).__transitions,
-    )
+    const quittees = await transitionsQuittees(page)
     expect(quittees, 'aucune transition de caméra n’a été ouverte').not.toContain('true')
     // Et un `true` resté en place, que l'observateur ne verrait pas quitter.
     await expect(canvas).toHaveAttribute('data-camera-transition', 'false')

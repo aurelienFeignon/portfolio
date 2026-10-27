@@ -7,7 +7,7 @@
  * un banc l'éprouve sans navigateur.
  */
 import { fovForAspect } from './framing.ts'
-import type { CameraSpec, Vec3 } from './layout.ts'
+import { type CameraSpec, transitionMs, type Vec3 } from './layout.ts'
 
 /** Une pose de caméra : ce que l'interpolation fait varier. */
 export interface Pose {
@@ -21,6 +21,9 @@ export interface OrbitAngles {
   readonly yawDeg: number
   readonly pitchDeg: number
 }
+
+/** L'orbite au repos : ni glisser, ni parallaxe. */
+export const ORBIT_REST: OrbitAngles = Object.freeze({ yawDeg: 0, pitchDeg: 0 })
 
 export const poseOf = (spec: CameraSpec): Pose => ({
   position: spec.position,
@@ -235,8 +238,8 @@ export function approachOrbit(
 ): OrbitAngles {
   const k = animated ? 1 - Math.exp(-ORBIT_EASE_PER_S * stepS) : 1
   return {
-    yawDeg: now.yawDeg + (consigne.yawDeg - now.yawDeg) * k,
-    pitchDeg: now.pitchDeg + (consigne.pitchDeg - now.pitchDeg) * k,
+    yawDeg: mix(now.yawDeg, consigne.yawDeg, k),
+    pitchDeg: mix(now.pitchDeg, consigne.pitchDeg, k),
   }
 }
 
@@ -247,8 +250,8 @@ const ORBIT_SETTLED_DEG = 0.01
 export interface RigFrame {
   /** La pose interpolée, avant orbite : la prochaine transition repart d'ELLE. */
   readonly shown: Pose
+  /** La position, orbite comprise ; la caméra vise `shown.target`. */
   readonly position: Vec3
-  readonly target: Vec3
   /** Le champ vertical, corrigé pour le format À PARTIR de la valeur interpolée. */
   readonly fov: number
   readonly orbit: OrbitAngles
@@ -275,7 +278,6 @@ export function rigFrame(input: {
   readonly goal: Pose
   /** Le temps de transition accumulé avant cette image ; 0 à chaque nouvel état. */
   readonly elapsedMs: number
-  readonly durationMs: number
   readonly orbitNow: OrbitAngles
   readonly drag: OrbitAngles
   readonly parallax: OrbitAngles
@@ -283,12 +285,13 @@ export function rigFrame(input: {
   readonly deltaS: number
   /** L'image précédente bougeait-elle ? Sinon, celle-ci est un réveil. */
   readonly wasMoving: boolean
+  /** Faux sous `reduced-motion` : la transition coupe, l'orbite saute. */
   readonly animated: boolean
   readonly aspect: number
 }): RigFrame {
   const step = frameStepS(input.deltaS, input.wasMoving)
   const elapsedMs = input.elapsedMs + step * 1000
-  const t = easeInOutCubic(transitionProgress(elapsedMs, input.durationMs))
+  const t = easeInOutCubic(transitionProgress(elapsedMs, transitionMs(!input.animated)))
   const shown = interpolatePose(input.from, input.goal, t)
   // La consigne est la somme du glisser et de la parallaxe, bornée ensemble.
   const consigne = clampOrbit(
@@ -301,7 +304,6 @@ export function rigFrame(input: {
   return {
     shown,
     position: orbitAround(shown.position, shown.target, orbit.yawDeg, orbit.pitchDeg),
-    target: shown.target,
     fov: fovForAspect(shown.fov, input.aspect),
     orbit,
     elapsedMs,

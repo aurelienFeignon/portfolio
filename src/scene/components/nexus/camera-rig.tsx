@@ -28,6 +28,7 @@ import { getCameraTarget } from '@/scene/state/camera-target'
 import {
   dragOrbit,
   framingFor,
+  ORBIT_REST,
   type OrbitAngles,
   parallaxFor,
   type Pose,
@@ -35,7 +36,7 @@ import {
   type Rect,
   rigFrame,
 } from '@/scene/state/camera-motion'
-import { ORBIT_LIMITS, PARALLAX, transitionMs } from '@/scene/state/layout'
+import { ORBIT_LIMITS, PARALLAX } from '@/scene/state/layout'
 import type { SceneState } from '@/scene/state/scene-state'
 
 export function CameraRig({
@@ -57,9 +58,9 @@ export function CameraRig({
   const from = useRef<Pose>(poseOf(goal))
   const elapsed = useRef(0)
   const wasMoving = useRef(false)
-  const orbitGoal = useRef<OrbitAngles>({ yawDeg: 0, pitchDeg: 0 })
-  const orbitNow = useRef<OrbitAngles>({ yawDeg: 0, pitchDeg: 0 })
-  const parallax = useRef<OrbitAngles>({ yawDeg: 0, pitchDeg: 0 })
+  const drag = useRef<OrbitAngles>(ORBIT_REST)
+  const orbitNow = useRef<OrbitAngles>(ORBIT_REST)
+  const parallax = useRef<OrbitAngles>(ORBIT_REST)
 
   /*
    * Un nouvel état : la transition repart d'où la caméra EST.
@@ -71,7 +72,7 @@ export function CameraRig({
   useLayoutEffect(() => {
     from.current = shown.current
     elapsed.current = 0
-    orbitGoal.current = { yawDeg: 0, pitchDeg: 0 }
+    drag.current = ORBIT_REST
     get().invalidate()
   }, [goal, get])
 
@@ -106,7 +107,7 @@ export function CameraRig({
       const dx = event.clientX - last.x
       const dy = event.clientY - last.y
       last = { x: event.clientX, y: event.clientY }
-      orbitGoal.current = dragOrbit(orbitGoal.current, dx, dy, ORBIT_LIMITS)
+      drag.current = dragOrbit(drag.current, dx, dy, ORBIT_LIMITS)
       get().invalidate()
     }
     const up = () => {
@@ -115,7 +116,7 @@ export function CameraRig({
     // ⭐ La souris quitte la fenêtre (ou la fenêtre le focus) : la scène se redresse,
     // au lieu de rester inclinée vers le dernier bord touché.
     const recentrer = () => {
-      parallax.current = { yawDeg: 0, pitchDeg: 0 }
+      parallax.current = ORBIT_REST
       get().invalidate()
     }
     const sortie = (event: PointerEvent) => {
@@ -146,9 +147,8 @@ export function CameraRig({
       from: from.current,
       goal: poseOf(goal),
       elapsedMs: elapsed.current,
-      durationMs: transitionMs(!animated),
       orbitNow: orbitNow.current,
-      drag: orbitGoal.current,
+      drag: drag.current,
       parallax: parallax.current,
       limits: ORBIT_LIMITS,
       deltaS: delta,
@@ -162,7 +162,7 @@ export function CameraRig({
     wasMoving.current = image.moving
 
     camera.position.set(...image.position)
-    camera.lookAt(...image.target)
+    camera.lookAt(...image.shown.target)
     camera.fov = image.fov
     if (framing.offsetX === 0 && framing.offsetY === 0) camera.clearViewOffset()
     else

@@ -2,11 +2,13 @@ import type { Page } from '@playwright/test'
 
 import {
   CANVAS,
+  ecouterLesTransitions,
   monterLaScene,
   navigationPrincipale,
   PREMIERE_IMAGE_MS,
   RACINE,
   TEMOIN,
+  transitionsQuittees,
 } from '../../support/scene'
 import { detailPath } from '../../support/sitemap'
 import { expect, test } from '../../support/test'
@@ -110,17 +112,7 @@ test.describe('état de scène', () => {
 
     await page.locator(`main a[href="${fiche}"]`).first().click()
     await expect(page.locator(RACINE)).toHaveAttribute('data-scene-visible', 'false')
-    await canvas.evaluate((element) => {
-      const quittees: Array<string | null> = []
-      Object.assign(window, { __transitions: quittees })
-      new MutationObserver((changements) => {
-        for (const changement of changements) quittees.push(changement.oldValue)
-      }).observe(element, {
-        attributes: true,
-        attributeFilter: ['data-camera-transition'],
-        attributeOldValue: true,
-      })
-    })
+    await ecouterLesTransitions(page)
 
     await page.goBack()
     await expect(page.locator(RACINE)).toHaveAttribute('data-scene-visible', 'true')
@@ -135,9 +127,7 @@ test.describe('état de scène', () => {
     )
 
     expect(await canvas.getAttribute('data-camera-transition')).toBe('false')
-    const quittees = await page.evaluate(
-      () => (window as unknown as { __transitions: Array<string | null> }).__transitions,
-    )
+    const quittees = await transitionsQuittees(page)
     expect(quittees, 'aucune transition rejouée').not.toContain('true')
   })
 

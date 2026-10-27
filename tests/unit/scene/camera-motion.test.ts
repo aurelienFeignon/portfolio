@@ -20,9 +20,10 @@ import {
   REVEIL_S,
   rigFrame,
   transitionProgress,
+  ORBIT_REST,
 } from '@/scene/state/camera-motion'
 import { fovForAspect } from '@/scene/state/framing'
-import { CAMERAS, ORBIT_LIMITS, PARALLAX } from '@/scene/state/layout'
+import { CAMERAS, ORBIT_LIMITS, PARALLAX, type Vec3 } from '@/scene/state/layout'
 
 const distance = (a: readonly number[], b: readonly number[]) =>
   Math.hypot((a[0] ?? 0) - (b[0] ?? 0), (a[1] ?? 0) - (b[1] ?? 0), (a[2] ?? 0) - (b[2] ?? 0))
@@ -239,10 +240,9 @@ describe('la durée qu’une image fait avancer', () => {
 })
 
 describe('l’orbite qui rattrape sa consigne', () => {
-  const zero = { yawDeg: 0, pitchDeg: 0 }
   const consigne = { yawDeg: 10, pitchDeg: 0 }
   const uneSeconde = (cadence: number) => {
-    let orbite = zero
+    let orbite = ORBIT_REST
     for (let i = 0; i < cadence; i += 1) orbite = approachOrbit(orbite, consigne, 1 / cadence, true)
     return orbite
   }
@@ -255,23 +255,21 @@ describe('l’orbite qui rattrape sa consigne', () => {
   })
 
   it('sans mouvement (reduced-motion), saute à la consigne : c’est voulu', () => {
-    expect(approachOrbit(zero, consigne, 1 / 60, false)).toEqual(consigne)
+    expect(approachOrbit(ORBIT_REST, consigne, 1 / 60, false)).toEqual(consigne)
   })
 })
 
 describe('une image du rig', () => {
   const de = poseOf(CAMERAS.accueil)
   const vers = poseOf(CAMERAS.projets)
-  const repos = { yawDeg: 0, pitchDeg: 0 }
   const image = (patch: Partial<Parameters<typeof rigFrame>[0]>) =>
     rigFrame({
       from: de,
       goal: vers,
       elapsedMs: 800,
-      durationMs: 1600,
-      orbitNow: repos,
-      drag: repos,
-      parallax: repos,
+      orbitNow: ORBIT_REST,
+      drag: ORBIT_REST,
+      parallax: ORBIT_REST,
       limits: ORBIT_LIMITS,
       deltaS: 1 / 60,
       wasMoving: true,
@@ -279,6 +277,12 @@ describe('une image du rig', () => {
       aspect: 16 / 9,
       ...patch,
     })
+
+  /** La pose d'arrivée, position et fov. */
+  const expectArrivee = (pose: { position: Vec3; fov?: number }) => {
+    pose.position.forEach((valeur, i) => expect(valeur).toBeCloseTo(vers.position[i] ?? NaN))
+    if (pose.fov !== undefined) expect(pose.fov).toBeCloseTo(vers.fov)
+  }
 
   it('⭐ corrige le format sur le fov INTERPOLÉ, jamais sur celui de l’arrivée', () => {
     // Un écran plus étroit que 16:9 : la correction élargit. À mi-chemin, elle
@@ -310,7 +314,7 @@ describe('une image du rig', () => {
     const arrivee = image({ elapsedMs: 5000 })
     expect(arrivee.transitioning).toBe(false)
     expect(arrivee.moving).toBe(false)
-    arrivee.position.forEach((valeur, i) => expect(valeur).toBeCloseTo(vers.position[i] ?? NaN))
+    expectArrivee({ position: arrivee.position })
   })
 
   it('⛔⛔ une transition finie ne se rejoue pas, quel que soit le temps passé hors image', () => {
@@ -319,10 +323,7 @@ describe('une image du rig', () => {
     // réveil, même après 12 s de fiche, laisse la transition finie.
     const retour = image({ elapsedMs: 1600, deltaS: 12, wasMoving: false })
     expect(retour.transitioning).toBe(false)
-    expect(retour.shown.fov).toBeCloseTo(vers.fov)
-    retour.shown.position.forEach((valeur, i) =>
-      expect(valeur).toBeCloseTo(vers.position[i] ?? NaN),
-    )
+    expectArrivee(retour.shown)
   })
 
   it('accumule le temps de transition, et le rend à l’image suivante', () => {
@@ -330,9 +331,8 @@ describe('une image du rig', () => {
   })
 
   it('sous reduced-motion, la première image est déjà l’arrivée', () => {
-    const coupe = image({ elapsedMs: 0, durationMs: 0, animated: false })
+    const coupe = image({ elapsedMs: 0, animated: false })
     expect(coupe.transitioning).toBe(false)
-    coupe.shown.position.forEach((valeur, i) => expect(valeur).toBeCloseTo(vers.position[i] ?? NaN))
-    expect(coupe.shown.fov).toBeCloseTo(vers.fov)
+    expectArrivee(coupe.shown)
   })
 })
