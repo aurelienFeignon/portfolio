@@ -1,8 +1,8 @@
 /**
  * Les formes procédurales de NEXUS, en nombres purs — aucun import de three.
  *
- * ⭐ **Tout est tiré d'un générateur à graine fixe.** Deux visites voient la même
- * constellation, un banc peut affirmer une propriété sur une sortie connue, et
+ * ⭐ **Tout est tiré d'un générateur à graine fixe.** Deux visites voient le même
+ * nuage de particules, un banc peut affirmer une propriété sur une sortie connue, et
  * une capture d'écran se compare à la précédente. Un `Math.random()` aurait fait
  * de chaque chargement une autre scène.
  */
@@ -94,13 +94,14 @@ export function polylineLength(points: readonly Vec3[]): number {
  * milieu, et un motif posé sur l'indice s'y étirerait.
  */
 export function arcFractions(points: readonly Vec3[]): number[] {
-  const total = polylineLength(points)
-  if (total === 0) return points.map(() => 0)
   let length = 0
-  return points.map((point, i) => {
-    if (i > 0) length += polylineLength([points[i - 1] as Vec3, point])
-    return length / total
+  const lengths = points.map((point, i) => {
+    const previous = points[i - 1]
+    if (previous !== undefined)
+      length += Math.hypot(point[0] - previous[0], point[1] - previous[1], point[2] - previous[2])
+    return length
   })
+  return lengths.map((value) => (length === 0 ? 0 : value / length))
 }
 
 /**

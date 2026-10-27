@@ -115,6 +115,17 @@ function zoneLibre(): Rect | null {
 }
 
 /**
+ * Où les étiquettes peuvent se poser : la zone libre, ou sans panneau l'écran
+ * **sous l'en-tête** — qui passe au-dessus d'elles et les couperait.
+ * ⛔ Pas la même règle que le cadrage, qui centre la scène sur l'écran entier.
+ */
+function zoneEtiquettes(libre: Rect | null): Rect {
+  if (libre !== null && libre.width > 0 && libre.height > 0) return libre
+  const entete = hauteurEntete()
+  return { x: 0, y: entete, width: window.innerWidth, height: window.innerHeight - entete }
+}
+
+/**
  * Un clic sur un lien du site, à transformer en navigation **client** quand la
  * scène est montée — c'est ce qui donne aux liens du DOM (en-tête, panneau,
  * clavier) la même transition de caméra qu'un clic dans la scène.
@@ -152,7 +163,7 @@ export function SceneMount({
   // Le survol est rattaché au chemin où il a eu lieu : il ne survit pas à une navigation.
   const [survolAt, setSurvolAt] = useState<{ section: Section; chemin: string } | null>(null)
   const [libre, setLibre] = useState<Rect | null>(null)
-  const [entete, setEntete] = useState(0)
+  const [zoneDesEtiquettes, setZoneDesEtiquettes] = useState<Rect | null>(null)
   // Les étiquettes, que la scène place à chaque image (`LabelProjector`).
   const ancres = useRef<LabelAnchors>({})
 
@@ -228,8 +239,9 @@ export function SceneMount({
   useEffect(() => {
     if (!monte) return
     const mesurer = () => {
-      setLibre(zoneLibre())
-      setEntete(hauteurEntete())
+      const zone = zoneLibre()
+      setLibre(zone)
+      setZoneDesEtiquettes(zoneEtiquettes(zone))
     }
     const image = requestAnimationFrame(mesurer)
     window.addEventListener('resize', mesurer)
@@ -291,7 +303,7 @@ export function SceneMount({
             visible={visible}
             hovered={survol}
             labelAnchors={ancres}
-            header={entete}
+            labelZone={zoneDesEtiquettes}
             onHover={survoler}
             onSelect={choisir}
             onContextLost={surPerteDeContexte}
@@ -313,26 +325,30 @@ export function SceneMount({
         aria-hidden="true"
         className={[styles.etiquettes, visible ? '' : styles.cachee].filter(Boolean).join(' ')}
       >
-        {SECTIONS.map((section) => (
-          <p
-            key={section}
-            ref={(element) => {
-              ancres.current[section] = element
-            }}
-            data-section={section}
-            data-active={survol === section || scene.focus === section}
-            /*
-             * ⭐ En gros plan, seule l'étiquette de l'univers cadré reste : les
-             * autres univers passent au premier plan ou au bord du champ, et
-             * leurs étiquettes se posaient sur celui qu'on regarde.
-             */
-            data-eclipsed={scene.focus !== 'overview' && scene.focus !== section}
-            className={styles.etiquette}
-          >
-            <span className={styles.nom}>{labels[section].name}</span>
-            <span className={styles.accroche}>{labels[section].tagline}</span>
-          </p>
-        ))}
+        {SECTIONS.map((section) => {
+          /*
+           * ⭐ En gros plan, seule l'étiquette de l'univers cadré reste : les
+           * autres univers passent au premier plan ou au bord du champ, et
+           * leurs étiquettes se posaient sur celui qu'on regarde. Éclipsée, une
+           * étiquette ne s'allume pas non plus au survol.
+           */
+          const eclipsee = scene.focus !== 'overview' && scene.focus !== section
+          return (
+            <p
+              key={section}
+              ref={(element) => {
+                ancres.current[section] = element
+              }}
+              data-section={section}
+              data-active={!eclipsee && (survol === section || scene.focus === section)}
+              data-eclipsed={eclipsee}
+              className={styles.etiquette}
+            >
+              <span className={styles.nom}>{labels[section].name}</span>
+              <span className={styles.accroche}>{labels[section].tagline}</span>
+            </p>
+          )
+        })}
       </div>
       {/*
        * ⛔ Le panneau est HORS de `data-scene-root`, et ce n'est pas un détail de

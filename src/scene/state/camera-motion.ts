@@ -141,31 +141,19 @@ export function parallaxFor(
   pointerY: number,
   limits: { readonly yawDeg: number; readonly pitchDeg: number },
 ): { readonly yawDeg: number; readonly pitchDeg: number } {
-  const clamp = (value: number) => Math.min(1, Math.max(-1, value))
-  return { yawDeg: clamp(pointerX) * limits.yawDeg, pitchDeg: clamp(pointerY) * limits.pitchDeg }
+  return clampOrbit(pointerX * limits.yawDeg, pointerY * limits.pitchDeg, limits)
 }
 
-/** La marge, en pixels, entre l'accroche d'une étiquette et le bas de la zone libre. */
+/** La marge, en pixels, entre l'accroche d'une étiquette et le bas de sa zone. */
 const LABEL_MARGIN_BOTTOM_PX = 16
-
-/** Ce que voit l'écran au moment de placer les étiquettes. */
-export interface LabelViewport {
-  readonly width: number
-  readonly height: number
-  /** La zone hors du panneau de lecture, `null` sans panneau. */
-  readonly free: Rect | null
-  /** La hauteur de l'en-tête, qui passe au-dessus des étiquettes. */
-  readonly header: number
-}
 
 /**
  * Où poser l'étiquette d'un univers, à partir de la projection de son ancre
  * (coordonnées normalisées de l'appareil, celles de `Vector3.project`).
  *
- * ⛔ **Visible seulement dans la zone libre** : une étiquette qui passerait sous
- * le panneau de lecture ou sous l'en-tête, ou derrière la caméra (`z` hors de
- * `[-1, 1]`), est cachée — jamais posée sur le contenu. Sans panneau, la zone
- * libre est l'écran sous l'en-tête.
+ * ⛔ **Visible seulement dans sa zone** (`zone` : hors du panneau de lecture et
+ * de l'en-tête, mesurée par `SceneMount`) et devant la caméra (`z` dans
+ * `[-1, 1]`) — jamais posée sur le contenu.
  *
  * ⭐ Le dégagement se mesure depuis l'ACCROCHE — le milieu du bord bas de
  * l'étiquette — avec la taille RENDUE de l'étiquette (`label`) : la demi-largeur
@@ -175,16 +163,13 @@ export interface LabelViewport {
  */
 export function labelPlacement(
   ndc: Vec3,
-  viewport: LabelViewport,
+  width: number,
+  height: number,
+  zone: Rect,
   label: { readonly width: number; readonly height: number },
 ): { readonly x: number; readonly y: number; readonly visible: boolean } {
-  const { width, height, free, header } = viewport
   const x = ((ndc[0] + 1) / 2) * width
   const y = ((1 - ndc[1]) / 2) * height
-  const zone =
-    free !== null && free.width > 0 && free.height > 0
-      ? free
-      : { x: 0, y: header, width, height: height - header }
   const visible =
     ndc[2] > -1 &&
     ndc[2] < 1 &&

@@ -153,49 +153,50 @@ describe('la parallaxe', () => {
 })
 
 describe('le placement des étiquettes', () => {
-  // Un écran sans panneau ni en-tête, et une étiquette de 224 × 56 px.
-  const ecran = { width: 1600, height: 900, free: null, header: 0 }
+  // Un écran de 1 600 × 900 px tout entier libre, et une étiquette de 224 × 56 px.
+  const ecran = { x: 0, y: 0, width: 1600, height: 900 }
   const etiquette = { width: 224, height: 56 }
+  const placer = (ndc: readonly [number, number, number], zone = ecran, label = etiquette) =>
+    labelPlacement(ndc, 1600, 900, zone, label)
 
   it('convertit la projection en pixels : le centre de l’écran au centre', () => {
-    expect(labelPlacement([0, 0, 0.5], ecran, etiquette)).toEqual({ x: 800, y: 450, visible: true })
-    const coin = labelPlacement([-1, 1, 0.5], ecran, etiquette)
+    expect(placer([0, 0, 0.5])).toEqual({ x: 800, y: 450, visible: true })
+    const coin = placer([-1, 1, 0.5])
     expect([coin.x, coin.y]).toEqual([0, 0])
   })
 
   it('⛔ cache une ancre derrière la caméra, ou au-delà du plan lointain', () => {
-    expect(labelPlacement([0, 0, 1.2], ecran, etiquette).visible).toBe(false)
-    expect(labelPlacement([0, 0, -1.2], ecran, etiquette).visible).toBe(false)
+    expect(placer([0, 0, 1.2]).visible).toBe(false)
+    expect(placer([0, 0, -1.2]).visible).toBe(false)
   })
 
   it('⛔ cache une étiquette qui tomberait sous le panneau de lecture', () => {
-    const avecPanneau = { ...ecran, free: { x: 600, y: 64, width: 1000, height: 836 } }
+    const libre = { x: 600, y: 64, width: 1000, height: 836 }
     // x = 400 px : sous le panneau, à gauche de la zone libre.
-    expect(labelPlacement([-0.5, 0, 0.5], avecPanneau, etiquette).visible).toBe(false)
+    expect(placer([-0.5, 0, 0.5], libre).visible).toBe(false)
     // x = 640 px : à droite du panneau, mais l'étiquette en mordrait le bord.
-    expect(labelPlacement([-0.2, 0, 0.5], avecPanneau, etiquette).visible).toBe(false)
+    expect(placer([-0.2, 0, 0.5], libre).visible).toBe(false)
     // x = 1 200 px : dans la zone libre.
-    expect(labelPlacement([0.5, 0, 0.5], avecPanneau, etiquette).visible).toBe(true)
+    expect(placer([0.5, 0, 0.5], libre).visible).toBe(true)
   })
 
   it('cache une étiquette qui déborderait du bord, plutôt que de la couper', () => {
     // L'accroche est dans l'écran, mais la demi-largeur de l'étiquette n'y tient pas.
-    expect(labelPlacement([0.95, 0, 0.5], ecran, etiquette).visible).toBe(false)
+    expect(placer([0.95, 0, 0.5]).visible).toBe(false)
     // Trop près du haut : l'étiquette, posée au-dessus de son accroche, sortirait.
-    expect(labelPlacement([0, 0.95, 0.5], ecran, etiquette).visible).toBe(false)
+    expect(placer([0, 0.95, 0.5]).visible).toBe(false)
   })
 
-  it('⛔ sans panneau, cache une étiquette que l’en-tête recouvrirait', () => {
+  it('⛔ cache une étiquette que l’en-tête recouvrirait', () => {
     // y = 113 px : 56 px d'étiquette tiennent sous le haut de l'écran, pas sous 68 px d'en-tête.
-    const ancre = [0, 0.75, 0.5] as const
-    expect(labelPlacement(ancre, ecran, etiquette).visible).toBe(true)
-    expect(labelPlacement(ancre, { ...ecran, header: 68 }, etiquette).visible).toBe(false)
+    const sousEntete = { ...ecran, y: 68, height: 832 }
+    expect(placer([0, 0.75, 0.5]).visible).toBe(true)
+    expect(placer([0, 0.75, 0.5], sousEntete).visible).toBe(false)
   })
 
   it('⭐ juge sur la taille RENDUE : une étiquette étroite tient plus près du bord', () => {
     // x = 1 504 px : 96 px du bord droit, moins que la demi-largeur de 112 px.
-    const ancre = [0.88, 0, 0.5] as const
-    expect(labelPlacement(ancre, ecran, etiquette).visible).toBe(false)
-    expect(labelPlacement(ancre, ecran, { width: 120, height: 32 }).visible).toBe(true)
+    expect(placer([0.88, 0, 0.5]).visible).toBe(false)
+    expect(placer([0.88, 0, 0.5], ecran, { width: 120, height: 32 }).visible).toBe(true)
   })
 })

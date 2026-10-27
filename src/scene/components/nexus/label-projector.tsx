@@ -16,7 +16,7 @@ import { type RefObject, useRef } from 'react'
 import { type Camera, Vector3 } from 'three'
 
 import { SECTIONS, type Section } from '@/routing/sections'
-import { labelPlacement, type LabelViewport } from '@/scene/state/camera-motion'
+import { labelPlacement, type Rect } from '@/scene/state/camera-motion'
 import { labelAnchor } from '@/scene/state/layout'
 
 export type LabelAnchors = Partial<Record<Section, HTMLElement | null>>
@@ -30,7 +30,9 @@ export type LabelAnchors = Partial<Record<Section, HTMLElement | null>>
 function placeLabels(
   anchors: LabelAnchors,
   camera: Camera,
-  viewport: LabelViewport,
+  width: number,
+  height: number,
+  zone: Rect,
   point: Vector3,
 ): void {
   // ⛔ Le rig vient de déplacer la caméra : sa matrice monde n'est recalculée
@@ -47,32 +49,30 @@ function placeLabels(
     if (!element) return []
     const ndc = point.set(...labelAnchor(section)).project(camera)
     const label = { width: element.offsetWidth, height: element.offsetHeight }
-    return [{ element, ...labelPlacement([ndc.x, ndc.y, ndc.z], viewport, label) }]
+    return [{ element, ...labelPlacement([ndc.x, ndc.y, ndc.z], width, height, zone, label) }]
   })
+  // ⭐ N'écrire que ce qui change : une caméra immobile ne salit rien, et la
+  // lecture de taille de l'image suivante reste gratuite.
   for (const { element, x, y, visible } of placements) {
-    element.style.transform = `translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, 0)`
-    element.dataset['visible'] = String(visible)
+    const transform = `translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, 0)`
+    if (element.style.transform !== transform) element.style.transform = transform
+    if (element.dataset['visible'] !== String(visible)) element.dataset['visible'] = String(visible)
   }
 }
 
 export function LabelProjector({
   anchors,
-  free,
-  header,
+  zone,
 }: {
   readonly anchors: RefObject<LabelAnchors>
-  readonly free: LabelViewport['free']
-  readonly header: number
+  /** Où les étiquettes peuvent se poser ; `null` tant qu'elle n'est pas mesurée. */
+  readonly zone: Rect | null
 }) {
   const point = useRef(new Vector3())
 
   useFrame(({ camera, size }) => {
-    placeLabels(
-      anchors.current,
-      camera,
-      { width: size.width, height: size.height, free, header },
-      point.current,
-    )
+    if (zone === null) return
+    placeLabels(anchors.current, camera, size.width, size.height, zone, point.current)
   })
 
   return null

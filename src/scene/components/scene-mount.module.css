@@ -108,7 +108,7 @@
 }
 
 /* L'univers survolé ou cadré : son étiquette s'allume. */
-.etiquette[data-visible='true'][data-active='true']:not([data-eclipsed='true']) {
+.etiquette[data-visible='true'][data-active='true'] {
   opacity: 1;
   border-color: var(--tone);
   box-shadow: 0 0 1.5rem -0.25rem var(--tone);
