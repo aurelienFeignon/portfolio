@@ -15,8 +15,10 @@ import {
   DENSITY,
   ORBIT_LIMITS,
   PALETTE,
+  PARALLAX,
   UNIVERSES,
   closeUp,
+  labelAnchor,
   transitionMs,
 } from '@/scene/state/layout'
 
@@ -40,6 +42,25 @@ describe('les univers', () => {
         const a = positions[i]!
         const b = positions[j]!
         expect(distance(a.position, b.position)).toBeGreaterThan(a.hitRadius + b.hitRadius)
+      }
+    }
+  })
+
+  it('portent chacun leur teinte — trois faisceaux, trois couleurs', () => {
+    expect(new Set(SECTIONS.map((section) => UNIVERSES[section].tone)).size).toBe(SECTIONS.length)
+  })
+
+  it('accrochent leur étiquette au-dessus d’eux, hors de la sphère de sélection du voisin', () => {
+    for (const section of SECTIONS) {
+      const { position, hitRadius } = UNIVERSES[section]
+      const ancre = labelAnchor(section)
+      expect(ancre[0]).toBe(position[0])
+      expect(ancre[2]).toBe(position[2])
+      expect(ancre[1]).toBeGreaterThan(position[1] + hitRadius * 0.5)
+      for (const autre of SECTIONS.filter((candidat) => candidat !== section)) {
+        expect(distance(ancre, UNIVERSES[autre].position)).toBeGreaterThan(
+          UNIVERSES[autre].hitRadius,
+        )
       }
     }
   })
@@ -106,9 +127,16 @@ describe('orbite et densité', () => {
     expect(ORBIT_LIMITS.pitchDeg).toBeLessThan(ORBIT_LIMITS.yawDeg)
   })
 
+  it('la parallaxe est un frémissement : bien moins que l’orbite, sur les deux axes', () => {
+    expect(PARALLAX.yawDeg).toBeGreaterThan(0)
+    expect(PARALLAX.pitchDeg).toBeGreaterThan(0)
+    expect(PARALLAX.yawDeg).toBeLessThan(ORBIT_LIMITS.yawDeg / 3)
+    expect(PARALLAX.pitchDeg).toBeLessThan(ORBIT_LIMITS.pitchDeg / 3)
+  })
+
   it('la densité ne fait que décroître de `full` à `lite`, et ne s’annule jamais', () => {
     const paliers = [DENSITY.full, DENSITY.reduced, DENSITY.lite]
-    for (const cle of ['particles', 'projectNodes', 'skillPointsPerCluster', 'shells'] as const) {
+    for (const cle of ['particles', 'shells'] as const) {
       const valeurs = paliers.map((densite) => densite[cle])
       expect(valeurs).toEqual([...valeurs].sort((a, b) => b - a))
       expect(Math.min(...valeurs)).toBeGreaterThan(0)
@@ -124,6 +152,7 @@ describe('la palette', () => {
     expect(css).toContain(`--color-panel: ${PALETTE.surface.toLowerCase()}`)
     expect(css).toContain(`--color-accent: ${PALETTE.cyan.toLowerCase()}`)
     expect(css).toContain(`--color-violet: ${PALETTE.violet.toLowerCase()}`)
+    expect(css).toContain(`--color-sky: ${PALETTE.sky.toLowerCase()}`)
     expect(css).toContain(`--color-text: ${PALETTE.text.toLowerCase()}`)
   })
 })

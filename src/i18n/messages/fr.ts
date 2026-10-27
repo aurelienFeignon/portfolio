@@ -113,14 +113,17 @@ export const fr = {
     experiences: {
       name: 'Expériences',
       description: 'Parcours professionnel : postes, missions et réalisations.',
+      tagline: 'Postes et missions',
     },
     projects: {
       name: 'Projets',
       description: 'Projets personnels, professionnels et open source.',
+      tagline: 'Applications et open source',
     },
     skills: {
       name: 'Compétences',
       description: 'Langages, frameworks, outillage, infrastructure et pratiques.',
+      tagline: 'Stack et architecture',
     },
   },
 

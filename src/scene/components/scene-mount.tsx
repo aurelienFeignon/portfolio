@@ -28,7 +28,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 
 import { resetFocusToDocumentStart } from '@/routing/focus-reset'
 import { homePath, localeFromPathname, parsePagePath } from '@/routing/paths'
-import type { Section } from '@/routing/sections'
+import { SECTIONS, type Section } from '@/routing/sections'
 
 import { readCapability } from '@/scene/capability/adapter'
 import {
@@ -45,6 +45,7 @@ import { shouldShowDiagnostics } from '@/scene/state/debug-flag'
 import { getRouteForScreen, resolveSceneState } from '@/scene/state/scene-state'
 import type { SceneReadings } from '@/scene/state/diagnostics'
 
+import type { LabelAnchors } from './nexus/label-projector'
 import { SceneBoundary } from './scene-boundary'
 import styles from './scene-mount.module.css'
 
@@ -94,10 +95,13 @@ function auRepos(callback: () => void): () => void {
  * - panneau **fixe** (ordinateur) : tout ce qui est à sa droite, sous l'en-tête ;
  * - panneau **dans le flux** (mobile) : la bande entre l'en-tête et son bord haut.
  */
+const hauteurEntete = (): number =>
+  document.querySelector('header')?.getBoundingClientRect().height ?? 0
+
 function zoneLibre(): Rect | null {
   const panneau = document.querySelector<HTMLElement>('[data-reading-panel]')
   if (panneau === null) return null
-  const entete = document.querySelector('header')?.getBoundingClientRect().height ?? 0
+  const entete = hauteurEntete()
   const cadre = panneau.getBoundingClientRect()
   if (getComputedStyle(panneau).position === 'fixed') {
     return {
@@ -109,6 +113,17 @@ function zoneLibre(): Rect | null {
   }
   const haut = cadre.top + window.scrollY
   return { x: 0, y: entete, width: window.innerWidth, height: Math.max(0, haut - entete) }
+}
+
+/**
+ * Où les étiquettes peuvent se poser : la zone libre, ou sans panneau l'écran
+ * **sous l'en-tête** — qui passe au-dessus d'elles et les couperait.
+ * ⛔ Pas la même règle que le cadrage, qui centre la scène sur l'écran entier.
+ */
+function zoneEtiquettes(libre: Rect | null): Rect {
+  if (libre !== null && libre.width > 0 && libre.height > 0) return libre
+  const entete = hauteurEntete()
+  return { x: 0, y: entete, width: window.innerWidth, height: window.innerHeight - entete }
 }
 
 /**
@@ -132,13 +147,26 @@ function lienInterne(event: MouseEvent): string | null {
   return parsePagePath(url.pathname) === null ? null : url.pathname
 }
 
-export function SceneMount({ labels }: { readonly labels: Readonly<Record<Section, string>> }) {
+/** L'étiquette d'un univers : son nom, et une accroche qui dit ce qu'on y trouve. */
+export interface UniverseLabel {
+  readonly name: string
+  readonly tagline: string
+}
+
+export function SceneMount({
+  labels,
+}: {
+  readonly labels: Readonly<Record<Section, UniverseLabel>>
+}) {
   const [etat, setEtat] = useState<SceneMountState>(SCENE_WAITING)
   const [diagnostics, setDiagnostics] = useState(false)
   const [releves, setReleves] = useState<SceneReadings | null>(null)
   // Le survol est rattaché au chemin où il a eu lieu : il ne survit pas à une navigation.
   const [survolAt, setSurvolAt] = useState<{ section: Section; chemin: string } | null>(null)
   const [libre, setLibre] = useState<Rect | null>(null)
+  const [zoneDesEtiquettes, setZoneDesEtiquettes] = useState<Rect | null>(null)
+  // Les étiquettes, que la scène place à chaque image (`LabelProjector`).
+  const ancres = useRef<LabelAnchors>({})
 
   /*
    * ⭐ **La route est la seule source de vérité** (ADR-0002) : l'état de scène
@@ -211,7 +239,11 @@ export function SceneMount({ labels }: { readonly labels: Readonly<Record<Sectio
   // La zone libre se remesure à chaque route et à chaque redimensionnement.
   useEffect(() => {
     if (!monte) return
-    const mesurer = () => setLibre(zoneLibre())
+    const mesurer = () => {
+      const zone = zoneLibre()
+      setLibre(zone)
+      setZoneDesEtiquettes(zoneEtiquettes(zone))
+    }
     const image = requestAnimationFrame(mesurer)
     window.addEventListener('resize', mesurer)
     return () => {
@@ -287,6 +319,8 @@ export function SceneMount({ labels }: { readonly labels: Readonly<Record<Sectio
             free={libre}
             visible={visible}
             hovered={survol}
+            labelAnchors={ancres}
+            labelZone={zoneDesEtiquettes}
             onHover={survoler}
             onSelect={choisir}
             onContextLost={surPerteDeContexte}
@@ -295,15 +329,44 @@ export function SceneMount({ labels }: { readonly labels: Readonly<Record<Sectio
         </SceneBoundary>
       </div>
       {/*
-       * ⭐ Le nom de l'univers survolé, HORS de `data-scene-root` : la racine de
-       * scène ne contient aucun texte (ADR-0003, banc E2E). Il double un lien
-       * qui existe déjà dans la navigation — d'où `aria-hidden`.
+       * ⭐ Les étiquettes des univers, HORS de `data-scene-root` : la racine de
+       * scène ne contient aucun texte (ADR-0003, banc E2E). Elles doublent des
+       * liens qui existent déjà dans la navigation — d'où `aria-hidden`. Leur
+       * position est écrite par la scène ; jusqu'à la première image, elles
+       * restent invisibles (`data-visible` absent).
+       * ⛔ Cachées sur une fiche, jamais démontées : remontées au retour, elles
+       * repartaient sans position et attendaient une image que `demand` ne
+       * rend pas forcément — la scène revenait sans ses étiquettes.
        */}
-      {survol !== null && visible ? (
-        <p aria-hidden="true" className={styles.etiquette}>
-          {labels[survol]}
-        </p>
-      ) : null}
+      <div
+        aria-hidden="true"
+        className={[styles.etiquettes, visible ? '' : styles.cachee].filter(Boolean).join(' ')}
+      >
+        {SECTIONS.map((section) => {
+          /*
+           * ⭐ En gros plan, seule l'étiquette de l'univers cadré reste : les
+           * autres univers passent au premier plan ou au bord du champ, et
+           * leurs étiquettes se posaient sur celui qu'on regarde. Éclipsée, une
+           * étiquette ne s'allume pas non plus au survol.
+           */
+          const eclipsee = scene.focus !== 'overview' && scene.focus !== section
+          return (
+            <p
+              key={section}
+              ref={(element) => {
+                ancres.current[section] = element
+              }}
+              data-section={section}
+              data-active={!eclipsee && (survol === section || scene.focus === section)}
+              data-eclipsed={eclipsee}
+              className={styles.etiquette}
+            >
+              <span className={styles.nom}>{labels[section].name}</span>
+              <span className={styles.accroche}>{labels[section].tagline}</span>
+            </p>
+          )
+        })}
+      </div>
       {/*
        * ⛔ Le panneau est HORS de `data-scene-root`, et ce n'est pas un détail de
        * mise en page : un parcours E2E exige que cette racine ne contienne pas un
