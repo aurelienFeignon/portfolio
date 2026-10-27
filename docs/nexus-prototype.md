@@ -66,8 +66,8 @@ lien du DOM ─────────┼─▶ router.push(route) ─▶ URL �
   présentation, remis à zéro à chaque route. **Désactivée au tactile** : le doigt fait défiler la page.
 - **Parallaxe** : sans glisser, la caméra s'incline vers la souris, de 5° en lacet et 3° en tangage au
   plus, ajoutés à l'orbite et bornés avec elle. Souris seule, jamais sous `prefers-reduced-motion`.
-- **Transition** : 1,6 s, `easeInOutCubic`, interruptible (repart de la pose affichée) ; **coupe
-  instantanée** sous `prefers-reduced-motion`.
+- **Transition** : 1,6 s, `easeInOutCubic`, interruptible ; **coupe instantanée** sous
+  `prefers-reduced-motion`. Décision et alternatives : [ADR-0012](./adr/0012-camera-animation-strategy.md).
 - **Cadrage dans la zone libre** : `SceneMount` mesure le panneau dans le DOM et la caméra décale son
   point principal (`setViewOffset`) pour centrer la scène dans l'espace restant — le canvas reste plein
   écran, aucun second contexte.
@@ -107,7 +107,7 @@ sans scène sur la même image. Référence : le bureau, `1ecfdb3`, `benchmarkIn
 
 | | Bureau (P5) | NEXUS |
 |---|---|---|
-| Chunk 3D différé (gzip) | 234,5 Ko | **237,6 Ko** (225,0 + 12,7) avec socle holographique, emblèmes, faisceaux et étiquettes, mesuré `gzip -9` le 2026-10-27 |
+| Chunk 3D différé (gzip) | 234,5 Ko | **242,5 Ko** (229,9 + 12,6), `gzip -9`, 2026-10-27 — 237,6 le matin, avant R3F 9.8.2 / Next 16.4.1 / drei 10.7.9 |
 | JS propre à chaque route | 11,0 Ko | **12,7 Ko** (+1,7 : lecture de la route et routeur dans `SceneMount`) |
 | Module 3D en première visite | aucun | **aucun** (garde P5-09) |
 

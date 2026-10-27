@@ -585,6 +585,8 @@ survécu au changement de scène — c'était l'objet de l'avoir rendu génériq
 
 ⛔ **Écart à l'ordre de travail du §5** : P6-09 (l'ADR-0012) devait précéder P6-04. Elle ne l'a pas
 fait — la décision d'animation est livrée **sans** son ADR. C'est une dette, inscrite à la roadmap.
+✅ **Soldée le 2026-10-27** : [ADR-0012](./adr/0012-camera-animation-strategy.md), écrit après coup, qui
+constate la décision et chiffre ses alternatives par mesure au lieu de les présenter comme ouvertes.
 
 Détail, captures, mesures et hypothèses réfutées : [`nexus-prototype.md`](./nexus-prototype.md).
 
