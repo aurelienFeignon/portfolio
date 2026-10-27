@@ -126,3 +126,56 @@ export function framingFor(
     aspect: free.width / free.height,
   }
 }
+
+/**
+ * La consigne de parallaxe pour un pointeur, en coordonnées normalisées de la
+ * fenêtre (−1 à gauche et en bas, +1 à droite et en haut).
+ *
+ * ⭐ La caméra va **vers** le pointeur : à droite de la fenêtre, elle tourne vers
+ * la droite autour de sa cible, et la scène pivote en sens inverse — la
+ * profondeur se lit dans ce décalage. Une entrée hors de `[-1, 1]` (pointeur
+ * hors de la fenêtre) est ramenée au bord.
+ */
+export function parallaxFor(
+  pointerX: number,
+  pointerY: number,
+  limits: { readonly yawDeg: number; readonly pitchDeg: number },
+): { readonly yawDeg: number; readonly pitchDeg: number } {
+  return clampOrbit(pointerX * limits.yawDeg, pointerY * limits.pitchDeg, limits)
+}
+
+/** La marge, en pixels, entre l'accroche d'une étiquette et le bas de sa zone. */
+const LABEL_MARGIN_BOTTOM_PX = 16
+
+/**
+ * Où poser l'étiquette d'un univers, à partir de la projection de son ancre
+ * (coordonnées normalisées de l'appareil, celles de `Vector3.project`).
+ *
+ * ⛔ **Visible seulement dans sa zone** (`zone` : hors du panneau de lecture et
+ * de l'en-tête, mesurée par `SceneMount`) et devant la caméra (`z` dans
+ * `[-1, 1]`) — jamais posée sur le contenu.
+ *
+ * ⭐ Le dégagement se mesure depuis l'ACCROCHE — le milieu du bord bas de
+ * l'étiquette — avec la taille RENDUE de l'étiquette (`label`) : la demi-largeur
+ * sur les côtés, toute la hauteur au-dessus. Une taille supposée se trompait
+ * dans les deux sens — une accroche longue débordait, une étiquette réduite au
+ * nom (mobile) se cachait sans raison.
+ */
+export function labelPlacement(
+  ndc: Vec3,
+  width: number,
+  height: number,
+  zone: Rect,
+  label: { readonly width: number; readonly height: number },
+): { readonly x: number; readonly y: number; readonly visible: boolean } {
+  const x = ((ndc[0] + 1) / 2) * width
+  const y = ((1 - ndc[1]) / 2) * height
+  const visible =
+    ndc[2] > -1 &&
+    ndc[2] < 1 &&
+    x >= zone.x + label.width / 2 &&
+    x <= zone.x + zone.width - label.width / 2 &&
+    y >= zone.y + label.height &&
+    y <= zone.y + zone.height - LABEL_MARGIN_BOTTOM_PX
+  return { x, y, visible }
+}

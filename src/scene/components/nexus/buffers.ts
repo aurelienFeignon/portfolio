@@ -6,35 +6,13 @@
 import { BufferGeometry, Float32BufferAttribute } from 'three'
 
 import type { Vec3 } from '@/scene/state/layout'
+import { arcFractions } from '@/scene/state/nexus-geometry'
 
-/** Une polyligne continue, avec `aT` de 0 à 1 le long de son tracé. */
+/** Une polyligne continue, avec `aT` de 0 à 1 selon la longueur parcourue. */
 export function polylineGeometry(points: readonly Vec3[]): BufferGeometry {
   const geometry = new BufferGeometry()
   geometry.setAttribute('position', new Float32BufferAttribute(points.flat(), 3))
-  geometry.setAttribute(
-    'aT',
-    new Float32BufferAttribute(
-      points.map((_, i) => (points.length === 1 ? 0 : i / (points.length - 1))),
-      1,
-    ),
-  )
-  return geometry
-}
-
-/** Des segments indépendants, chacun avec `aT` de 0 à 1. */
-export function segmentsGeometry(
-  points: readonly Vec3[],
-  edges: ReadonlyArray<readonly [number, number]>,
-): BufferGeometry {
-  const positions: number[] = []
-  const t: number[] = []
-  for (const [a, b] of edges) {
-    positions.push(...(points[a] as Vec3), ...(points[b] as Vec3))
-    t.push(0, 1)
-  }
-  const geometry = new BufferGeometry()
-  geometry.setAttribute('position', new Float32BufferAttribute(positions, 3))
-  geometry.setAttribute('aT', new Float32BufferAttribute(t, 1))
+  geometry.setAttribute('aT', new Float32BufferAttribute(arcFractions(points), 1))
   return geometry
 }
 
