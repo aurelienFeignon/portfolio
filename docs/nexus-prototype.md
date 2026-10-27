@@ -107,7 +107,7 @@ sans scène sur la même image. Référence : le bureau, `1ecfdb3`, `benchmarkIn
 
 | | Bureau (P5) | NEXUS |
 |---|---|---|
-| Chunk 3D différé (gzip) | 234,5 Ko | **237,6 Ko** (225,0 + 12,7) avec socle holographique, emblèmes, faisceaux et étiquettes, mesuré `gzip -9` le 2026-10-27 |
+| Chunk 3D différé (gzip) | 234,5 Ko | **242,5 Ko** (229,9 + 12,6), mesuré `gzip -9` le 2026-10-27 après les mises à jour du jour (R3F 9.8.2, Next 16.4.1, drei 10.7.9) ; 237,6 Ko le matin même, avec socle holographique, emblèmes, faisceaux et étiquettes |
 | JS propre à chaque route | 11,0 Ko | **12,7 Ko** (+1,7 : lecture de la route et routeur dans `SceneMount`) |
 | Module 3D en première visite | aucun | **aucun** (garde P5-09) |
 

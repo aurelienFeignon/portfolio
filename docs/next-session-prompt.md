@@ -47,7 +47,8 @@ Les Phases 0 à 4 sont TERMINÉES et validées. Ne les refais pas, ne les redisc
 Phases 0 à 4 : **DONE** — le jalon T1 est atteint, le portfolio documentaire est en ligne,
 supervisé, avec une checklist de mise en ligne et un rollback rejoué.
 **Phase 5 (Fondation Three.js) : CLOSE**, 10 tâches sur 10 — P5-10 close le 2026-10-23 avec #58.
-**Phase 6 (Navigation spatiale)** : **7 tâches sur 10** ; restent P6-07, P6-09 (en dette) et P6-10.
+**Phase 6 (Navigation spatiale)** : **8 tâches sur 10** ; restent P6-07 et P6-10 — P6-09 (l'ADR-0012,
+en dette) soldée le 2026-10-27.
 **Phase 7 (Interfaces de lecture)** : P7-03, P7-05 et P7-08 livrées ; restent P7-04, P7-06, P7-07.
 ⭐⭐ **NEXUS EST EN PRODUCTION depuis le 2026-10-23 (#58, `854d1fe`)** — D11 : le bureau 3D est
 remplacé par un noyau numérique et trois univers, avec navigation hybride et `ReadingPanel` en verre
@@ -55,6 +56,25 @@ lumineux. **Lis `docs/nexus-prototype.md` avant toute chose** : décisions, arch
 et surtout §6, l'enquête de performance. Les Phases 7 à 9 sont réorientées dans la roadmap.
 **Tout ce qui suit est fusionné sur `main` et déployé**, les cinq jobs verts à chaque fois —
 publication GHCR et déploiement VPS compris.
+
+⭐ **Le 2026-10-27, neuf PR fusionnées et déployées** (dernier `main` : `5efbe40`, cinq jobs verts) :
+- **#72** — la scène NEXUS reprend quatre idées d'une maquette Stitch : emblèmes des univers (pile de
+  plateaux, prisme, gyroscope), faisceaux en pointillés, parallaxe vers la souris, **étiquettes
+  permanentes** en HTML hors de la racine de scène (ADR-0003/0004 précisés), socle holographique.
+- **#73** — ⛔⛔ **sous Next 16.4, un composant `next/dynamic` rendu DANS le `<Canvas>` fait tomber la
+  scène** (React #438 : le réconciliateur de R3F refuse son `use()`). La sonde de diagnostic est
+  désormais chargée par `import()` dans `useSonde` (`scene-canvas.tsx`), et une garde ESLint interdit
+  `next`/`next/*` dans tout `src/scene/components/**` hors `scene-mount.tsx` et `scene-boundary.tsx`.
+- **Mises à jour** : Next **16.4.1** (#63, sécurité), zod 4.6.6 (#62, sécurité), R3F 9.8.2, drei
+  10.7.9, pnpm 11.28.8, yaml, devDependencies (#66 : Playwright **1.64.1**, `typescript-eslint` 8.72.0
+  — le verrou en portait une **seconde copie**, d'où un ESLint qui refusait de charger).
+  ⚠️ L'image E2E des deux fichiers compose est passée à `playwright:v1.64.1-noble` : un volume
+  `node_modules` resté en 1.62.1 casse `make e2e` — `make install` d'abord.
+- ⭐ **La branche se supprime désormais à la fusion** (`delete_branch_on_merge`, activé le 2026-10-27).
+- ⭐ La protection de `main` exige une branche **à jour** et la fusion automatique est désactivée : on
+  fusionne une PR à la fois, `gh pr update-branch` puis CI complète. Après chaque fusion, les PR
+  Renovate qui touchent le verrou passent souvent en conflit : fusionner `main`, garder le verrou de
+  `main`, `pnpm install --lockfile-only`, puis `pnpm dedupe`.
 
 ⛔⛔⛔ **Mais une fusion peut ne RIEN déclencher, en silence — c'est arrivé le 2026-09-24.** La fusion
 de #52 (16:32:44 UTC) n'a produit **aucune exécution** : pas une en attente, pas une en échec —
@@ -118,6 +138,7 @@ rencontrées :
 | P6-01 | **`resolveSceneState(pathname)`**, pure, 100 %. ⭐⭐ La règle tient en une phrase : elle lit la **FORME** de l'URL, jamais l'**EXISTENCE** de ce qu'elle nomme — `scene → content` est interdit, donc `detail` **nomme** sans vérifier |
 | P6-03 | **`getRouteForScreen(focus, locale)`** — l'autre sens du flux. ⭐⭐ Elle prend un `SceneFocus`, donc `overview` : **ADR-0002 amendé**, parce que « revenir au bureau » aurait sinon ouvert une **seconde porte** dans le sens que l'ADR n'en veut qu'une. ⭐⭐⭐ *Une propriété écrite sur une valeur d'**absorption** ne garde rien tant qu'on n'assère pas sur ce qui la distingue d'elle-même* — l'aller-retour était aveugle deux fois sur `overview` |
 | P6-02 | **`getCameraTarget(state)`**, dans `camera-target.ts` — un `Record<SceneFocus, ViewId>`, exhaustif par le **type** (`TS2741` vérifié), qui rend l'instance de `CAMERAS` elle-même. ⭐⭐ *Un banc qui ne compare le code qu'à lui-même ne dit rien de ce qu'il devrait faire* : « lu dans `layout.ts` » laissait passer l'échange de deux écrans, d'où un **oracle** en identifiants de dalles |
+| P6-09 | **[ADR-0012](./adr/0012-camera-animation-strategy.md)** (2026-10-27), écrit **après coup** : il constate l'animation livrée par #58 au lieu de la présenter comme ouverte, et chiffre ses alternatives par mesure. ⭐⭐ *À défaut d'avoir précédé le code, un arbitrage reste vérifiable s'il est mesuré* |
 
 ⛔ **Aucune des trois n'a encore d'appelant**, et c'est voulu : P6-04 branchera `getCameraTarget` (le
 canvas lit encore `CAMERAS.accueil` en dur), P6-05 appellera la route, P6-07 exposera l'état au DOM. « Socle et route inchangés » n'affirme donc rien de plus que ce qui
@@ -283,7 +304,18 @@ référence (#57), `ReadingPanel`, P6-04, décisions NEXUS (D11 et amendements d
 prototype, validation visuelle avec l'utilisateur, fusion et déploiement (#58), roadmap reprise.
 
 ⛔ **Avant toute chose, vérifie la fusion de cette mise à jour du prompt** (branche
-`docs/prompt-apres-p7-05`) : `gh pr list --state all --head docs/prompt-apres-p7-05`.
+`docs/adr-0012-animation`, qui porte aussi `docs/prompt-apres-p7-05`) :
+`gh pr list --state all --head docs/adr-0012-animation`.
+
+✅ **P6-09 est soldée** (2026-10-27) : [ADR-0012](./adr/0012-camera-animation-strategy.md), écrit
+**après coup**, constate la décision livrée par #58 — `easeInOutCubic`, 1,6 s, interruptible depuis la
+pose affichée, coupe sous `reduced-motion` ; orbite et parallaxe par approche exponentielle — et
+**chiffre ses alternatives par mesure** sur le chunk 3D : `maath` +3 030 octets (et une dépendance
+directe de plus : pnpm refuse de l'importer, il n'est là que par drei), `CameraControls` +10 570,
+`@react-spring/three` +13 960 (six paquets). ⭐ Le poids n'a rien décidé ; la durée exacte, les bancs
+purs et une seule source de vérité de la pose (ADR-0002) l'ont fait.
+⚠️ **Chunk 3D remesuré : 242,5 Ko** `gzip -9` (237,6 le matin) — les mises à jour du jour
+(R3F 9.8.2, Next 16.4.1, drei 10.7.9) ont coûté ~5 Ko. Cible 260 / seuil 320 (Phase 5).
 
 ✅ **P7-05 est livrée et fusionnée** (2026-10-26, #70, `34d8c49`, E2E-15 ; déploiement à **lire**, pas à supposer — voir « État ») : une navigation client remet le focus au début du
 document, comme un chargement — premier Tab sur le lien d'évitement, nom de la page dit par
@@ -307,11 +339,10 @@ autour de la page entière). Firefox headless ne monte pas la scène : non couve
 - **Un worktree d'une autre session peut vivre dans `.worktrees/`** (exclu de git) : `make lint` le
   parcourt et rougit sur SON code. Lancer ESLint sur `src tests` pour juger le sien.
 
-**Reste à faire — dans l'ordre recommandé le 2026-10-23 :**
+**Reste à faire — dans l'ordre recommandé le 2026-10-23** (P6-09, premier de la liste, soldée le
+2026-10-27) :
 
-1. **P6-09 — l'ADR-0012, en dette** : la stratégie d'animation (interpolation maison `easeInOutCubic`,
-   1,6 s, interruptible, coupe sous `reduced-motion`) est **livrée sans son ADR**. L'écrire en
-   constatant ce qui est en place et ce qui a été écarté — pas en la présentant comme à trancher.
+1. ~~**P6-09 — l'ADR-0012, en dette**~~ — ✅ **écrit le 2026-10-27**, voir plus haut.
 2. **P8-11 — mesurer sur ce qui n'est pas couvert**, dès qu'un appareil est disponible : GPU intégré,
    téléphone réel, Safari. Sur une RTX 5050, le TBT de la scène est de **0 ms** (154 ms processeur
    bridé ×4) ; le banc sans GPU annonce 1 231 ms et **surestime d'environ ×8**
