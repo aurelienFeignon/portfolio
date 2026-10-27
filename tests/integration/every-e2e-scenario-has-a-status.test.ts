@@ -1,7 +1,7 @@
 /**
  * Chaque scénario E2E exigé par la stratégie de tests a un statut (P4-12).
  *
- * **Pourquoi ce garde existe.** `testing-strategy.md` §4.7 énumère quatorze
+ * **Pourquoi ce garde existe.** `testing-strategy.md` §4.7 énumère quinze
  * scénarios « minimaux exigés ». Rien ne reliait cette liste au banc : savoir
  * lequel était écrit, lequel attendait sa phase et lequel avait été oublié
  * supposait de relire les quatorze parcours et de s'en souvenir. C'est-à-dire un
@@ -68,7 +68,7 @@ function awaitedTask(status: Status): string | undefined {
 }
 
 /**
- * Le statut de chacun des quatorze scénarios.
+ * Le statut de chacun des quinze scénarios.
  *
  * ⭐ Aucun **chemin de fichier** ici, et c'est délibéré : la localisation d'un
  * parcours vit dans le parcours, sous la forme d'une annotation `@covers`. La
@@ -106,6 +106,7 @@ const STATUS: Record<string, Status> = {
   // déclarer couvert aujourd'hui affirmerait la partie qui n'existe pas.
   'E2E-13': { deferredTo: 'P6-10', why: 'l’état de scène n’existe pas avant la Phase 6' },
   'E2E-14': { deferredTo: 'P6-10', why: 'il n’y a aucune animation de caméra à supprimer' },
+  'E2E-15': { covered: true },
 }
 
 // Le libellé n'est pas capturé : rien ne le lit. Il est exigé — un
@@ -116,7 +117,7 @@ const SCENARIO_PATTERN = /^(E2E-\d{2})\s{2,}\S/
  * Les scénarios tels que §4.7 les énumère, lus dans son **bloc de code**.
  *
  * La borne n'est pas de la prudence : le même document cite des identifiants en
- * prose, et ce fichier en cite quatorze. Sans elle, l'extraction rendrait des
+ * prose, et ce fichier en cite quinze. Sans elle, l'extraction rendrait des
  * scénarios que la stratégie n'exige pas.
  */
 async function requiredScenarios(): Promise<string[]> {

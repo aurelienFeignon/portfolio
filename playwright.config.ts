@@ -2,6 +2,9 @@ import { defineConfig, devices } from '@playwright/test'
 
 // Le service `e2e` cible le service `web` par le réseau Docker interne. La
 // variable permet de viser une autre origine (build de production en P1-13, CI).
+// Ce qui exige une scène MONTÉE : joué par les deux moteurs qui en montent une.
+const SCENE_MOUNTED = '**/profiles/scene-mounted/**/*.spec.ts'
+
 const baseURL = process.env['PLAYWRIGHT_BASE_URL'] ?? 'http://web:3000'
 
 export default defineConfig({
@@ -29,6 +32,10 @@ export default defineConfig({
   //   tests/e2e/shared/**    parcours communs, joués par tous les profils qui
   //                          disposent de JavaScript
   //   tests/e2e/profiles/X/  ce qui n'a de sens que pour le profil X
+  //   tests/e2e/profiles/scene-mounted/
+  //                          ce qui exige une scène MONTÉE, joué sous les deux
+  //                          moteurs qui en montent une : Chromium et WebKit
+  //                          (P7-05 — `focusVisible` ne se juge que sous WebKit)
   //
   // Sans ce découpage, un test propre à un profil s'exécute dans tous les autres
   // et passe pour de mauvaises raisons — constaté au premier essai (P1-08).
@@ -38,7 +45,11 @@ export default defineConfig({
       // Ce profil porte aussi ce qui ne dépend d'aucun profil — une assertion
       // sur une réponse HTTP, par exemple. La jouer quatre fois donnerait quatre
       // fois le même résultat.
-      testMatch: ['**/shared/**/*.spec.ts', '**/profiles/desktop-chromium/**/*.spec.ts'],
+      testMatch: [
+        '**/shared/**/*.spec.ts',
+        '**/profiles/desktop-chromium/**/*.spec.ts',
+        SCENE_MOUNTED,
+      ],
       use: { ...devices['Desktop Chrome'], viewport: { width: 1440, height: 900 } },
     },
     {
@@ -48,7 +59,11 @@ export default defineConfig({
       // en écrit un : le responsive se mesure sur des largeurs émulées depuis
       // `desktop-chromium`, mais un **moteur** différent, avec sa barre d'outils
       // et son `devicePixelRatio`, ne se simule pas par un `setViewportSize`.
-      testMatch: ['**/shared/**/*.spec.ts', '**/profiles/mobile-safari/**/*.spec.ts'],
+      testMatch: [
+        '**/shared/**/*.spec.ts',
+        '**/profiles/mobile-safari/**/*.spec.ts',
+        SCENE_MOUNTED,
+      ],
       use: { ...devices['iPhone 14'] },
     },
     {
