@@ -47,8 +47,8 @@ Les Phases 0 à 4 sont TERMINÉES et validées. Ne les refais pas, ne les redisc
 Phases 0 à 4 : **DONE** — le jalon T1 est atteint, le portfolio documentaire est en ligne,
 supervisé, avec une checklist de mise en ligne et un rollback rejoué.
 **Phase 5 (Fondation Three.js) : CLOSE**, 10 tâches sur 10 — P5-10 close le 2026-10-23 avec #58.
-**Phase 6 (Navigation spatiale)** : **8 tâches sur 10** ; restent P6-07 et P6-10 — P6-09 (l'ADR-0012,
-en dette) soldée le 2026-10-27.
+**Phase 6 (Navigation spatiale)** : **8 tâches sur 12** ; restent P6-07, P6-10, et P6-11 / P6-12,
+nées de l'ADR-0012 (P6-09, soldée le 2026-10-27).
 **Phase 7 (Interfaces de lecture)** : P7-03, P7-05 et P7-08 livrées ; restent P7-04, P7-06, P7-07.
 ⭐⭐ **NEXUS EST EN PRODUCTION depuis le 2026-10-23 (#58, `854d1fe`)** — D11 : le bureau 3D est
 remplacé par un noyau numérique et trois univers, avec navigation hybride et `ReadingPanel` en verre
@@ -308,15 +308,10 @@ prototype, validation visuelle avec l'utilisateur, fusion et déploiement (#58),
 `docs/adr-0012-animation`) : `gh pr list --state all --head docs/adr-0012-animation`. La mise à jour
 précédente, `docs/prompt-apres-p7-05`, est déjà fusionnée (#71).
 
-✅ **P6-09 est soldée** (2026-10-27) : [ADR-0012](./adr/0012-camera-animation-strategy.md), écrit
-**après coup**, constate la décision livrée par #58 — `easeInOutCubic`, 1,6 s, interruptible depuis la
-pose affichée, coupe sous `reduced-motion` ; orbite et parallaxe par approche exponentielle — et
-**chiffre ses alternatives par mesure** sur le chunk 3D : `maath` +3 030 octets (et une dépendance
-directe de plus : pnpm refuse de l'importer, il n'est là que par drei), `CameraControls` +10 570,
-`@react-spring/three` +13 960 (six paquets). ⭐ Le poids n'a rien décidé ; la durée exacte, les bancs
-purs et une seule source de vérité de la pose (ADR-0002) l'ont fait.
-⚠️ **Chunk 3D remesuré : 242,5 Ko** `gzip -9` (237,6 le matin) — les mises à jour du jour
-(R3F 9.8.2, Next 16.4.1, drei 10.7.9) ont coûté ~5 Ko. Cible 260 / seuil 320 (Phase 5).
+✅ **P6-09 soldée le 2026-10-27** : [ADR-0012](./adr/0012-camera-animation-strategy.md), écrit après
+coup, alternatives chiffrées par mesure. Ses suites ouvertes sont devenues **P6-11** et **P6-12**.
+⚠️ **Chunk 3D remesuré à 242,5 Ko** (237,6 le matin) : les mises à jour du jour ont coûté ~5 Ko. Le
+relevé fait foi dans `nexus-prototype.md` §6.1.
 
 ✅ **P7-05 est livrée et fusionnée** (2026-10-26, #70, `34d8c49`, E2E-15 ; déploiement à **lire**, pas à supposer — voir « État ») : une navigation client remet le focus au début du
 document, comme un chargement — premier Tab sur le lien d'évitement, nom de la page dit par
@@ -340,18 +335,18 @@ autour de la page entière). Firefox headless ne monte pas la scène : non couve
 - **Un worktree d'une autre session peut vivre dans `.worktrees/`** (exclu de git) : `make lint` le
   parcourt et rougit sur SON code. Lancer ESLint sur `src tests` pour juger le sien.
 
-**Reste à faire — dans l'ordre recommandé le 2026-10-23** (P6-09, premier de la liste, soldée le
-2026-10-27) :
+**Reste à faire — dans l'ordre recommandé le 2026-10-23**, mis à jour le 2026-10-27 :
 
-1. ~~**P6-09 — l'ADR-0012, en dette**~~ — ✅ **écrit le 2026-10-27**, voir plus haut.
-2. **P8-11 — mesurer sur ce qui n'est pas couvert**, dès qu'un appareil est disponible : GPU intégré,
+1. **P8-11 — mesurer sur ce qui n'est pas couvert**, dès qu'un appareil est disponible : GPU intégré,
    téléphone réel, Safari. Sur une RTX 5050, le TBT de la scène est de **0 ms** (154 ms processeur
    bridé ×4) ; le banc sans GPU annonce 1 231 ms et **surestime d'environ ×8**
    (`nexus-prototype.md` §6.4). Sans `KHR_parallel_shader_compile`, on retombe sur le cas du banc.
    Un téléphone ne joint pas `localhost` : il faudra exposer l'aperçu sur le réseau local.
-3. **P6-10** — les parcours E2E manquants : précédent/suivant, lien direct, reduced-motion.
+2. **P6-10** — les parcours E2E manquants : précédent/suivant, lien direct, reduced-motion.
    ⭐ Précédent est déjà joué par E2E-15 côté focus, pas côté état de scène. Le dossier
    `profiles/scene-mounted/` (Chromium + WebKit) est le bon endroit pour ce qui exige une scène montée.
+3. **P6-11, P6-12** — les suites de l'ADR-0012 : sortir la part non pure du rig avec ses bancs (et le
+   saut latent de l'orbite en `demand`), puis fermer la fenêtre `useEffect` à l'interruption.
 4. **P7-04, P7-06, P7-07** — non-duplication du contenu dans le DOM, comportement du panneau pendant
    une transition, bascule de langue et liens directs en mode immersif.
 5. **P6-07** — `data-scene-focus` exposé au DOM.

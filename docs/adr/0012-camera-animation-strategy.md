@@ -1,7 +1,7 @@
 # ADR-0012 — Animation de caméra : interpolation maison à durée fixe, sans bibliothèque
 
-- **Statut** : ACCEPTÉ (Phase 6). La décision a été **livrée par #58 le 2026-10-23**, et l'ADR
-  **écrit le 2026-10-27**, après coup (P6-09, voir « Écart » plus bas).
+- **Statut** : ACCEPTÉ (Phase 6). Décision livrée par #58 le 2026-10-23, ADR écrit le 2026-10-27
+  (P6-09, voir « Écart »).
 - **Décide** : comment la caméra passe d'un état de scène à l'autre, et comment elle suit le
   pointeur — avec quel outil, quelle courbe, quelle durée.
 - **Numéro** : 0012, réservé à ce sujet dès la Phase 0 (`README.md`, « Décisions identifiées »).
@@ -12,12 +12,10 @@
 
 L'ordre de travail de la Phase 6 (`phase-6-log.md` §5) plaçait P6-09 **avant** P6-04 : un choix
 entre interpolation maison et bibliothèque de ressorts se pose avant d'écrire le rig, pas après.
-Ce n'est pas ce qui s'est passé. Le rig a été écrit dans le prototype NEXUS (#58) et la décision
-livrée **sans** son ADR. La roadmap l'a inscrit comme dette.
-
-Ce document **constate** donc ce qui est en place et ce qui a été écarté. Il ne présente pas comme
-ouvert un choix déjà fait. Les alternatives sont pourtant **chiffrées par mesure** (CT-08), le
-2026-10-27 : à défaut d'avoir précédé le code, l'arbitrage reste vérifiable.
+Ce n'est pas ce qui s'est passé : le rig a été écrit dans le prototype NEXUS (#58), sans l'ADR. Ce
+document **constate** donc ce qui est en place et ce qui a été écarté, sans présenter comme ouvert un
+choix déjà fait. Ses alternatives sont pourtant **chiffrées par mesure** (CT-08) : à défaut d'avoir
+précédé le code, l'arbitrage reste vérifiable.
 
 ## Contexte
 
@@ -79,7 +77,8 @@ transition à durée fixe repartirait de zéro à chaque `pointermove` et ne fin
 - **La part pure** vit dans `state/camera-motion.ts`, sans import de three, et elle est éprouvée sans
   navigateur (`tests/unit/scene/camera-motion.test.ts`) : courbe et bornes, avancement, coupe à durée
   nulle, interruption sans saut, orbite bornée qui ne zoome pas, parallaxe (CT-10).
-- ⚠️ **Elle n'est pas tout.** Restent dans le rig (`camera-rig.tsx`), **sans banc unitaire** :
+- ⚠️ **Elle n'est pas tout.** Restent dans le rig (`camera-rig.tsx`), **sans banc unitaire**
+  (P6-11) :
   - l'approche exponentielle de l'orbite ;
   - la somme du glisser et de la parallaxe ;
   - les sensibilités du glisser (0,18 et 0,12) ;
@@ -90,17 +89,32 @@ transition à durée fixe repartirait de zéro à chaque `pointermove` et ne fin
 
 ## Alternatives considérées
 
-Coût mesuré le **2026-10-27** sur le chunk 3D différé (les deux chunks qui portent des modules
-three, en `gzip -9`, comme `nexus-prototype.md` §7). Chaque sonde a été construite par `make bundle`,
-puis retirée. Référence actuelle : **248 317 octets**. Budget : cible 260 Ko, seuil bloquant 320 Ko
-en Phase 5 ; 300 et 350 Ko après la direction artistique (`performance-budget.md` §4.3).
+Coût mesuré le **2026-10-27** sur le chunk 3D différé, avec la méthode de `nexus-prototype.md` §6.1 :
+la somme des deux chunks qui portent des modules three, en `gzip -9`. Référence : **248 317 octets,
+soit 242,5 Kio**. Les seuils sont ceux de `performance-budget.md` §4.
 
 | Option | Surcoût mesuré | Dépendance |
 |---|---|---|
 | **Interpolation maison** (retenue) | **0** | aucune |
-| `maath` — `easing.damp3`, l'amortissement qu'emploie drei | **+3 030 octets** | ⚠️ une **dépendance directe de plus** : `maath` est dans le verrou, mais seulement comme dépendance de drei, et pnpm le refuse à l'import (`Module not found`) |
-| `CameraControls` de drei (la bibliothèque `camera-controls`) | **+10 570 octets** | aucune nouvelle, drei étant déjà là |
-| `@react-spring/three` 10.1.2, ressort physique | **+13 960 octets** | **six** paquets entrent au verrou |
+| `maath` — `easing.damp3`, l'amortissement qu'emploie drei | **+3 030 octets (+3,0 Kio)** | ⚠️ une **dépendance directe de plus** : `maath` est dans le verrou, mais seulement comme dépendance de drei, et pnpm le refuse à l'import (`Module not found`) |
+| `CameraControls` de drei (la bibliothèque `camera-controls`) | **+10 570 octets (+10,3 Kio)** | aucune nouvelle, drei étant déjà là |
+| `@react-spring/three` 10.1.2, ressort physique | **+13 960 octets (+13,6 Kio)** | **six** paquets entrent au verrou |
+
+**Reproduire.** Chaque sonde est construite, mesurée, puis retirée (`git checkout -- .`) :
+
+- `maath` : `pnpm add --save-exact maath@0.10.8`, puis dans `camera-rig.tsx`, remplacer
+  `camera.position.set(...position)` par `easing.damp3(camera.position, [...position], 0.25, delta)`.
+- `CameraControls` : `import { CameraControls } from '@react-three/drei'`, et `<CameraControls />`
+  rendu dans le `<Canvas>` de `scene-canvas.tsx`.
+- `@react-spring/three` : `pnpm add --save-exact @react-spring/three@10.1.2`, puis un `useSpring`
+  sur la position, dont la valeur (`.get()`) remplace celle de `camera.position.set`.
+
+```bash
+make bundle
+docker compose run --rm web sh -c 'for f in $(grep -l WebGLRenderer .next/static/chunks/*.js); do gzip -9c "$f" | wc -c; done'
+```
+
+On additionne les deux nombres, puis on retranche la référence.
 
 **Aucune ne crève le budget** : le poids n'a pas décidé. Ce qui a décidé, option par option :
 
@@ -133,8 +147,8 @@ s'articule mal avec `frameloop='demand'` (P5-10), puisqu'il faudrait lui faire r
 - Une durée exacte, que la coupe sous `reduced-motion` réduit à zéro sans cas à part.
 - Les quatre exigences tenues. ⚠️ **Deux seulement sont épinglées par un banc unitaire** :
   l'interruption (1) et la durée nulle (4). La correction de format sur la valeur interpolée (2) et
-  l'`invalidate()` image par image (3) ne vivent que dans le rig. Seuls le parcours E2E et la
-  relecture les gardent : une régression y passerait avec tous les bancs unitaires au vert.
+  l'`invalidate()` image par image (3) ne vivent que dans le rig. Une régression y passerait avec
+  tous les bancs unitaires au vert : c'est P6-11.
 
 **Ce qui est accepté.**
 - **L'interruption repart de la pose, pas de la vitesse.** Une navigation au milieu d'un déplacement
@@ -145,22 +159,22 @@ s'articule mal avec `frameloop='demand'` (P5-10), puisqu'il faudrait lui faire r
   durée exacte. Une durée fonction de la distance resterait compatible avec cette décision, car seule
   `transitionMs` changerait.
 - **`k = min(1, δ × 5)` n'est qu'approximativement indépendant de la cadence.** La forme exacte
-  serait `1 − e^(−5δ)`. En rendu continu, l'écart est faible : après une seconde, il reste 0,54 % de
-  l'écart à 60 i/s et 0,42 % à 30 i/s, contre 0,67 % pour la forme exacte.
-  ⛔ **Il n'en va pas de même en `frameloop='demand'`.** La première image après un repos porte une
-  durée δ égale à tout ce repos, donc `k = 1`, et l'orbite **saute** à sa consigne sans amortissement.
-  Le défaut ne se voit pas aujourd'hui, mais **par configuration seulement** : la boucle ne passe en
-  `demand` qu'au palier `lite`, où l'orbite et la parallaxe sont désactivées, et sous mouvement
-  réduit, où `k = 1` est voulu. ⚠️ Un futur palier qui garderait l'orbite en `demand` le rendrait
-  visible : plafonner δ ou passer à la forme exacte n'y suffirait pas seul, il faudrait repartir
-  d'une image courte.
+  serait `1 − e^(−5δ)`. En rendu continu, l'écart est faible : après une seconde, il reste
+  `(1 − 5δ)^(1/δ)` de l'écart, soit 0,54 % à 60 i/s et 0,42 % à 30 i/s, contre `e^(−5)` = 0,67 %
+  pour la forme exacte.
 
-**Ce qui reste ouvert, non démontré.**
-- **L'interruption remet `from` et `started` dans un `useEffect`**, passif. Si une image est rendue
-  entre la validation du nouvel état par React et l'exécution de l'effet, elle lit le **nouvel**
-  objectif avec l'**ancien** départ. Une transition déjà finie (`t = 1`) poserait alors la caméra
-  directement sur la cible : une coupe, là où l'ADR promet un mouvement. Rien ne l'a observé à ce
-  jour. Un `useLayoutEffect` fermerait cette fenêtre : à vérifier, puis à corriger dans le rig.
+**Ce qui reste ouvert**, suivi par la roadmap :
+- **[P6-11](../roadmap.md)** — la part du rig sans banc unitaire. Il s'agit de sortir l'approche de l'orbite et la
+  correction de format dans `camera-motion.ts`, avec des bancs. ⛔ La même tâche porte un défaut
+  latent : en `frameloop='demand'`, la première image après un repos a une durée δ égale à tout ce
+  repos, donc `k = 1`, et l'orbite **saute** à sa consigne. Rien ne le montre aujourd'hui, mais
+  **par configuration seulement** : `demand` ne sert qu'au palier `lite`, où l'orbite est
+  désactivée, et sous mouvement réduit, où `k = 1` est voulu. Il est à traiter avant tout palier qui
+  garderait l'orbite en `demand`.
+- **[P6-12](../roadmap.md)** — l'interruption remet `from` et `started` dans un `useEffect` passif. Une image rendue
+  entre la validation du nouvel état et l'effet lirait le **nouvel** objectif avec l'**ancien**
+  départ, et une transition déjà finie (`t = 1`) deviendrait une coupe. Rien ne l'a observé à ce
+  jour. Un `useLayoutEffect` fermerait la fenêtre : à vérifier, puis à corriger.
 
 **Ce qui rouvrirait la décision.**
 - Un **besoin de suivi continu** à durée inconnue, comme une caméra qui accompagne un objet animé.

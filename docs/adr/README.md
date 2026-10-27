@@ -41,11 +41,11 @@ Statuts : `PROPOSÉ` · `ACCEPTÉ` · `REMPLACÉ PAR ADR-xxxx` · `ABANDONNÉ`
 
 | # | Titre | Statut | Phase d'application |
 |---|---|---|---|
-| [0012](./0012-camera-animation-strategy.md) | Animation de caméra : interpolation maison à durée fixe, sans bibliothèque | ACCEPTÉ *(livré par #58, écrit après coup)* | 6 |
+| [0012](./0012-camera-animation-strategy.md) | Animation de caméra : interpolation maison à durée fixe, sans bibliothèque | ACCEPTÉ | 6 |
 
 ⭐ **Le saut de 0010 à 0016 est délibéré** : 0011 à 0015 ont été réservés dès la Phase 0 aux
 décisions planifiées ci-dessous, dont l'une est nommée par la tâche P8-01. Un numéro réservé ne se
-reprend pas. **0012 est tranché** (Phase 6) ; 0011 et 0013 à 0015 restent réservés.
+reprend pas. 0011 et 0013 à 0015 restent réservés.
 
 ## Décisions identifiées, à instruire plus tard
 
@@ -67,7 +67,7 @@ pas encore. Les instruire maintenant produirait une décision inventée plutôt 
 
 | Date | ADR | Nature du changement | Origine |
 |---|---|---|---|
-| 2026-10-27 | 0012 | Création, **après coup** : la décision (`easeInOutCubic`, 1,6 s, interruptible depuis la pose affichée, coupe sous `reduced-motion` ; orbite et parallaxe par approche exponentielle) a été livrée par #58 sans son ADR. Les alternatives sont **chiffrées par mesure** sur le chunk 3D : `maath` +3 030 octets (et une dépendance directe de plus), `CameraControls` +10 570, `@react-spring/three` +13 960 (six paquets). Le poids n'a rien décidé : une durée exacte, des bancs purs et une seule source de vérité de la pose (ADR-0002) l'ont fait. | Dette P6-09 |
+| 2026-10-27 | 0012 | Création **après coup** : constate la décision livrée par #58 (interpolation maison à durée fixe) ; alternatives chiffrées par mesure, voir l'ADR §Alternatives. Suites ouvertes : P6-11, P6-12. | Dette P6-09 |
 | 2026-10-26 | 0003, 0004 | Précision (reprise des idées d'une maquette Stitch) : **chaque univers porte une étiquette permanente** — nom et accroche —, là où seul l'univers survolé était nommé. Elles restent du **HTML hors de la racine de scène**, `aria-hidden` (elles doublent la navigation), posées à la projection d'un point d'accroche à chaque image ; jamais un texte peint dans une texture, que la maquette employait et que l'ADR-0004 écarte. Cachées hors de la zone libre et, en gros plan, sauf celle de l'univers cadré. | Décision de l'utilisateur |
 | 2026-10-23 | 0010 | Amendement (D11, prototype NEXUS) : **le thème devient sombre, et unique** — §Décision 5 tranchée par redéfinition des mêmes variables, jamais par une seconde feuille. Contrastes recalculés sur les trois fonds où du texte se pose (`background`, `panel`, `surface`) : texte ≥ 13,6:1, texte secondaire ≥ 6,7:1, cyan ≥ 8,8:1 ; le violet de la palette (4,1:1 sur `surface`) est **décoratif**, une variante claire sert au texte. Aucune dépendance : Tailwind reste écarté. | Décision de l'utilisateur (D11) |
 | 2026-10-23 | 0004 | Amendement (D11) : **le contenu n'est plus projeté sur des écrans 3D** — il vit dans un `ReadingPanel` HTML, sur sa propre surface opaque, dans une zone réservée ; la caméra se cadre dans l'espace restant par décalage du point principal (`setViewOffset`), jamais en redimensionnant le canvas. Le « panneau fixe indépendant de la scène », repli désigné de l'ADR, **devient la cible**. Aucun texte ne se pose plus sur le WebGL. | Décision de l'utilisateur (D11) |
