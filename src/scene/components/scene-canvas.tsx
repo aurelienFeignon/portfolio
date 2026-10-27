@@ -149,7 +149,6 @@ type SondeComposant = ComponentType<{ readonly onReadings: (readings: SceneReadi
  */
 function useSonde(active: boolean): SondeComposant | null {
   const [sonde, setSonde] = useState<SondeComposant | null>(null)
-  const [echec, setEchec] = useState<unknown>(null)
   useEffect(() => {
     if (!active) return
     let vivant = true
@@ -158,17 +157,19 @@ function useSonde(active: boolean): SondeComposant | null {
         // Un composant dans un état se pose par une fonction : sinon React l'appellerait.
         if (vivant) setSonde(() => module.DiagnosticsProbe)
       },
+      // ⭐ Un chunk introuvable (déploiement entre deux visites) remonte à
+      // `SceneBoundary` — l'erreur levée dans un updater l'est au rendu —, comme
+      // le faisait `next/dynamic` : jamais un panneau qui attend en silence.
       (erreur: unknown) => {
-        if (vivant) setEchec(erreur ?? new Error('sonde de diagnostic introuvable'))
+        if (vivant)
+          setSonde(() => {
+            throw erreur
+          })
       },
     )
     return () => {
       vivant = false
     }
   }, [active])
-  // ⭐ Un chunk introuvable (déploiement entre deux visites) remonte à
-  // `SceneBoundary`, comme le faisait `next/dynamic` : jamais un panneau qui
-  // attend en silence des relevés qui ne viendront pas.
-  if (echec !== null) throw echec
-  return active ? sonde : null
+  return sonde
 }

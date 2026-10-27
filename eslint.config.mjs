@@ -217,17 +217,12 @@ export default tseslint.config(
     },
   },
 
-  // ⛔⛔ Ce qui se rend DANS le `<Canvas>` passe par le réconciliateur de R3F, pas
-  // par celui de React DOM — et depuis Next 16.4, un composant `next/dynamic` s'y
-  // résout par un `use()` que ce réconciliateur refuse (React #438) : la scène
-  // tombait sous `?debug=scene`, et bloquait la mise à jour de sécurité de Next
-  // (#63). Rien de Next n'a donc à entrer dans l'arbre de la scène.
+  // ⛔⛔ Rien de Next dans l'arbre du `<Canvas>`, rendu par le réconciliateur de
+  // R3F (React #438 sous Next 16.4 — le pourquoi est dans `useSonde`,
+  // `scene-canvas.tsx`). Seuls les fichiers HORS du Canvas sont exemptés.
   {
-    files: [
-      'src/scene/components/scene-canvas.tsx',
-      'src/scene/components/scene-diagnostics.tsx',
-      'src/scene/components/nexus/**/*.{ts,tsx}',
-    ],
+    files: ['src/scene/components/**/*.{ts,tsx}'],
+    ignores: ['src/scene/components/scene-mount.tsx', 'src/scene/components/scene-boundary.tsx'],
     rules: {
       'no-restricted-imports': [
         'error',
