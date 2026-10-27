@@ -12,12 +12,13 @@
  * NEXUS n'en importe aucun.
  */
 import { Canvas } from '@react-three/fiber'
-import { type ReactNode, type RefObject, useCallback, useState } from 'react'
+import { type ComponentType, type RefObject, useCallback, useEffect, useState } from 'react'
 import { ACESFilmicToneMapping, SRGBColorSpace } from 'three'
 
 import type { Section } from '@/routing/sections'
 import type { Capability } from '@/scene/capability/resolve'
 import type { Rect } from '@/scene/state/camera-motion'
+import type { SceneReadings } from '@/scene/state/diagnostics'
 import { getCameraTarget } from '@/scene/state/camera-target'
 import { DENSITY, PALETTE } from '@/scene/state/layout'
 import type { SceneFocus, SceneState } from '@/scene/state/scene-state'
@@ -38,7 +39,7 @@ export default function SceneCanvas({
   onHover,
   onSelect,
   onContextLost,
-  probe,
+  onReadings,
 }: {
   readonly capability: Capability
   readonly state: SceneState
@@ -54,12 +55,10 @@ export default function SceneCanvas({
   readonly onHover: (section: Section | null) => void
   readonly onSelect: (section: Section) => void
   readonly onContextLost: () => void
-  /*
-   * ⭐ La sonde de diagnostic est **reçue**, pas importée (P5-08) : sans
-   * `?debug=scene`, `probe` vaut `undefined` et rien n'en est chargé.
-   */
-  readonly probe?: ReactNode
+  /** Présent sous `?debug=scene` seulement : la scène se mesure et rend ses relevés. */
+  readonly onReadings?: (readings: SceneReadings) => void
 }) {
+  const Sonde = useSonde(onReadings !== undefined)
   // `none` ne monte jamais ce composant (`shouldMountScene`).
   const tier = capability.tier === 'none' ? 'lite' : capability.tier
   const animated = capability.motion === 'animated'
@@ -126,7 +125,51 @@ export default function SceneCanvas({
         onSelect={onSelect}
       />
       <ShaderWarmup onReady={quandPret} />
-      {probe}
+      {/* La sonde vient d'un état posé UNE fois (`useSonde`) : son identité ne
+          change pas d'un rendu à l'autre, ce que la règle veut garantir. */}
+      {/* eslint-disable-next-line react-hooks/static-components */}
+      {Sonde && onReadings ? <Sonde onReadings={onReadings} /> : null}
     </Canvas>
   )
+}
+
+type SondeComposant = ComponentType<{ readonly onReadings: (readings: SceneReadings) => void }>
+
+/**
+ * La sonde de diagnostic, chargée **à la demande** (P5-08) : sans `?debug=scene`,
+ * l'import n'est jamais résolu et un visiteur ordinaire n'en paie pas un octet.
+ *
+ * ⛔⛔ **Un `import()` résolu dans un effet, jamais `next/dynamic`.** La sonde se
+ * rend DANS le `<Canvas>`, donc par le réconciliateur de R3F, pas par celui de
+ * React DOM. Depuis Next 16.4, un composant `next/dynamic` s'y résout par `use()`
+ * et ce réconciliateur le refuse (React #438) : la scène tombait, perdait son
+ * contexte WebGL, et le panneau attendait des relevés qui ne venaient jamais
+ * (#63). Un composant ordinaire, posé une fois chargé, ne demande rien au
+ * réconciliateur.
+ */
+function useSonde(active: boolean): SondeComposant | null {
+  const [sonde, setSonde] = useState<SondeComposant | null>(null)
+  useEffect(() => {
+    if (!active) return
+    let vivant = true
+    import('./scene-diagnostics').then(
+      (module) => {
+        // Un composant dans un état se pose par une fonction : sinon React l'appellerait.
+        if (vivant) setSonde(() => module.DiagnosticsProbe)
+      },
+      // ⭐ Un chunk introuvable (déploiement entre deux visites) remonte à
+      // `SceneBoundary` — l'erreur levée dans un updater l'est au rendu —, comme
+      // le faisait `next/dynamic` : jamais un panneau qui attend en silence.
+      (erreur: unknown) => {
+        if (vivant)
+          setSonde(() => {
+            throw erreur
+          })
+      },
+    )
+    return () => {
+      vivant = false
+    }
+  }, [active])
+  return sonde
 }
