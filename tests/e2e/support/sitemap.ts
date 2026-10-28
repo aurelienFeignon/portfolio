@@ -111,3 +111,27 @@ export async function detailPath(
   expect(path, `aucune page de détail sous ${prefix} au sitemap`).toBeDefined()
   return path as string
 }
+
+/**
+ * Une page de chaque FORME servie dans `locale`, déduite du sitemap : l'accueil,
+ * chaque section, une fiche par section qui en a — la règle de profondeur de
+ * `detailPath`. L'accueil d'abord, une fiche en dernier.
+ */
+export async function unePageParForme(
+  request: APIRequestContext,
+  locale: string,
+): Promise<string[]> {
+  const formes = new Map<string, { chemin: string; profondeur: number }>()
+  for (const chemin of await sitemapPaths(request)) {
+    const segments = chemin.split('/').filter(Boolean)
+    // Plus profond qu'une fiche, aucune route ne le sert : ce n'est pas une forme.
+    if (segments[0] !== locale || segments.length > 3) continue
+    const forme = segments.length === 3 ? `fiche:${segments[1]}` : (segments[1] ?? 'accueil')
+    if (!formes.has(forme)) formes.set(forme, { chemin, profondeur: segments.length })
+  }
+  const pages = [...formes.values()].sort((a, b) => a.profondeur - b.profondeur)
+  expect(pages[0]?.chemin).toBe(`/${locale}`)
+  // Sans fiche, le cas où la scène est cachée ne serait pas joué.
+  expect(pages.at(-1)?.profondeur, `aucune fiche en ${locale} au sitemap`).toBe(3)
+  return pages.map(({ chemin }) => chemin)
+}

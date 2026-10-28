@@ -12,6 +12,9 @@ import { expect } from './test'
 export const RACINE = '[data-scene-root]'
 export const CANVAS = `${RACINE} canvas`
 
+/** Les étiquettes des univers : hors de la racine, `aria-hidden` (`scene-mount.tsx`). */
+export const ETIQUETTES = '[data-scene-labels]'
+
 /** Le canvas marqué par `monterLaScene` : il doit survivre aux navigations. */
 export const TEMOIN = `${CANVAS}[data-temoin="meme-canvas"]`
 
@@ -31,6 +34,21 @@ export async function monterLaScene(page: Page, chemin: string) {
   const canvas = page.locator(CANVAS)
   await expect(canvas).toBeAttached({ timeout: 10_000 })
   await canvas.evaluate((element) => element.setAttribute('data-temoin', 'meme-canvas'))
+}
+
+/**
+ * Les paliers que la page a annoncés (`src/scene/capability/tier-mark.ts`), posés
+ * à TOUS les paliers, `none` compris.
+ * ⚠️ Le préfixe est cité, non importé : un nom qui changerait côté source doit
+ * faire rougir ce banc, pas le suivre en silence.
+ */
+export function paliersAnnonces(page: Page): Promise<string[]> {
+  return page.evaluate(() =>
+    performance
+      .getEntriesByType('mark')
+      .map((repere) => repere.name)
+      .filter((nom) => nom.startsWith('scene:tier:')),
+  )
 }
 
 export function navigationPrincipale(page: Page) {

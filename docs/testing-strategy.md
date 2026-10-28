@@ -167,6 +167,15 @@ getRouteForScreen('skills', 'en')            → '/en/skills'
 - Server Action CV avec `FakeResumeSender` et un `RateLimiter` piloté par une horloge injectée.
 - **Non-duplication du contenu** (risque R-01) : un bloc de contenu n'apparaît qu'une fois dans le
   DOM, y compris en mode immersif.
+  ⭐ **Tenue par un E2E, pas par un test d'intégration** (P7-04, E2E-16) : le mode immersif suppose
+  une scène montée, donc WebGL et un navigateur. Le parcours est un **différentiel** — pour une page
+  de chaque forme et dans chaque locale, scène montée et après une navigation client, l'arbre
+  d'accessibilité **et** le texte du DOM (caché compris) doivent être identiques à ceux de la même
+  page lue par un visiteur sans WebGL. L'arbre seul ne voit pas une copie cachée ; le texte seul
+  rougirait sur les étiquettes des univers, qui répètent le nom de section, `aria-hidden` à dessein —
+  elles sont exclues du texte, nommément (`data-scene-labels`). ⚠️ Le mode
+  **documentaire** n'est pas confronté par ce parcours, qui n'en mesure que l'écart : sans portail
+  (P7-02 abandonnée), chaque page y rend son contenu une fois, dans son `ReadingPanel`.
 
 ### 4.7 E2E (Playwright)
 
@@ -198,9 +207,10 @@ E2E-12  Structure : un h1 unique, titres sans saut de niveau, liens avec nom acc
 E2E-13  Back/forward navigateur : URL et état de scène restaurés
 E2E-14  reduced-motion : navigation instantanée, aucune animation de caméra
 E2E-15  Navigation client, scène montée : focus au début du document, premier Tab sur le lien d'évitement
+E2E-16  Scène montée : arbre d'accessibilité et texte du DOM identiques à la page sans WebGL (R-01)
 ```
 
-⭐⭐ **Le statut de chacun de ces quinze scénarios est tenu par un garde, pas par la mémoire**
+⭐⭐ **Le statut de chacun de ces seize scénarios est tenu par un garde, pas par la mémoire**
 (P4-12) : `tests/integration/every-e2e-scenario-has-a-status.test.ts` exige de chaque ligne ci-dessus
 soit un parcours qui la revendique — une annotation `@covers E2E-xx` en tête de fichier —, soit un
 report vers une tâche de `roadmap.md` qui existe. **Ajouter un scénario à cette liste sans lui donner

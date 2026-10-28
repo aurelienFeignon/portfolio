@@ -1,3 +1,4 @@
+import { paliersAnnonces, RACINE } from '../../support/scene'
 import { expect, test } from '../../support/test'
 
 /**
@@ -17,7 +18,6 @@ import { expect, test } from '../../support/test'
  * ⚠️ Ce banc ne dit rien du **contenu** de la scène : elle est vide à ce stade,
  * et c'est P5-05 qui la remplira.
  */
-const RACINE = '[data-scene-root]'
 
 test.describe('montage de la scène', () => {
   test('monte un canvas décoratif, sans rien voler au document', async ({ page }) => {
@@ -124,12 +124,7 @@ test.describe('montage de la scène', () => {
     // ⭐ Ce repère est ce que lit `scripts/measure-performance.mts`. Le palier
     // exact dépend de la machine — `reduced` sur un runner à 2 vCPU —, d'où une
     // assertion sur « un palier monté » et non sur `full`.
-    const reperes = await page.evaluate(() =>
-      performance
-        .getEntriesByType('mark')
-        .map((repere) => repere.name)
-        .filter((nom) => nom.startsWith('scene:tier:')),
-    )
+    const reperes = await paliersAnnonces(page)
     expect(reperes).toHaveLength(1)
     expect(['scene:tier:full', 'scene:tier:reduced', 'scene:tier:lite']).toContain(reperes[0])
   })
