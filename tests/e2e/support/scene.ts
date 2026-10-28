@@ -54,6 +54,21 @@ export function paliersAnnonces(page: Page): Promise<string[]> {
   )
 }
 
+/**
+ * La scène montée et au repos : son état posé, et — scène visible — la caméra
+ * immobile. ⛔ Sur une fiche, la boucle est arrêtée : le rig n'écrit rien sur le
+ * canvas, et attendre `data-camera-transition` y échouerait toujours.
+ */
+export async function sceneAuRepos(page: Page) {
+  const racine = page.locator(RACINE)
+  await expect(racine).toHaveAttribute('data-scene-focus', /.+/, { timeout: PREMIERE_IMAGE_MS })
+  if ((await racine.getAttribute('data-scene-visible')) === 'true') {
+    await expect(page.locator(CANVAS)).toHaveAttribute('data-camera-transition', 'false', {
+      timeout: PREMIERE_IMAGE_MS,
+    })
+  }
+}
+
 export function navigationPrincipale(page: Page) {
   return page.getByRole('navigation', { name: 'Navigation principale' })
 }

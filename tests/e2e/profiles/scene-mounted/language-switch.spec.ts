@@ -1,6 +1,12 @@
 import type { Page } from '@playwright/test'
 
-import { CANVAS, ETIQUETTES, monterLaScene, PREMIERE_IMAGE_MS, RACINE } from '../../support/scene'
+import {
+  ETIQUETTES,
+  monterLaScene,
+  PREMIERE_IMAGE_MS,
+  RACINE,
+  sceneAuRepos,
+} from '../../support/scene'
 import { getMessages } from '@/i18n/messages'
 import { isLocale } from '@/i18n/locales'
 import { SECTIONS } from '@/routing/sections'
@@ -30,14 +36,7 @@ import { expect, test } from '../../support/test'
 
 /** Ce que la page dit d'elle-même, une fois la scène montée et cadrée. */
 async function etat(page: Page) {
-  const racine = page.locator(RACINE)
-  await expect(racine).toHaveAttribute('data-scene-focus', /.+/, { timeout: PREMIERE_IMAGE_MS })
-  // ⛔ Sur une fiche, la boucle est arrêtée : le rig n'écrit rien sur le canvas.
-  if ((await racine.getAttribute('data-scene-visible')) === 'true') {
-    await expect(page.locator(CANVAS)).toHaveAttribute('data-camera-transition', 'false', {
-      timeout: PREMIERE_IMAGE_MS,
-    })
-  }
+  await sceneAuRepos(page)
   return page.evaluate(
     ({ racine, etiquettes }) => ({
       chemin: location.pathname,
@@ -71,43 +70,39 @@ test.describe('bascule de langue, scène montée', () => {
     const fiche = await translatedPair(page.request)
     const departs = ['/fr', '/fr/projects', fiche.fr, '/en', '/en/skills', fiche.en]
 
+    // Fermée avec le contexte, à la fin du test : rien à libérer à la main.
     const reference = await context.newPage()
-    try {
-      for (const depart of departs) {
-        await monterLaScene(page, depart)
-        const avant = await etat(page)
-        // Le sélecteur ne porte qu'un lien : l'autre langue.
-        const lien = page.locator('main').getByRole('link', { name: /^(English|Français)$/ })
-        const arrivee = new URL((await lien.getAttribute('href')) as string, page.url()).pathname
-        await lien.click()
-        // Le défaut se dit ici, contre la bascule, et non plus loin contre la référence.
-        expect(arrivee.split('/')[1], `${depart} → ${arrivee}`).not.toBe(depart.split('/')[1])
-        await expect(page).toHaveURL((url) => url.pathname === arrivee)
+    for (const depart of departs) {
+      await monterLaScene(page, depart)
+      const avant = await etat(page)
+      // Le sélecteur ne porte qu'un lien : l'autre langue.
+      const lien = page.locator('main').getByRole('link', { name: /^(English|Français)$/ })
+      const arrivee = new URL((await lien.getAttribute('href')) ?? '', page.url()).pathname
+      await lien.click()
+      // Le défaut se dit ici, contre la bascule, et non plus loin contre la référence.
+      expect(arrivee.slice(0, 3), `${depart} → ${arrivee}`).not.toBe(depart.slice(0, 3))
+      await expect(page).toHaveURL((url) => url.pathname === arrivee)
 
-        await monterLaScene(reference, arrivee)
-        const attendu = await etat(reference)
-        // Une bascule qui ne changerait pas de langue serait « identique » à tort.
-        expect(attendu.langue).not.toBe(avant.langue)
-        /*
-         * ⛔ Le différentiel ne voit pas un défaut COMMUN aux deux chargements — des
-         * étiquettes tirées d'un dictionnaire figé, par exemple. Celles-ci se jugent
-         * donc aussi dans l'absolu, contre le dictionnaire de la langue d'arrivée.
-         */
-        const langue = attendu.langue
-        if (!isLocale(langue)) throw new Error(`langue servie inconnue : « ${langue} »`)
-        const { sections } = getMessages(langue)
-        expect(attendu.etiquettes).toEqual(
-          SECTIONS.map((section) => sections[section].name + sections[section].tagline),
-        )
+      await monterLaScene(reference, arrivee)
+      const attendu = await etat(reference)
+      // Une bascule qui ne changerait pas de langue serait « identique » à tort.
+      expect(attendu.langue).not.toBe(avant.langue)
+      /*
+       * ⛔ Le différentiel ne voit pas un défaut COMMUN aux deux chargements — des
+       * étiquettes tirées d'un dictionnaire figé, par exemple. Celles-ci se jugent
+       * donc aussi dans l'absolu, contre le dictionnaire de la langue d'arrivée.
+       */
+      if (!isLocale(attendu.langue)) throw new Error(`langue servie : « ${attendu.langue} »`)
+      const { sections } = getMessages(attendu.langue)
+      expect(attendu.etiquettes).toEqual(
+        SECTIONS.map((section) => sections[section].name + sections[section].tagline),
+      )
 
-        // `etat` attend lui-même la première image : la scène se remonte après le
-        // rechargement, au-delà des 5 s par défaut sous WebKit chargé.
-        await expect
-          .poll(() => etat(page), { message: `${depart} → ${arrivee}`, timeout: PREMIERE_IMAGE_MS })
-          .toEqual(attendu)
-      }
-    } finally {
-      await reference.close()
+      // `etat` attend lui-même la première image : la scène se remonte après le
+      // rechargement, au-delà des 5 s par défaut sous WebKit chargé.
+      await expect
+        .poll(() => etat(page), { message: `${depart} → ${arrivee}`, timeout: PREMIERE_IMAGE_MS })
+        .toEqual(attendu)
     }
   })
 })
