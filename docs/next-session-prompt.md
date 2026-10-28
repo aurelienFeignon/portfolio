@@ -49,7 +49,8 @@ supervisé, avec une checklist de mise en ligne et un rollback rejoué.
 **Phase 5 (Fondation Three.js) : CLOSE**, 10 tâches sur 10 — P5-10 close le 2026-10-23 avec #58.
 **Phase 6 (Navigation spatiale) : CLOSE** le 2026-10-27, 12 tâches sur 12 — `phase-6-log.md` §11
 et §12.
-**Phase 7 (Interfaces de lecture)** : P7-03 à P7-06 et P7-08 livrées ; reste P7-07.
+**Phase 7 (Interfaces de lecture)** : **toutes les tâches livrées** (P7-03 à P7-08, P7-01/02 abandonnées) ;
+⚠️ clôture en attente du critère « aucune régression des Core Web Vitals », non remesuré.
 ⭐⭐ **NEXUS EST EN PRODUCTION depuis le 2026-10-23 (#58, `854d1fe`)** — D11 : le bureau 3D est
 remplacé par un noyau numérique et trois univers, avec navigation hybride et `ReadingPanel` en verre
 lumineux. **Lis `docs/nexus-prototype.md` avant toute chose** : décisions, architecture de la scène,
@@ -305,8 +306,8 @@ référence (#57), `ReadingPanel`, P6-04, décisions NEXUS (D11 et amendements d
 prototype, validation visuelle avec l'utilisateur, fusion et déploiement (#58), roadmap reprise.
 
 ⛔ **Avant toute chose, vérifie la fusion de cette mise à jour du prompt** (branche
-`test/p7-06-panneau-transition`) : `gh pr list --state all --head test/p7-06-panneau-transition`.
-La précédente, `test/p7-04-non-duplication`, est fusionnée et déployée (#77, `365d168`).
+`test/p7-07-langue-immersif`) : `gh pr list --state all --head test/p7-07-langue-immersif`.
+Les précédentes sont fusionnées et déployées : P7-04 (#77, `365d168`), P7-06 (#78, `0541ceb`).
 
 ✅ **Phase 6 close le 2026-10-27** : P6-07 et P6-10 (`phase-6-log.md` §11), P6-11 et P6-12 (§12).
 ⛔ P6-11 a trouvé un défaut **en production** : `setFrameloop` remet l'horloge de R3F à zéro, et une
@@ -346,14 +347,23 @@ autour de la page entière). Firefox headless ne monte pas la scène : non couve
    bridé ×4) ; le banc sans GPU annonce 1 231 ms et **surestime d'environ ×8**
    (`nexus-prototype.md` §6.4). Sans `KHR_parallel_shader_compile`, on retombe sur le cas du banc.
    Un téléphone ne joint pas `localhost` : il faudra exposer l'aperçu sur le réseau local.
-2. **P7-07** — bascule de langue et liens directs en mode immersif.
+2. **Clore la Phase 7** — son dernier critère de sortie, « aucune régression des Core Web Vitals »,
+   n'est pas remesuré. Depuis #58, `src/` n'a reçu qu'un attribut (`data-scene-labels`) et les
+   correctifs de #73 : la méthode de la Phase 5 (Lighthouse contre deux images construites, même
+   machine) dira si l'écart est nul, plutôt que de le supposer.
+   ✅ **P7-07 livrée le 2026-10-28** (E2E-18, `scene-mounted/language-switch.spec.ts`) : scène
+   montée, la bascule de langue mène à la page d'un lien direct vers la même adresse (différentiel),
+   et les étiquettes des univers se jugent AUSSI contre le dictionnaire d'arrivée — le différentiel
+   seul ne voit pas un défaut commun aux deux chargements (vu rouge : accroches figées en français).
+   ⚠️ **Constaté, non affirmé** : la bascule **recharge** la page — Next traite le changement du
+   segment `[locale]` du layout racine comme une navigation complète, interception comprise.
    ✅ **P7-06 livrée le 2026-10-28** (E2E-17, `scene-mounted/panel-during-transition.spec.ts`) :
    **aucun masquage**, décision de l'utilisateur (journal de l'ADR-0004). Pendant le mouvement, le
    panneau porte déjà la page d'arrivée, seul ; son `h1` est à opacité effective 1, ni caché, ni
    `inert`, ni `aria-hidden`, et le point de son centre lui revient — relevé à **chaque image** où
    `data-camera-transition="true"`, par un échantillonneur `requestAnimationFrame` dans la page. Vu
    rouge en masquant le panneau 1,6 s après chaque navigation. ⚠️ Non couverts : les fiches (aucun
-   mouvement de caméra) et l'anglais (P7-07).
+   mouvement de caméra) et l'anglais.
    ✅ **P7-04 livrée le 2026-10-28** (E2E-16, `scene-mounted/content-once.spec.ts`) : un
    **différentiel** — scène montée, l'arbre d'accessibilité **et** le texte du DOM (caché compris)
    de chaque forme de page, dans les deux locales et après une navigation client, sont identiques à
