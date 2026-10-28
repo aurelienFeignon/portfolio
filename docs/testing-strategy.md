@@ -208,9 +208,10 @@ E2E-13  Back/forward navigateur : URL et état de scène restaurés
 E2E-14  reduced-motion : navigation instantanée, aucune animation de caméra
 E2E-15  Navigation client, scène montée : focus au début du document, premier Tab sur le lien d'évitement
 E2E-16  Scène montée : arbre d'accessibilité et texte du DOM identiques à la page sans WebGL (R-01)
+E2E-17  Transition de caméra : le panneau porte déjà la page d'arrivée, seul, entièrement lisible
 ```
 
-⭐⭐ **Le statut de chacun de ces seize scénarios est tenu par un garde, pas par la mémoire**
+⭐⭐ **Le statut de chacun de ces dix-sept scénarios est tenu par un garde, pas par la mémoire**
 (P4-12) : `tests/integration/every-e2e-scenario-has-a-status.test.ts` exige de chaque ligne ci-dessus
 soit un parcours qui la revendique — une annotation `@covers E2E-xx` en tête de fichier —, soit un
 report vers une tâche de `roadmap.md` qui existe. **Ajouter un scénario à cette liste sans lui donner

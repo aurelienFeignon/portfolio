@@ -55,6 +55,11 @@ doit rester **lisible et accessible**.
 - L'alignement DOM ↔ 3D doit être recalculé à chaque changement de caméra et de taille de fenêtre.
   Risque de décalage d'une image pendant les transitions : atténué en masquant le panneau pendant
   la transition, puis en le révélant à l'arrivée (ce qui est aussi meilleur en lisibilité).
+  ⛔ **Révisé le 2026-10-28 (P7-06), décision de l'utilisateur : le panneau n'est PAS masqué.**
+  Depuis D11 il est fixe, indépendant de la caméra — il n'y a plus de décalage à cacher, et le
+  masquer retarderait le contenu de toute la durée du mouvement. Pendant une transition, il porte
+  déjà la page d'arrivée, seul, entièrement lisible (point 4 ; E2E-17). Voir le journal de
+  [`README.md`](./README.md).
 - L'illusion est moins forte qu'avec un contenu réellement plaqué en perspective. Compromis accepté
   au nom de l'ordre d'arbitrage du projet (a11y > SEO > perf > richesse 3D).
 - Le mécanisme de portail demande de la rigueur (le contenu doit rester monté au même endroit dans

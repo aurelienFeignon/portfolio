@@ -12,6 +12,9 @@ import { expect } from './test'
 export const RACINE = '[data-scene-root]'
 export const CANVAS = `${RACINE} canvas`
 
+/** Le panneau de lecture, que `SceneMount` mesure pour cadrer la scène (`reading-panel.tsx`). */
+export const PANNEAU = '[data-reading-panel]'
+
 /** Les étiquettes des univers : hors de la racine, `aria-hidden` (`scene-mount.tsx`). */
 export const ETIQUETTES = '[data-scene-labels]'
 
