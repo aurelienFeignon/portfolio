@@ -1609,7 +1609,7 @@ sur l'animation de caméra se pose avant d'écrire le rig, pas après (CT-08).
 | ~~P7-01~~ | ~~Conteneur superposé et projection des positions d'écran~~ — **DROPPED** (D11) : plus d'écran à projeter | P6-04 |
 | ~~P7-02~~ | ~~Mécanisme de portail à instance unique (ADR-0004)~~ — **DROPPED** (D11) : chaque page rend son contenu une fois, dans son panneau, sans portail | P7-01 |
 | P7-03 | Branchement des contenus Projets / Expériences / Compétences — **DONE** *(2026-10-23, #58)* : les pages dans le `ReadingPanel` | P2-05 |
-| P7-04 | Test d'intégration de non-duplication du contenu dans le DOM (R-01) — **DONE** *(2026-10-28)* : un **E2E** et non un test d'intégration — le mode immersif exige WebGL —, différentiel : scène montée, l'arbre d'accessibilité de chaque forme de page est celui de la même page sans WebGL (E2E-16) | P7-03 |
+| P7-04 | Test d'intégration de non-duplication du contenu dans le DOM (R-01) — **DONE** *(2026-10-28)* : un **E2E** et non un test d'intégration — le mode immersif exige WebGL —, différentiel : scène montée, l'arbre d'accessibilité et le texte du DOM de chaque forme de page, dans les deux locales, sont ceux de la même page sans WebGL (E2E-16) | P7-03 |
 | P7-05 | Ordre de tabulation et focus cohérents en mode immersif — **DONE** *(2026-10-26)* : une navigation client remet le focus au début du document, comme un chargement (E2E-15) | P7-03 |
 | P7-06 | Comportement lors des transitions (masquage/révélation du panneau) | P7-03 |
 | P7-07 | Bascule de locale et deep links en mode immersif | P7-03 |

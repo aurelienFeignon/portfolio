@@ -33,6 +33,21 @@ export async function monterLaScene(page: Page, chemin: string) {
   await canvas.evaluate((element) => element.setAttribute('data-temoin', 'meme-canvas'))
 }
 
+/**
+ * Les paliers que la page a annoncés (`src/scene/capability/tier-mark.ts`), posés
+ * à TOUS les paliers, `none` compris.
+ * ⚠️ Le préfixe est cité, non importé : un nom qui changerait côté source doit
+ * faire rougir ce banc, pas le suivre en silence.
+ */
+export function paliersAnnonces(page: Page): Promise<string[]> {
+  return page.evaluate(() =>
+    performance
+      .getEntriesByType('mark')
+      .map((repere) => repere.name)
+      .filter((nom) => nom.startsWith('scene:tier:')),
+  )
+}
+
 export function navigationPrincipale(page: Page) {
   return page.getByRole('navigation', { name: 'Navigation principale' })
 }

@@ -349,10 +349,11 @@ autour de la page entière). Firefox headless ne monte pas la scène : non couve
 2. **P7-06, P7-07** — comportement du panneau pendant une transition, bascule de langue et liens
    directs en mode immersif.
    ✅ **P7-04 livrée le 2026-10-28** (E2E-16, `scene-mounted/content-once.spec.ts`) : un
-   **différentiel** — scène montée, l'arbre d'accessibilité de chaque forme de page, après une
-   navigation client, est identique à celui de la même page sans WebGL. Vu rouge deux fois :
-   étiquettes privées d'`aria-hidden` (le diff nomme les trois), et référence privée de sa
-   neutralisation (`scene:tier:full`). ⚠️ Il **attend** l'égalité : une duplication passagère
+   **différentiel** — scène montée, l'arbre d'accessibilité **et** le texte du DOM (caché compris)
+   de chaque forme de page, dans les deux locales et après une navigation client, sont identiques à
+   ceux de la même page sans WebGL. Vu rouge trois fois : étiquettes privées d'`aria-hidden` (le diff
+   nomme les trois), référence privée de sa neutralisation (`scene:tier:full`), et copie cachée du
+   panneau (vue par le seul texte — d'où la seconde lecture). ⚠️ Il **attend** l'égalité : une duplication passagère
    pendant la transition n'y rougit pas — c'est l'objet de P7-06, qui peut repartir de ce banc.
 3. **P8-10** — alléger le premier rendu (72 draw calls sur ordinateur, cible 60 ; 14 programmes), à
    prioriser si P8-11 montre un problème.

@@ -344,6 +344,7 @@ export function SceneMount({
        */}
       <div
         aria-hidden="true"
+        data-scene-labels
         className={[styles.etiquettes, visible ? '' : styles.cachee].filter(Boolean).join(' ')}
       >
         {SECTIONS.map((section) => {

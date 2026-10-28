@@ -1,3 +1,4 @@
+import { paliersAnnonces } from '../../support/scene'
 import { expect, test } from '../../support/test'
 
 /**
@@ -33,13 +34,7 @@ test.describe('sans WebGL, la scène ne se monte pas', () => {
 
     // ⭐ La décision `none` est annoncée, pas seulement subie : c'est ce qui
     // distingue « aucune scène, par décision » de « le montage n'a pas eu lieu ».
-    const reperes = await page.evaluate(() =>
-      performance
-        .getEntriesByType('mark')
-        .map((repere) => repere.name)
-        .filter((nom) => nom.startsWith('scene:tier:')),
-    )
-    expect(reperes).toEqual(['scene:tier:none'])
+    expect(await paliersAnnonces(page)).toEqual(['scene:tier:none'])
 
     // ⭐ Et la preuve qui compte vraiment : le chunk n'a même pas été demandé.
     const chunksJs = requetes.filter((url) => url.includes('/_next/static/chunks/'))
