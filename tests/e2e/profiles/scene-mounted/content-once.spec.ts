@@ -154,7 +154,7 @@ test.describe('contenu présent une seule fois, scène montée', () => {
 
         // ⚠️ Attendu, et non lu une fois : juste après la navigation, le panneau peut
         // encore se peindre. Une duplication qui DURE rougit ; une duplication
-        // passagère, pendant la transition, relève de P7-06.
+        // passagère, pendant la transition, relève d'E2E-17 (P7-06).
         await expect
           .poll(() => arbreLu(page), { message: `arbre de ${chemin}` })
           .toBe(reference.arbre)
