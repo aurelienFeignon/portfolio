@@ -1,6 +1,12 @@
 import type { Page } from '@playwright/test'
 
-import { CANVAS, monterLaScene, navigationPrincipale, PREMIERE_IMAGE_MS } from '../../support/scene'
+import {
+  CANVAS,
+  monterLaScene,
+  navigationPrincipale,
+  PANNEAU,
+  PREMIERE_IMAGE_MS,
+} from '../../support/scene'
 import { expect, test } from '../../support/test'
 
 /**
@@ -44,80 +50,70 @@ interface Releve {
  *   panneau glissé hors de l'écran, découpé, ou recouvert par la scène.
  */
 function echantillonner(page: Page) {
-  return page.evaluate((selecteurCanvas) => {
-    const releves: Releve[] = []
-    const etat = { releves, fini: false }
-    Object.assign(window, { __transition: etat })
-    let vue = false
+  return page.evaluate(
+    ({ canvas, panneau, delai }) => {
+      const relever = (): Releve => {
+        const panneaux = document.querySelectorAll(panneau)
+        const titre = panneaux[0]?.querySelector('h1') ?? null
+        let opacite = 1
+        let cache = false
+        for (let noeud: HTMLElement | null = titre; noeud !== null; noeud = noeud.parentElement) {
+          const style = getComputedStyle(noeud)
+          opacite *= Number(style.opacity)
+          cache ||=
+            style.display === 'none' ||
+            style.visibility !== 'visible' ||
+            noeud.inert ||
+            noeud.getAttribute('aria-hidden') === 'true'
+        }
+        const cadre = titre?.getBoundingClientRect()
+        const touche =
+          cadre === undefined
+            ? null
+            : document.elementFromPoint(cadre.x + cadre.width / 2, cadre.y + cadre.height / 2)
+        return {
+          panneaux: panneaux.length,
+          titre: titre?.textContent?.trim() ?? null,
+          opacite,
+          cache,
+          atteignable: titre !== null && touche !== null && titre.contains(touche),
+        }
+      }
 
-    const relever = (): Releve => {
-      const panneaux = document.querySelectorAll('[data-reading-panel]')
-      const titre = panneaux[0]?.querySelector('h1') ?? null
-      let opacite = 1
-      let cache = false
-      for (let noeud: HTMLElement | null = titre; noeud !== null; noeud = noeud.parentElement) {
-        const style = getComputedStyle(noeud)
-        opacite *= Number(style.opacity)
-        cache ||=
-          style.display === 'none' ||
-          style.visibility !== 'visible' ||
-          noeud.inert ||
-          noeud.getAttribute('aria-hidden') === 'true'
-      }
-      const cadre = titre?.getBoundingClientRect()
-      const touche =
-        cadre === undefined
-          ? null
-          : document.elementFromPoint(cadre.x + cadre.width / 2, cadre.y + cadre.height / 2)
-      return {
-        panneaux: panneaux.length,
-        titre: titre?.textContent?.trim() ?? null,
-        opacite,
-        cache,
-        atteignable: titre !== null && touche !== null && titre.contains(touche),
-      }
-    }
-
-    const image = () => {
-      const enTransition =
-        document.querySelector(selecteurCanvas)?.getAttribute('data-camera-transition') === 'true'
-      if (enTransition) {
-        vue = true
-        releves.push(relever())
-      } else if (vue) {
-        etat.fini = true
-        return
-      }
-      requestAnimationFrame(image)
-    }
-    requestAnimationFrame(image)
-  }, CANVAS)
+      // Tenue jusqu'au terme de la transition : `relevesDeLaTransition` l'attend en
+      // un seul aller-retour, sans interroger la page.
+      const termine = new Promise<Releve[]>((resoudre, refuser) => {
+        const releves: Releve[] = []
+        const image = () => {
+          const enTransition =
+            document.querySelector(canvas)?.getAttribute('data-camera-transition') === 'true'
+          if (enTransition) releves.push(relever())
+          else if (releves.length > 0) return resoudre(releves)
+          requestAnimationFrame(image)
+        }
+        requestAnimationFrame(image)
+        setTimeout(() => refuser(new Error('aucune transition de caméra menée à son terme')), delai)
+      })
+      Object.assign(window, { __transition: termine })
+    },
+    { canvas: CANVAS, panneau: PANNEAU, delai: PREMIERE_IMAGE_MS },
+  )
 }
 
 /** Les relevés d'une transition entière, attendue jusqu'à son terme. */
-async function relevesDeLaTransition(page: Page): Promise<Releve[]> {
-  const lire = () =>
-    page.evaluate(
-      () =>
-        (window as unknown as { __transition: { releves: Releve[]; fini: boolean } }).__transition,
-    )
-  await expect
-    .poll(async () => (await lire()).fini, {
-      timeout: PREMIERE_IMAGE_MS,
-      message: 'aucune transition de caméra menée à son terme',
-    })
-    .toBe(true)
-  return (await lire()).releves
+function relevesDeLaTransition(page: Page): Promise<Releve[]> {
+  return page.evaluate(
+    () => (window as unknown as { __transition: Promise<Releve[]> }).__transition,
+  )
 }
 
 test.describe('le panneau pendant une transition de caméra', () => {
   test('il porte la page d’arrivée, seul, lisible, à chaque image', async ({ page }) => {
     await monterLaScene(page, '/fr')
-    const canvas = page.locator(CANVAS)
 
     // Les trois mouvements de caméra que la route commande : vers une section,
     // d'une section à l'autre, et retour à la vue d'ensemble par Échap.
-    const etapes: Array<{ aller: () => Promise<void>; titre: string }> = [
+    const etapes = [
       {
         aller: () => navigationPrincipale(page).getByRole('link', { name: 'Projets' }).click(),
         titre: 'Projets',
@@ -129,28 +125,22 @@ test.describe('le panneau pendant une transition de caméra', () => {
       { aller: () => page.keyboard.press('Escape'), titre: 'Aurélien Feignon' },
     ]
 
+    // Partir d'une caméra immobile : une transition en cours ferait relever le
+    // mouvement d'arrivée. Ensuite, chaque relevé ne se termine qu'à l'arrêt.
+    await expect(page.locator(CANVAS)).toHaveAttribute('data-camera-transition', 'false', {
+      timeout: PREMIERE_IMAGE_MS,
+    })
+
     for (const { aller, titre } of etapes) {
-      // Partir d'une caméra immobile : une transition déjà en cours ferait relever
-      // le mouvement PRÉCÉDENT.
-      await expect(canvas).toHaveAttribute('data-camera-transition', 'false', {
-        timeout: PREMIERE_IMAGE_MS,
-      })
       await echantillonner(page)
       await aller()
 
       const releves = await relevesDeLaTransition(page)
-      // Une transition sans image relevée ne prouverait rien.
-      expect(releves.length, titre).toBeGreaterThan(0)
       const attendu: Releve = { panneaux: 1, titre, opacite: 1, cache: false, atteignable: true }
-      // ⭐ La première image fautive, et son rang : « à la 12e image » se lit mieux
-      // qu'une liste de cent relevés.
-      const fautive = releves.findIndex(
-        (releve) => JSON.stringify(releve) !== JSON.stringify(attendu),
-      )
-      expect(
-        fautive === -1 ? attendu : { image: fautive + 1, ...releves[fautive] },
-        `${titre} : ${releves.length} images relevées`,
-      ).toEqual(attendu)
+      // ⭐ Un `expect` par image : le premier qui rougit nomme son rang.
+      for (const [rang, releve] of releves.entries()) {
+        expect(releve, `${titre}, image ${rang + 1} sur ${releves.length}`).toEqual(attendu)
+      }
     }
   })
 })
