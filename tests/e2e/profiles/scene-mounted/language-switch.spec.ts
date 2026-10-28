@@ -44,9 +44,14 @@ async function etat(page: Page) {
       langue: document.documentElement.lang,
       titre: document.title,
       h1: document.querySelector('main h1')?.textContent?.trim() ?? null,
-      chrome: [...document.querySelectorAll('header nav, .skip-link, footer')].map(
-        (element) => element.getAttribute('aria-label') ?? element.textContent?.trim(),
-      ),
+      // Le texte de l'en-tête (marque et liens), de l'évitement et du pied, et le
+      // nom des navigations : tout ce que le layout traduit autour du panneau.
+      chrome: [
+        ...[...document.querySelectorAll('header, .skip-link, footer')].map((element) =>
+          element.textContent?.trim(),
+        ),
+        ...[...document.querySelectorAll('nav')].map((nav) => nav.getAttribute('aria-label')),
+      ],
       etiquettes: [...document.querySelectorAll(`${etiquettes} [data-section]`)].map((element) =>
         element.textContent?.trim(),
       ),
@@ -61,39 +66,48 @@ test.describe('bascule de langue, scène montée', () => {
     page,
     context,
   }) => {
-    // Quatre bascules, chacune avec deux montages de scène.
+    // Six bascules, chacune avec deux montages de scène.
     test.slow()
     const fiche = await translatedPair(page.request)
-    const departs = ['/fr', '/fr/projects', fiche.fr, '/en/skills']
+    const departs = ['/fr', '/fr/projects', fiche.fr, '/en', '/en/skills', fiche.en]
 
     const reference = await context.newPage()
-    for (const depart of departs) {
-      await monterLaScene(page, depart)
-      const avant = await etat(page)
-      // Le sélecteur ne porte qu'un lien : l'autre langue.
-      const lien = page.locator('main').getByRole('link', { name: /^(English|Français)$/ })
-      const arrivee = new URL((await lien.getAttribute('href')) as string, page.url()).pathname
-      await lien.click()
-      await expect(page).toHaveURL((url) => url.pathname === arrivee)
+    try {
+      for (const depart of departs) {
+        await monterLaScene(page, depart)
+        const avant = await etat(page)
+        // Le sélecteur ne porte qu'un lien : l'autre langue.
+        const lien = page.locator('main').getByRole('link', { name: /^(English|Français)$/ })
+        const arrivee = new URL((await lien.getAttribute('href')) as string, page.url()).pathname
+        await lien.click()
+        // Le défaut se dit ici, contre la bascule, et non plus loin contre la référence.
+        expect(arrivee.split('/')[1], `${depart} → ${arrivee}`).not.toBe(depart.split('/')[1])
+        await expect(page).toHaveURL((url) => url.pathname === arrivee)
 
-      await monterLaScene(reference, arrivee)
-      const attendu = await etat(reference)
-      // Une bascule qui ne changerait pas de langue serait « identique » à tort.
-      expect(attendu.langue).not.toBe(avant.langue)
-      /*
-       * ⛔ Le différentiel ne voit pas un défaut COMMUN aux deux chargements — des
-       * étiquettes tirées d'un dictionnaire figé, par exemple. Celles-ci se jugent
-       * donc aussi dans l'absolu, contre le dictionnaire de la langue d'arrivée.
-       */
-      const langue = attendu.langue
-      if (!isLocale(langue)) throw new Error(`langue servie inconnue : « ${langue} »`)
-      const { sections } = getMessages(langue)
-      expect(attendu.etiquettes).toEqual(
-        SECTIONS.map((section) => sections[section].name + sections[section].tagline),
-      )
+        await monterLaScene(reference, arrivee)
+        const attendu = await etat(reference)
+        // Une bascule qui ne changerait pas de langue serait « identique » à tort.
+        expect(attendu.langue).not.toBe(avant.langue)
+        /*
+         * ⛔ Le différentiel ne voit pas un défaut COMMUN aux deux chargements — des
+         * étiquettes tirées d'un dictionnaire figé, par exemple. Celles-ci se jugent
+         * donc aussi dans l'absolu, contre le dictionnaire de la langue d'arrivée.
+         */
+        const langue = attendu.langue
+        if (!isLocale(langue)) throw new Error(`langue servie inconnue : « ${langue} »`)
+        const { sections } = getMessages(langue)
+        expect(attendu.etiquettes).toEqual(
+          SECTIONS.map((section) => sections[section].name + sections[section].tagline),
+        )
 
-      await expect.poll(() => etat(page), { message: `${depart} → ${arrivee}` }).toEqual(attendu)
+        // `etat` attend lui-même la première image : la scène se remonte après le
+        // rechargement, au-delà des 5 s par défaut sous WebKit chargé.
+        await expect
+          .poll(() => etat(page), { message: `${depart} → ${arrivee}`, timeout: PREMIERE_IMAGE_MS })
+          .toEqual(attendu)
+      }
+    } finally {
+      await reference.close()
     }
-    await reference.close()
   })
 })

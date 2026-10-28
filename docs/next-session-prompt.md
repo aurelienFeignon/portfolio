@@ -348,9 +348,12 @@ autour de la page entière). Firefox headless ne monte pas la scène : non couve
    (`nexus-prototype.md` §6.4). Sans `KHR_parallel_shader_compile`, on retombe sur le cas du banc.
    Un téléphone ne joint pas `localhost` : il faudra exposer l'aperçu sur le réseau local.
 2. **Clore la Phase 7** — son dernier critère de sortie, « aucune régression des Core Web Vitals »,
-   n'est pas remesuré. Depuis #58, `src/` n'a reçu qu'un attribut (`data-scene-labels`) et les
-   correctifs de #73 : la méthode de la Phase 5 (Lighthouse contre deux images construites, même
-   machine) dira si l'écart est nul, plutôt que de le supposer.
+   n'est pas remesuré. ⛔ Et ce n'est PAS un écart nul par construction : depuis #58, `src/` a
+   reçu #70 (focus), #72 (emblèmes, faisceaux, parallaxe, étiquettes — `layout.ts` et la géométrie),
+   #73, #75, #76 (rig de caméra réécrit) et #77 (un attribut) — `git log 854d1fe..main -- src` les
+   liste —, sans compter les mises à jour de dépendances (Next 16.4.1, R3F 9.8.2, drei 10.7.9). La méthode de
+   la Phase 5 (Lighthouse contre deux images construites, `854d1fe` et `main`, même machine) dira
+   l'écart, au lieu de le supposer.
    ✅ **P7-07 livrée le 2026-10-28** (E2E-18, `scene-mounted/language-switch.spec.ts`) : scène
    montée, la bascule de langue mène à la page d'un lien direct vers la même adresse (différentiel),
    et les étiquettes des univers se jugent AUSSI contre le dictionnaire d'arrivée — le différentiel
