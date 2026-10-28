@@ -1,4 +1,4 @@
-import { paliersAnnonces } from '../../support/scene'
+import { paliersAnnonces, RACINE } from '../../support/scene'
 import { expect, test } from '../../support/test'
 
 /**
@@ -18,7 +18,6 @@ import { expect, test } from '../../support/test'
  * ⚠️ Ce banc ne dit rien du **contenu** de la scène : elle est vide à ce stade,
  * et c'est P5-05 qui la remplira.
  */
-const RACINE = '[data-scene-root]'
 
 test.describe('montage de la scène', () => {
   test('monte un canvas décoratif, sans rien voler au document', async ({ page }) => {

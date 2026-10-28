@@ -15,7 +15,8 @@
  * ⭐ `data-scene-root` n'est pas décoratif : le banc E2E doit pouvoir désigner
  * CETTE couche et aucune autre. Un sélecteur `[aria-hidden="true"]` en attrape
  * d'autres dans la page — mesuré, il a fait passer au vert un contrôle qui ne
- * regardait pas la scène.
+ * regardait pas la scène. `data-scene-labels` désigne de même la couche des
+ * étiquettes, que le banc de non-duplication exclut nommément (E2E-16).
  *
  * ⛔ Et une quatrième propriété, qui ne se voit qu'à l'usage : au palier `none`, **rien
  * n'est importé du tout**. Ni canvas, ni contexte, ni octet de three. C'est la

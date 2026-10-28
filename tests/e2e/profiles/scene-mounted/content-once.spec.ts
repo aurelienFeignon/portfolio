@@ -1,8 +1,8 @@
 import type { Browser, Page, TestInfo } from '@playwright/test'
 
 import { disableWebGL } from '../../support/disable-webgl'
-import { monterLaScene, paliersAnnonces, RACINE, TEMOIN } from '../../support/scene'
-import { sitemapPaths } from '../../support/sitemap'
+import { ETIQUETTES, monterLaScene, paliersAnnonces, RACINE, TEMOIN } from '../../support/scene'
+import { unePageParForme } from '../../support/sitemap'
 import { expect, test } from '../../support/test'
 
 /**
@@ -35,52 +35,29 @@ import { expect, test } from '../../support/test'
 
 /** Ce qu'un lecteur d'écran reçoit de la page, annonceur de route excepté. */
 async function arbreLu(page: Page): Promise<string> {
-  const parties: string[] = []
-  for (const enfant of await page.locator('body > *:not(next-route-announcer)').all()) {
-    // Une enveloppe `aria-hidden` rend un instantané vide : elle n'est pas dans
-    // l'arbre, et ne doit pas y entrer par la jointure.
-    const partie = await enfant.ariaSnapshot()
-    if (partie !== '') parties.push(partie)
-  }
-  return parties.join('\n')
+  const enfants = await page.locator('body > *:not(next-route-announcer)').all()
+  const parties = await Promise.all(enfants.map((enfant) => enfant.ariaSnapshot()))
+  // Une enveloppe `aria-hidden` rend un instantané vide : elle n'est pas dans
+  // l'arbre, et ne doit pas y entrer par la jointure.
+  return parties.filter((partie) => partie !== '').join('\n')
 }
 
 /** Le texte du DOM, caché compris, sans ce qui n'est pas du contenu. */
 function texteDuDom(page: Page): Promise<string> {
-  return page.evaluate(() => {
+  return page.evaluate((etiquettes) => {
     const copie = document.body.cloneNode(true) as HTMLElement
     copie
       .querySelectorAll(
-        'script, style, template, next-route-announcer, nextjs-portal, [data-scene-labels]',
+        `script, style, template, next-route-announcer, nextjs-portal, ${etiquettes}`,
       )
       .forEach((element) => element.remove())
     return (copie.textContent ?? '').replace(/\s+/g, ' ').trim()
-  })
+  }, ETIQUETTES)
 }
 
 async function lire(page: Page) {
-  return { arbre: await arbreLu(page), texte: await texteDuDom(page) }
-}
-
-/**
- * Une page de chaque FORME servie dans `locale`, déduite du sitemap : l'accueil,
- * chaque section, une fiche par section qui en a. L'accueil d'abord : c'est là
- * que la scène se monte.
- */
-async function unePageParForme(page: Page, locale: string): Promise<string[]> {
-  const formes = new Map<string, string>()
-  for (const chemin of await sitemapPaths(page.request)) {
-    const segments = chemin.split('/').filter(Boolean)
-    // Plus profond qu'une fiche, aucune route ne le sert : ce n'est pas une forme.
-    if (segments[0] !== locale || segments.length > 3) continue
-    const forme = segments.length === 3 ? `fiche:${segments[1]}` : (segments[1] ?? 'accueil')
-    if (!formes.has(forme)) formes.set(forme, chemin)
-  }
-  const chemins = [...formes.values()].sort((a, b) => a.split('/').length - b.split('/').length)
-  // Sans fiche, le cas où la scène est cachée ne serait pas joué.
-  expect(chemins.some((chemin) => chemin.split('/').length === 4)).toBe(true)
-  expect(chemins[0]).toBe(`/${locale}`)
-  return chemins
+  const [arbre, texte] = await Promise.all([arbreLu(page), texteDuDom(page)])
+  return { arbre, texte }
 }
 
 /**
@@ -107,25 +84,29 @@ async function visiteurSansWebGL(browser: Browser, testInfo: TestInfo) {
  * pas supposée — le palier `none` est annoncé, et aucune racine n'est montée. Sans
  * cela, une référence qui aurait monté sa scène se comparerait à elle-même.
  * ⭐ Lue quand deux lectures successives concordent : le palier est posé au repos,
- * et la page peut encore se rendre juste après.
+ * et la page peut encore se rendre juste après. Et non vide : deux lectures vides
+ * seraient identiques.
  */
 async function lireSansScene(page: Page, chemin: string) {
   await page.goto(chemin)
   await expect.poll(() => paliersAnnonces(page)).toEqual(['scene:tier:none'])
   await expect(page.locator(RACINE)).toHaveCount(0)
-  let precedente = ''
+  let precedente: Awaited<ReturnType<typeof lire>> | undefined
   await expect
-    .poll(async () => {
-      const lue = JSON.stringify(await lire(page))
-      const stable = lue === precedente
-      precedente = lue
-      return stable
-    })
+    .poll(
+      async () => {
+        const lue = await lire(page)
+        const stable = precedente?.arbre === lue.arbre && precedente.texte === lue.texte
+        precedente = lue
+        return stable
+      },
+      { intervals: [100] },
+    )
     .toBe(true)
-  return {
-    titre: await page.title(),
-    ...(JSON.parse(precedente) as Awaited<ReturnType<typeof lire>>),
-  }
+  const { arbre, texte } = precedente!
+  expect(arbre).toContain('- main')
+  expect(texte).not.toBe('')
+  return { titre: await page.title(), arbre, texte }
 }
 
 /**
@@ -149,7 +130,7 @@ test.describe('contenu présent une seule fois, scène montée', () => {
       // Un chargement sans scène par forme de page, puis autant de navigations
       // client : au-delà des 30 s par défaut sous WebKit.
       test.slow()
-      const formes = await unePageParForme(page, locale)
+      const formes = await unePageParForme(page.request, locale)
 
       const contexte = await visiteurSansWebGL(browser, testInfo)
       const sansScene = await contexte.newPage()
@@ -171,9 +152,6 @@ test.describe('contenu présent une seule fois, scène montée', () => {
         await expect(page.locator(RACINE)).toHaveAttribute('data-scene-focus', /.+/)
         await expect(page.locator('main')).toHaveCount(1)
 
-        // Deux lectures vides seraient identiques.
-        expect(reference.arbre).toContain('- main')
-        expect(reference.texte.length).toBeGreaterThan(0)
         // ⚠️ Attendu, et non lu une fois : juste après la navigation, le panneau peut
         // encore se peindre. Une duplication qui DURE rougit ; une duplication
         // passagère, pendant la transition, relève de P7-06.

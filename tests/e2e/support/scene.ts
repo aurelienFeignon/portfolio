@@ -12,6 +12,9 @@ import { expect } from './test'
 export const RACINE = '[data-scene-root]'
 export const CANVAS = `${RACINE} canvas`
 
+/** Les étiquettes des univers : hors de la racine, `aria-hidden` (`scene-mount.tsx`). */
+export const ETIQUETTES = '[data-scene-labels]'
+
 /** Le canvas marqué par `monterLaScene` : il doit survivre aux navigations. */
 export const TEMOIN = `${CANVAS}[data-temoin="meme-canvas"]`
 
