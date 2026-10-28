@@ -49,7 +49,7 @@ supervisé, avec une checklist de mise en ligne et un rollback rejoué.
 **Phase 5 (Fondation Three.js) : CLOSE**, 10 tâches sur 10 — P5-10 close le 2026-10-23 avec #58.
 **Phase 6 (Navigation spatiale) : CLOSE** le 2026-10-27, 12 tâches sur 12 — `phase-6-log.md` §11
 et §12.
-**Phase 7 (Interfaces de lecture)** : P7-03, P7-05 et P7-08 livrées ; restent P7-04, P7-06, P7-07.
+**Phase 7 (Interfaces de lecture)** : P7-03, P7-04, P7-05 et P7-08 livrées ; restent P7-06, P7-07.
 ⭐⭐ **NEXUS EST EN PRODUCTION depuis le 2026-10-23 (#58, `854d1fe`)** — D11 : le bureau 3D est
 remplacé par un noyau numérique et trois univers, avec navigation hybride et `ReadingPanel` en verre
 lumineux. **Lis `docs/nexus-prototype.md` avant toute chose** : décisions, architecture de la scène,
@@ -305,8 +305,8 @@ référence (#57), `ReadingPanel`, P6-04, décisions NEXUS (D11 et amendements d
 prototype, validation visuelle avec l'utilisateur, fusion et déploiement (#58), roadmap reprise.
 
 ⛔ **Avant toute chose, vérifie la fusion de cette mise à jour du prompt** (branche
-`fix/rig-camera-p6-11-12`) : `gh pr list --state all --head fix/rig-camera-p6-11-12`. La
-précédente, `test/p6-10-parcours-scene`, est fusionnée (#75).
+`test/p7-04-non-duplication`) : `gh pr list --state all --head test/p7-04-non-duplication`. La
+précédente, `fix/rig-camera-p6-11-12`, est fusionnée (#76).
 
 ✅ **Phase 6 close le 2026-10-27** : P6-07 et P6-10 (`phase-6-log.md` §11), P6-11 et P6-12 (§12).
 ⛔ P6-11 a trouvé un défaut **en production** : `setFrameloop` remet l'horloge de R3F à zéro, et une
@@ -346,8 +346,14 @@ autour de la page entière). Firefox headless ne monte pas la scène : non couve
    bridé ×4) ; le banc sans GPU annonce 1 231 ms et **surestime d'environ ×8**
    (`nexus-prototype.md` §6.4). Sans `KHR_parallel_shader_compile`, on retombe sur le cas du banc.
    Un téléphone ne joint pas `localhost` : il faudra exposer l'aperçu sur le réseau local.
-2. **P7-04, P7-06, P7-07** — non-duplication du contenu dans le DOM, comportement du panneau pendant
-   une transition, bascule de langue et liens directs en mode immersif.
+2. **P7-06, P7-07** — comportement du panneau pendant une transition, bascule de langue et liens
+   directs en mode immersif.
+   ✅ **P7-04 livrée le 2026-10-28** (E2E-16, `scene-mounted/content-once.spec.ts`) : un
+   **différentiel** — scène montée, l'arbre d'accessibilité de chaque forme de page, après une
+   navigation client, est identique à celui de la même page sans WebGL. Vu rouge deux fois :
+   étiquettes privées d'`aria-hidden` (le diff nomme les trois), et référence privée de sa
+   neutralisation (`scene:tier:full`). ⚠️ Il **attend** l'égalité : une duplication passagère
+   pendant la transition n'y rougit pas — c'est l'objet de P7-06, qui peut repartir de ce banc.
 3. **P8-10** — alléger le premier rendu (72 draw calls sur ordinateur, cible 60 ; 14 programmes), à
    prioriser si P8-11 montre un problème.
 4. **P8-05, P8-08** — ambiance et contrastes sur la direction artistique **finale** : la scène
