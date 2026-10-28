@@ -13,7 +13,7 @@ Statuts : `PROPOSÉ` · `ACCEPTÉ` · `REMPLACÉ PAR ADR-xxxx` · `ABANDONNÉ`
 | [0001](./0001-content-architecture.md) | Le contenu Markdown/MDX est la source de vérité unique | ACCEPTÉ | 2 |
 | [0002](./0002-routing-as-navigation-source-of-truth.md) | Le routeur Next.js est la source de vérité de la navigation | ACCEPTÉ | 6 |
 | [0003](./0003-threejs-progressive-enhancement.md) | Three.js est un enrichissement progressif | ACCEPTÉ | 3–5 |
-| [0004](./0004-screen-ui-overlay-strategy.md) | Contenu des écrans en DOM superposé, instance unique | ACCEPTÉ | 7 |
+| [0004](./0004-screen-ui-overlay-strategy.md) | Contenu des écrans en DOM superposé, instance unique | ACCEPTÉ *(amendé par D11 le 2026-10-23, révisé le 2026-10-28)* | 7 |
 | [0005](./0005-i18n-strategy.md) | i18n sans bibliothèque, contenu localisé par fichier | ACCEPTÉ | 3 |
 | [0006](./0006-resume-delivery.md) | CV : Server Action, transport Mailjet, rate limit en mémoire | ACCEPTÉ *(transport révisé deux fois le 2026-08-11)* | 10 |
 | [0007](./0007-dockerized-development-environment.md) | Environnement de développement entièrement dockerisé | ACCEPTÉ | 1 |

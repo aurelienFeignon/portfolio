@@ -349,17 +349,18 @@ autour de la page entière). Firefox headless ne monte pas la scène : non couve
 2. **P7-07** — bascule de langue et liens directs en mode immersif.
    ✅ **P7-06 livrée le 2026-10-28** (E2E-17, `scene-mounted/panel-during-transition.spec.ts`) :
    **aucun masquage**, décision de l'utilisateur (journal de l'ADR-0004). Pendant le mouvement, le
-   panneau porte déjà la page d'arrivée, seul, à opacité effective 1, ni caché, ni `inert`, ni
-   `aria-hidden` — relevé dans le même `evaluate` que `data-camera-transition="true"`. Vu rouge en
-   masquant le panneau 1,6 s après chaque navigation (`opacite: 0`).
+   panneau porte déjà la page d'arrivée, seul ; son `h1` est à opacité effective 1, ni caché, ni
+   `inert`, ni `aria-hidden`, et le point de son centre lui revient — relevé à **chaque image** où
+   `data-camera-transition="true"`, par un échantillonneur `requestAnimationFrame` dans la page. Vu
+   rouge en masquant le panneau 1,6 s après chaque navigation. ⚠️ Non couverts : les fiches (aucun
+   mouvement de caméra) et l'anglais (P7-07).
    ✅ **P7-04 livrée le 2026-10-28** (E2E-16, `scene-mounted/content-once.spec.ts`) : un
    **différentiel** — scène montée, l'arbre d'accessibilité **et** le texte du DOM (caché compris)
    de chaque forme de page, dans les deux locales et après une navigation client, sont identiques à
    ceux de la même page sans WebGL (#77). Vu rouge trois fois : étiquettes privées d'`aria-hidden` (le diff
    nomme les trois), référence privée de sa neutralisation (`scene:tier:full`), et copie cachée du
    panneau (vue par le seul texte — d'où la seconde lecture). ⚠️ Il **attend** l'égalité : une duplication passagère
-   pendant la transition n'y rougit pas — E2E-17 (P7-06) compte, lui, un seul panneau en plein
-   mouvement.
+   pendant la transition n'y rougit pas — E2E-17 (P7-06) relève, lui, chaque image du mouvement.
 3. **P8-10** — alléger le premier rendu (72 draw calls sur ordinateur, cible 60 ; 14 programmes), à
    prioriser si P8-11 montre un problème.
 4. **P8-05, P8-08** — ambiance et contrastes sur la direction artistique **finale** : la scène
