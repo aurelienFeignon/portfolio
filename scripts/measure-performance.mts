@@ -48,18 +48,21 @@ const OUT_DIR =
   process.env['OUT_DIR'] ??
   join(
     '.perf',
-    `${STARTED.replace(/[:.]/g, '-')}-${process.env['GIT_SHA']?.slice(0, 7) ?? 'inconnu'}`,
+    `${STARTED.replace(/[:.]/g, '-')}-${process.env['GIT_SHA']?.slice(0, 7) ?? 'inconnu'}` +
+      (process.env['THROTTLING'] === 'devtools' ? '-devtools' : ''),
   )
 
 if (!Number.isInteger(RUNS) || RUNS < 1) throw new Error(`RUNS invalide : ${process.env['RUNS']}`)
 
 /**
- * Le bridage : `simulate` (Lantern, celui du gate et des relevés de référence)
- * par défaut, ou `devtools`, qui bride RÉELLEMENT réseau et processeur.
+ * Le bridage : `simulate` (Lantern, celui des relevés de référence) par défaut,
+ * ou `devtools`, qui bride RÉELLEMENT réseau et processeur — en mobile
+ * seulement : le profil ordinateur (`lighthouse-profiles.mts`) ne porte aucun
+ * des champs que `devtools` lit, il tourne donc sans bridage.
  *
  * ⛔⛔ **Lantern peut inventer un écart de LCP** (P11-11, `performance-budget.md`
  * §6.5) : #58 lui faisait simuler +550 ms en mobile alors que l'accroche
- * s'affichait au premier rendu — le bridage réel ne trouve aucun écart. Un LCP
+ * s'affichait au premier rendu — le bridage réel ne trouve aucun écart mesurable. Un LCP
  * simulé qui bouge sans que le LCP observé bouge se tranche ici.
  */
 const THROTTLING = process.env['THROTTLING'] ?? 'simulate'

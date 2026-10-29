@@ -351,7 +351,8 @@ autour de la page entière). Firefox headless ne monte pas la scène : non couve
    Un téléphone ne joint pas `localhost` : il faudra exposer l'aperçu sur le réseau local.
 2. ✅ **Phase 7 close le 2026-10-29** (D13, `phase-0-questions.md`) : aucune régression depuis #58,
    mais #58 a dégradé le LCP mobile **simulé** — ✅ **P11-11 l'a instruit le jour même** : en bridage
-   réel, aucun écart (`performance-budget.md` §6.5, `THROTTLING=devtools make perf-baseline`). `nexus-prototype.md` §6.2 affirmait « LCP inchangé » : corrigé.
+   réel, aucun écart mesurable (`performance-budget.md` §6.5, `THROTTLING=devtools make perf-baseline`),
+   série déséquilibrée par un redémarrage de l'hôte, et `main` après P8-12 non remesuré. `nexus-prototype.md` §6.2 affirmait « LCP inchangé » : corrigé.
    ✅ **P7-07 livrée le 2026-10-28** (E2E-18, `scene-mounted/language-switch.spec.ts`) : scène
    montée, la bascule de langue mène à la page d'un lien direct vers la même adresse (différentiel),
    et les étiquettes des univers se jugent AUSSI contre le dictionnaire d'arrivée — le différentiel

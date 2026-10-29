@@ -13,7 +13,7 @@
     "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/156.0.8078.4 Safari/537.36",
     "throttlingMethod": "devtools",
     "factor": "mobile",
-    "note": "Variante temporaire de scripts/measure-performance.mts (mobile seul, throttlingMethod devtools), devenue THROTTLING=devtools. Deux passages entrelacés par image ; un tir tronqué par le redémarrage de l’hôte de 12:46 (heure de Paris) est exclu.",
+    "note": "Variante temporaire de scripts/measure-performance.mts (mobile seul, throttlingMethod devtools), devenue THROTTLING=devtools. Passages par blocs (1ecfdb3, 483c406, 1ecfdb3, 483c406), NON entrelacés ; le redémarrage de l’hôte de 12:46 (heure de Paris) a coupé le second passage de 1ecfdb3 (un rapport tronqué exclu), et le second passage de 483c406 a tourné ensuite, sur un hôte au repos.",
     "excludedReports": 1
   },
   "summary": [

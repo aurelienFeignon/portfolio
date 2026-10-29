@@ -459,19 +459,53 @@ requêtes jusqu'à l'événement LCP) le dirait ; non fait. Et P7-03 et P7-08 on
 **par** #58 : l'écart tombe dans le périmètre de la Phase 7. ✅ **Arbitrage D13 (2026-10-29) : critère
 tenu, Phase 7 close**, l'écart porté en dette par **P11-11**.
 
-### 6.5 ⭐⭐ P11-11 — l'écart de §6.4 n'existe que dans la simulation, 2026-10-29
+### 6.5 ⭐⭐ P11-11 — l'écart de LCP de §6.4 n'apparaît pas sous un bridage réel, 2026-10-29
 
-**Instruit le jour même, et résolu en artefact de mesure.** Le LCP de §6.4 est celui de **Lantern**
-(`throttlingMethod: simulate`) : Lighthouse charge la page sans bridage, puis **calcule** ce qu'elle
-aurait donné sur un téléphone. Le LCP observé, lui, égale le FCP dans les deux versions.
+**Le LCP de §6.4 est celui de Lantern** (`throttlingMethod: simulate`) : Lighthouse charge la page
+sans bridage, puis **calcule** ce qu'elle aurait donné sur un téléphone. Le LCP observé, lui, égale
+le FCP dans les deux versions.
 
-**L'expérience qui tranche** : les mêmes images, le même Lighthouse, mais un bridage **réel** —
-`THROTTLING=devtools make perf-baseline`, option née de cette tâche. Résumé, 4 à 6 tirs par
-configuration, deux passages entrelacés :
-[`2026-10-29-p11-11-bridage-reel.json`](./mesures/2026-10-29-p11-11-bridage-reel.json).
+**L'expérience** : les mêmes images (`1ecfdb3`, et `483c406` — `main` du matin, **avant** P8-12), le
+même Lighthouse, mais un bridage **réel** — `THROTTLING=devtools make perf-baseline`, option née de
+cette tâche (mobile seulement : le profil ordinateur ne porte aucun bridage que `devtools` lise).
+Résumé : [`2026-10-29-p11-11-bridage-reel.json`](./mesures/2026-10-29-p11-11-bridage-reel.json).
 
-| LCP mobile médian, bridage réel (ms) | `1ecfdb3` bureau | `483c406` `main` |
-|---|---|---|
+⚠️ **Une série déséquilibrée, et dite telle.** Les passages se sont faits par blocs, pas entrelacés,
+et un redémarrage de l'hôte (12:46, heure de Paris) a coupé le second passage du bureau : 4 à 5 tirs
+pour `1ecfdb3`, tous avant, contre 6 pour `483c406`, dont la moitié sur un hôte au repos.
+
+| Mobile, bridage réel — médiane (ms) | LCP `1ecfdb3` | LCP `483c406` | TBT `1ecfdb3` | TBT `483c406` |
+|---|---|---|---|---|
+| `/fr` · scène | 1 284 | 1 246 | 355 | **1 072** |
+| `/fr` · témoin | 1 631 *(1 233–2 282)* | 1 293 | 68 | 63 |
+| fiche · scène | 1 266 | 1 272 | 589 | 356 |
+| fiche · témoin | 1 291 | 1 268 | 85 | 77 |
+
+✅ **Établi** :
+
+1. **Le LCP égale le FCP dans chacun des tirs**, dans les deux versions : l'accroche s'affiche au
+   premier rendu.
+2. **Aucun écart de LCP mesurable** : les fiches, les séries les plus stables, sont à 25 ms près, et
+   aucune configuration ne reproduit les +550 ms simulés. ⛔ « `main` plus rapide », en revanche, ne
+   s'affirme pas : le témoin du bureau à 1 631 ms est la médiane de quatre tirs dispersés, pris sur
+   un hôte chargé.
+3. **Le TBT, lui, reproduit sous un bridage réel ce que mesurait la simulation**
+   (`nexus-prototype.md` §6.2) : l'accueil avec scène triple, les fiches baissent, le témoin ne
+   bouge pas. C'est le coût connu de NEXUS au palier `lite` sans GPU, pas un fait nouveau.
+
+⭐ **Ce que Lantern compte** : dans `483c406`, la seule tâche longue simulée — l'exécution du chunk
+principal, 211 ms de script contre 134 pour le bureau — se termine au moment même du LCP simulé
+(≈ 2 210 ms) ; dans le bureau, elle démarre **après** lui. Lantern fait donc attendre le LCP derrière
+ce chunk. ⚠️ Pourquoi l'ordre bascule n'est pas établi.
+
+⚠️ **Ce que cela ne dit pas** : un vrai téléphone (P8-11), ni `main` après P8-12, non remesuré — deux
+redémarrages de l'hôte ont suivi les mesures, et rien de lourd n'y a été relancé. Le score
+Lighthouse « performance » **reste** pénalisé, c'est Lantern qu'il lit ; aucune porte de ce dépôt ne
+le juge (`check-lighthouse.mts` : accessibilité, SEO, bonnes pratiques).
+⭐⭐ *Un LCP simulé qui bouge alors que le LCP observé ne bouge pas se tranche par un bridage réel,
+pas par une optimisation.*
+
+---|---|---|
 | `/fr` · scène | 1 284 | 1 246 |
 | `/fr` · témoin | 1 631 | 1 293 |
 | fiche · scène | 1 266 | 1 272 |
