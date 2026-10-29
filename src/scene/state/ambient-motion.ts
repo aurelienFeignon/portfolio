@@ -15,8 +15,9 @@
  */
 import { SECTIONS, type Section } from '@/routing/sections'
 
-import { approachFactor, IMAGE_MAX_S } from './camera-motion'
-import type { SceneFocus } from './scene-state'
+import { approachFactor, frameStepS } from './camera-motion.ts'
+import { HOVER_SCALE } from './layout.ts'
+import type { SceneFocus } from './scene-state.ts'
 
 /** L'heure des shaders sous `prefers-reduced-motion` : impulsions visibles à l'arrêt. */
 export const FROZEN_TIME_S = 2.4
@@ -48,10 +49,10 @@ export function ambientFrame(
     readonly animated: boolean
     readonly hovered: SceneFocus | null
     readonly focus: SceneFocus
-    readonly hoverScale: number
   },
 ): AmbientFrame {
-  const stepS = Math.min(input.deltaS, IMAGE_MAX_S)
+  // La borne du rig, sans son réveil : la boucle ambiante tourne en `always`.
+  const stepS = frameStepS(input.deltaS, true)
   const kHighlight = approachFactor(HIGHLIGHT_EASE_PER_S, stepS, input.animated)
   const kScale = approachFactor(SCALE_EASE_PER_S, stepS, input.animated)
   const highlight = { ...state.highlight }
@@ -60,7 +61,7 @@ export function ambientFrame(
     const goal = input.hovered === section || input.focus === section ? 1 : 0
     highlight[section] += (goal - highlight[section]) * kHighlight
     // ⭐ Le survol grandit l'univers — doucement, jamais d'un coup.
-    const scaleGoal = input.hovered === section ? input.hoverScale : 1
+    const scaleGoal = input.hovered === section ? HOVER_SCALE : 1
     scale[section] += (scaleGoal - scale[section]) * kScale
   }
   const timeS = input.animated ? state.timeS + stepS : state.timeS

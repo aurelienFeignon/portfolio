@@ -184,7 +184,7 @@ URL, tout le reste rend toujours 302.
 | Socle partagé | **127,1 Ko** | cible 136 · bloquant 146 |
 | **Chunk 3D différé** | **234,5 Ko** — somme des **deux** chunks porteurs, hors du chemin critique | cible 260 · bloquant 320 |
 | Image de production | **281 Mo** | cible 250 · bloquant 400 |
-| Tests | **888** verts (2026-10-29, P8-12), couverture **100 %** sauf les branches : **99,72 %** — `layout.ts:121`, non couverte depuis une tâche antérieure, non instruite | ≥ 80 % |
+| Tests | **888** verts (2026-10-29, P8-12), couverture **100 %** sauf les branches : **99,72 %** — `layout.ts:121`, le côté `placer(-1)` de `closeUp`, qu'aucun des trois univers ne prend : inatteignable sans changer leurs positions, depuis #58 | ≥ 80 % |
 | E2E | **153** verts sur 5 profils | — |
 | **Ce que le GPU rend** | **52 draw calls · 8 182 triangles** en desktop — la passe d'ombre incluse, soit **+73 %** sur les 4 114 de géométrie | ≤ 60 / ≤ 150 000 |
 

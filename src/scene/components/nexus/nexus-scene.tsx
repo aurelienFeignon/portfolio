@@ -31,7 +31,6 @@ import {
   buildPlatform,
   buildPrism,
   buildStack,
-  HOVER_SCALE,
 } from './builders'
 
 /** Au-delà de ce déplacement (pixels), un appui est une rotation, pas un clic. */
@@ -104,7 +103,6 @@ export function NexusScene({
       animated,
       hovered,
       focus,
-      hoverScale: HOVER_SCALE,
     })
     ambience.current = next.state
     const frame = {

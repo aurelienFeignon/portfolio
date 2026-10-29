@@ -7,6 +7,7 @@ import { describe, expect, it } from 'vitest'
 import type { Section } from '@/routing/sections'
 import { type AmbientState, ambientFrame, FROZEN_TIME_S } from '@/scene/state/ambient-motion'
 import { approachFactor, IMAGE_MAX_S } from '@/scene/state/camera-motion'
+import { HOVER_SCALE } from '@/scene/state/layout'
 
 const REPOS: AmbientState = {
   timeS: 0,
@@ -22,7 +23,6 @@ const image = (state: AmbientState, patch: Partial<Entree> = {}) =>
     animated: true,
     hovered: null,
     focus: 'overview',
-    hoverScale: 1.1,
     ...patch,
   })
 
@@ -83,7 +83,7 @@ describe('la surbrillance et le survol', () => {
     expect(a20.scale.projects).toBeCloseTo(a60.scale.projects, 9)
     // Une seconde : il reste e^(−4) de l'écart en surbrillance, e^(−6) en taille.
     expect(1 - a60.highlight.projects).toBeCloseTo(Math.exp(-4), 9)
-    expect(1.1 - a60.scale.projects).toBeCloseTo(0.1 * Math.exp(-6), 9)
+    expect(HOVER_SCALE - a60.scale.projects).toBeCloseTo((HOVER_SCALE - 1) * Math.exp(-6), 9)
   })
 
   it('le focus allume l’univers, sans le grossir — seul le survol grossit', () => {
@@ -96,7 +96,7 @@ describe('la surbrillance et le survol', () => {
   it('sous reduced-motion, tout saute à son but en une image', () => {
     const { state } = image(REPOS, { ...survol('experiences'), animated: false })
     expect(state.highlight.experiences).toBe(1)
-    expect(state.scale.experiences).toBe(1.1)
+    expect(state.scale.experiences).toBe(HOVER_SCALE)
   })
 
   it('⭐ une image figée ne fait pas sauter le survol à son but', () => {
