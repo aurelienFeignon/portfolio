@@ -43,6 +43,9 @@ export interface UniverseSpec {
   readonly tone: 'cyan' | 'violet' | 'sky'
 }
 
+/** L'agrandissement d'un univers survolé. */
+export const HOVER_SCALE = 1.1
+
 /**
  * ⭐ Disposés en triangle autour du noyau, **pas sur un cercle régulier** : à
  * hauteurs égales et 120° pile, la vue d'ensemble se lit comme un schéma. Projets

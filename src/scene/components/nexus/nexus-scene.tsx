@@ -18,6 +18,7 @@ import { type ReactNode, useEffect, useMemo, useRef } from 'react'
 import { type Group, MeshBasicMaterial, SphereGeometry } from 'three'
 
 import { SECTIONS, type Section } from '@/routing/sections'
+import { type AmbientState, ambientFrame } from '@/scene/state/ambient-motion'
 import { type Density, PALETTE, UNIVERSES } from '@/scene/state/layout'
 import type { SceneFocus } from '@/scene/state/scene-state'
 
@@ -30,11 +31,7 @@ import {
   buildPlatform,
   buildPrism,
   buildStack,
-  HOVER_SCALE,
 } from './builders'
-
-/** L'heure des shaders sous `prefers-reduced-motion` : impulsions visibles à l'arrêt. */
-const FROZEN_TIME = 2.4
 
 /** Au-delà de ce déplacement (pixels), un appui est une rotation, pas un clic. */
 const CLICK_TOLERANCE_PX = 6
@@ -92,24 +89,27 @@ export function NexusScene({
     [universes],
   )
 
-  const highlight = useRef<Record<Section, number>>({ experiences: 0, projects: 0, skills: 0 })
-  const scale = useRef<Record<Section, number>>({ experiences: 1, projects: 1, skills: 1 })
+  // ⛔ Le temps de scène s'accumule ici, jamais sur `state.clock` : l'horloge de
+  // R3F repart de zéro à chaque changement de boucle (`ambient-motion.ts`).
+  const ambience = useRef<AmbientState>({
+    timeS: 0,
+    highlight: { experiences: 0, projects: 0, skills: 0 },
+    scale: { experiences: 1, projects: 1, skills: 1 },
+  })
 
-  useFrame((state, delta) => {
-    const ease = animated ? Math.min(1, delta * 4) : 1
-    for (const section of SECTIONS) {
-      const goal = hovered === section || focus === section ? 1 : 0
-      highlight.current[section] += (goal - highlight.current[section]) * ease
-      // ⭐ Le survol grandit l'univers d'un dixième — doucement, jamais d'un coup.
-      const scaleGoal = hovered === section ? HOVER_SCALE : 1
-      scale.current[section] +=
-        (scaleGoal - scale.current[section]) * (animated ? Math.min(1, delta * 6) : 1)
-    }
-    const frame = {
-      time: animated ? state.clock.elapsedTime : FROZEN_TIME,
-      delta,
+  useFrame((_, delta) => {
+    const next = ambientFrame(ambience.current, {
+      deltaS: delta,
       animated,
-      highlight: highlight.current,
+      hovered,
+      focus,
+    })
+    ambience.current = next.state
+    const frame = {
+      time: next.shaderTimeS,
+      delta: next.stepS,
+      animated,
+      highlight: next.state.highlight,
     }
     for (const built of ambient) built.update(frame)
     for (const { built } of universes) built.update(frame)
@@ -145,7 +145,7 @@ export function NexusScene({
         const spec = UNIVERSES[section]
         return (
           <group key={section} position={spec.position as unknown as [number, number, number]}>
-            <UniverseScale section={section} scale={scale}>
+            <UniverseScale section={section} ambience={ambience}>
               <primitive object={built.root} />
             </UniverseScale>
             {/*
@@ -176,16 +176,16 @@ export function NexusScene({
 /** Applique l'échelle de survol, lue dans un `ref` à chaque image. */
 function UniverseScale({
   section,
-  scale,
+  ambience,
   children,
 }: {
   readonly section: Section
-  readonly scale: { readonly current: Readonly<Record<Section, number>> }
+  readonly ambience: { readonly current: AmbientState }
   readonly children: ReactNode
 }) {
   const group = useRef<Group>(null)
   useFrame(() => {
-    group.current?.scale.setScalar(scale.current[section])
+    group.current?.scale.setScalar(ambience.current.scale[section])
   })
   return <group ref={group}>{children}</group>
 }

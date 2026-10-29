@@ -48,7 +48,7 @@ export function transitionProgress(elapsedMs: number, durationMs: number): numbe
   return Math.min(1, Math.max(0, elapsedMs / durationMs))
 }
 
-const mix = (a: number, b: number, t: number): number => a + (b - a) * t
+export const mix = (a: number, b: number, t: number): number => a + (b - a) * t
 const mix3 = (a: Vec3, b: Vec3, t: number): Vec3 => [
   mix(a[0], b[0], t),
   mix(a[1], b[1], t),
@@ -221,22 +221,32 @@ const ORBIT_EASE_PER_S = 5
 export const REVEIL_S = 1 / 60
 export const IMAGE_MAX_S = 0.1
 
+/** Une image, bornée à `IMAGE_MAX_S` — sans le réveil, pour une boucle qui ne dort pas. */
+export function boundedStepS(deltaS: number): number {
+  return Math.min(deltaS, IMAGE_MAX_S)
+}
+
 export function frameStepS(deltaS: number, wasMoving: boolean): number {
-  return wasMoving ? Math.min(deltaS, IMAGE_MAX_S) : REVEIL_S
+  return wasMoving ? boundedStepS(deltaS) : REVEIL_S
 }
 
 /**
- * L'orbite affichée qui rattrape sa consigne : une approche exponentielle,
- * `1 − e^(−5δ)` par image, donc indépendante de la cadence. Sans mouvement
- * (`animated` faux), elle saute : c'est voulu sous `reduced-motion`.
+ * La part de l'écart qu'une image comble : `1 − e^(−rδ)`, donc indépendante de
+ * la cadence — deux demi-images valent une image. Sans mouvement (`animated`
+ * faux), 1 : on saute, c'est voulu sous `reduced-motion`.
  */
+export function approachFactor(ratePerS: number, stepS: number, animated: boolean): number {
+  return animated ? 1 - Math.exp(-ratePerS * stepS) : 1
+}
+
+/** L'orbite affichée qui rattrape sa consigne, à `ORBIT_EASE_PER_S`. */
 export function approachOrbit(
   now: OrbitAngles,
   consigne: OrbitAngles,
   stepS: number,
   animated: boolean,
 ): OrbitAngles {
-  const k = animated ? 1 - Math.exp(-ORBIT_EASE_PER_S * stepS) : 1
+  const k = approachFactor(ORBIT_EASE_PER_S, stepS, animated)
   return {
     yawDeg: mix(now.yawDeg, consigne.yawDeg, k),
     pitchDeg: mix(now.pitchDeg, consigne.pitchDeg, k),

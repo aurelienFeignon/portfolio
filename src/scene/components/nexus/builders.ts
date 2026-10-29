@@ -44,7 +44,14 @@ import {
 } from 'three'
 
 import { SECTIONS, type Section } from '@/routing/sections'
-import { CORE_RADIUS, type Density, PALETTE, UNIVERSES, type Vec3 } from '@/scene/state/layout'
+import {
+  CORE_RADIUS,
+  type Density,
+  HOVER_SCALE,
+  PALETTE,
+  UNIVERSES,
+  type Vec3,
+} from '@/scene/state/layout'
 import { arc, particleShell, plateStack, polylineLength } from '@/scene/state/nexus-geometry'
 
 import { pointsGeometry, polylineGeometry } from './buffers'
@@ -316,9 +323,6 @@ export function buildConnections(): Built {
  * faisceaux.
  */
 const VEIL_RADIUS = 1.6
-
-/** L'agrandissement d'un univers survolé. */
-export const HOVER_SCALE = 1.1
 
 const tone = (section: Section): string => PALETTE[UNIVERSES[section].tone]
 
