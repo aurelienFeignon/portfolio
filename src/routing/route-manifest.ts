@@ -17,6 +17,8 @@ export const SERVED_PATHS: readonly string[] = [
   '/en/experiences/askor',
   '/en/experiences/augure',
   '/en/projects',
+  '/en/projects/askor',
+  '/en/projects/augure',
   '/en/projects/portfolio',
   '/en/skills',
   '/fr',
@@ -24,6 +26,8 @@ export const SERVED_PATHS: readonly string[] = [
   '/fr/experiences/askor',
   '/fr/experiences/augure',
   '/fr/projects',
+  '/fr/projects/askor',
+  '/fr/projects/augure',
   '/fr/projects/portfolio',
   '/fr/skills',
 ]
