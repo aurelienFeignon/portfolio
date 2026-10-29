@@ -308,7 +308,7 @@ prototype, validation visuelle avec l'utilisateur, fusion et déploiement (#58),
 
 ⛔ **Avant toute chose, vérifie la fusion de cette mise à jour du prompt** (branche
 `mesure/p7-cwv-non-regression`) : `gh pr list --state all --head mesure/p7-cwv-non-regression`.
-Les précédentes sont fusionnées : P7-04 (#77), P7-06 (#78), P7-07 (#79, `483c406`, cinq jobs verts).
+Les précédentes sont fusionnées : P7-04 (#77), P7-06 (#78), P7-07 (#79).
 
 ✅ **Phase 6 close le 2026-10-27** : P6-07 et P6-10 (`phase-6-log.md` §11), P6-11 et P6-12 (§12).
 ⛔ P6-11 a trouvé un défaut **en production** : `setFrameloop` remet l'horloge de R3F à zéro, et une
@@ -349,12 +349,9 @@ autour de la page entière). Firefox headless ne monte pas la scène : non couve
    (`nexus-prototype.md` §6.4). Sans `KHR_parallel_shader_compile`, on retombe sur le cas du banc.
    Un téléphone ne joint pas `localhost` : il faudra exposer l'aperçu sur le réseau local.
 2. **Clore la Phase 7** — ✅ **critère mesuré le 2026-10-29** (`performance-budget.md` §6.4, trois
-   images `1ecfdb3` / `854d1fe` / `main`, même outillage, `make perf-baseline`) : CLS 0 partout, et
-   **aucune régression depuis #58** (LCP à ±10 ms). ⛔ **Mais #58 lui-même a porté le LCP mobile de
-   1,66 à 2,21 s** — témoin sans scène compris, donc pas le canvas ; l'élément LCP (l'accroche)
-   s'affiche toujours au premier rendu, l'écart naît dans la simulation Lantern, cause **non
-   établie**. ⛔ `nexus-prototype.md` §6.2 affirmait « LCP inchangé » : corrigé. La clôture attend
-   **D13**.
+   images, même outillage) : **aucune régression depuis #58**, ⛔ mais #58 lui-même a dégradé le LCP
+   mobile, cause non établie. `nexus-prototype.md` §6.2 affirmait « LCP inchangé » : corrigé. La
+   clôture attend **D13**.
    ✅ **P7-07 livrée le 2026-10-28** (E2E-18, `scene-mounted/language-switch.spec.ts`) : scène
    montée, la bascule de langue mène à la page d'un lien direct vers la même adresse (différentiel),
    et les étiquettes des univers se jugent AUSSI contre le dictionnaire d'arrivée — le différentiel
@@ -680,9 +677,8 @@ pas d'ajouter du volume — c'est **un** projet récent, décrit pour lui-même.
 la page reste à un projet, assumé, et je ne la rouvre plus.*
 
 **D13 🟠 — Le critère CWV de la Phase 7 est-il tenu ?** *Née de la mesure du 2026-10-29.* Depuis
-#58, rien n'a bougé ; mais #58 — qui a livré P7-03 et P7-08 — a porté le LCP mobile de **1,66 à
-2,21 s** : au-dessus de la cible (1,8 s), sous le seuil bloquant (2,5 s), CLS 0, ordinateur
-intact. → *Défaut recommandé : **clore la Phase 7** et porter l'écart comme dette chiffrée en Phase 11
+#58, rien n'a bougé ; mais #58 — qui a livré P7-03 et P7-08 — a dégradé le LCP **mobile** au-dessus
+de la cible, sous le seuil bloquant (ampleur et méthode : `performance-budget.md` §6.4). → *Défaut recommandé : **clore la Phase 7** et porter l'écart comme dette chiffrée en Phase 11
 (comme le TBT de la Phase 5), avec une tâche d'instruction de la cause. Alternative : instruire et
 corriger avant de clore.*
 

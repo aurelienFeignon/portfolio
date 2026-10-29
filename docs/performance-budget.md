@@ -424,10 +424,8 @@ que par le code et les dépendances. Résumés : [`854d1fe`](./mesures/2026-10-2
 [`483c406`](./mesures/2026-10-29-p7-483c406.json),
 [`1ecfdb3`](./mesures/2026-10-29-p7-1ecfdb3-outillage-actuel.json).
 
-⚠️ **Un premier passage `854d1fe` puis `main` a été écarté** : hôte chargé à 19-20 sur 20 cœurs,
-TBT de `854d1fe` étalé de 1 964 à 8 919 ms. Rejoué dans l'ordre A B A B, charge retombée à ~8 ; les
-médianes de LCP du passage écarté sont à moins de 40 ms de celles du passage retenu et son CLS vaut
-0 : seul le TBT divergeait.
+⚠️ Un premier passage sous charge (hôte à 19-20 sur 20 cœurs) a été écarté pour son TBT ; rejoué en
+A B A B, ses LCP restent à moins de 40 ms, CLS 0.
 
 LCP médian, ms (scène / témoin sans scène) — CLS **0** sur les 40 audits de chaque image :
 
@@ -442,9 +440,9 @@ LCP médian, ms (scène / témoin sans scène) — CLS **0** sur les 40 audits d
 **✅ Établi :**
 
 1. **Depuis la mise en production de NEXUS, aucune régression** : `854d1fe` → `main`, LCP à ±10 ms
-   près sur les huit configurations, CLS 0. Les six commits de `src/` qui séparent les deux
-   (#70, #72, #73, #75 à #77 — `git log 854d1fe..main -- src`), ni les mises à jour de Next, R3F et
-   drei, n'ont bougé les Core Web Vitals.
+   près sur les huit configurations, CLS 0. Ni les six commits de `src/` qui séparent les deux
+   (`git log 854d1fe..main -- src`), ni les mises à jour de Next, R3F et drei, n'ont bougé les Core
+   Web Vitals.
 2. ⛔ **Mais #58 a porté le LCP mobile de 1,66 à 2,21 s (+550 ms)**, au-dessus de la cible de §2
    (1,8 s), sous le seuil bloquant (2,5 s). En ordinateur, rien. Et ce n'est **pas le canvas** : le
    témoin, lancé sans API 3D, prend exactement le même écart. ADR-0003 tient — la scène n'entre pas
@@ -457,10 +455,8 @@ LCP médian, ms (scène / témoin sans scène) — CLS **0** sur les 40 audits d
 
 **⚠️ Non établi** : ce qui, dans #58, fait simuler à Lantern un LCP plus tardif — le graphe de
 dépendances qu'il construit, pas l'affichage. Une trace (`lcp-discovery-insight`, ordre des
-requêtes jusqu'à l'événement LCP) le dirait ; non fait.
-
-⏸️ **La clôture de la Phase 7 attend un arbitrage de l'exploitant** : P7-03 et P7-08 ont été livrées
-**par** #58, donc la régression de LCP mobile tombe dans le périmètre de la phase, pas avant elle.
+requêtes jusqu'à l'événement LCP) le dirait ; non fait. ⏸️ Et P7-03 et P7-08 ont été livrées
+**par** #58 : l'écart tombe dans le périmètre de la Phase 7, dont la clôture attend l'arbitrage D13.
 
 ---
 

@@ -126,10 +126,8 @@ CLS 0 partout. **Les fiches gagnent** — la scène y est cachée et ne calcule 
 **l'accueil double** par rapport au bureau.
 
 ⛔⛔ **Corrigé le 2026-10-29 : « LCP inchangé » était FAUX, et ce relevé le disait déjà.** Le résumé de
-`d42fa70` (`.perf/`, hors dépôt) porte un LCP mobile de **2 208 ms** contre **1 656** pour le bureau
-— témoin sans scène compris (2 216 contre 1 654). Rejoué le 2026-10-29 avec le même outillage pour
-les deux (`performance-budget.md` §6.4) : l'écart tient, **+550 ms en mobile**, rien en ordinateur.
-Seul le TBT avait été lu ; la phrase sur le LCP a été écrite sans regarder sa colonne.
+`d42fa70` (`.perf/`, hors dépôt) portait un LCP mobile de **2 208 ms**, témoin compris. Seul le TBT
+avait été lu. Rejoué avec un outillage commun : `performance-budget.md` §6.4.
 
 ### 6.3 ⛔ Ce que l'enquête a établi, et ce qu'elle a réfuté
 
