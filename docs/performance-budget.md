@@ -455,8 +455,9 @@ LCP médian, ms (scène / témoin sans scène) — CLS **0** sur les 40 audits d
 
 **⚠️ Non établi** : ce qui, dans #58, fait simuler à Lantern un LCP plus tardif — le graphe de
 dépendances qu'il construit, pas l'affichage. Une trace (`lcp-discovery-insight`, ordre des
-requêtes jusqu'à l'événement LCP) le dirait ; non fait. ⏸️ Et P7-03 et P7-08 ont été livrées
-**par** #58 : l'écart tombe dans le périmètre de la Phase 7, dont la clôture attend l'arbitrage D13.
+requêtes jusqu'à l'événement LCP) le dirait ; non fait. Et P7-03 et P7-08 ont été livrées
+**par** #58 : l'écart tombe dans le périmètre de la Phase 7. ✅ **Arbitrage D13 (2026-10-29) : critère
+tenu, Phase 7 close**, l'écart porté en dette par **P11-11**.
 
 ---
 

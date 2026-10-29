@@ -50,8 +50,8 @@ supervisé, avec une checklist de mise en ligne et un rollback rejoué.
 **Phase 6 (Navigation spatiale) : CLOSE** le 2026-10-27, 12 tâches sur 12 — `phase-6-log.md` §11
 et §12.
 **Phase 7 (Interfaces de lecture)** : **toutes les tâches livrées** (P7-03 à P7-08, P7-01/02 abandonnées) ;
-⏸️ critère « aucune régression des Core Web Vitals » **mesuré le 2026-10-29** (`performance-budget.md`
-§6.4) — clôture en attente de l'arbitrage **D13** ci-dessous.
+**CLOSE le 2026-10-29** — critère CWV mesuré (`performance-budget.md` §6.4) et tenu par
+arbitrage **D13** ; l'écart de LCP mobile introduit par #58 est une dette, **P11-11**.
 ⭐⭐ **NEXUS EST EN PRODUCTION depuis le 2026-10-23 (#58, `854d1fe`)** — D11 : le bureau 3D est
 remplacé par un noyau numérique et trois univers, avec navigation hybride et `ReadingPanel` en verre
 lumineux. **Lis `docs/nexus-prototype.md` avant toute chose** : décisions, architecture de la scène,
@@ -348,10 +348,9 @@ autour de la page entière). Firefox headless ne monte pas la scène : non couve
    bridé ×4) ; le banc sans GPU annonce 1 231 ms et **surestime d'environ ×8**
    (`nexus-prototype.md` §6.4). Sans `KHR_parallel_shader_compile`, on retombe sur le cas du banc.
    Un téléphone ne joint pas `localhost` : il faudra exposer l'aperçu sur le réseau local.
-2. **Clore la Phase 7** — ✅ **critère mesuré le 2026-10-29** (`performance-budget.md` §6.4, trois
-   images, même outillage) : **aucune régression depuis #58**, ⛔ mais #58 lui-même a dégradé le LCP
-   mobile, cause non établie. `nexus-prototype.md` §6.2 affirmait « LCP inchangé » : corrigé. La
-   clôture attend **D13**.
+2. ✅ **Phase 7 close le 2026-10-29** (D13, `phase-0-questions.md`) : aucune régression depuis #58,
+   mais #58 a dégradé le LCP mobile — dette **P11-11**, cause non établie (`performance-budget.md`
+   §6.4). `nexus-prototype.md` §6.2 affirmait « LCP inchangé » : corrigé.
    ✅ **P7-07 livrée le 2026-10-28** (E2E-18, `scene-mounted/language-switch.spec.ts`) : scène
    montée, la bascule de langue mène à la page d'un lien direct vers la même adresse (différentiel),
    et les étiquettes des univers se jugent AUSSI contre le dictionnaire d'arrivée — le différentiel
@@ -652,7 +651,8 @@ Format des réponses : « D2 = …, défaut partout ailleurs » suffit. Aucune n
 ⭐ **Ce bloc ne contient QUE des questions vivantes**, et c'est ce qui lui donne sa valeur. Les
 décisions tranchées sont reportées dans `phase-0-questions.md` ; elles n'ont plus à être lues ici.
 **Closes : D1, D3, D4, D7** (le 2026-08-16 pour les deux dernières), **D9 et D10** (le 2026-08-20),
-**D11** (le 2026-08-25, « laisser » — `phase-5-log.md` §6.7).
+**D11** (le 2026-08-25, « laisser » — `phase-5-log.md` §6.7), **D13** (le 2026-10-29, critère CWV
+de la Phase 7 tenu).
 
 **D2 🟠 — Relire les 40 niveaux de compétence (1 à 5).** *La seule qui ait un effet visible : les
 niveaux **ne sont ni affichés ni publiés** tant que tu ne les as pas relus.* Les publier afficherait
@@ -675,12 +675,6 @@ que des travaux scolaires de 2021, et la page Projets ne contient que ce portfol
 pas d'ajouter du volume — c'est **un** projet récent, décrit pour lui-même.
 → *Si tu en as un à montrer, c'est un fichier par locale dans `content/*/projects/`. Sinon, dis-le :
 la page reste à un projet, assumé, et je ne la rouvre plus.*
-
-**D13 🟠 — Le critère CWV de la Phase 7 est-il tenu ?** *Née de la mesure du 2026-10-29.* Depuis
-#58, rien n'a bougé ; mais #58 — qui a livré P7-03 et P7-08 — a dégradé le LCP **mobile** au-dessus
-de la cible, sous le seuil bloquant (ampleur et méthode : `performance-budget.md` §6.4). → *Défaut recommandé : **clore la Phase 7** et porter l'écart comme dette chiffrée en Phase 11
-(comme le TBT de la Phase 5), avec une tâche d'instruction de la cause. Alternative : instruire et
-corriger avant de clore.*
 
 **D12 🟢 — La largeur du plateau, au mètre ruban.** *Une seule mesure, et toute la scène se
 verrouille.* La photo donne **1,37 m**, la valeur retenue **1,40 m** ; toutes les cotes en découlent
