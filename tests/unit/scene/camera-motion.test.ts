@@ -5,6 +5,7 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  approachFactor,
   approachOrbit,
   clampOrbit,
   dragOrbit,
@@ -236,6 +237,19 @@ describe('la durée qu’une image fait avancer', () => {
 
   it('⛔ en mouvement, une image figée ne compte que pour la durée maximale', () => {
     expect(frameStepS(5, true)).toBe(IMAGE_MAX_S)
+  })
+})
+
+describe('le facteur d’approche', () => {
+  it('ne dépend pas de la cadence : deux demi-pas valent un pas', () => {
+    const unPas = approachFactor(4, 0.1, true)
+    const demi = approachFactor(4, 0.05, true)
+    // Reste après un pas = reste après deux demi-pas.
+    expect(1 - unPas).toBeCloseTo((1 - demi) ** 2, 12)
+  })
+
+  it('sans mouvement (reduced-motion), vaut 1 : on saute', () => {
+    expect(approachFactor(4, 1 / 60, false)).toBe(1)
   })
 })
 

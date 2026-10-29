@@ -43,15 +43,15 @@ export interface UniverseSpec {
   readonly tone: 'cyan' | 'violet' | 'sky'
 }
 
+/** L'agrandissement d'un univers survolé. */
+export const HOVER_SCALE = 1.1
+
 /**
  * ⭐ Disposés en triangle autour du noyau, **pas sur un cercle régulier** : à
  * hauteurs égales et 120° pile, la vue d'ensemble se lit comme un schéma. Projets
  * est placé derrière et au-dessus du noyau — la caméra qui le cadre regarde
  * alors à travers lui vers le noyau, ce qui donne au gros plan sa profondeur.
  */
-/** L'agrandissement d'un univers survolé. */
-export const HOVER_SCALE = 1.1
-
 export const UNIVERSES: Readonly<Record<Section, UniverseSpec>> = {
   experiences: { position: [-5.6, 0, 1], hitRadius: 1.9, tone: 'cyan' },
   projects: { position: [1.2, 3.6, -5.8], hitRadius: 1.9, tone: 'violet' },

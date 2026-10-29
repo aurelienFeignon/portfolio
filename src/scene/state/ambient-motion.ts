@@ -15,7 +15,7 @@
  */
 import { SECTIONS, type Section } from '@/routing/sections'
 
-import { approachFactor, frameStepS } from './camera-motion.ts'
+import { approachFactor, boundedStepS, mix } from './camera-motion.ts'
 import { HOVER_SCALE } from './layout.ts'
 import type { SceneFocus } from './scene-state.ts'
 
@@ -51,18 +51,17 @@ export function ambientFrame(
     readonly focus: SceneFocus
   },
 ): AmbientFrame {
-  // La borne du rig, sans son réveil : la boucle ambiante tourne en `always`.
-  const stepS = frameStepS(input.deltaS, true)
+  const stepS = boundedStepS(input.deltaS)
   const kHighlight = approachFactor(HIGHLIGHT_EASE_PER_S, stepS, input.animated)
   const kScale = approachFactor(SCALE_EASE_PER_S, stepS, input.animated)
   const highlight = { ...state.highlight }
   const scale = { ...state.scale }
   for (const section of SECTIONS) {
     const goal = input.hovered === section || input.focus === section ? 1 : 0
-    highlight[section] += (goal - highlight[section]) * kHighlight
+    highlight[section] = mix(highlight[section], goal, kHighlight)
     // ⭐ Le survol grandit l'univers — doucement, jamais d'un coup.
     const scaleGoal = input.hovered === section ? HOVER_SCALE : 1
-    scale[section] += (scaleGoal - scale[section]) * kScale
+    scale[section] = mix(scale[section], scaleGoal, kScale)
   }
   const timeS = input.animated ? state.timeS + stepS : state.timeS
   return {

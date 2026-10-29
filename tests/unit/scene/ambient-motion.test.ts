@@ -6,7 +6,7 @@ import { describe, expect, it } from 'vitest'
 
 import type { Section } from '@/routing/sections'
 import { type AmbientState, ambientFrame, FROZEN_TIME_S } from '@/scene/state/ambient-motion'
-import { approachFactor, IMAGE_MAX_S } from '@/scene/state/camera-motion'
+import { IMAGE_MAX_S } from '@/scene/state/camera-motion'
 import { HOVER_SCALE } from '@/scene/state/layout'
 
 const REPOS: AmbientState = {
@@ -32,19 +32,6 @@ const images = (state: AmbientState, n: number, patch: Partial<Entree> = {}) => 
   for (let i = 0; i < n; i += 1) s = image(s, patch).state
   return s
 }
-
-describe('le facteur d’approche', () => {
-  it('ne dépend pas de la cadence : deux demi-pas valent un pas', () => {
-    const unPas = approachFactor(4, 0.1, true)
-    const demi = approachFactor(4, 0.05, true)
-    // Reste après un pas = reste après deux demi-pas.
-    expect(1 - unPas).toBeCloseTo((1 - demi) ** 2, 12)
-  })
-
-  it('sans mouvement (reduced-motion), vaut 1 : on saute', () => {
-    expect(approachFactor(4, 1 / 60, false)).toBe(1)
-  })
-})
 
 describe('le temps des shaders', () => {
   it('⛔⛔ s’ACCUMULE image par image — il ne se lit sur aucune horloge (P6-11)', () => {

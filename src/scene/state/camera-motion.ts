@@ -48,7 +48,7 @@ export function transitionProgress(elapsedMs: number, durationMs: number): numbe
   return Math.min(1, Math.max(0, elapsedMs / durationMs))
 }
 
-const mix = (a: number, b: number, t: number): number => a + (b - a) * t
+export const mix = (a: number, b: number, t: number): number => a + (b - a) * t
 const mix3 = (a: Vec3, b: Vec3, t: number): Vec3 => [
   mix(a[0], b[0], t),
   mix(a[1], b[1], t),
@@ -221,8 +221,13 @@ const ORBIT_EASE_PER_S = 5
 export const REVEIL_S = 1 / 60
 export const IMAGE_MAX_S = 0.1
 
+/** Une image, bornée à `IMAGE_MAX_S` — sans le réveil, pour une boucle qui ne dort pas. */
+export function boundedStepS(deltaS: number): number {
+  return Math.min(deltaS, IMAGE_MAX_S)
+}
+
 export function frameStepS(deltaS: number, wasMoving: boolean): number {
-  return wasMoving ? Math.min(deltaS, IMAGE_MAX_S) : REVEIL_S
+  return wasMoving ? boundedStepS(deltaS) : REVEIL_S
 }
 
 /**
