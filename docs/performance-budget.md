@@ -414,6 +414,54 @@ CLS **0** partout.
 départ — se fait **par ce protocole, sur la même machine, à `benchmarkIndex` comparable**. Un relevé
 dont l'indice médian s'écarte de plus de 20 % de celui de la référence se refait.
 
+### 6.4 ⭐⭐ Critère de sortie de la Phase 7 — « aucune régression des Core Web Vitals », 2026-10-29
+
+**Protocole** : celui de §6.3, sur trois images de production construites le même matin depuis
+`1ecfdb3` (le bureau, la référence de §6.3), `854d1fe` (#58, NEXUS en production) et `483c406`
+(`main`). Même machine, même outillage pour les trois — Lighthouse 13.5.0, HeadlessChrome 156, sans
+GPU — et un contenu identique (`git diff 1ecfdb3 main -- content` est vide) : les images ne diffèrent
+que par le code et les dépendances. Résumés : [`854d1fe`](./mesures/2026-10-29-p7-854d1fe.json),
+[`483c406`](./mesures/2026-10-29-p7-483c406.json),
+[`1ecfdb3`](./mesures/2026-10-29-p7-1ecfdb3-outillage-actuel.json).
+
+⚠️ **Un premier passage `854d1fe` puis `main` a été écarté** : hôte chargé à 19-20 sur 20 cœurs,
+TBT de `854d1fe` étalé de 1 964 à 8 919 ms. Rejoué dans l'ordre A B A B, charge retombée à ~8 ; les
+médianes de LCP du passage écarté sont à moins de 40 ms de celles du passage retenu et son CLS vaut
+0 : seul le TBT divergeait.
+
+LCP médian, ms (scène / témoin sans scène) — CLS **0** sur les 40 audits de chaque image :
+
+| Page · profil | `1ecfdb3` bureau | `854d1fe` NEXUS | `483c406` `main` |
+|---|---|---|---|
+| `/fr` · mobile | 1 656 / 1 655 | **2 204 / 2 203** | **2 214 / 2 209** |
+| fiche · mobile | 1 656 / 1 654 | **2 208 / 2 212** | **2 208 / 2 209** |
+| `/fr` · desktop | 469 / 471 | 473 / 470 | 473 / 475 |
+| fiche · desktop | 469 / 470 | 471 / 478 | 471 / 473 |
+| *`benchmarkIndex`* | *3 303* | *3 352* | *3 307* |
+
+**✅ Établi :**
+
+1. **Depuis la mise en production de NEXUS, aucune régression** : `854d1fe` → `main`, LCP à ±10 ms
+   près sur les huit configurations, CLS 0. Les six commits de `src/` qui séparent les deux
+   (#70, #72, #73, #75 à #77 — `git log 854d1fe..main -- src`), ni les mises à jour de Next, R3F et
+   drei, n'ont bougé les Core Web Vitals.
+2. ⛔ **Mais #58 a porté le LCP mobile de 1,66 à 2,21 s (+550 ms)**, au-dessus de la cible de §2
+   (1,8 s), sous le seuil bloquant (2,5 s). En ordinateur, rien. Et ce n'est **pas le canvas** : le
+   témoin, lancé sans API 3D, prend exactement le même écart. ADR-0003 tient — la scène n'entre pas
+   dans le chemin critique —, c'est la page qui a changé.
+3. **L'élément LCP n'a pas changé** — le paragraphe d'accroche (`main > p.lead`), dans les deux
+   versions — et il **s'affiche au premier rendu** : sans bridage, le LCP *observé* égale le FCP
+   (294 ms bureau, 180 ms `main`). Les transferts sont quasi identiques (154 contre 159 Ko, 13 contre
+   12 requêtes). Les 550 ms naissent donc dans la **simulation** Lantern du réseau mobile, pas d'un
+   affichage retardé.
+
+**⚠️ Non établi** : ce qui, dans #58, fait simuler à Lantern un LCP plus tardif — le graphe de
+dépendances qu'il construit, pas l'affichage. Une trace (`lcp-discovery-insight`, ordre des
+requêtes jusqu'à l'événement LCP) le dirait ; non fait.
+
+⏸️ **La clôture de la Phase 7 attend un arbitrage de l'exploitant** : P7-03 et P7-08 ont été livrées
+**par** #58, donc la régression de LCP mobile tombe dans le périmètre de la phase, pas avant elle.
+
 ---
 
 ## 7. Budget serveur (VPS)

@@ -50,7 +50,8 @@ supervisé, avec une checklist de mise en ligne et un rollback rejoué.
 **Phase 6 (Navigation spatiale) : CLOSE** le 2026-10-27, 12 tâches sur 12 — `phase-6-log.md` §11
 et §12.
 **Phase 7 (Interfaces de lecture)** : **toutes les tâches livrées** (P7-03 à P7-08, P7-01/02 abandonnées) ;
-⚠️ clôture en attente du critère « aucune régression des Core Web Vitals », non remesuré.
+⏸️ critère « aucune régression des Core Web Vitals » **mesuré le 2026-10-29** (`performance-budget.md`
+§6.4) — clôture en attente de l'arbitrage **D13** ci-dessous.
 ⭐⭐ **NEXUS EST EN PRODUCTION depuis le 2026-10-23 (#58, `854d1fe`)** — D11 : le bureau 3D est
 remplacé par un noyau numérique et trois univers, avec navigation hybride et `ReadingPanel` en verre
 lumineux. **Lis `docs/nexus-prototype.md` avant toute chose** : décisions, architecture de la scène,
@@ -306,8 +307,8 @@ référence (#57), `ReadingPanel`, P6-04, décisions NEXUS (D11 et amendements d
 prototype, validation visuelle avec l'utilisateur, fusion et déploiement (#58), roadmap reprise.
 
 ⛔ **Avant toute chose, vérifie la fusion de cette mise à jour du prompt** (branche
-`test/p7-07-langue-immersif`) : `gh pr list --state all --head test/p7-07-langue-immersif`.
-Les précédentes sont fusionnées et déployées : P7-04 (#77, `365d168`), P7-06 (#78, `0541ceb`).
+`mesure/p7-cwv-non-regression`) : `gh pr list --state all --head mesure/p7-cwv-non-regression`.
+Les précédentes sont fusionnées : P7-04 (#77), P7-06 (#78), P7-07 (#79, `483c406`, cinq jobs verts).
 
 ✅ **Phase 6 close le 2026-10-27** : P6-07 et P6-10 (`phase-6-log.md` §11), P6-11 et P6-12 (§12).
 ⛔ P6-11 a trouvé un défaut **en production** : `setFrameloop` remet l'horloge de R3F à zéro, et une
@@ -347,13 +348,13 @@ autour de la page entière). Firefox headless ne monte pas la scène : non couve
    bridé ×4) ; le banc sans GPU annonce 1 231 ms et **surestime d'environ ×8**
    (`nexus-prototype.md` §6.4). Sans `KHR_parallel_shader_compile`, on retombe sur le cas du banc.
    Un téléphone ne joint pas `localhost` : il faudra exposer l'aperçu sur le réseau local.
-2. **Clore la Phase 7** — son dernier critère de sortie, « aucune régression des Core Web Vitals »,
-   n'est pas remesuré. ⛔ Et ce n'est PAS un écart nul par construction : depuis #58, `src/` a
-   reçu #70 (focus), #72 (emblèmes, faisceaux, parallaxe, étiquettes — `layout.ts` et la géométrie),
-   #73, #75, #76 (rig de caméra réécrit) et #77 (un attribut) — `git log 854d1fe..main -- src` les
-   liste —, sans compter les mises à jour de dépendances (Next 16.4.1, R3F 9.8.2, drei 10.7.9). La méthode de
-   la Phase 5 (Lighthouse contre deux images construites, `854d1fe` et `main`, même machine) dira
-   l'écart, au lieu de le supposer.
+2. **Clore la Phase 7** — ✅ **critère mesuré le 2026-10-29** (`performance-budget.md` §6.4, trois
+   images `1ecfdb3` / `854d1fe` / `main`, même outillage, `make perf-baseline`) : CLS 0 partout, et
+   **aucune régression depuis #58** (LCP à ±10 ms). ⛔ **Mais #58 lui-même a porté le LCP mobile de
+   1,66 à 2,21 s** — témoin sans scène compris, donc pas le canvas ; l'élément LCP (l'accroche)
+   s'affiche toujours au premier rendu, l'écart naît dans la simulation Lantern, cause **non
+   établie**. ⛔ `nexus-prototype.md` §6.2 affirmait « LCP inchangé » : corrigé. La clôture attend
+   **D13**.
    ✅ **P7-07 livrée le 2026-10-28** (E2E-18, `scene-mounted/language-switch.spec.ts`) : scène
    montée, la bascule de langue mène à la page d'un lien direct vers la même adresse (différentiel),
    et les étiquettes des univers se jugent AUSSI contre le dictionnaire d'arrivée — le différentiel
@@ -677,6 +678,13 @@ que des travaux scolaires de 2021, et la page Projets ne contient que ce portfol
 pas d'ajouter du volume — c'est **un** projet récent, décrit pour lui-même.
 → *Si tu en as un à montrer, c'est un fichier par locale dans `content/*/projects/`. Sinon, dis-le :
 la page reste à un projet, assumé, et je ne la rouvre plus.*
+
+**D13 🟠 — Le critère CWV de la Phase 7 est-il tenu ?** *Née de la mesure du 2026-10-29.* Depuis
+#58, rien n'a bougé ; mais #58 — qui a livré P7-03 et P7-08 — a porté le LCP mobile de **1,66 à
+2,21 s** : au-dessus de la cible (1,8 s), sous le seuil bloquant (2,5 s), CLS 0, ordinateur
+intact. → *Défaut recommandé : **clore la Phase 7** et porter l'écart comme dette chiffrée en Phase 11
+(comme le TBT de la Phase 5), avec une tâche d'instruction de la cause. Alternative : instruire et
+corriger avant de clore.*
 
 **D12 🟢 — La largeur du plateau, au mètre ruban.** *Une seule mesure, et toute la scène se
 verrouille.* La photo donne **1,37 m**, la valeur retenue **1,40 m** ; toutes les cotes en découlent

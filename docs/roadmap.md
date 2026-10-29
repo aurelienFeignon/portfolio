@@ -29,8 +29,9 @@
 > tâches devenues sans objet passées `DROPPED` avec leur raison. Détail, mesures et décisions :
 > [`nexus-prototype.md`](./nexus-prototype.md).
 > ⚠️ **Dette ouverte par #58** : 72 draw calls sur ordinateur (cible 60) ; GPU intégré, téléphone et
-> Safari non mesurés.
-> Dernière mise à jour : 2026-10-28 (P7-04, P7-06 et P7-07 livrées)
+> Safari non mesurés ; ⛔ **LCP mobile 1,66 → 2,21 s** (cible 1,8, seuil 2,5), mesuré le 2026-10-29
+> (`performance-budget.md` §6.4).
+> Dernière mise à jour : 2026-10-29 (critère CWV de la Phase 7 mesuré — clôture en attente d'arbitrage)
 
 Ce document est la **source de vérité unique des tâches**. Les identifiants sont stables et ne
 sont jamais réutilisés, même si une tâche est abandonnée.
@@ -55,7 +56,7 @@ silencieusement.
 | 4 | Portfolio HTML | **DONE** *(2026-08-20)* | **Produit utilisable sans Three.js** (phase obligatoire) |
 | 5 | Fondation Three.js | **DONE** *(2026-08-25)* — 10/10, P5-10 close le 2026-10-23 avec #58 | Scène primitive : le bureau réel, éclairé, budget tenu, isolation gardée |
 | 6 | Navigation spatiale | **CLOSE** *(2026-08-26 → 2026-10-27)* — 12/12 |  Route ↔ scène, testé sans WebGL |
-| 7 | Interfaces de lecture *(réorientée par D11)* | **IN_PROGRESS** — P7-03 et P7-08 livrées par #58, P7-05 le 2026-10-26, P7-04, P7-06 et P7-07 le 2026-10-28 — **toutes les tâches livrées** ; ⚠️ clôture en attente du critère « aucune régression des Core Web Vitals », non remesuré | Contenu dans un panneau HTML non projeté, instance unique |
+| 7 | Interfaces de lecture *(réorientée par D11)* | **IN_PROGRESS** — P7-03 et P7-08 livrées par #58, P7-05 le 2026-10-26, P7-04, P7-06 et P7-07 le 2026-10-28 — **toutes les tâches livrées** ; ⏸️ critère « aucune régression des Core Web Vitals » **mesuré le 2026-10-29** (`performance-budget.md` §6.4) : aucune depuis #58, mais #58 lui-même a porté le LCP mobile de 1,66 à 2,21 s — clôture en attente de l'arbitrage de l'exploitant | Contenu dans un panneau HTML non projeté, instance unique |
 | 8 | Direction artistique NEXUS *(réorientée par D11)* | **IN_PROGRESS** — prototype en production (P8-09) | Scène crédible, budgets mesurés à chaque ajout |
 | 9 | Interactions secondaires | TODO — **objets à réévaluer** (D11 : plus de bureau) | CV, GitHub, LinkedIn, contact, à propos |
 | 10 | Envoi du CV | TODO | Server Action + fournisseur abstrait + anti-abus |
@@ -1618,6 +1619,11 @@ sur l'animation de caméra se pose avant d'écrire le rig, pas après (CT-08).
 **Critères de sortie** — Chaque contenu présent **une seule fois** dans le DOM ; texte natif,
 sélectionnable, lu correctement ; deep link et bascule de langue corrects en immersif ; aucune
 régression des Core Web Vitals.
+
+⏸️ **Dernier critère mesuré le 2026-10-29** (`performance-budget.md` §6.4) : CLS 0 partout, LCP
+inchangé de `854d1fe` à `main` ; mais **+550 ms de LCP mobile** introduits par #58 (1,66 → 2,21 s,
+témoin sans scène compris, donc pas le canvas), qui a livré P7-03 et P7-08. Tenu ou non : arbitrage
+de l'exploitant.
 
 ---
 
