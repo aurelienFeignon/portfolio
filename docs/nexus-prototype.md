@@ -122,8 +122,12 @@ Aucune dépendance, aucun module drei, aucun post-traitement.
 | Fiche · mobile | 596 ms | **327 ms** | 81 ms |
 | Fiche · ordinateur | 135 ms | **0 ms** | 0 ms |
 
-LCP et CLS inchangés (CLS 0 partout). **Les fiches gagnent** — la scène y est cachée et ne calcule
-aucune image ; **l'accueil double** par rapport au bureau.
+CLS 0 partout. **Les fiches gagnent** — la scène y est cachée et ne calcule aucune image ;
+**l'accueil double** par rapport au bureau.
+
+⛔⛔ **Corrigé le 2026-10-29 : « LCP inchangé » était FAUX, et ce relevé le disait déjà.** Le résumé de
+`d42fa70` (`.perf/`, hors dépôt) portait un LCP mobile de **2 208 ms**, témoin compris. Seul le TBT
+avait été lu. Rejoué avec un outillage commun : `performance-budget.md` §6.4.
 
 ### 6.3 ⛔ Ce que l'enquête a établi, et ce qu'elle a réfuté
 

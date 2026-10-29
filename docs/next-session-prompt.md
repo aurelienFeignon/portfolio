@@ -50,7 +50,8 @@ supervisé, avec une checklist de mise en ligne et un rollback rejoué.
 **Phase 6 (Navigation spatiale) : CLOSE** le 2026-10-27, 12 tâches sur 12 — `phase-6-log.md` §11
 et §12.
 **Phase 7 (Interfaces de lecture)** : **toutes les tâches livrées** (P7-03 à P7-08, P7-01/02 abandonnées) ;
-⚠️ clôture en attente du critère « aucune régression des Core Web Vitals », non remesuré.
+**CLOSE le 2026-10-29** — critère CWV mesuré (`performance-budget.md` §6.4) et tenu par
+arbitrage **D13** ; l'écart de LCP mobile introduit par #58 est une dette, **P11-11**.
 ⭐⭐ **NEXUS EST EN PRODUCTION depuis le 2026-10-23 (#58, `854d1fe`)** — D11 : le bureau 3D est
 remplacé par un noyau numérique et trois univers, avec navigation hybride et `ReadingPanel` en verre
 lumineux. **Lis `docs/nexus-prototype.md` avant toute chose** : décisions, architecture de la scène,
@@ -306,8 +307,8 @@ référence (#57), `ReadingPanel`, P6-04, décisions NEXUS (D11 et amendements d
 prototype, validation visuelle avec l'utilisateur, fusion et déploiement (#58), roadmap reprise.
 
 ⛔ **Avant toute chose, vérifie la fusion de cette mise à jour du prompt** (branche
-`test/p7-07-langue-immersif`) : `gh pr list --state all --head test/p7-07-langue-immersif`.
-Les précédentes sont fusionnées et déployées : P7-04 (#77, `365d168`), P7-06 (#78, `0541ceb`).
+`mesure/p7-cwv-non-regression`) : `gh pr list --state all --head mesure/p7-cwv-non-regression`.
+Les précédentes sont fusionnées : P7-04 (#77), P7-06 (#78), P7-07 (#79).
 
 ✅ **Phase 6 close le 2026-10-27** : P6-07 et P6-10 (`phase-6-log.md` §11), P6-11 et P6-12 (§12).
 ⛔ P6-11 a trouvé un défaut **en production** : `setFrameloop` remet l'horloge de R3F à zéro, et une
@@ -347,13 +348,9 @@ autour de la page entière). Firefox headless ne monte pas la scène : non couve
    bridé ×4) ; le banc sans GPU annonce 1 231 ms et **surestime d'environ ×8**
    (`nexus-prototype.md` §6.4). Sans `KHR_parallel_shader_compile`, on retombe sur le cas du banc.
    Un téléphone ne joint pas `localhost` : il faudra exposer l'aperçu sur le réseau local.
-2. **Clore la Phase 7** — son dernier critère de sortie, « aucune régression des Core Web Vitals »,
-   n'est pas remesuré. ⛔ Et ce n'est PAS un écart nul par construction : depuis #58, `src/` a
-   reçu #70 (focus), #72 (emblèmes, faisceaux, parallaxe, étiquettes — `layout.ts` et la géométrie),
-   #73, #75, #76 (rig de caméra réécrit) et #77 (un attribut) — `git log 854d1fe..main -- src` les
-   liste —, sans compter les mises à jour de dépendances (Next 16.4.1, R3F 9.8.2, drei 10.7.9). La méthode de
-   la Phase 5 (Lighthouse contre deux images construites, `854d1fe` et `main`, même machine) dira
-   l'écart, au lieu de le supposer.
+2. ✅ **Phase 7 close le 2026-10-29** (D13, `phase-0-questions.md`) : aucune régression depuis #58,
+   mais #58 a dégradé le LCP mobile — dette **P11-11**, cause non établie (`performance-budget.md`
+   §6.4). `nexus-prototype.md` §6.2 affirmait « LCP inchangé » : corrigé.
    ✅ **P7-07 livrée le 2026-10-28** (E2E-18, `scene-mounted/language-switch.spec.ts`) : scène
    montée, la bascule de langue mène à la page d'un lien direct vers la même adresse (différentiel),
    et les étiquettes des univers se jugent AUSSI contre le dictionnaire d'arrivée — le différentiel
@@ -654,7 +651,8 @@ Format des réponses : « D2 = …, défaut partout ailleurs » suffit. Aucune n
 ⭐ **Ce bloc ne contient QUE des questions vivantes**, et c'est ce qui lui donne sa valeur. Les
 décisions tranchées sont reportées dans `phase-0-questions.md` ; elles n'ont plus à être lues ici.
 **Closes : D1, D3, D4, D7** (le 2026-08-16 pour les deux dernières), **D9 et D10** (le 2026-08-20),
-**D11** (le 2026-08-25, « laisser » — `phase-5-log.md` §6.7).
+**D11** (le 2026-08-25, « laisser » — `phase-5-log.md` §6.7), **D13** (le 2026-10-29, critère CWV
+de la Phase 7 tenu).
 
 **D2 🟠 — Relire les 40 niveaux de compétence (1 à 5).** *La seule qui ait un effet visible : les
 niveaux **ne sont ni affichés ni publiés** tant que tu ne les as pas relus.* Les publier afficherait

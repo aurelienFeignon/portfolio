@@ -69,6 +69,12 @@ Posées à l'ouverture de la session, en vue de P2-11.
 | **D10** | Deux moniteurs + un portable, ou un troisième moniteur fictif ? | **Le bureau réel est assumé : deux moniteurs et un portable.** La métaphore gauche / centre / droite tombe, et c'est cohérent avec ce que ce dépôt fait partout ailleurs — constater plutôt qu'inventer. Un troisième moniteur fictif aurait rendu la navigation plus symétrique au prix d'une scène qui cesse de décrire un lieu existant, alors que tout le dossier de référence est bâti sur des photos et un étalon mesuré. **L'affectation était déjà en place et ne change pas** : écran gauche (portrait) → *Expériences*, écran central (paysage) → *Projets*, dalle du portable → *Compétences*, plus une vue d'ensemble pour `/`. ⚠️ Conséquence pour la Phase 6 : les trois cibles n'ont **pas** la même taille apparente ni la même hauteur, et le cadrage *Compétences* est le seul à 16° de champ au lieu de 34–36° — le `fov` devra être interpolé avec la position, sinon la transition produit un zoom sec. |
 | **D11** | *(2026-10-23)* Garder le bureau réel, ou une direction artistique abstraite ? | **⛔ D10 est REMPLACÉE : la scène devient NEXUS** — un noyau numérique central et trois univers (Expériences : chronologie orbitale ; Projets : réseau de nœuds ; Compétences : constellation), sombre, cyan et violet, sans post-traitement. D10 n'est pas effacée : elle reste lisible ici, et ce qui en découlait (dalles, cadrages sur leur normale, 16° de champ) est retiré avec le bureau. **Ce qui ne change pas** : la route reste la seule source de vérité (ADR-0002), la 3D reste un enrichissement (ADR-0003), et l'affectation section → cible est inchangée — chaque univers EST sa section. Décision de l'utilisateur, prototype sur `feat/nexus-prototype` ; détail, amendements d'ADR et mesures : [`nexus-prototype.md`](./nexus-prototype.md). |
 
+## Décision de performance — 2026-10-29
+
+| # | Question | Réponse |
+|---|---|---|
+| **D13** | Le critère de sortie de la Phase 7, « aucune régression des Core Web Vitals », est-il tenu ? | **Oui, tenu — la Phase 7 est close.** Aucune régression depuis #58 (LCP à ±10 ms, CLS 0), mais #58, qui a livré P7-03 et P7-08, a dégradé le LCP mobile simulé : au-dessus de la cible, sous le seuil bloquant, témoin sans scène compris. L'écart devient une **dette chiffrée, P11-11**, comme le TBT de la Phase 5. Décision de l'utilisateur. Mesures : `performance-budget.md` §6.4. |
+
 ## Décision de budget — 2026-08-20
 
 | # | Question | Réponse |

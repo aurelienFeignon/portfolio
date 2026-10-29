@@ -29,8 +29,8 @@
 > tâches devenues sans objet passées `DROPPED` avec leur raison. Détail, mesures et décisions :
 > [`nexus-prototype.md`](./nexus-prototype.md).
 > ⚠️ **Dette ouverte par #58** : 72 draw calls sur ordinateur (cible 60) ; GPU intégré, téléphone et
-> Safari non mesurés.
-> Dernière mise à jour : 2026-10-28 (P7-04, P7-06 et P7-07 livrées)
+> Safari non mesurés ; ⛔ **LCP mobile dégradé** (`performance-budget.md` §6.4, P11-11).
+> Dernière mise à jour : 2026-10-29 (Phase 7 close — critère CWV tenu par arbitrage D13)
 
 Ce document est la **source de vérité unique des tâches**. Les identifiants sont stables et ne
 sont jamais réutilisés, même si une tâche est abandonnée.
@@ -55,7 +55,7 @@ silencieusement.
 | 4 | Portfolio HTML | **DONE** *(2026-08-20)* | **Produit utilisable sans Three.js** (phase obligatoire) |
 | 5 | Fondation Three.js | **DONE** *(2026-08-25)* — 10/10, P5-10 close le 2026-10-23 avec #58 | Scène primitive : le bureau réel, éclairé, budget tenu, isolation gardée |
 | 6 | Navigation spatiale | **CLOSE** *(2026-08-26 → 2026-10-27)* — 12/12 |  Route ↔ scène, testé sans WebGL |
-| 7 | Interfaces de lecture *(réorientée par D11)* | **IN_PROGRESS** — P7-03 et P7-08 livrées par #58, P7-05 le 2026-10-26, P7-04, P7-06 et P7-07 le 2026-10-28 — **toutes les tâches livrées** ; ⚠️ clôture en attente du critère « aucune régression des Core Web Vitals », non remesuré | Contenu dans un panneau HTML non projeté, instance unique |
+| 7 | Interfaces de lecture *(réorientée par D11)* | **CLOSE** *(2026-10-23 → 2026-10-29)* — 6 livrées, P7-01/02 abandonnées ; critère CWV tenu par arbitrage D13 (`performance-budget.md` §6.4), écart de LCP mobile porté par P11-11 | Contenu dans un panneau HTML non projeté, instance unique |
 | 8 | Direction artistique NEXUS *(réorientée par D11)* | **IN_PROGRESS** — prototype en production (P8-09) | Scène crédible, budgets mesurés à chaque ajout |
 | 9 | Interactions secondaires | TODO — **objets à réévaluer** (D11 : plus de bureau) | CV, GitHub, LinkedIn, contact, à propos |
 | 10 | Envoi du CV | TODO | Server Action + fournisseur abstrait + anti-abus |
@@ -1619,6 +1619,10 @@ sur l'animation de caméra se pose avant d'écrire le rig, pas après (CT-08).
 sélectionnable, lu correctement ; deep link et bascule de langue corrects en immersif ; aucune
 régression des Core Web Vitals.
 
+✅ **Phase close le 2026-10-29.** Dernier critère mesuré (`performance-budget.md` §6.4) et **tenu par
+arbitrage D13** (`phase-0-questions.md`) : l'écart de LCP mobile introduit par #58 devient une dette
+chiffrée, P11-11.
+
 ---
 
 ## PHASE 8 — Direction artistique NEXUS *(réorientée par D11)*
@@ -1717,6 +1721,7 @@ dépendance ajoutée au projet**.
 | P11-08 | Mesure de la consommation du conteneur sur le VPS (`performance-budget.md` §7) |
 | P11-09 | Budgets de performance en gate CI |
 | P11-10 | Rapport `Avant / Après / Gain` |
+| P11-11 | Instruire et réduire l'écart de LCP mobile introduit par #58, au-dessus de la cible — dette acceptée par D13 ; l'élément LCP s'affiche au premier rendu, l'écart naît dans la simulation Lantern, cause non établie (`performance-budget.md` §6.4) |
 
 **Critères de sortie** — Tous les budgets tenus ou dépassements arbitrés explicitement par
 réduction de l'ambition (jamais par relèvement de seuil non justifié) ; budgets surveillés en CI.
