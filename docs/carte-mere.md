@@ -122,7 +122,9 @@ Tout se calcule dans un module **pur**, sans three ni JSX, testable comme `layou
   le quartier des processeurs, et de courtes pistes rejoignent chaque processeur. C'est la parade
   au plat de spaghettis.
 - Un projet rattaché à une expérience se branche sur le tronçon de cette expérience, à l'année de
-  son début (bornée à la période du poste). Un projet personnel ne se branche pas sur le bus.
+  son début (bornée à la période du poste). C'est le **rattachement** (`experience`) qui décide,
+  jamais le `type` : un projet sans rattachement ne se branche pas sur le bus, et un projet `personal`
+  rattaché (Augure) s'y branche.
 
 **Cadrages**
 
@@ -159,7 +161,9 @@ aux étiquettes HTML (§8), qui les prennent du DOM ou du dictionnaire comme auj
 - **Augure** est le projet principal (processeur central). « Ce portfolio » devient secondaire.
 - **Le projet principal se désigne par un champ dédié** du schéma de projet (décision de
   l'utilisateur) — par exemple `principal: true`, nom au choix du constructeur. **Au plus un**
-  projet le porte, vérifié par le contrôle d'intégrité (deux = erreur de build). Si aucun ne le
+  projet le porte **par locale**, et c'est **le même** dans toutes les locales où sa fiche existe
+  (une locale qui n'a pas traduit la fiche n'est pas jugée, R-07) ; les deux règles sont vérifiées
+  par le contrôle d'intégrité (erreur de build). Si aucun ne le
   porte, la carte place le projet le plus récent au centre. `featured` garde son sens actuel et
   n'est pas touché : la fiche du portfolio le conserve.
 - Le schéma de projet gagne un champ optionnel de **rattachement à une expérience** (un `slug`

@@ -52,6 +52,13 @@ describe('gate de contenu', () => {
     ],
     ['un composant hors liste blanche dans le corps', 'unknown-component', /« Calout »/],
     ['un corps MDX jamais refermé', 'broken-body', /corps MDX illisible/],
+    // La carte mère (docs/carte-mere.md §6).
+    [
+      'un rattachement à une expérience inconnue',
+      'unknown-experience',
+      /expérience inconnue.*« evae »/,
+    ],
+    ['deux projets principaux dans une locale', 'two-primaries', /se déclarent principaux/],
   ])('sort en 1 sur %s, en nommant le fichier', async (_label, fixture, expected) => {
     const { code, output } = await checkContent(join(FIXTURES, 'invalid', fixture))
 
@@ -80,6 +87,26 @@ describe('gate de contenu', () => {
     expect(output).toContain('1 problème(s)')
     expect(output).not.toContain('technologie inconnue')
     expect(output).toContain('cohérence référentielle non vérifiée')
+  })
+
+  it('sort en 1 sur un principal qui ne l’est pas dans l’autre locale', async () => {
+    // Même fiche dans les deux langues, principale d'un seul côté : la carte
+    // changerait de centre en changeant de langue.
+    const { code, output } = await checkContent(join(FIXTURES, 'invalid', 'primary-divergence'))
+
+    expect(code).toBe(1)
+    expect(output).toMatch(/« augure » est principal en fr mais pas en en/)
+    expect(output).toContain('en/projects')
+  })
+
+  it('ne fabrique pas de rattachements morts quand une expérience est illisible', async () => {
+    // Même raisonnement que pour les compétences : l'expérience illisible
+    // ferait accuser le projet qui s'y rattache d'une faute qui n'est pas la sienne.
+    const { output } = await checkContent(join(FIXTURES, 'invalid', 'broken-experience'))
+
+    expect(output).toContain('1 problème(s)')
+    expect(output).not.toContain('expérience inconnue')
+    expect(output).toContain('rattachements aux expériences non vérifiés')
   })
 
   it('rapporte tous les fichiers fautifs en une seule passe', async () => {

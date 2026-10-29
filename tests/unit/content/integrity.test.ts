@@ -10,6 +10,7 @@ import {
   describeUnknownExperience,
   describeUnknownTechnologies,
   findPrimaryConflict,
+  findPrimaryDivergence,
   findUnknownExperiences,
   findUnknownTechnologies,
 } from '@/content/integrity'
@@ -138,5 +139,43 @@ describe('projet principal', () => {
 
     expect(message).toContain('a.mdx')
     expect(message).toContain('b.mdx')
+  })
+})
+
+describe('projet principal d’une locale à l’autre', () => {
+  const locale = (name: string, primary: string | null, slugs: string[]) => ({
+    locale: name,
+    primary,
+    projectSlugs: new Set(slugs),
+  })
+
+  it('accepte le même principal dans les deux locales', () => {
+    expect(
+      findPrimaryDivergence([locale('fr', 'a', ['a', 'b']), locale('en', 'a', ['a', 'b'])]),
+    ).toEqual([])
+  })
+
+  it('accepte un principal absent de l’autre locale, qui n’a pas traduit la fiche', () => {
+    expect(
+      findPrimaryDivergence([locale('fr', 'a', ['a', 'b']), locale('en', null, ['b'])]),
+    ).toEqual([])
+  })
+
+  it('refuse un principal présent mais non principal dans l’autre locale', () => {
+    const [problem] = findPrimaryDivergence([locale('fr', 'a', ['a']), locale('en', null, ['a'])])
+
+    expect(problem).toEqual({
+      locale: 'en',
+      message: expect.stringContaining('« a » est principal en fr mais pas en en'),
+    })
+  })
+
+  it('refuse deux locales qui désignent deux principaux traduits des deux côtés', () => {
+    const problems = findPrimaryDivergence([
+      locale('fr', 'a', ['a', 'b']),
+      locale('en', 'b', ['a', 'b']),
+    ])
+
+    expect(problems.map((problem) => problem.locale)).toEqual(['en', 'fr'])
   })
 })

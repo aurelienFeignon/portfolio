@@ -28,9 +28,11 @@ import {
   describeUnknownExperience,
   describeUnknownTechnologies,
   findPrimaryConflict,
+  findPrimaryDivergence,
   findUnknownExperiences,
   findUnknownTechnologies,
   type ExperienceReference,
+  type LocalePrimary,
   type TechnologyReference,
 } from '../src/content/integrity.ts'
 import { validateFile } from '../src/content/loader.ts'
@@ -76,6 +78,8 @@ async function checkBody(file: ContentFile): Promise<string | null> {
 interface LocaleReport {
   readonly failures: readonly string[]
   readonly validated: number
+  /** Pour le contrôle entre locales du projet principal. */
+  readonly primary: LocalePrimary
 }
 
 /**
@@ -96,6 +100,8 @@ async function checkLocale(locale: Locale): Promise<LocaleReport> {
   const experienceSlugs = new Set<string>()
   let experiencesAreComplete = true
   const primaryFiles: string[] = []
+  const primarySlugs: string[] = []
+  const projectSlugs = new Set<string>()
   let validated = 0
 
   for (const type of CONTENT_TYPES) {
@@ -123,7 +129,11 @@ async function checkLocale(locale: Locale): Promise<LocaleReport> {
         if ('technologies' in entry) {
           references.push({ file: file.file, technologies: entry.technologies })
         }
-        if ('primary' in entry && entry.primary) primaryFiles.push(file.file)
+        if (type === 'projects') projectSlugs.add(entry.slug)
+        if ('primary' in entry && entry.primary) {
+          primaryFiles.push(file.file)
+          primarySlugs.push(entry.slug)
+        }
         if ('experience' in entry && entry.experience !== undefined) {
           experienceReferences.push({ file: file.file, experience: entry.experience })
         }
@@ -167,7 +177,8 @@ async function checkLocale(locale: Locale): Promise<LocaleReport> {
   const primaryConflict = findPrimaryConflict(primaryFiles)
   if (primaryConflict !== null) failures.push(fail(`content/${locale}/projects`, primaryConflict))
 
-  return { failures, validated }
+  const primary = primarySlugs.length === 1 ? (primarySlugs[0] ?? null) : null
+  return { failures, validated, primary: { locale, primary, projectSlugs } }
 }
 
 function report(failures: readonly string[]): never {
@@ -188,7 +199,10 @@ if (!tree.rootExists) report([fail(root, 'racine du contenu introuvable')])
 
 const structural = tree.unexpected.map((entry) => fail(entry.path, entry.reason))
 const reports = await Promise.all(LOCALES.map(checkLocale))
-const failures = [...structural, ...reports.flatMap((locale) => locale.failures)]
+const divergences = findPrimaryDivergence(reports.map((report) => report.primary)).map((problem) =>
+  fail(`content/${problem.locale}/projects`, problem.message),
+)
+const failures = [...structural, ...reports.flatMap((locale) => locale.failures), ...divergences]
 
 if (failures.length > 0) report(failures)
 

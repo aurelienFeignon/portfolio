@@ -44,8 +44,10 @@ export const projectFrontmatterSchema = z
     primary: z.boolean().default(false),
     /**
      * Le slug de l'expérience où le projet est né : il se branche sur le tronçon
-     * de cet employeur dans le bus de la carte mère. Absent pour un projet
-     * personnel. Son existence est vérifiée par le gate, comme les `technologies`.
+     * de cet employeur dans le bus de la carte mère. Absent : le projet ne se
+     * branche pas. ⭐ Indépendant du `type` — un projet `personal` peut naître
+     * d'une expérience. Son existence est vérifiée par le gate, comme les
+     * `technologies`.
      */
     experience: slugSchema.optional(),
     technologies: technologiesSchema,

@@ -86,3 +86,44 @@ export function findPrimaryConflict(primaryFiles: readonly string[]): string | n
   const list = primaryFiles.map((file) => `« ${file} »`).join(', ')
   return `${primaryFiles.length} projets se déclarent principaux (\`primary: true\`), un seul est permis par locale : ${list}`
 }
+
+/**
+ * Le processeur central d'une locale à l'autre. Une personne qui change de
+ * langue attend **la même carte** : un projet principal dans une locale qui
+ * existe aussi, non principal, dans une autre est une divergence.
+ *
+ * Compatible avec R-07 (`tree.ts`) : une locale peut ne pas traduire une fiche,
+ * et un principal **absent** de l'autre locale n'est pas jugé.
+ */
+export interface LocalePrimary {
+  readonly locale: string
+  /** Le slug du projet principal, `null` s'il n'y en a pas exactement un. */
+  readonly primary: string | null
+  readonly projectSlugs: ReadonlySet<string>
+}
+
+export interface PrimaryDivergence {
+  /** La locale où la fiche existe sans être principale : c'est elle qu'on corrige. */
+  readonly locale: string
+  readonly message: string
+}
+
+export function findPrimaryDivergence(
+  locales: readonly LocalePrimary[],
+): readonly PrimaryDivergence[] {
+  return locales.flatMap((source) =>
+    source.primary === null
+      ? []
+      : locales
+          .filter(
+            (other) =>
+              other !== source &&
+              other.projectSlugs.has(source.primary as string) &&
+              other.primary !== source.primary,
+          )
+          .map((other) => ({
+            locale: other.locale,
+            message: `« ${source.primary} » est principal en ${source.locale} mais pas en ${other.locale} : la carte aurait un autre centre selon la langue`,
+          })),
+  )
+}
