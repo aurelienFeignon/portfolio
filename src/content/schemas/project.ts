@@ -34,6 +34,20 @@ export const projectFrontmatterSchema = z
      * ce champ ne peut pas faire remonter un projet par accident.
      */
     featured: z.boolean().default(false),
+    /**
+     * Le projet qui tient le processeur central de la carte mère
+     * (`docs/carte-mere.md` §6). ⭐ **Indépendant de `featured`** : être mis en
+     * avant dans les listes ne fait pas d'un projet le centre de la scène, et
+     * inversement. Au plus un par locale — le gate d'intégrité le vérifie, un
+     * schéma ne voit qu'un fichier.
+     */
+    primary: z.boolean().default(false),
+    /**
+     * Le slug de l'expérience où le projet est né : il se branche sur le tronçon
+     * de cet employeur dans le bus de la carte mère. Absent pour un projet
+     * personnel. Son existence est vérifiée par le gate, comme les `technologies`.
+     */
+    experience: slugSchema.optional(),
     technologies: technologiesSchema,
     startedAt: isoDateSchema,
     /** Absent ⇒ projet toujours en cours (dérivation en P2-06). */

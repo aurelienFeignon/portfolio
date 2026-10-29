@@ -239,6 +239,40 @@ describe('schéma de projet', () => {
 
     expect(failurePaths(result)).toContain('cover.alt')
   })
+
+  // La carte mère (docs/carte-mere.md §6) : le processeur central et le
+  // branchement d'un projet sur le bus des expériences.
+  it('considère un projet non marqué comme non principal', () => {
+    expect(projectFrontmatterSchema.parse(makeProjectFrontmatter()).primary).toBe(false)
+  })
+
+  it('accepte un projet principal qui n’est pas mis en avant', () => {
+    const result = projectFrontmatterSchema.parse(
+      makeProjectFrontmatter({ primary: true, featured: false }),
+    )
+
+    expect([result.primary, result.featured]).toEqual([true, false])
+  })
+
+  it('accepte un rattachement à une expérience', () => {
+    const result = projectFrontmatterSchema.parse(makeProjectFrontmatter({ experience: 'evea' }))
+
+    expect(result.experience).toBe('evea')
+  })
+
+  it('rejette un rattachement qui n’est pas un slug, en désignant le champ', () => {
+    const result = projectFrontmatterSchema.safeParse(
+      makeProjectFrontmatter({ experience: 'Evea Conseil' }),
+    )
+
+    expect(failurePaths(result)).toEqual(['experience'])
+  })
+
+  it('rejette un principal qui n’est pas un booléen, en désignant le champ', () => {
+    const result = projectFrontmatterSchema.safeParse(makeProjectFrontmatter({ primary: 'oui' }))
+
+    expect(failurePaths(result)).toEqual(['primary'])
+  })
 })
 
 describe('schéma d’expérience', () => {
