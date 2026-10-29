@@ -5,11 +5,7 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
-  # ⛔⛔ Une fusion peut ne déclencher AUCUNE exécution, en silence (2026-09-24,
-  # #52) : sans cette poignée, le seul rattrapage était un nouveau push.
-  # `gh workflow run ci.yml --ref main` rejoue la chaîne entière sur la tête de
-  # `main`, déploiement compris ; depuis une autre branche, gates et E2E
-  # tournent, sans publication ni déploiement.
+  # Rattrapage d'une fusion qui n'a produit aucun run : `deploy/README.md` §8.4.
   workflow_dispatch:
 
 # Sur une PR, un push qui en remplace un autre annule l'exécution précédente :
@@ -226,8 +222,7 @@ jobs:
     name: publier l'image sur GHCR
     runs-on: ubuntu-latest
     needs: [versions, gates, e2e]
-    # Le seul critère est la BRANCHE : une PR tourne sur `refs/pull/N/merge`,
-    # donc tout run de `main` — push ou manuel — publie, et rien d'autre.
+    # Critère = la branche : une PR tourne sur `refs/pull/N/merge`.
     if: github.ref == 'refs/heads/main'
     permissions:
       contents: read

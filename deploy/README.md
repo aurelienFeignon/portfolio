@@ -757,9 +757,9 @@ la conclusion du workflow d'un côté, la sonde de l'autre.
          retour arrière voulu serait défait sans un mot. Et si une fusion plus récente a son run,
          il n'y a rien à rattraper — il portera la perdue.
       2. `gh workflow run ci.yml --ref main` : la chaîne entière, gates et E2E compris — ce n'est
-         pas un raccourci vers le déploiement. Il attend son tour derrière un run de `main` en
-         cours, il ne l'annule pas (`concurrency`).
-      3. Le lire **par son événement** — `gh workflow run` ne rend pas d'identifiant :
+         pas un raccourci vers le déploiement. Depuis une autre branche, ni publication ni
+         déploiement.
+      3. Le lire **par son événement** (§4.2) — `gh workflow run` ne rend pas d'identifiant :
          `gh run list --workflow ci.yml --event workflow_dispatch --limit 1`, puis
          `gh run watch <id> --exit-status`.
 

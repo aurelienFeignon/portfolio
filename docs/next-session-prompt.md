@@ -771,13 +771,14 @@ officielle n'atteint 250 Mo.
   Phase 14.
 - **Mesure CPU en régime stable** (P11-08) : le seul relevé date d'une minute après démarrage — 32 %,
   au-dessus du seuil d'alerte de 25 %. Ce n'est pas une mesure valide.
-- ✅ **`ci.yml` porte `workflow_dispatch` depuis le 2026-10-29** : un déploiement manquant se
-  rattrape par `gh workflow run ci.yml --ref main` (`deploy/README.md` §8.4), sans commit de
-  complaisance. ⭐ Ce n'était pas « une ligne » : publication et déploiement étaient gardés par
-  `event_name == 'push'`, et le déclencheur seul aurait rendu un run manuel vert **qui ne déploie
-  rien** — le seul critère est désormais la branche. ⛔ Et la revue a trouvé pire, préexistant :
-  `cancel-in-progress` pouvait couper `deploy.sh` en plein déploiement ; il ne vaut plus que pour
-  les PR.
+- ✅ **`workflow_dispatch` dans `ci.yml` depuis le 2026-10-29** : rattrapage par `deploy/README.md`
+  §8.4, et plus d'annulation des runs de `main` (raison dans `ci.yml`).
+- ⚠️ **`deploy.sh` ne survit pas à une coupure SSH** : un `SIGHUP` entre `compose up` et le contrôle
+  de santé laisse le serveur à moitié déployé, sans retour automatique. Une annulation de CI ne le
+  provoque plus, mais une perte du runner ou du réseau, si. Piste : `trap '' HUP` et un `flock`.
+  Le script vit sur le VPS : à y installer à la main.
+- ⚠️ **Un déploiement manquant ne se voit toujours qu'à l'œil** : la poignée rattrape, elle ne
+  détecte pas. Piste : la sonde compare le SHA servi (`deploy.sh status`) à la tête de `main`.
 - **Procédure de restauration du serveur** (R-23) : Hetzner restreint par intermittence la création
   d'instances. À écrire sous cette contrainte en Phase 15.
 - **Plages Cloudflare** : un timer hebdomadaire les rafraîchit sur le VPS.
