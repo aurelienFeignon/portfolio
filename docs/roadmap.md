@@ -56,7 +56,7 @@ silencieusement.
 | 5 | Fondation Three.js | **DONE** *(2026-08-25)* — 10/10, P5-10 close le 2026-10-23 avec #58 | Scène primitive : le bureau réel, éclairé, budget tenu, isolation gardée |
 | 6 | Navigation spatiale | **CLOSE** *(2026-08-26 → 2026-10-27)* — 12/12 |  Route ↔ scène, testé sans WebGL |
 | 7 | Interfaces de lecture *(réorientée par D11)* | **CLOSE** *(2026-10-23 → 2026-10-29)* — 6 livrées, P7-01/02 abandonnées ; critère CWV tenu par arbitrage D13 (`performance-budget.md` §6.4), écart de LCP mobile instruit par P11-11 : absent sous un bridage réel | Contenu dans un panneau HTML non projeté, instance unique |
-| 8 | Direction artistique NEXUS *(réorientée par D11)* | **IN_PROGRESS** — prototype en production (P8-09) | Scène crédible, budgets mesurés à chaque ajout |
+| 8 | Direction artistique NEXUS *(réorientée par D11, puis par D14 : la carte mère)* | **IN_PROGRESS** — prototype en production (P8-09), carte mère en cours (P8-13) | Scène crédible, budgets mesurés à chaque ajout |
 | 9 | Interactions secondaires | TODO — **objets à réévaluer** (D11 : plus de bureau) | CV, GitHub, LinkedIn, contact, à propos |
 | 10 | Envoi du CV | TODO | Server Action + fournisseur abstrait + anti-abus |
 | 11 | Performance | TODO | Audit Avant/Après/Gain, budgets en CI |
@@ -1636,14 +1636,17 @@ chiffrée, P11-11 — soldée le jour même : artefact de Lantern (`performance-
 | P8-02 | Chaîne de compression (Draco/Meshopt, KTX2) et chargement | P8-01 |
 | ~~P8-03~~ | ~~Bureau et écrans définitifs~~ — **DROPPED** (D11) | P8-02 |
 | ~~P8-04~~ | ~~Ordinateur, clavier, souris~~ — **DROPPED** (D11) | P8-03 |
-| P8-05 | Éclairage et ambiance — **IN_PROGRESS** : première version NEXUS en production (#58) | P8-09 |
+| P8-05 | Éclairage et ambiance — **IN_PROGRESS** : première version NEXUS en production (#58) ; **à refaire sur la carte mère** (D14, [`carte-mere.md`](./carte-mere.md)) | P8-15 |
 | ~~P8-06~~ | ~~Objets de décor porteurs de sens (support des interactions de la Phase 9)~~ — **DROPPED** (D11) : plus de bureau où les poser ; voir la réévaluation de la Phase 9 | P8-05 |
 | P8-07 | Mesure `Avant / Après / Gain` **après chaque ajout** — banc `make perf-baseline` **et** panneau `?debug=scene` sur GPU réel (`nexus-prototype.md` §6) | P8-09 |
-| P8-08 | Vérification des contrastes sur la direction artistique finale | P8-05 |
+| P8-08 | Vérification des contrastes sur la direction artistique finale — la carte mère (`carte-mere.md` §9) | P8-05 |
 | P8-09 | Prototype NEXUS : noyau et plateforme, trois univers, ambiance, `ReadingPanel` en verre lumineux — **DONE** *(2026-10-23, #58)* | P6-04 |
-| P8-10 | Alléger le premier rendu : moins de variantes de matériaux et de draw calls (72 sur ordinateur, cible 60) | P8-09 |
+| P8-10 | Alléger le premier rendu : moins de variantes de matériaux et de draw calls (72 sur ordinateur, cible 60) — **devient une contrainte de conception de P8-15** (D14) | P8-09 |
 | P8-11 | Mesurer sur les appareils non couverts : GPU intégré, téléphone réel, Safari (`KHR_parallel_shader_compile`) | P8-09 |
 | P8-12 | Temps de scène accumulé et mouvement ambiant indépendant de la cadence — **DONE** *(2026-10-29)* : `ambientFrame`, pur ; les shaders ne lisent plus l'horloge de R3F (remise à zéro par `setFrameloop`, l'ambiance repartait de 0 au retour d'une fiche — même cause que P6-11), une image figée ne fait plus sauter les rotations | P8-09 |
+| P8-13 | Contenu de la carte mère : champs `primary` et `experience` du projet, contrôles du gate, fiches projet Augure et Askor (`docs/plans/2026-10-29-carte-mere-1-contenu.md`) — **IN_PROGRESS** *(2026-10-29)* | — |
+| P8-14 | Module pur du plan de carte : placement, expansion (lacet, voies parallèles), pistes, cadrages calculés (`carte-mere.md` §5, §7) | P8-13 |
+| P8-15 | Rendu et interactions de la carte mère : instanciation (≤ 60 appels), étiquettes HTML par vue, survol des relations, amendement d'ADR-0004 (`carte-mere.md` §8, §9) | P8-14 |
 
 **Critères de sortie** — Budgets de `performance-budget.md` §5 tenus ; journal de mesures complet ;
 aucun objet ajouté sans justification d'usage ; contrastes conformes.

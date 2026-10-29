@@ -375,8 +375,10 @@ autour de la page entière). Firefox headless ne monte pas la scène : non couve
    pendant la transition n'y rougit pas — E2E-17 (P7-06) relève, lui, chaque image du mouvement.
 3. **P8-10** — alléger le premier rendu (72 draw calls sur ordinateur, cible 60 ; 14 programmes), à
    prioriser si P8-11 montre un problème.
-4. **P8-05, P8-08** — ambiance et contrastes sur la direction artistique **finale** : la scène
-   actuelle est **indicative**, l'utilisateur l'a dit ; la mécanique, elle, est stable.
+4. **La carte mère (D14, 2026-10-29)** remplace la composition NEXUS — conception
+   [`carte-mere.md`](./carte-mere.md), trois plans : **P8-13** contenu
+   (`plans/2026-10-29-carte-mere-1-contenu.md`, en cours), **P8-14** module pur du plan de carte,
+   **P8-15** rendu et interactions. **P8-05, P8-08** se refont et se jugent sur la carte.
 5. ✅ **Le temps des shaders — P8-12, livrée le 2026-10-29** : `ambientFrame`
    (`src/scene/state/ambient-motion.ts`, pur) accumule le temps de scène au lieu de lire
    `state.clock`, borne chaque image à `IMAGE_MAX_S` — un onglet masqué faisait aussi sauter les
