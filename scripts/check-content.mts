@@ -25,8 +25,12 @@ import { compile } from '@mdx-js/mdx'
 import { CONTENT_TYPES } from '../src/content/content-type.ts'
 import { ContentError, messageOf } from '../src/content/errors.ts'
 import {
+  describeUnknownExperience,
   describeUnknownTechnologies,
+  findPrimaryConflict,
+  findUnknownExperiences,
   findUnknownTechnologies,
+  type ExperienceReference,
   type TechnologyReference,
 } from '../src/content/integrity.ts'
 import { validateFile } from '../src/content/loader.ts'
@@ -86,6 +90,12 @@ async function checkLocale(locale: Locale): Promise<LocaleReport> {
   const references: TechnologyReference[] = []
   const skillSlugs = new Set<string>()
   let skillsAreComplete = true
+  // La carte mère : rattachements de projets à une expérience, et projets
+  // principaux (docs/carte-mere.md §6).
+  const experienceReferences: ExperienceReference[] = []
+  const experienceSlugs = new Set<string>()
+  let experiencesAreComplete = true
+  const primaryFiles: string[] = []
   let validated = 0
 
   for (const type of CONTENT_TYPES) {
@@ -99,6 +109,7 @@ async function checkLocale(locale: Locale): Promise<LocaleReport> {
       // l'auteur voie tout ce qu'il a à corriger en une seule passe.
       failures.push(messageOf(error))
       if (type === 'skills') skillsAreComplete = false
+      if (type === 'experiences') experiencesAreComplete = false
       continue
     }
 
@@ -108,12 +119,18 @@ async function checkLocale(locale: Locale): Promise<LocaleReport> {
         validated += 1
 
         if (type === 'skills') skillSlugs.add(entry.slug)
+        if (type === 'experiences') experienceSlugs.add(entry.slug)
         if ('technologies' in entry) {
           references.push({ file: file.file, technologies: entry.technologies })
+        }
+        if ('primary' in entry && entry.primary) primaryFiles.push(file.file)
+        if ('experience' in entry && entry.experience !== undefined) {
+          experienceReferences.push({ file: file.file, experience: entry.experience })
         }
       } catch (error) {
         failures.push(messageOf(error))
         if (type === 'skills') skillsAreComplete = false
+        if (type === 'experiences') experiencesAreComplete = false
       }
 
       const bodyFailure = await checkBody(file)
@@ -133,6 +150,22 @@ async function checkLocale(locale: Locale): Promise<LocaleReport> {
       `⚠ Locale « ${locale} » : cohérence référentielle non vérifiée, une compétence au moins n’a pas pu être lue.`,
     )
   }
+
+  // Même raisonnement : une expérience illisible ferait accuser chaque projet
+  // qui s'y rattache d'une faute qui n'est pas la sienne.
+  if (experiencesAreComplete) {
+    for (const problem of findUnknownExperiences(experienceReferences, experienceSlugs)) {
+      failures.push(fail(problem.file, describeUnknownExperience(problem)))
+    }
+  } else {
+    console.warn(
+      `⚠ Locale « ${locale} » : rattachements aux expériences non vérifiés, une expérience au moins n’a pas pu être lue.`,
+    )
+  }
+
+  // Par locale : chaque langue a sa carte, donc son processeur central.
+  const primaryConflict = findPrimaryConflict(primaryFiles)
+  if (primaryConflict !== null) failures.push(fail(`content/${locale}/projects`, primaryConflict))
 
   return { failures, validated }
 }

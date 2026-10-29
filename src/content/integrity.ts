@@ -47,3 +47,42 @@ export function describeUnknownTechnologies(problem: UnknownTechnologies): strin
   const list = problem.unknown.map((slug) => `« ${slug} »`).join(', ')
   return `cite ${problem.unknown.length > 1 ? 'des technologies inconnues' : 'une technologie inconnue'} des compétences de cette locale : ${list}`
 }
+
+/**
+ * Cohérence référentielle `experience` ↔ `Experience.slug` — la carte mère
+ * (`docs/carte-mere.md` §6).
+ *
+ * Même faute que pour les technologies : `experience: evae` passe le schéma,
+ * et le projet se brancherait sur un tronçon du bus qui n'existe pas.
+ */
+export interface ExperienceReference {
+  readonly file: string
+  readonly experience: string
+}
+
+export type UnknownExperience = ExperienceReference
+
+/** Pure, et rend **toutes** les références mortes, comme `findUnknownTechnologies`. */
+export function findUnknownExperiences(
+  references: readonly ExperienceReference[],
+  knownExperienceSlugs: ReadonlySet<string>,
+): readonly UnknownExperience[] {
+  return references.filter((reference) => !knownExperienceSlugs.has(reference.experience))
+}
+
+export function describeUnknownExperience(problem: UnknownExperience): string {
+  return `se rattache à une expérience inconnue de cette locale : « ${problem.experience} »`
+}
+
+/**
+ * Le processeur central n'a qu'une place : deux projets `primary` dans une même
+ * locale sont une erreur de contenu, pas un choix à arbitrer en silence.
+ *
+ * Rend `null` pour zéro ou un fichier — zéro est permis, la carte place alors le
+ * plus récent au centre —, sinon un message qui nomme **tous** les fichiers.
+ */
+export function findPrimaryConflict(primaryFiles: readonly string[]): string | null {
+  if (primaryFiles.length < 2) return null
+  const list = primaryFiles.map((file) => `« ${file} »`).join(', ')
+  return `${primaryFiles.length} projets se déclarent principaux (\`primary: true\`), un seul est permis par locale : ${list}`
+}

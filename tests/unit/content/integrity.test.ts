@@ -6,7 +6,13 @@
  */
 import { describe, expect, it } from 'vitest'
 
-import { describeUnknownTechnologies, findUnknownTechnologies } from '@/content/integrity'
+import {
+  describeUnknownExperience,
+  describeUnknownTechnologies,
+  findPrimaryConflict,
+  findUnknownExperiences,
+  findUnknownTechnologies,
+} from '@/content/integrity'
 
 const KNOWN = new Set(['typescript', 'postgresql'])
 
@@ -85,5 +91,52 @@ describe('message d’erreur', () => {
 
     expect(message).toContain('des technologies inconnues')
     expect(message).toContain('« rust », « elixir »')
+  })
+})
+
+// La carte mère (docs/carte-mere.md §6) : un projet se branche sur le bus d'une
+// expérience, et un seul tient le processeur central.
+describe('rattachement à une expérience', () => {
+  it('ne signale rien quand l’expérience existe', () => {
+    expect(
+      findUnknownExperiences([{ file: 'p.mdx', experience: 'evea' }], new Set(['evea'])),
+    ).toEqual([])
+  })
+
+  it('signale une expérience inconnue, en nommant le fichier', () => {
+    expect(
+      findUnknownExperiences([{ file: 'p.mdx', experience: 'evae' }], new Set(['evea'])),
+    ).toEqual([{ file: 'p.mdx', experience: 'evae' }])
+  })
+
+  it('rend tous les fichiers fautifs, pas seulement le premier', () => {
+    const problems = findUnknownExperiences(
+      [
+        { file: 'a.mdx', experience: 'evae' },
+        { file: 'b.mdx', experience: 'evea' },
+        { file: 'c.mdx', experience: 'augur' },
+      ],
+      new Set(['evea']),
+    )
+
+    expect(problems.map((problem) => problem.file)).toEqual(['a.mdx', 'c.mdx'])
+  })
+
+  it('décrit la faute avec le slug cité', () => {
+    expect(describeUnknownExperience({ file: 'p.mdx', experience: 'evae' })).toContain('« evae »')
+  })
+})
+
+describe('projet principal', () => {
+  it('accepte zéro ou un principal', () => {
+    expect(findPrimaryConflict([])).toBeNull()
+    expect(findPrimaryConflict(['a.mdx'])).toBeNull()
+  })
+
+  it('refuse deux principaux et les nomme tous', () => {
+    const message = findPrimaryConflict(['a.mdx', 'b.mdx'])
+
+    expect(message).toContain('a.mdx')
+    expect(message).toContain('b.mdx')
   })
 })
