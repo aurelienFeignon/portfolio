@@ -99,8 +99,7 @@ async function checkLocale(locale: Locale): Promise<LocaleReport> {
   const experienceReferences: ExperienceReference[] = []
   const experienceSlugs = new Set<string>()
   let experiencesAreComplete = true
-  const primaryFiles: string[] = []
-  const primarySlugs: string[] = []
+  const primaries: { readonly file: string; readonly slug: string }[] = []
   const projectSlugs = new Set<string>()
   let validated = 0
 
@@ -130,10 +129,8 @@ async function checkLocale(locale: Locale): Promise<LocaleReport> {
           references.push({ file: file.file, technologies: entry.technologies })
         }
         if (type === 'projects') projectSlugs.add(entry.slug)
-        if ('primary' in entry && entry.primary) {
-          primaryFiles.push(file.file)
-          primarySlugs.push(entry.slug)
-        }
+        if ('primary' in entry && entry.primary)
+          primaries.push({ file: file.file, slug: entry.slug })
         if ('experience' in entry && entry.experience !== undefined) {
           experienceReferences.push({ file: file.file, experience: entry.experience })
         }
@@ -174,11 +171,14 @@ async function checkLocale(locale: Locale): Promise<LocaleReport> {
   }
 
   // Par locale : chaque langue a sa carte, donc son processeur central.
-  const primaryConflict = findPrimaryConflict(primaryFiles)
+  const primaryConflict = findPrimaryConflict(primaries.map((primary) => primary.file))
   if (primaryConflict !== null) failures.push(fail(`content/${locale}/projects`, primaryConflict))
 
-  const primary = primarySlugs.length === 1 ? (primarySlugs[0] ?? null) : null
-  return { failures, validated, primary: { locale, primary, projectSlugs } }
+  return {
+    failures,
+    validated,
+    primary: { locale, primaries: new Set(primaries.map((primary) => primary.slug)), projectSlugs },
+  }
 }
 
 function report(failures: readonly string[]): never {

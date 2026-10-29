@@ -97,33 +97,66 @@ export function findPrimaryConflict(primaryFiles: readonly string[]): string | n
  */
 export interface LocalePrimary {
   readonly locale: string
-  /** Le slug du projet principal, `null` s'il n'y en a pas exactement un. */
-  readonly primary: string | null
+  /** Les slugs déclarés `primary` — plus d'un est un conflit, signalé à part. */
+  readonly primaries: ReadonlySet<string>
   readonly projectSlugs: ReadonlySet<string>
 }
 
 export interface PrimaryDivergence {
-  /** La locale où la fiche existe sans être principale : c'est elle qu'on corrige. */
+  /** La locale à corriger : celle où la fiche existe sans être principale. */
   readonly locale: string
   readonly message: string
 }
 
+const CONSEQUENCE = 'la carte aurait un autre centre selon la langue'
+
+/** Le principal de `from` s'il existe, non principal, dans `to`. */
+function missingPrimary(from: LocalePrimary, to: LocalePrimary): string | undefined {
+  // Une locale à deux principaux n'en désigne aucun : son conflit est signalé à
+  // part, et en déduire une divergence mettrait l'auteur sur une fausse piste.
+  if (from.primaries.size !== 1) return undefined
+  const [slug] = from.primaries
+  return slug !== undefined && to.projectSlugs.has(slug) && !to.primaries.has(slug)
+    ? slug
+    : undefined
+}
+
+/**
+ * Une divergence par **paire** de locales, jamais deux : quand chacune désigne
+ * un principal différent, corriger l'une suffit.
+ */
 export function findPrimaryDivergence(
   locales: readonly LocalePrimary[],
 ): readonly PrimaryDivergence[] {
-  return locales.flatMap((source) =>
-    source.primary === null
-      ? []
-      : locales
-          .filter(
-            (other) =>
-              other !== source &&
-              other.projectSlugs.has(source.primary as string) &&
-              other.primary !== source.primary,
-          )
-          .map((other) => ({
-            locale: other.locale,
-            message: `« ${source.primary} » est principal en ${source.locale} mais pas en ${other.locale} : la carte aurait un autre centre selon la langue`,
-          })),
+  return locales.flatMap((a, index) =>
+    locales.slice(index + 1).flatMap((b): PrimaryDivergence[] => {
+      const fromA = missingPrimary(a, b)
+      const fromB = missingPrimary(b, a)
+      if (fromA !== undefined && fromB !== undefined) {
+        return [
+          {
+            locale: b.locale,
+            message: `${a.locale} et ${b.locale} désignent deux principaux différents (« ${fromA} » et « ${fromB} ») : ${CONSEQUENCE}`,
+          },
+        ]
+      }
+      if (fromA !== undefined) {
+        return [
+          {
+            locale: b.locale,
+            message: `« ${fromA} » est principal en ${a.locale} mais pas en ${b.locale} : ${CONSEQUENCE}`,
+          },
+        ]
+      }
+      if (fromB !== undefined) {
+        return [
+          {
+            locale: a.locale,
+            message: `« ${fromB} » est principal en ${b.locale} mais pas en ${a.locale} : ${CONSEQUENCE}`,
+          },
+        ]
+      }
+      return []
+    }),
   )
 }

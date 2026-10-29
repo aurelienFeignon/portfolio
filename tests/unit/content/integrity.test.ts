@@ -143,39 +143,51 @@ describe('projet principal', () => {
 })
 
 describe('projet principal d’une locale à l’autre', () => {
-  const locale = (name: string, primary: string | null, slugs: string[]) => ({
+  const locale = (name: string, primaries: string[], slugs: string[]) => ({
     locale: name,
-    primary,
+    primaries: new Set(primaries),
     projectSlugs: new Set(slugs),
   })
 
   it('accepte le même principal dans les deux locales', () => {
     expect(
-      findPrimaryDivergence([locale('fr', 'a', ['a', 'b']), locale('en', 'a', ['a', 'b'])]),
+      findPrimaryDivergence([locale('fr', ['a'], ['a', 'b']), locale('en', ['a'], ['a', 'b'])]),
     ).toEqual([])
   })
 
   it('accepte un principal absent de l’autre locale, qui n’a pas traduit la fiche', () => {
     expect(
-      findPrimaryDivergence([locale('fr', 'a', ['a', 'b']), locale('en', null, ['b'])]),
+      findPrimaryDivergence([locale('fr', ['a'], ['a', 'b']), locale('en', [], ['b'])]),
     ).toEqual([])
   })
 
   it('refuse un principal présent mais non principal dans l’autre locale', () => {
-    const [problem] = findPrimaryDivergence([locale('fr', 'a', ['a']), locale('en', null, ['a'])])
-
-    expect(problem).toEqual({
-      locale: 'en',
-      message: expect.stringContaining('« a » est principal en fr mais pas en en'),
-    })
+    expect(findPrimaryDivergence([locale('fr', ['a'], ['a']), locale('en', [], ['a'])])).toEqual([
+      {
+        locale: 'en',
+        message: expect.stringContaining('« a » est principal en fr mais pas en en'),
+      },
+    ])
   })
 
-  it('refuse deux locales qui désignent deux principaux traduits des deux côtés', () => {
+  it('signale UNE fois deux locales qui désignent deux principaux différents', () => {
+    // Corriger l'une des deux suffit : deux erreurs pointeraient deux corrections.
     const problems = findPrimaryDivergence([
-      locale('fr', 'a', ['a', 'b']),
-      locale('en', 'b', ['a', 'b']),
+      locale('fr', ['a'], ['a', 'b']),
+      locale('en', ['b'], ['a', 'b']),
     ])
 
-    expect(problems.map((problem) => problem.locale)).toEqual(['en', 'fr'])
+    expect(problems).toHaveLength(1)
+    expect(problems[0]?.message).toContain('désignent deux principaux différents')
+  })
+
+  it('n’invente pas de divergence quand une locale a déjà deux principaux', () => {
+    // Le conflit de cette locale est signalé à part ; « a » y EST principal.
+    expect(
+      findPrimaryDivergence([
+        locale('fr', ['a', 'b'], ['a', 'b']),
+        locale('en', ['a'], ['a', 'b']),
+      ]),
+    ).toEqual([])
   })
 })
