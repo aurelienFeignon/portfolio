@@ -44,15 +44,6 @@ import { FORM_FACTORS, pagesToAudit } from './lighthouse-profiles.mts'
 const BASE_URL = process.env['PLAYWRIGHT_BASE_URL'] ?? 'http://web:3000'
 const RUNS = Number(process.env['RUNS'] ?? 5)
 const STARTED = new Date().toISOString()
-const OUT_DIR =
-  process.env['OUT_DIR'] ??
-  join(
-    '.perf',
-    `${STARTED.replace(/[:.]/g, '-')}-${process.env['GIT_SHA']?.slice(0, 7) ?? 'inconnu'}` +
-      (process.env['THROTTLING'] === 'devtools' ? '-devtools' : ''),
-  )
-
-if (!Number.isInteger(RUNS) || RUNS < 1) throw new Error(`RUNS invalide : ${process.env['RUNS']}`)
 
 /**
  * Le bridage : `simulate` (Lantern, celui des relevés de référence) par défaut,
@@ -68,6 +59,16 @@ if (!Number.isInteger(RUNS) || RUNS < 1) throw new Error(`RUNS invalide : ${proc
 const THROTTLING = process.env['THROTTLING'] ?? 'simulate'
 if (THROTTLING !== 'simulate' && THROTTLING !== 'devtools')
   throw new Error(`THROTTLING invalide : ${THROTTLING} (simulate | devtools)`)
+
+const OUT_DIR =
+  process.env['OUT_DIR'] ??
+  join(
+    '.perf',
+    `${STARTED.replace(/[:.]/g, '-')}-${process.env['GIT_SHA']?.slice(0, 7) ?? 'inconnu'}` +
+      (THROTTLING === 'devtools' ? '-devtools' : ''),
+  )
+
+if (!Number.isInteger(RUNS) || RUNS < 1) throw new Error(`RUNS invalide : ${process.env['RUNS']}`)
 
 /**
  * Les deux modes, chacun dans son propre navigateur : un drapeau de lancement
