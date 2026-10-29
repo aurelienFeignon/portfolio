@@ -111,12 +111,13 @@ lighthouse: ## Audit Lighthouse contre le BUILD DE PRODUCTION (performance-budge
 # sur la MÊME image. Pas un gate : 40 audits, quatre minutes environ.
 # L'image doit exister — `make build` d'abord ; son identifiant et le commit sont
 # consignés avec les chiffres, sans quoi une médiane ne se compare à rien.
+# `THROTTLING=devtools` bride réellement au lieu de simuler (§6.5, P11-11).
 perf-baseline: ## Mesure de référence : 5 tirs, médiane, palier relevé, témoin sans scène
 	@docker image inspect portfolio:local >/dev/null 2>&1 || \
 	  { echo "  ✗ image portfolio:local absente — lancer 'make build' d'abord."; exit 1; }
 	GIT_SHA="$$(git rev-parse HEAD)$$(git diff --quiet HEAD || echo -dirty)" \
 	IMAGE_ID="$$(docker image inspect portfolio:local --format '{{.Id}}')" \
-	$(COMPOSE_PROD) run --rm -e GIT_SHA -e IMAGE_ID -e RUNS e2e node scripts/measure-performance.mts
+	$(COMPOSE_PROD) run --rm -e GIT_SHA -e IMAGE_ID -e RUNS -e THROTTLING e2e node scripts/measure-performance.mts
 
 check-dns: ## Vérifie la zone DNS et l'authentification d'expédition (P1-17)
 	$(RUN) node scripts/check-dns.mts
