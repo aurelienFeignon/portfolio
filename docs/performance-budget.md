@@ -459,6 +459,39 @@ requêtes jusqu'à l'événement LCP) le dirait ; non fait. Et P7-03 et P7-08 on
 **par** #58 : l'écart tombe dans le périmètre de la Phase 7. ✅ **Arbitrage D13 (2026-10-29) : critère
 tenu, Phase 7 close**, l'écart porté en dette par **P11-11**.
 
+### 6.5 ⭐⭐ P11-11 — l'écart de §6.4 n'existe que dans la simulation, 2026-10-29
+
+**Instruit le jour même, et résolu en artefact de mesure.** Le LCP de §6.4 est celui de **Lantern**
+(`throttlingMethod: simulate`) : Lighthouse charge la page sans bridage, puis **calcule** ce qu'elle
+aurait donné sur un téléphone. Le LCP observé, lui, égale le FCP dans les deux versions.
+
+**L'expérience qui tranche** : les mêmes images, le même Lighthouse, mais un bridage **réel** —
+`THROTTLING=devtools make perf-baseline`, option née de cette tâche. Résumé, 4 à 6 tirs par
+configuration, deux passages entrelacés :
+[`2026-10-29-p11-11-bridage-reel.json`](./mesures/2026-10-29-p11-11-bridage-reel.json).
+
+| LCP mobile médian, bridage réel (ms) | `1ecfdb3` bureau | `483c406` `main` |
+|---|---|---|
+| `/fr` · scène | 1 284 | 1 246 |
+| `/fr` · témoin | 1 631 | 1 293 |
+| fiche · scène | 1 266 | 1 272 |
+| fiche · témoin | 1 291 | 1 268 |
+
+✅ **Établi** : en bridage réel, `main` n'est **pas plus lent** que le bureau — égal ou meilleur dans
+les quatre configurations, sous la cible de §2 (1,8 s) — et le LCP égale le FCP **dans chacun des
+tirs** : l'accroche s'affiche au premier rendu.
+
+⭐ **Ce que Lantern compte, et qui explique l'écart** : dans `main`, la seule tâche longue simulée —
+l'exécution du chunk principal, 211 ms de script contre 134 pour le bureau — se termine au moment
+exact du LCP simulé (≈ 2 210 ms) ; dans le bureau, elle démarre **après** lui. Lantern fait donc
+attendre le LCP derrière ce chunk. ⚠️ Pourquoi l'ordre bascule n'est pas établi ; il n'a pas
+d'effet mesurable sous un bridage réel.
+
+⚠️ **Ce que cela ne dit pas** : un vrai téléphone (P8-11). Et le score Lighthouse **reste** pénalisé —
+c'est Lantern qu'il lit —, ce qui n'est pas un critère de ce dépôt (§6.4 juge LCP et CLS).
+⭐⭐ *Un LCP simulé qui bouge alors que le LCP observé ne bouge pas se tranche par un bridage réel,
+pas par une optimisation.*
+
 ---
 
 ## 7. Budget serveur (VPS)

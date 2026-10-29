@@ -54,6 +54,19 @@ const OUT_DIR =
 if (!Number.isInteger(RUNS) || RUNS < 1) throw new Error(`RUNS invalide : ${process.env['RUNS']}`)
 
 /**
+ * Le bridage : `simulate` (Lantern, celui du gate et des relevés de référence)
+ * par défaut, ou `devtools`, qui bride RÉELLEMENT réseau et processeur.
+ *
+ * ⛔⛔ **Lantern peut inventer un écart de LCP** (P11-11, `performance-budget.md`
+ * §6.5) : #58 lui faisait simuler +550 ms en mobile alors que l'accroche
+ * s'affichait au premier rendu — le bridage réel ne trouve aucun écart. Un LCP
+ * simulé qui bouge sans que le LCP observé bouge se tranche ici.
+ */
+const THROTTLING = process.env['THROTTLING'] ?? 'simulate'
+if (THROTTLING !== 'simulate' && THROTTLING !== 'devtools')
+  throw new Error(`THROTTLING invalide : ${THROTTLING} (simulate | devtools)`)
+
+/**
  * Les deux modes, chacun dans son propre navigateur : un drapeau de lancement
  * vaut pour toute l'instance.
  *
@@ -154,7 +167,11 @@ try {
             { port: mode.port, output: 'json', logLevel: 'error' },
             {
               extends: 'lighthouse:default',
-              settings: { ...factor.settings, onlyCategories: ['performance'] },
+              settings: {
+                ...factor.settings,
+                onlyCategories: ['performance'],
+                throttlingMethod: THROTTLING,
+              },
             },
           )
           if (result === undefined) throw new Error(`Lighthouse n'a rien rendu pour ${path}`)
@@ -267,6 +284,7 @@ const conditions = {
   gitSha: process.env['GIT_SHA'] ?? null,
   imageId: process.env['IMAGE_ID'] ?? null,
   runsPerConfiguration: RUNS,
+  throttlingMethod: THROTTLING,
   lighthouseVersion,
   userAgent,
   benchmarkIndex: median(runs.map((run) => run.benchmarkIndex)),
@@ -316,7 +334,7 @@ for (const line of summary.filter((entry) => entry.mode === 'scène')) {
 }
 
 console.log(
-  `\n  Conditions : ${conditions.gitSha ?? 'commit inconnu'} · Lighthouse ${lighthouseVersion} · ` +
+  `\n  Conditions : ${conditions.gitSha ?? 'commit inconnu'} · Lighthouse ${lighthouseVersion} (${THROTTLING}) · ` +
     `benchmarkIndex ${Math.round(conditions.benchmarkIndex)} · charge ${loadBefore
       .map((value) => value.toFixed(1))
       .join('/')} → ${conditions.hostLoadAfter.map((value) => value.toFixed(1)).join('/')} ` +

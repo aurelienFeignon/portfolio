@@ -73,7 +73,7 @@ Posées à l'ouverture de la session, en vue de P2-11.
 
 | # | Question | Réponse |
 |---|---|---|
-| **D13** | Le critère de sortie de la Phase 7, « aucune régression des Core Web Vitals », est-il tenu ? | **Oui, tenu — la Phase 7 est close.** Aucune régression depuis #58 (LCP à ±10 ms, CLS 0), mais #58, qui a livré P7-03 et P7-08, a dégradé le LCP mobile simulé : au-dessus de la cible, sous le seuil bloquant, témoin sans scène compris. L'écart devient une **dette chiffrée, P11-11**, comme le TBT de la Phase 5. Décision de l'utilisateur. Mesures : `performance-budget.md` §6.4. |
+| **D13** | Le critère de sortie de la Phase 7, « aucune régression des Core Web Vitals », est-il tenu ? | **Oui, tenu — la Phase 7 est close.** Aucune régression depuis #58 (LCP à ±10 ms, CLS 0), mais #58, qui a livré P7-03 et P7-08, a dégradé le LCP mobile simulé : au-dessus de la cible, sous le seuil bloquant, témoin sans scène compris. L'écart devient une **dette chiffrée, P11-11**, comme le TBT de la Phase 5. Décision de l'utilisateur. Mesures : `performance-budget.md` §6.4. ⭐ P11-11, instruite le jour même, a montré que l'écart n'existe que dans la simulation Lantern (§6.5). |
 
 ## Décision de budget — 2026-08-20
 

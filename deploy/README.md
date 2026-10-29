@@ -759,7 +759,8 @@ la conclusion du workflow d'un côté, la sonde de l'autre.
       2. `gh workflow run ci.yml --ref main` : la chaîne entière, gates et E2E compris — ce n'est
          pas un raccourci vers le déploiement. Depuis une autre branche, ni publication ni
          déploiement.
-      3. Le lire **par son événement** (§4.2) — `gh workflow run` ne rend pas d'identifiant :
+      3. Le lire **par son événement** (§4.2) — `gh workflow run` affiche l'URL du run, pas son
+         identifiant :
          `gh run list --workflow ci.yml --event workflow_dispatch --limit 1`, puis
          `gh run watch <id> --exit-status`.
 

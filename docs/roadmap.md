@@ -29,7 +29,7 @@
 > tâches devenues sans objet passées `DROPPED` avec leur raison. Détail, mesures et décisions :
 > [`nexus-prototype.md`](./nexus-prototype.md).
 > ⚠️ **Dette ouverte par #58** : 72 draw calls sur ordinateur (cible 60) ; GPU intégré, téléphone et
-> Safari non mesurés ; ⛔ **LCP mobile dégradé** (`performance-budget.md` §6.4, P11-11).
+> Safari non mesurés. Le LCP mobile dégradé de §6.4 n'existe que dans la simulation (P11-11, §6.5).
 > Dernière mise à jour : 2026-10-29 (Phase 7 close — critère CWV tenu par arbitrage D13)
 
 Ce document est la **source de vérité unique des tâches**. Les identifiants sont stables et ne
@@ -1621,7 +1621,7 @@ régression des Core Web Vitals.
 
 ✅ **Phase close le 2026-10-29.** Dernier critère mesuré (`performance-budget.md` §6.4) et **tenu par
 arbitrage D13** (`phase-0-questions.md`) : l'écart de LCP mobile introduit par #58 devient une dette
-chiffrée, P11-11.
+chiffrée, P11-11 — soldée le jour même : artefact de Lantern (`performance-budget.md` §6.5).
 
 ---
 
@@ -1722,7 +1722,7 @@ dépendance ajoutée au projet**.
 | P11-08 | Mesure de la consommation du conteneur sur le VPS (`performance-budget.md` §7) |
 | P11-09 | Budgets de performance en gate CI |
 | P11-10 | Rapport `Avant / Après / Gain` |
-| P11-11 | Instruire et réduire l'écart de LCP mobile introduit par #58, au-dessus de la cible — dette acceptée par D13 ; l'élément LCP s'affiche au premier rendu, l'écart naît dans la simulation Lantern, cause non établie (`performance-budget.md` §6.4) |
+| P11-11 | Instruire et réduire l'écart de LCP mobile introduit par #58 — **DONE** *(2026-10-29)* : **artefact de la simulation Lantern** ; en bridage réel, `main` n'est pas plus lent que le bureau, LCP = FCP à chaque tir ; option `THROTTLING=devtools` de `make perf-baseline` (`performance-budget.md` §6.5) |
 
 **Critères de sortie** — Tous les budgets tenus ou dépassements arbitrés explicitement par
 réduction de l'ambition (jamais par relèvement de seuil non justifié) ; budgets surveillés en CI.
