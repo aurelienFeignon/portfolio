@@ -752,6 +752,10 @@ la conclusion du workflow d'un côté, la sonde de l'autre.
 - [ ] **Le verbe est symétrique** : le relancer repart en avant. Un retour par précaution s'annule
       donc par le même geste, `status` à l'appui.
 - [ ] **Juger le retour par la sonde**, jamais par un `curl` ni par un statut.
+- [ ] ⛔ **Si la fusion n'a produit AUCUN run** (2026-09-24, #52) — ni vert, ni rouge, rien :
+      `gh workflow run ci.yml --ref main`, puis lire le run comme au §8.3. Il rejoue la chaîne
+      entière sur la tête de `main`, gates et E2E compris : ce n'est pas un raccourci vers le
+      déploiement. Une fusion ou un push de `main` pendant ce temps l'annule (`concurrency`).
 
 ### 8.5 Ce que cette checklist ne couvre pas
 

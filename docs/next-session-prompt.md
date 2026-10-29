@@ -771,11 +771,11 @@ officielle n'atteint 250 Mo.
   Phase 14.
 - **Mesure CPU en régime stable** (P11-08) : le seul relevé date d'une minute après démarrage — 32 %,
   au-dessus du seuil d'alerte de 25 %. Ce n'est pas une mesure valide.
-- ⛔⛔ **`ci.yml` n'a pas de `workflow_dispatch`**, donc une exécution que GitHub ne crée pas est
-  **irrattrapable autrement que par un nouveau push** — et le 2026-09-24 il a fallu en faire un
-  (voir « État »). La sonde a cette poignée depuis P4-14 ; la chaîne qui **déploie** ne l'a pas.
-  L'ajouter est une ligne, et elle rendrait un déploiement manquant récupérable sans commit de
-  complaisance.
+- ✅ **`ci.yml` porte `workflow_dispatch` depuis le 2026-10-29** : un déploiement manquant se
+  rattrape par `gh workflow run ci.yml --ref main` (`deploy/README.md` §8.4), sans commit de
+  complaisance. ⭐ Ce n'était pas « une ligne » : publication et déploiement étaient gardés par
+  `event_name == 'push'`, et le déclencheur seul aurait rendu un run manuel vert **qui ne déploie
+  rien**.
 - **Procédure de restauration du serveur** (R-23) : Hetzner restreint par intermittence la création
   d'instances. À écrire sous cette contrainte en Phase 15.
 - **Plages Cloudflare** : un timer hebdomadaire les rafraîchit sur le VPS.
