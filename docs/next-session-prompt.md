@@ -53,6 +53,9 @@ et §12.
 **CLOSE le 2026-10-29** — critère CWV mesuré (`performance-budget.md` §6.4) et tenu par
 arbitrage **D13** ; l'écart de LCP mobile introduit par #58 s'est révélé un artefact de Lantern
 (**P11-11**, `performance-budget.md` §6.5).
+**Phase 8** : ⭐⭐ **D14 (2026-10-29) — la carte mère remplace la composition NEXUS** :
+[`carte-mere.md`](./carte-mere.md), trois plans (P8-13 contenu, livré par #84 ; P8-14 ; P8-15).
+NEXUS reste en production tant que P8-15 n'est pas livrée.
 ⭐⭐ **NEXUS EST EN PRODUCTION depuis le 2026-10-23 (#58, `854d1fe`)** — D11 : le bureau 3D est
 remplacé par un noyau numérique et trois univers, avec navigation hybride et `ReadingPanel` en verre
 lumineux. **Lis `docs/nexus-prototype.md` avant toute chose** : décisions, architecture de la scène,
@@ -185,7 +188,7 @@ URL, tout le reste rend toujours 302.
 | Socle partagé | **127,1 Ko** | cible 136 · bloquant 146 |
 | **Chunk 3D différé** | **234,5 Ko** — somme des **deux** chunks porteurs, hors du chemin critique | cible 260 · bloquant 320 |
 | Image de production | **281 Mo** | cible 250 · bloquant 400 |
-| Tests | **888** verts (2026-10-29, P8-12), couverture **100 %** sauf les branches : **99,72 %** — `layout.ts:121`, le côté `placer(-1)` de `closeUp`, qu'aucun des trois univers ne prend : inatteignable sans changer leurs positions, depuis #58 | ≥ 80 % |
+| Tests | **908** verts (2026-10-29, P8-13) ; couverture non remesurée depuis P8-12 : **100 %** sauf les branches, **99,72 %** — `layout.ts:121`, le côté `placer(-1)` de `closeUp`, qu'aucun des trois univers ne prend : inatteignable sans changer leurs positions, depuis #58 | ≥ 80 % |
 | E2E | **153** verts sur 5 profils | — |
 | **Ce que le GPU rend** | **52 draw calls · 8 182 triangles** en desktop — la passe d'ombre incluse, soit **+73 %** sur les 4 114 de géométrie | ≤ 60 / ≤ 150 000 |
 
@@ -308,8 +311,16 @@ référence (#57), `ReadingPanel`, P6-04, décisions NEXUS (D11 et amendements d
 prototype, validation visuelle avec l'utilisateur, fusion et déploiement (#58), roadmap reprise.
 
 ⛔ **Avant toute chose, vérifie la fusion de cette mise à jour du prompt** (branche
-`perf/p11-11-lcp-lantern`) : `gh pr list --state all --head perf/p11-11-lcp-lantern`.
-Les précédentes sont fusionnées et déployées : #80 (Phase 7), #81 (P8-12), #82 (`workflow_dispatch`).
+`design/d14-carte-mere`, PR #84) : `gh pr list --state all --head design/d14-carte-mere`, puis le
+déploiement de `main` (`gh run list --branch main --workflow ci.yml --limit 1`).
+Les précédentes sont fusionnées et déployées : #80 (Phase 7), #81 (P8-12), #82 (`workflow_dispatch`),
+#83 (P11-11).
+
+⭐⭐ **La suite immédiate : le plan 2/3 de la carte mère (P8-14)**, le module pur du plan de carte
+(`carte-mere.md` §5 et §7) — à écrire avec superpowers:writing-plans, puis à exécuter. Le plan 1
+(P8-13, le contenu) est livré par #84. ⚠️ Repris de la revue de #84 : le dépôt de contenu
+n'impose `primary` et `experience` qu'au **build** ; le module du plan 2 doit appliquer son propre
+repli (aucun principal → le plus récent au centre) sans supposer le gate joué.
 
 ✅ **Phase 6 close le 2026-10-27** : P6-07 et P6-10 (`phase-6-log.md` §11), P6-11 et P6-12 (§12).
 ⛔ P6-11 a trouvé un défaut **en production** : `setFrameloop` remet l'horloge de R3F à zéro, et une
@@ -659,7 +670,9 @@ Format des réponses : « D2 = …, défaut partout ailleurs » suffit. Aucune n
 décisions tranchées sont reportées dans `phase-0-questions.md` ; elles n'ont plus à être lues ici.
 **Closes : D1, D3, D4, D7** (le 2026-08-16 pour les deux dernières), **D9 et D10** (le 2026-08-20),
 **D11** (le 2026-08-25, « laisser » — `phase-5-log.md` §6.7), **D13** (le 2026-10-29, critère CWV
-de la Phase 7 tenu).
+de la Phase 7 tenu), **D8** (le 2026-10-29 : les fiches projet Augure et Askor, #84), **D14** (le
+2026-10-29, la carte mère). **D5 et D12 sont sans objet** depuis que le bureau est retiré (D11 de la
+Phase 8, puis D14) : retirées du bloc.
 
 **D2 🟠 — Relire les 40 niveaux de compétence (1 à 5).** *La seule qui ait un effet visible : les
 niveaux **ne sont ni affichés ni publiés** tant que tu ne les as pas relus.* Les publier afficherait
@@ -668,28 +681,15 @@ contrat de `SkillGroup`, qui ne porte que `{ slug, name }`, et un parcours sur l
 → *Dis-moi seulement ceux qui te paraissent faux. Dix compétences sont `featured` : TypeScript,
 Python, Node.js, React, Next.js, PostgreSQL, Docker, microservices, architecture événementielle,
 intégration de modèles de langage.*
-
-**D5 🟠 — Photos de ton poste de travail ?** (Q17, Phase 8) → *Les rassembler sans urgence. C'est ce
-qui distinguera ce portfolio d'une démo Three.js.*
+⛔⛔ **D2 conditionne maintenant la carte mère** : `carte-mere.md` §4 fait croître la taille des
+puces avec `level` — ce qui **publierait visuellement** les niveaux que les deux gardes retiennent.
+À trancher avant P8-15 : relire les niveaux (D2), ou des puces de taille égale tant qu'ils ne le
+sont pas. Relevé le 2026-10-29 en mettant ce prompt à jour.
 
 **D6 🟠 — Rendre le paquet GHCR public ?** *(action manuelle, je n'ai pas les droits)* → *GitHub →
 Packages → portfolio → Change visibility → Public. Puis sur le VPS : `docker logout ghcr.io && rm
 /srv/portfolio/.ghcr-token`, et retirer le `docker login` de `deploy.sh`. Bénéfice : plus de PAT à
 renouveler, donc plus de déploiement qui s'arrête un jour sans rapport apparent avec le code.*
-
-**D8 🟠 — Un projet qui te représente aujourd'hui.** *Née de la clôture de D3.* Ton GitHub ne porte
-que des travaux scolaires de 2021, et la page Projets ne contient que ce portfolio. Le levier n'est
-pas d'ajouter du volume — c'est **un** projet récent, décrit pour lui-même.
-→ *Si tu en as un à montrer, c'est un fichier par locale dans `content/*/projects/`. Sinon, dis-le :
-la page reste à un projet, assumé, et je ne la rouvre plus.*
-
-**D12 🟢 — La largeur du plateau, au mètre ruban.** *Une seule mesure, et toute la scène se
-verrouille.* La photo donne **1,37 m**, la valeur retenue **1,40 m** ; toutes les cotes en découlent
-par un facteur d'échelle. Sept autres hypothèses attendent avec elle — profondeur et hauteur du
-plateau, diagonales des deux moniteurs, angle de l'écran gauche — mais celle-ci est la seule qui les
-gouverne toutes.
-→ *Mesure le chant avant du plateau et donne-moi le chiffre. Si tu n'as pas de mètre sous la main,
-dis-le : 1,40 reste, et je l'écris comme assumé plutôt que comme provisoire.*
 
 ## Contexte de planning
 
