@@ -6,7 +6,14 @@
  */
 import { describe, expect, it } from 'vitest'
 
-import { describeUnknownTechnologies, findUnknownTechnologies } from '@/content/integrity'
+import {
+  describeUnknownExperience,
+  describeUnknownTechnologies,
+  findPrimaryConflict,
+  findPrimaryDivergence,
+  findUnknownExperiences,
+  findUnknownTechnologies,
+} from '@/content/integrity'
 
 const KNOWN = new Set(['typescript', 'postgresql'])
 
@@ -85,5 +92,102 @@ describe('message d’erreur', () => {
 
     expect(message).toContain('des technologies inconnues')
     expect(message).toContain('« rust », « elixir »')
+  })
+})
+
+// La carte mère (docs/carte-mere.md §6) : un projet se branche sur le bus d'une
+// expérience, et un seul tient le processeur central.
+describe('rattachement à une expérience', () => {
+  it('ne signale rien quand l’expérience existe', () => {
+    expect(
+      findUnknownExperiences([{ file: 'p.mdx', experience: 'evea' }], new Set(['evea'])),
+    ).toEqual([])
+  })
+
+  it('signale une expérience inconnue, en nommant le fichier', () => {
+    expect(
+      findUnknownExperiences([{ file: 'p.mdx', experience: 'evae' }], new Set(['evea'])),
+    ).toEqual([{ file: 'p.mdx', experience: 'evae' }])
+  })
+
+  it('rend tous les fichiers fautifs, pas seulement le premier', () => {
+    const problems = findUnknownExperiences(
+      [
+        { file: 'a.mdx', experience: 'evae' },
+        { file: 'b.mdx', experience: 'evea' },
+        { file: 'c.mdx', experience: 'augur' },
+      ],
+      new Set(['evea']),
+    )
+
+    expect(problems.map((problem) => problem.file)).toEqual(['a.mdx', 'c.mdx'])
+  })
+
+  it('décrit la faute avec le slug cité', () => {
+    expect(describeUnknownExperience({ file: 'p.mdx', experience: 'evae' })).toContain('« evae »')
+  })
+})
+
+describe('projet principal', () => {
+  it('accepte zéro ou un principal', () => {
+    expect(findPrimaryConflict([])).toBeNull()
+    expect(findPrimaryConflict(['a.mdx'])).toBeNull()
+  })
+
+  it('refuse deux principaux et les nomme tous', () => {
+    const message = findPrimaryConflict(['a.mdx', 'b.mdx'])
+
+    expect(message).toContain('a.mdx')
+    expect(message).toContain('b.mdx')
+  })
+})
+
+describe('projet principal d’une locale à l’autre', () => {
+  const locale = (name: string, primaries: string[], slugs: string[]) => ({
+    locale: name,
+    primaries: new Set(primaries),
+    projectSlugs: new Set(slugs),
+  })
+
+  it('accepte le même principal dans les deux locales', () => {
+    expect(
+      findPrimaryDivergence([locale('fr', ['a'], ['a', 'b']), locale('en', ['a'], ['a', 'b'])]),
+    ).toEqual([])
+  })
+
+  it('accepte un principal absent de l’autre locale, qui n’a pas traduit la fiche', () => {
+    expect(
+      findPrimaryDivergence([locale('fr', ['a'], ['a', 'b']), locale('en', [], ['b'])]),
+    ).toEqual([])
+  })
+
+  it('refuse un principal présent mais non principal dans l’autre locale', () => {
+    expect(findPrimaryDivergence([locale('fr', ['a'], ['a']), locale('en', [], ['a'])])).toEqual([
+      {
+        locale: 'en',
+        message: expect.stringContaining('« a » est principal en fr mais pas en en'),
+      },
+    ])
+  })
+
+  it('signale UNE fois deux locales qui désignent deux principaux différents', () => {
+    // Corriger l'une des deux suffit : deux erreurs pointeraient deux corrections.
+    const problems = findPrimaryDivergence([
+      locale('fr', ['a'], ['a', 'b']),
+      locale('en', ['b'], ['a', 'b']),
+    ])
+
+    expect(problems).toHaveLength(1)
+    expect(problems[0]?.message).toContain('désignent deux principaux différents')
+  })
+
+  it('n’invente pas de divergence quand une locale a déjà deux principaux', () => {
+    // Le conflit de cette locale est signalé à part ; « a » y EST principal.
+    expect(
+      findPrimaryDivergence([
+        locale('fr', ['a', 'b'], ['a', 'b']),
+        locale('en', ['a'], ['a', 'b']),
+      ]),
+    ).toEqual([])
   })
 })

@@ -22,11 +22,17 @@
  */
 import { compile } from '@mdx-js/mdx'
 
-import { CONTENT_TYPES } from '../src/content/content-type.ts'
+import { CONTENT_TYPES, type ContentType } from '../src/content/content-type.ts'
 import { ContentError, messageOf } from '../src/content/errors.ts'
 import {
+  describeUnknownExperience,
   describeUnknownTechnologies,
+  findPrimaryConflict,
+  findPrimaryDivergence,
+  findUnknownExperiences,
   findUnknownTechnologies,
+  type ExperienceReference,
+  type LocalePrimary,
   type TechnologyReference,
 } from '../src/content/integrity.ts'
 import { validateFile } from '../src/content/loader.ts'
@@ -72,6 +78,8 @@ async function checkBody(file: ContentFile): Promise<string | null> {
 interface LocaleReport {
   readonly failures: readonly string[]
   readonly validated: number
+  /** Pour le contrôle entre locales du projet principal. */
+  readonly primary: LocalePrimary
 }
 
 /**
@@ -84,8 +92,18 @@ interface LocaleReport {
 async function checkLocale(locale: Locale): Promise<LocaleReport> {
   const failures: string[] = []
   const references: TechnologyReference[] = []
-  const skillSlugs = new Set<string>()
-  let skillsAreComplete = true
+  // La carte mère : rattachements de projets à une expérience, et projets
+  // principaux (docs/carte-mere.md §6).
+  const experienceReferences: ExperienceReference[] = []
+  const primaries: { readonly file: string; readonly slug: string }[] = []
+  const slugs: Record<ContentType, Set<string>> = {
+    experiences: new Set(),
+    projects: new Set(),
+    skills: new Set(),
+  }
+  // Un type dont un fichier au moins n'a pas pu être lu : son référentiel est
+  // incomplet, et les références vers lui ne sont pas jugées.
+  const incomplete = new Set<ContentType>()
   let validated = 0
 
   for (const type of CONTENT_TYPES) {
@@ -98,7 +116,7 @@ async function checkLocale(locale: Locale): Promise<LocaleReport> {
       // lire. Elle est signalée puis on passe au dossier suivant, pour que
       // l'auteur voie tout ce qu'il a à corriger en une seule passe.
       failures.push(messageOf(error))
-      if (type === 'skills') skillsAreComplete = false
+      incomplete.add(type)
       continue
     }
 
@@ -107,13 +125,18 @@ async function checkLocale(locale: Locale): Promise<LocaleReport> {
         const entry = validateFile({ ...file, type })
         validated += 1
 
-        if (type === 'skills') skillSlugs.add(entry.slug)
+        slugs[type].add(entry.slug)
         if ('technologies' in entry) {
           references.push({ file: file.file, technologies: entry.technologies })
         }
+        if ('primary' in entry && entry.primary)
+          primaries.push({ file: file.file, slug: entry.slug })
+        if ('experience' in entry && entry.experience !== undefined) {
+          experienceReferences.push({ file: file.file, experience: entry.experience })
+        }
       } catch (error) {
         failures.push(messageOf(error))
-        if (type === 'skills') skillsAreComplete = false
+        incomplete.add(type)
       }
 
       const bodyFailure = await checkBody(file)
@@ -124,8 +147,8 @@ async function checkLocale(locale: Locale): Promise<LocaleReport> {
   // Une compétence qui n'a pas pu être chargée manque au référentiel : signaler
   // alors « technologie inconnue » sur chaque projet qui la cite ajouterait
   // autant d'erreurs fabriquées qu'il y a de projets. Trouvé en revue.
-  if (skillsAreComplete) {
-    for (const problem of findUnknownTechnologies(references, skillSlugs)) {
+  if (!incomplete.has('skills')) {
+    for (const problem of findUnknownTechnologies(references, slugs.skills)) {
       failures.push(fail(problem.file, describeUnknownTechnologies(problem)))
     }
   } else {
@@ -134,7 +157,31 @@ async function checkLocale(locale: Locale): Promise<LocaleReport> {
     )
   }
 
-  return { failures, validated }
+  // Même raisonnement : une expérience illisible ferait accuser chaque projet
+  // qui s'y rattache d'une faute qui n'est pas la sienne.
+  if (!incomplete.has('experiences')) {
+    for (const problem of findUnknownExperiences(experienceReferences, slugs.experiences)) {
+      failures.push(fail(problem.file, describeUnknownExperience(problem)))
+    }
+  } else {
+    console.warn(
+      `⚠ Locale « ${locale} » : rattachements aux expériences non vérifiés, une expérience au moins n’a pas pu être lue.`,
+    )
+  }
+
+  // Par locale : chaque langue a sa carte, donc son processeur central.
+  const primaryConflict = findPrimaryConflict(primaries.map((primary) => primary.file))
+  if (primaryConflict !== null) failures.push(fail(`content/${locale}/projects`, primaryConflict))
+
+  return {
+    failures,
+    validated,
+    primary: {
+      locale,
+      primaries: new Set(primaries.map((primary) => primary.slug)),
+      projectSlugs: slugs.projects,
+    },
+  }
 }
 
 function report(failures: readonly string[]): never {
@@ -155,7 +202,10 @@ if (!tree.rootExists) report([fail(root, 'racine du contenu introuvable')])
 
 const structural = tree.unexpected.map((entry) => fail(entry.path, entry.reason))
 const reports = await Promise.all(LOCALES.map(checkLocale))
-const failures = [...structural, ...reports.flatMap((locale) => locale.failures)]
+const divergences = findPrimaryDivergence(reports.map((report) => report.primary)).map((problem) =>
+  fail(`content/${problem.locale}/projects`, problem.message),
+)
+const failures = [...structural, ...reports.flatMap((locale) => locale.failures), ...divergences]
 
 if (failures.length > 0) report(failures)
 

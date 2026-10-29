@@ -4,8 +4,9 @@ Markdown/MDX par locale : `fr/` et `en/`, chacune avec `experiences/`, `projects
 Le **nom de fichier fait foi** pour le slug ; un frontmatter invalide casse le build (CF-10), vérifié par `make check-content`, lui-même exécuté par `make build`.
 
 Ce qui s'y trouve est le **contenu réel** (P2-11, 2026-08-15) : par locale, **2 expériences**
-(Augure, Askor chez EVEA Conseil), **1 projet** (ce portfolio) et **40 compétences** groupées en cinq
-catégories, dont dix mises en avant. Le contenu d'amorçage de P2-10 a été entièrement remplacé.
+(Augure, Askor chez EVEA Conseil), **3 projets** (Augure, Askor et ce portfolio — les deux premiers
+ajoutés le 2026-10-29 pour la carte mère, D14) et **40 compétences** groupées en cinq catégories,
+dont dix mises en avant. Le contenu d'amorçage de P2-10 a été entièrement remplacé.
 
 Une réserve à corriger quand tu auras la réponse :
 
@@ -27,7 +28,12 @@ les deux expériences portaient un 1ᵉʳ janvier d'attente ; elles disent maint
 le build casse. `startedAt: '2021'` est correct. Les formes avec tiret (`2021-03`, `2021-03-14`)
 n'ont pas ce problème.
 
-## Deux règles à connaître avant d'écrire
+## Les règles à connaître avant d'écrire
 
 - une valeur contenant `: ` doit être **entre guillemets**, sans quoi YAML y lit une table imbriquée ;
-- chaque entrée de `technologies` doit correspondre au `slug` d'une compétence **de la même locale** (P2-07).
+- chaque entrée de `technologies` doit correspondre au `slug` d'une compétence **de la même locale** (P2-07) ;
+- le champ `experience` d'un projet (le poste où il est né) doit correspondre au `slug` d'une
+  expérience **de la même locale** ; c'est lui, pas le `type`, qui branche le projet sur le bus de
+  la carte mère (`docs/carte-mere.md` §5) ;
+- **au plus un** projet `primary: true` par locale — il tient le processeur central —, et **le même**
+  dans toutes les locales où sa fiche existe. `primary` est indépendant de `featured`.
