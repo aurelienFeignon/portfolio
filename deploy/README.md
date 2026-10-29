@@ -753,9 +753,15 @@ la conclusion du workflow d'un côté, la sonde de l'autre.
       donc par le même geste, `status` à l'appui.
 - [ ] **Juger le retour par la sonde**, jamais par un `curl` ni par un statut.
 - [ ] ⛔ **Si la fusion n'a produit AUCUN run** (2026-09-24, #52) — ni vert, ni rouge, rien :
-      `gh workflow run ci.yml --ref main`, puis lire le run comme au §8.3. Il rejoue la chaîne
-      entière sur la tête de `main`, gates et E2E compris : ce n'est pas un raccourci vers le
-      déploiement. Une fusion ou un push de `main` pendant ce temps l'annule (`concurrency`).
+      1. **`status` d'abord.** Le geste déploie la **tête de `main`**, pas la fusion perdue : un
+         retour arrière voulu serait défait sans un mot. Et si une fusion plus récente a son run,
+         il n'y a rien à rattraper — il portera la perdue.
+      2. `gh workflow run ci.yml --ref main` : la chaîne entière, gates et E2E compris — ce n'est
+         pas un raccourci vers le déploiement. Il attend son tour derrière un run de `main` en
+         cours, il ne l'annule pas (`concurrency`).
+      3. Le lire **par son événement** — `gh workflow run` ne rend pas d'identifiant :
+         `gh run list --workflow ci.yml --event workflow_dispatch --limit 1`, puis
+         `gh run watch <id> --exit-status`.
 
 ### 8.5 Ce que cette checklist ne couvre pas
 

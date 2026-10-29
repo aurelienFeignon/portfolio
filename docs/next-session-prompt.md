@@ -775,7 +775,9 @@ officielle n'atteint 250 Mo.
   rattrape par `gh workflow run ci.yml --ref main` (`deploy/README.md` §8.4), sans commit de
   complaisance. ⭐ Ce n'était pas « une ligne » : publication et déploiement étaient gardés par
   `event_name == 'push'`, et le déclencheur seul aurait rendu un run manuel vert **qui ne déploie
-  rien**.
+  rien** — le seul critère est désormais la branche. ⛔ Et la revue a trouvé pire, préexistant :
+  `cancel-in-progress` pouvait couper `deploy.sh` en plein déploiement ; il ne vaut plus que pour
+  les PR.
 - **Procédure de restauration du serveur** (R-23) : Hetzner restreint par intermittence la création
   d'instances. À écrire sous cette contrainte en Phase 15.
 - **Plages Cloudflare** : un timer hebdomadaire les rafraîchit sur le VPS.

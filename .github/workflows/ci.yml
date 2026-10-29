@@ -7,15 +7,20 @@ on:
     branches: [main]
   # ⛔⛔ Une fusion peut ne déclencher AUCUNE exécution, en silence (2026-09-24,
   # #52) : sans cette poignée, le seul rattrapage était un nouveau push.
-  # `gh workflow run ci.yml --ref main` rejoue la chaîne entière, déploiement
-  # compris ; depuis une autre branche, seuls les gates tournent.
+  # `gh workflow run ci.yml --ref main` rejoue la chaîne entière sur la tête de
+  # `main`, déploiement compris ; depuis une autre branche, gates et E2E
+  # tournent, sans publication ni déploiement.
   workflow_dispatch:
 
-# Un push qui en remplace un autre annule l'exécution précédente : inutile de
-# payer deux fois pour un état obsolète.
+# Sur une PR, un push qui en remplace un autre annule l'exécution précédente :
+# inutile de payer deux fois pour un état obsolète.
+# ⛔⛔ Sur `main`, JAMAIS d'annulation : un run annulé pendant `deploy` coupe la
+# session SSH de `deploy.sh` entre `compose up` et son contrôle de santé, donc
+# avant tout retour automatique — le serveur resterait à moitié déployé, sans
+# trace. Les runs de `main` attendent leur tour.
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
   contents: read
@@ -221,7 +226,9 @@ jobs:
     name: publier l'image sur GHCR
     runs-on: ubuntu-latest
     needs: [versions, gates, e2e]
-    if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main'
+    # Le seul critère est la BRANCHE : une PR tourne sur `refs/pull/N/merge`,
+    # donc tout run de `main` — push ou manuel — publie, et rien d'autre.
+    if: github.ref == 'refs/heads/main'
     permissions:
       contents: read
       packages: write
@@ -274,8 +281,8 @@ jobs:
   deploy:
     name: déployer sur le VPS
     runs-on: ubuntu-latest
+    # Pas de condition propre : `needs` le saute dès que `publish` est sauté.
     needs: publish
-    if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main'
     steps:
       - name: Clé de déploiement et hôte épinglé
         env:
