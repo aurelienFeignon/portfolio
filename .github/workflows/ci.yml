@@ -5,12 +5,18 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  # Rattrapage d'une fusion qui n'a produit aucun run : `deploy/README.md` §8.4.
+  workflow_dispatch:
 
-# Un push qui en remplace un autre annule l'exécution précédente : inutile de
-# payer deux fois pour un état obsolète.
+# Sur une PR, un push qui en remplace un autre annule l'exécution précédente :
+# inutile de payer deux fois pour un état obsolète.
+# ⛔⛔ Sur `main`, JAMAIS d'annulation : un run annulé pendant `deploy` coupe la
+# session SSH de `deploy.sh` entre `compose up` et son contrôle de santé, donc
+# avant tout retour automatique — le serveur resterait à moitié déployé, sans
+# trace. Les runs de `main` attendent leur tour.
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
   contents: read
@@ -216,7 +222,8 @@ jobs:
     name: publier l'image sur GHCR
     runs-on: ubuntu-latest
     needs: [versions, gates, e2e]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    # Critère = la branche : une PR tourne sur `refs/pull/N/merge`.
+    if: github.ref == 'refs/heads/main'
     permissions:
       contents: read
       packages: write
@@ -269,8 +276,8 @@ jobs:
   deploy:
     name: déployer sur le VPS
     runs-on: ubuntu-latest
+    # Pas de condition propre : `needs` le saute dès que `publish` est sauté.
     needs: publish
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     steps:
       - name: Clé de déploiement et hôte épinglé
         env:

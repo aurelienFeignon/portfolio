@@ -752,6 +752,16 @@ la conclusion du workflow d'un côté, la sonde de l'autre.
 - [ ] **Le verbe est symétrique** : le relancer repart en avant. Un retour par précaution s'annule
       donc par le même geste, `status` à l'appui.
 - [ ] **Juger le retour par la sonde**, jamais par un `curl` ni par un statut.
+- [ ] ⛔ **Si la fusion n'a produit AUCUN run** (2026-09-24, #52) — ni vert, ni rouge, rien :
+      1. **`status` d'abord.** Le geste déploie la **tête de `main`**, pas la fusion perdue : un
+         retour arrière voulu serait défait sans un mot. Et si une fusion plus récente a son run,
+         il n'y a rien à rattraper — il portera la perdue.
+      2. `gh workflow run ci.yml --ref main` : la chaîne entière, gates et E2E compris — ce n'est
+         pas un raccourci vers le déploiement. Depuis une autre branche, ni publication ni
+         déploiement.
+      3. Le lire **par son événement** (§4.2) — `gh workflow run` ne rend pas d'identifiant :
+         `gh run list --workflow ci.yml --event workflow_dispatch --limit 1`, puis
+         `gh run watch <id> --exit-status`.
 
 ### 8.5 Ce que cette checklist ne couvre pas
 

@@ -771,11 +771,14 @@ officielle n'atteint 250 Mo.
   Phase 14.
 - **Mesure CPU en régime stable** (P11-08) : le seul relevé date d'une minute après démarrage — 32 %,
   au-dessus du seuil d'alerte de 25 %. Ce n'est pas une mesure valide.
-- ⛔⛔ **`ci.yml` n'a pas de `workflow_dispatch`**, donc une exécution que GitHub ne crée pas est
-  **irrattrapable autrement que par un nouveau push** — et le 2026-09-24 il a fallu en faire un
-  (voir « État »). La sonde a cette poignée depuis P4-14 ; la chaîne qui **déploie** ne l'a pas.
-  L'ajouter est une ligne, et elle rendrait un déploiement manquant récupérable sans commit de
-  complaisance.
+- ✅ **`workflow_dispatch` dans `ci.yml` depuis le 2026-10-29** : rattrapage par `deploy/README.md`
+  §8.4, et plus d'annulation des runs de `main` (raison dans `ci.yml`).
+- ⚠️ **`deploy.sh` ne survit pas à une coupure SSH** : un `SIGHUP` entre `compose up` et le contrôle
+  de santé laisse le serveur à moitié déployé, sans retour automatique. Une annulation de CI ne le
+  provoque plus, mais une perte du runner ou du réseau, si. Piste : `trap '' HUP` et un `flock`.
+  Le script vit sur le VPS : à y installer à la main.
+- ⚠️ **Un déploiement manquant ne se voit toujours qu'à l'œil** : la poignée rattrape, elle ne
+  détecte pas. Piste : la sonde compare le SHA servi (`deploy.sh status`) à la tête de `main`.
 - **Procédure de restauration du serveur** (R-23) : Hetzner restreint par intermittence la création
   d'instances. À écrire sous cette contrainte en Phase 15.
 - **Plages Cloudflare** : un timer hebdomadaire les rafraîchit sur le VPS.
