@@ -1643,6 +1643,7 @@ chiffrée, P11-11.
 | P8-09 | Prototype NEXUS : noyau et plateforme, trois univers, ambiance, `ReadingPanel` en verre lumineux — **DONE** *(2026-10-23, #58)* | P6-04 |
 | P8-10 | Alléger le premier rendu : moins de variantes de matériaux et de draw calls (72 sur ordinateur, cible 60) | P8-09 |
 | P8-11 | Mesurer sur les appareils non couverts : GPU intégré, téléphone réel, Safari (`KHR_parallel_shader_compile`) | P8-09 |
+| P8-12 | Temps de scène accumulé et mouvement ambiant indépendant de la cadence — **DONE** *(2026-10-29)* : `ambientFrame`, pur ; les shaders ne lisent plus l'horloge de R3F (remise à zéro par `setFrameloop`, l'ambiance repartait de 0 au retour d'une fiche — même cause que P6-11), une image figée ne fait plus sauter les rotations | P8-09 |
 
 **Critères de sortie** — Budgets de `performance-budget.md` §5 tenus ; journal de mesures complet ;
 aucun objet ajouté sans justification d'usage ; contrastes conformes.

@@ -184,7 +184,7 @@ URL, tout le reste rend toujours 302.
 | Socle partagé | **127,1 Ko** | cible 136 · bloquant 146 |
 | **Chunk 3D différé** | **234,5 Ko** — somme des **deux** chunks porteurs, hors du chemin critique | cible 260 · bloquant 320 |
 | Image de production | **281 Mo** | cible 250 · bloquant 400 |
-| Tests | **830** verts, couverture **100 %** sur les quatre métriques | ≥ 80 % |
+| Tests | **888** verts (2026-10-29, P8-12), couverture **100 %** sauf les branches : **99,72 %** — `layout.ts:121`, non couverte depuis une tâche antérieure, non instruite | ≥ 80 % |
 | E2E | **153** verts sur 5 profils | — |
 | **Ce que le GPU rend** | **52 draw calls · 8 182 triangles** en desktop — la passe d'ombre incluse, soit **+73 %** sur les 4 114 de géométrie | ≤ 60 / ≤ 150 000 |
 
@@ -307,8 +307,8 @@ référence (#57), `ReadingPanel`, P6-04, décisions NEXUS (D11 et amendements d
 prototype, validation visuelle avec l'utilisateur, fusion et déploiement (#58), roadmap reprise.
 
 ⛔ **Avant toute chose, vérifie la fusion de cette mise à jour du prompt** (branche
-`mesure/p7-cwv-non-regression`) : `gh pr list --state all --head mesure/p7-cwv-non-regression`.
-Les précédentes sont fusionnées : P7-04 (#77), P7-06 (#78), P7-07 (#79).
+`fix/temps-de-scene-accumule`) : `gh pr list --state all --head fix/temps-de-scene-accumule`.
+Les précédentes sont fusionnées : P7-07 (#79), la clôture de la Phase 7 (#80, `c8c1ffa`, déployée).
 
 ✅ **Phase 6 close le 2026-10-27** : P6-07 et P6-10 (`phase-6-log.md` §11), P6-11 et P6-12 (§12).
 ⛔ P6-11 a trouvé un défaut **en production** : `setFrameloop` remet l'horloge de R3F à zéro, et une
@@ -375,11 +375,14 @@ autour de la page entière). Firefox headless ne monte pas la scène : non couve
    prioriser si P8-11 montre un problème.
 4. **P8-05, P8-08** — ambiance et contrastes sur la direction artistique **finale** : la scène
    actuelle est **indicative**, l'utilisateur l'a dit ; la mécanique, elle, est stable.
-5. **Le temps des shaders** : `nexus-scene.tsx` lit encore `state.clock.elapsedTime`, que
-   `setFrameloop` remet à zéro — au retour d'une fiche, l'animation ambiante repart de 0. Même cause
-   que le défaut de P6-11, effet cosmétique (la scène était cachée). Piste : une source de temps de
-   scène accumulée, lue par le rig ET les shaders, et la même approche exponentielle
-   (`approachOrbit`) pour les `Math.min(1, delta * 4)` voisins, qui dépendent de la cadence.
+5. ✅ **Le temps des shaders — P8-12, livrée le 2026-10-29** : `ambientFrame`
+   (`src/scene/state/ambient-motion.ts`, pur) accumule le temps de scène au lieu de lire
+   `state.clock`, borne chaque image à `IMAGE_MAX_S` — un onglet masqué faisait aussi sauter les
+   rotations des emblèmes, défaut que la piste ne nommait pas —, et rend la surbrillance et le
+   survol indépendants de la cadence par `approachFactor`, que `approachOrbit` emploie désormais.
+   ⭐ Pas d'horloge **partagée** avec le rig, contrairement à la piste : le rig accumule déjà son
+   propre temps **par transition** (remis à 0 à chaque état), l'ambiance un temps continu — deux
+   grandeurs, pas une.
 
 **Décisions qui appartiennent à l'utilisateur — les poser, ne pas les trancher :**
 

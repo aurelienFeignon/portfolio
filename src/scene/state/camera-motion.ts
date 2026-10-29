@@ -226,17 +226,22 @@ export function frameStepS(deltaS: number, wasMoving: boolean): number {
 }
 
 /**
- * L'orbite affichée qui rattrape sa consigne : une approche exponentielle,
- * `1 − e^(−5δ)` par image, donc indépendante de la cadence. Sans mouvement
- * (`animated` faux), elle saute : c'est voulu sous `reduced-motion`.
+ * La part de l'écart qu'une image comble : `1 − e^(−rδ)`, donc indépendante de
+ * la cadence — deux demi-images valent une image. Sans mouvement (`animated`
+ * faux), 1 : on saute, c'est voulu sous `reduced-motion`.
  */
+export function approachFactor(ratePerS: number, stepS: number, animated: boolean): number {
+  return animated ? 1 - Math.exp(-ratePerS * stepS) : 1
+}
+
+/** L'orbite affichée qui rattrape sa consigne, à `ORBIT_EASE_PER_S`. */
 export function approachOrbit(
   now: OrbitAngles,
   consigne: OrbitAngles,
   stepS: number,
   animated: boolean,
 ): OrbitAngles {
-  const k = animated ? 1 - Math.exp(-ORBIT_EASE_PER_S * stepS) : 1
+  const k = approachFactor(ORBIT_EASE_PER_S, stepS, animated)
   return {
     yawDeg: mix(now.yawDeg, consigne.yawDeg, k),
     pitchDeg: mix(now.pitchDeg, consigne.pitchDeg, k),
