@@ -89,6 +89,94 @@ describe('planTimeline', () => {
     expect(t.jogs).toEqual([expect.objectContaining({ lane: 0, year: 2021 })])
   })
 
+  describe('la marche à 45° d’un changement d’employeur', () => {
+    /** Écart de `p` à la ligne de la voie `lane` : la ligne de la rangée de `year`. */
+    const lineZ = (t: Timeline, year: number, lane: number): number => yearPoint(t, year, lane)[1]
+
+    function expectWalk(t: Timeline, jog: Timeline['jogs'][number]): void {
+      expectOctilinear(jog.points)
+      const z = lineZ(t, jog.year, jog.lane)
+      const first = jog.points[0]!
+      const last = jog.points.at(-1)!
+      expect(first[1]).toBeCloseTo(z, 9)
+      expect(last[1]).toBeCloseTo(z, 9)
+      const far = Math.max(...jog.points.map((p) => Math.abs(p[1] - z)))
+      expect(far).toBeCloseTo(LANE_PITCH / 2, 9)
+      // `at` est le milieu de la marche.
+      expect(jog.at[0]).toBeCloseTo((first[0] + last[0]) / 2, 9)
+      expect(jog.at[1]).toBeCloseTo(z, 9)
+    }
+
+    const twoEmployers = [
+      exp({ slug: 'a', startYear: 2018, endYear: 2020 }),
+      exp({ slug: 'b', startYear: 2021 }),
+    ]
+
+    it('voie 0 : part de l’épine, y revient, à un demi-pas vers l’extérieur', () => {
+      const t = planTimeline(twoEmployers, 2026, 6)
+      const jog = t.jogs[0]!
+      expectWalk(t, jog)
+      expect(onPolyline(jog.points[0]!, t.spine)).toBe(true)
+      expect(onPolyline(jog.points.at(-1)!, t.spine)).toBe(true)
+      // Voie unique : vers −Z.
+      expect(Math.min(...jog.points.map((p) => p[1]))).toBeCloseTo(6 - LANE_PITCH / 2, 9)
+      expectNoCrossing([jog.points, t.spine, ...t.segments.map((s) => s.points)], (i) =>
+        i === 0 || i === 1 ? 'a' : 'b',
+      )
+    })
+
+    it('est centrée sur la frontière entre les deux années', () => {
+      const t = planTimeline(twoEmployers, 2026, 6)
+      const boundary = (yearPoint(t, 2020, 0)[0] + yearPoint(t, 2021, 0)[0]) / 2
+      expect(t.jogs[0]!.at[0]).toBeCloseTo(boundary, 9)
+    })
+
+    it('voie > 0 : vers l’extérieur de la rangée, sans couper aucune voie', () => {
+      const t = planTimeline(
+        [
+          exp({ slug: 'a', startYear: 2010, endYear: 2024 }),
+          exp({ slug: 'b', startYear: 2012, endYear: 2014 }),
+          exp({ slug: 'c', startYear: 2016, endYear: 2017 }),
+          exp({ slug: 'd', startYear: 2018, endYear: 2019 }),
+        ],
+        2026,
+        0,
+      )
+      const jog = t.jogs.find((j) => j.lane === 1)!
+      expect(jog).toBeDefined()
+      expectWalk(t, jog)
+      // Rangée 0, deux voies : la voie 1 est la plus haute en Z, donc vers +Z.
+      expect(Math.max(...jog.points.map((p) => p[1]))).toBeCloseTo(LANE_PITCH + LANE_PITCH / 2, 9)
+      expectNoCrossing([jog.points, ...t.segments.map((s) => s.points)], (i) =>
+        i === 0 ? 'j' : 's',
+      )
+    })
+
+    it('à travers les lacets : toutes les marches sont valides et ne coupent rien', () => {
+      const t = planTimeline(makeLargeBoard().experiences, 2026, 0)
+      expect(t.jogs.length).toBeGreaterThan(0)
+      for (const jog of t.jogs) {
+        expectWalk(t, jog)
+        expectNoCrossing([jog.points, t.spine, ...t.segments.map((s) => s.points)], (i) =>
+          i === 0 || i === 1 ? 'x' : i,
+        )
+      }
+    })
+
+    it('tombant sur un lacet : commence au début de la case suivante', () => {
+      // Huit années par rangée : 2026 est la première case de la rangée 1.
+      const t = planTimeline(
+        [exp({ slug: 'a', startYear: 2018, endYear: 2025 }), exp({ slug: 'b', startYear: 2026 })],
+        2026,
+        0,
+      )
+      const jog = t.jogs[0]!
+      expectWalk(t, jog)
+      const cellEdge = yearPoint(t, 2026, 0)[0] + t.step / 2 // rangée impaire : bord gauche→droit inversé
+      expect(Math.abs(jog.points[0]![0] - cellEdge)).toBeCloseTo(0, 9)
+    })
+  })
+
   it('horloge en retard : le bus couvre quand même toutes les expériences', () => {
     expect(planTimeline([exp({ startYear: 2027, endYear: null })], 2026, 6).lastYear).toBe(2027)
   })
