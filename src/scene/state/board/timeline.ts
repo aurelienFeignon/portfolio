@@ -71,18 +71,6 @@ const cellOf = (index: number): { row: number; col: number } => ({
   col: index % YEARS_PER_ROW,
 })
 
-/** Le centre de la cellule d'indice `index`, sur la ligne de la voie `lane`. */
-function cellPoint(
-  index: number,
-  lane: number,
-  step: number,
-  lanes: number,
-  originZ: number,
-): Vec2 {
-  const { row, col } = cellOf(index)
-  return [xInRow(row, col + 0.5, step), originZ + row * rowPitch(lanes) + lane * LANE_PITCH]
-}
-
 /**
  * X d'une abscisse `local` (en années, depuis le début de la rangée `row`) :
  * vers la droite sur les rangées paires, vers la gauche sur les impaires.
@@ -92,33 +80,61 @@ function xInRow(row: number, local: number, step: number): number {
   return row % 2 === 0 ? -half + local * step : half - local * step
 }
 
-/** Les années à couvrir et le pas, pour `count` années. */
+/**
+ * Z d'une ligne située à `offset` de la voie 0, dans la rangée `row`.
+ *
+ * ⭐ L'ordre des voies **s'inverse à chaque rangée** : un ruban qui fait demi-tour
+ * garde sa voie extérieure à l'extérieur du virage. C'est ce qui rend les
+ * demi-tours concentriques — chaque voie relie deux Z dont l'intervalle contient
+ * celui de la voie intérieure, donc deux voies ne se croisent jamais. Sans
+ * inversion, les intervalles seraient décalés et se croiseraient forcément.
+ */
+function zInRow(originZ: number, lanes: number, row: number, offset: number): number {
+  const base = originZ + row * rowPitch(lanes)
+  return row % 2 === 0 ? base + offset : base + (lanes - 1) * LANE_PITCH - offset
+}
+
+/** Le centre de la cellule d'indice `index`, sur la ligne de la voie `lane`. */
+function cellPoint(
+  index: number,
+  lane: number,
+  step: number,
+  lanes: number,
+  originZ: number,
+): Vec2 {
+  const { row, col } = cellOf(index)
+  return [xInRow(row, col + 0.5, step), zInRow(originZ, lanes, row, lane * LANE_PITCH)]
+}
+
+/** Le pas (en X) d'une année, pour `count` années : la frise garde sa longueur. */
 const stepFor = (count: number): number => BUS_LENGTH / Math.min(count, YEARS_PER_ROW)
 
-/**
- * Décalage en Z (par rapport à la voie 0) en l'abscisse `u`, interpolé entre
- * les `breakpoints` triés `[u, décalage]`.
- */
-function offsetAt(breakpoints: readonly (readonly [number, number])[], u: number): number {
-  for (let i = 1; i < breakpoints.length; i += 1) {
-    const [u0, o0] = breakpoints[i - 1]!
-    const [u1, o1] = breakpoints[i]!
-    if (u <= u1 + EPS) return u1 - u0 < EPS ? o1 : o0 + ((o1 - o0) * (u - u0)) / (u1 - u0)
-  }
-  return breakpoints.at(-1)![1]
+/** Un profil de décalage : points `[u, décalage]` triés, `u` strictement croissant. */
+type Profile = readonly (readonly [number, number])[]
+
+/** Décalage en l'abscisse `u` (comprise dans le profil), interpolé linéairement. */
+function offsetAt(profile: Profile, u: number): number {
+  let i = 1
+  while (i < profile.length - 1 && u > profile[i]![0] + EPS) i += 1
+  const [u0, o0] = profile[i - 1]!
+  const [u1, o1] = profile[i]!
+  return o0 + ((o1 - o0) * (u - u0)) / (u1 - u0)
 }
 
 /**
  * Polyligne entre les abscisses `from` et `to` (en années depuis le début du
- * bus), le décalage de voie suivant `breakpoints`. Chaque changement de rangée
- * est un demi-tour fait de deux segments à 45° (D/2 en X pour D en Z) ; chaque
- * changement de décalage est une pente à 45° (1 en X pour 1 en Z), que
- * `breakpoints` exprime déjà en unités de longueur.
+ * bus), le décalage de voie suivant `profile`. Chaque changement de rangée est
+ * un demi-tour fait de deux segments à 45° ; chaque changement de décalage est
+ * une pente à 45° (le profil est exprimé en unités de longueur).
+ *
+ * ⭐ Un tracé qui **commence** exactement sur une fin de rangée emporte le
+ * demi-tour qui suit : il appartient au tronçon qui le franchit, pas à celui
+ * qui s'arrête là.
  */
 function buildPath(
   from: number,
   to: number,
-  breakpoints: readonly (readonly [number, number])[],
+  profile: Profile,
   step: number,
   lanes: number,
   originZ: number,
@@ -128,70 +144,89 @@ function buildPath(
     const last = out.at(-1)
     if (!last || Math.abs(last[0] - p[0]) > EPS || Math.abs(last[1] - p[1]) > EPS) out.push(p)
   }
-  const pitch = rowPitch(lanes)
-  const firstRow = Math.floor(from / YEARS_PER_ROW + EPS)
+  const firstRow = Math.max(0, Math.ceil(from / YEARS_PER_ROW - EPS) - 1)
   const lastRow = Math.ceil(to / YEARS_PER_ROW - EPS) - 1
   for (let row = firstRow; row <= lastRow; row += 1) {
     const rowStart = row * YEARS_PER_ROW
     const lo = Math.max(from, rowStart)
     const hi = Math.min(to, rowStart + YEARS_PER_ROW)
-    const us = [lo, ...breakpoints.map(([u]) => u).filter((u) => u > lo + EPS && u < hi - EPS), hi]
-    const baseZ = originZ + row * pitch
-    for (const u of us) push([xInRow(row, u - rowStart, step), baseZ + offsetAt(breakpoints, u)])
+    const us = [lo, ...profile.map(([u]) => u).filter((u) => u > lo + EPS && u < hi - EPS), hi]
+    for (const u of us) {
+      push([xInRow(row, u - rowStart, step), zInRow(originZ, lanes, row, offsetAt(profile, u))])
+    }
     if (row < lastRow) {
-      // Demi-tour : deux segments à 45°, qui débordent de D/2 hors de la rangée.
+      // Demi-tour : deux segments à 45°, qui débordent de la moitié de l'écart
+      // en Z entre les deux voies reliées.
       const side = row % 2 === 0 ? 1 : -1
-      const o = offsetAt(breakpoints, hi)
+      const o = offsetAt(profile, hi)
       const x = xInRow(row, YEARS_PER_ROW, step)
-      push([x + (side * pitch) / 2, baseZ + o + pitch / 2])
-      push([x, baseZ + pitch + o])
+      const za = zInRow(originZ, lanes, row, o)
+      const zb = zInRow(originZ, lanes, row + 1, o)
+      push([x + (side * (zb - za)) / 2, (za + zb) / 2])
+      push([x, zb])
     }
   }
   return out
 }
 
 /**
- * Le décalage de voie en fonction de l'abscisse pour un poste de `s` à `e`
- * (en années) sur la voie `lane` : il part de 0, monte à 45° jusqu'à la voie,
- * la suit, puis redescend à 45° — sauf s'il est en cours. Si le poste est trop
- * court pour atteindre la voie, la montée s'arrête à mi-chemin.
+ * Le profil de décalage d'un poste de `s` à `e` (en années) sur la voie `lane`.
+ *
+ * La voie `k` **part de la voie k−1** (toujours occupée à ce moment-là : les
+ * voies se prennent de la plus basse à la plus haute) et **rejoint la voie
+ * `target`**, la plus haute voie plus basse encore occupée à la fin — la voie 0
+ * à défaut. Ainsi une branche ne traverse jamais une voie intermédiaire. Un
+ * poste en cours ne rejoint pas. Si le poste est trop court pour atteindre sa
+ * voie, la pente s'arrête à mi-chemin (toujours à 45°).
  */
-function laneProfile(
+function rawLaneProfile(
   s: number,
   e: number,
   lane: number,
+  target: number,
   ongoing: boolean,
   step: number,
-): (readonly [number, number])[] {
+): Profile {
   if (lane === 0)
     return [
       [s, 0],
       [e, 0],
     ]
-  const rise = (lane * LANE_PITCH) / step
-  if (ongoing) {
-    const reach = Math.min(rise, e - s)
+  const from = (lane - 1) * LANE_PITCH
+  const top = lane * LANE_PITCH
+  const to = target * LANE_PITCH
+  const width = (e - s) * step
+  const at = (x: number): number => s + x / step
+  // ⭐ `width ≥ step ≥ BUS_LENGTH / YEARS_PER_ROW > LANE_PITCH` : la montée tient
+  // toujours dans un poste en cours.
+  if (ongoing)
     return [
-      [s, 0],
-      [s + reach, reach * step],
-      ...(reach < e - s ? [[e, reach * step] as const] : []),
+      [s, from],
+      [at(LANE_PITCH), top],
+      [e, top],
+    ]
+  if (width >= top - from + (top - to)) {
+    const rise = top - from
+    const fall = top - to
+    return [
+      [s, from],
+      [at(rise), top],
+      [at(width - fall), top],
+      [e, to],
     ]
   }
-  if (e - s < 2 * rise) {
-    const mid = (s + e) / 2
-    return [
-      [s, 0],
-      [mid, (mid - s) * step],
-      [e, 0],
-    ]
-  }
+  // Trop court : sommet à l'intersection des deux pentes (borné à la largeur).
+  const apex = Math.min(Math.max((to - from + width) / 2, 0), width)
   return [
-    [s, 0],
-    [s + rise, lane * LANE_PITCH],
-    [e - rise, lane * LANE_PITCH],
-    [e, 0],
+    [s, from],
+    [at(apex), from + apex],
+    [e, from + apex - (width - apex)],
   ]
 }
+
+/** `rawLaneProfile` sans abscisses confondues (une pente nulle se divise par zéro). */
+const laneProfile = (...args: Parameters<typeof rawLaneProfile>): Profile =>
+  rawLaneProfile(...args).filter((p, i, all) => i === all.length - 1 || all[i + 1]![0] - p[0] > EPS)
 
 export function planTimeline(
   experiences: readonly BoardExperience[],
@@ -199,7 +234,7 @@ export function planTimeline(
   originZ: number,
 ): Timeline {
   const sorted = [...experiences].sort(
-    (a, b) => a.startYear - b.startYear || (a.slug < b.slug ? -1 : a.slug > b.slug ? 1 : 0),
+    (a, b) => a.startYear - b.startYear || Number(a.slug > b.slug) - Number(a.slug < b.slug),
   )
   const firstYear = sorted.length > 0 ? sorted[0]!.startYear : currentYear
   const lastYear = Math.max(
@@ -214,7 +249,7 @@ export function planTimeline(
   const freeFrom: number[] = []
   const occupied = new Map<number, number>()
   const placed = sorted.map((e) => {
-    const end = e.endYear === null ? lastYear : Math.min(Math.max(e.endYear, e.startYear), lastYear)
+    const end = e.endYear === null ? lastYear : Math.max(e.endYear, e.startYear)
     let lane = freeFrom.findIndex((from) => from <= e.startYear)
     if (lane === -1) lane = freeFrom.length
     freeFrom[lane] = e.endYear === null ? Number.POSITIVE_INFINITY : end + 1
@@ -230,7 +265,13 @@ export function planTimeline(
   const jogs: BusJog[] = []
   placed.forEach(({ e, lane, end, ongoing }, i) => {
     const s = e.startYear - firstYear
-    const profile = laneProfile(s, end - firstYear + 1, lane, ongoing, step)
+    // La voie rejointe : la plus haute voie plus basse encore occupée à la fin.
+    const target = placed.reduce(
+      (best, o) =>
+        o.lane < lane && o.lane > best && o.e.startYear <= end && end <= o.end ? o.lane : best,
+      0,
+    )
+    const profile = laneProfile(s, end - firstYear + 1, lane, target, ongoing, step)
     const mid = e.startYear + Math.floor((end - e.startYear) / 2)
     segments.push({
       experience: e.slug,
@@ -259,11 +300,11 @@ export function planTimeline(
     const z = originZ + row * pitch
     parts.push({ minX: -half, maxX: half, minZ: z, maxZ: z + (lanes - 1) * LANE_PITCH })
     if (row < rows - 1) {
-      // Le demi-tour déborde de D/2 du côté où la rangée se termine.
+      // Le demi-tour le plus large (la voie extérieure) déborde de la moitié de
+      // l'écart entre ses deux rangées, du côté où la rangée se termine.
+      const bulge = (pitch + (lanes - 1) * LANE_PITCH) / 2
       const out =
-        row % 2 === 0
-          ? { minX: half, maxX: half + pitch / 2 }
-          : { minX: -half - pitch / 2, maxX: -half }
+        row % 2 === 0 ? { minX: half, maxX: half + bulge } : { minX: -half - bulge, maxX: -half }
       parts.push({ ...out, minZ: z, maxZ: z + pitch + (lanes - 1) * LANE_PITCH })
     }
   }

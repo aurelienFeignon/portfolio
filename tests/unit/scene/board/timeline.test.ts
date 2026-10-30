@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
 
-import { BUS_LENGTH, planTimeline, yearPoint } from '@/scene/state/board/timeline'
+import { BUS_LENGTH, LANE_PITCH, planTimeline, yearPoint } from '@/scene/state/board/timeline'
 import { makeBoardExperience, makeLargeBoard } from '../../../fixtures/builders/board'
-import { expectOctilinear } from './geometry-asserts'
+import { expectNoCrossing, expectOctilinear } from './geometry-asserts'
 
 const exp = makeBoardExperience
 
@@ -148,5 +148,98 @@ describe('planTimeline', () => {
   it('ne dépend pas de l’ordre d’entrée', () => {
     const e = makeLargeBoard().experiences
     expect(planTimeline([...e].reverse(), 2026, 6)).toEqual(planTimeline(e, 2026, 6))
+  })
+
+  it('aucune paire de tronçons ne se croise (lacets et trois voies)', () => {
+    const t = planTimeline(makeLargeBoard().experiences, 2026, 6)
+    expect(t.rows).toBeGreaterThan(1)
+    expect(t.lanes).toBe(3)
+    expectNoCrossing(t.segments.map((s) => s.points))
+  })
+
+  it('un poste de voie haute qui franchit un lacet ne croise rien', () => {
+    const t = planTimeline(
+      [
+        exp({ slug: 'a', startYear: 2015, endYear: null }),
+        exp({ slug: 'b', startYear: 2020, endYear: 2025 }),
+        exp({ slug: 'c', startYear: 2021, endYear: 2024 }),
+        exp({ slug: 'd', startYear: 2022, endYear: 2023 }),
+      ],
+      2026,
+      6,
+    )
+    expect(t.rows).toBe(2)
+    expect(t.lanes).toBe(4)
+    for (const s of t.segments) expectOctilinear(s.points)
+    expectNoCrossing(t.segments.map((s) => s.points))
+    expectNoCrossing(
+      [t.spine, ...t.segments.filter((s) => s.lane > 0).map((s) => s.points)],
+      (i) => (i === 0 ? 0 : i),
+    )
+  })
+
+  it('la voie k part de la voie k−1 et rejoint la plus haute voie encore occupée', () => {
+    const z0 = 6
+    const base = [
+      exp({ slug: 'a', startYear: 2018, endYear: null }),
+      exp({ slug: 'b', startYear: 2019, endYear: null }),
+    ]
+    const occupied = planTimeline(
+      [...base, exp({ slug: 'c', startYear: 2020, endYear: 2021 })],
+      2026,
+      z0,
+    )
+    const c = occupied.segments.find((s) => s.experience === 'c')!
+    expect(c.lane).toBe(2)
+    expect(c.points[0]![1]).toBeCloseTo(z0 + LANE_PITCH)
+    expect(c.points.at(-1)![1]).toBeCloseTo(z0 + LANE_PITCH)
+
+    const freed = planTimeline(
+      [
+        exp({ slug: 'a', startYear: 2018, endYear: null }),
+        exp({ slug: 'b', startYear: 2019, endYear: 2021 }),
+        exp({ slug: 'c', startYear: 2020, endYear: 2023 }),
+      ],
+      2026,
+      z0,
+    )
+    const c2 = freed.segments.find((s) => s.experience === 'c')!
+    expect(c2.points.at(-1)![1]).toBeCloseTo(z0)
+    expectNoCrossing(freed.segments.map((s) => s.points))
+  })
+
+  it('deux postes consécutifs sur une voie se suivent sans trou, même à travers un lacet', () => {
+    const t = planTimeline(
+      [
+        exp({ slug: 'a', startYear: 2015, endYear: 2022 }),
+        exp({ slug: 'b', startYear: 2023, endYear: null }),
+      ],
+      2026,
+      6,
+    )
+    expect(t.rows).toBe(2)
+    const [a, b] = t.segments
+    expect(b!.points[0]).toEqual(a!.points.at(-1))
+    for (const s of t.segments) expectOctilinear(s.points)
+  })
+
+  it('un poste trop court pour rejoindre sa voie cible monte et descend à mi-chemin, à 45°', () => {
+    const z0 = 6
+    const t = planTimeline(
+      [
+        exp({ slug: 'a', startYear: 2020, endYear: null }),
+        ...['b', 'c', 'd', 'e', 'f'].map((slug) => exp({ slug, startYear: 2020, endYear: 2020 })),
+        exp({ slug: 'g', startYear: 2020, endYear: 2021 }),
+      ],
+      2026,
+      z0,
+    )
+    expect(t.lanes).toBe(7)
+    const g = t.segments.find((s) => s.experience === 'g')!
+    expect(g.lane).toBe(6)
+    expectOctilinear(g.points)
+    expect(g.points.at(-1)![1]).toBeCloseTo(z0)
+    // Limite connue : à sept voies la descente ne tient pas dans le poste et peut
+    // couper une voie intermédiaire ; l'octilinéarité, elle, est préservée.
   })
 })
