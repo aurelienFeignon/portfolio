@@ -443,7 +443,7 @@ de la lecture des API navigateur. Chaque palier est atteignable en test via une 
                    detail: string | null }
               │
               ▼
-   getCameraTarget(state)               fonction pure → CAMERAS[…] : { position, target, fov, focusNodeId? }
+   getCameraTarget(state, cameras)      fonction pure → cameras[…] (BoardFile.cameras, make board) : { position, target, fov, focusNodeId? }
               │
               ▼
    useCameraTransition()                seul module qui touche Three.js
@@ -471,7 +471,9 @@ désynchronisation possible (R-03), et le `back` navigateur fonctionne gratuitem
 
 > ⛔ **Amendé par D11 (2026-10-23)** : le contenu n'est plus projeté sur des écrans 3D — il vit dans un
 > `ReadingPanel` HTML non projeté, et la caméra se cadre dans l'espace restant. Ce qui suit décrit la
-> décision d'origine. État en vigueur : [`nexus-prototype.md`](./nexus-prototype.md) §3–4.
+> décision d'origine. État en vigueur : [`nexus-prototype.md`](./nexus-prototype.md) §3–4 pour le
+> panneau ; la scène elle-même est la carte mère depuis D14 ([`carte-mere.md`](./carte-mere.md)),
+> dont la sérigraphie sans langue amende ADR-0004 (point 6).
 
 **Décision** : le contenu affiché « sur » les moniteurs est du **DOM standard**, superposé au
 canvas et positionné par projection des coordonnées de l'écran 3D, et non du texte rasterisé en

@@ -1,6 +1,7 @@
 # ADR-0004 — Le contenu des écrans est du DOM superposé, en instance unique
 
-- **Statut** : ACCEPTÉ (Phase 0, 2026-08-11) — implémentation validée en Phase 7
+- **Statut** : ACCEPTÉ (Phase 0, 2026-08-11) — implémentation validée en Phase 7 ; amendé par D11
+  (2026-10-23) et D14 (2026-10-30, point 6)
 - **Décide** : comment le contenu s'affiche « sur » les moniteurs 3D
 - **Lié à** : ADR-0001, ADR-0003
 
@@ -28,6 +29,13 @@ doit rester **lisible et accessible**.
    est lisible même si la scène est en cours de transition.
 5. `<Html transform>` de drei reste autorisé pour des éléments **purement décoratifs et sans
    information** (une LED, une horloge d'ambiance). Jamais pour du contenu.
+6. ⭐ **Amendé le 2026-10-30 (D14, la carte mère, `carte-mere.md` §9).** Une **sérigraphie
+   peinte** dans la scène est autorisée pour la seule **décoration sans langue** : années,
+   repères de composants (`U1`, `IC12`, `R3`), référence de la carte. Elle **double** une
+   information déjà présente dans le DOM, ou n'en porte **aucune**. Tout ce qui se lit dans une
+   langue — noms de compétences, de familles, d'employeurs, de projets — reste une **étiquette
+   HTML**, `aria-hidden`, posée à la projection de son ancre ; jamais un texte peint. Voir le
+   journal de [`README.md`](./README.md).
 
 ## Alternatives considérées
 

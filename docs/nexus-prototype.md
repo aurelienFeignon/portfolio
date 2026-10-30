@@ -1,5 +1,12 @@
 # NEXUS — le prototype
 
+> ⚠️ **Historique — remplacé par la carte mère (D14, P8-15).** La composition décrite ici (univers,
+> noyau, gros plans calculés autour du noyau) a été **retirée du code** en P8-15h avec les
+> composants `nexus/`, comme `desk.tsx` l'avait été en D11. La scène de production est décrite par
+> [`carte-mere.md`](./carte-mere.md). Ce document reste comme trace des décisions et des mesures de
+> D11 (§6 notamment, que citent encore `shader-warmup.tsx` et le panneau de diagnostic) ; les noms
+> de fichiers et de fonctions qu'il cite peuvent ne plus exister.
+
 > Branche `feat/nexus-prototype`, ouverte le 2026-10-23 depuis `main` (`2f8389b`).
 > ⭐ **Fusionné et déployé le 2026-10-23** (#58, `854d1fe`) — NEXUS est la scène de production. Décision D11 (`phase-0-questions.md`) ;
 > amendements d'ADR consignés dans le journal de `adr/README.md`.
@@ -53,7 +60,7 @@ lien du DOM ─────────┼─▶ router.push(route) ─▶ URL �
 - **Étiquettes** : chaque univers porte son nom et une accroche, en HTML posé à la projection de son
   point d'accroche (`LabelProjector`) — hors de la racine de scène, qui reste sans texte. Cachées
   hors de la zone libre — ni sous le panneau, ni sous l'en-tête —, jugée sur la taille **rendue** de
-  l'étiquette (`labelPlacement`) ; en gros plan, seule celle de l'univers cadré reste. Au
+  l'étiquette (`labelPlacement`, *retirée avec NEXUS ; la carte place les siennes par `placeLabels`, `board-render/labels.ts`, P8-15g*) ; en gros plan, seule celle de l'univers cadré reste. Au
   mobile, l'accroche est retirée ; la bande de scène est souvent trop étroite pour qu'elles y tiennent.
 - **Survol** : l'univers grandit d'un dixième, son voile et son étiquette s'allument.
 - **Clic** sur un univers (sphère de sélection invisible ; un glisser de plus de 6 px n'est pas un
