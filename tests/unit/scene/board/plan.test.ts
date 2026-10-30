@@ -6,7 +6,8 @@ import {
 } from '../../../fixtures/builders/board'
 import { BOARD_DENSITY } from '@/scene/state/board/passives'
 import { BOARD_SEED, type BoardOptions, planBoard } from '@/scene/state/board/plan'
-import type { Rect, Vec2 } from '@/scene/state/board/rect'
+import { GRID } from '@/scene/state/board/grid'
+import { inflate, type Rect, rectOf, rectsOverlap, type Vec2 } from '@/scene/state/board/rect'
 
 const options: BoardOptions = { currentYear: 2026, chipSizing: 'level', tier: 'full' }
 const inside = (b: Rect, [x, z]: Vec2) => x >= b.minX && x <= b.maxX && z >= b.minZ && z <= b.maxZ
@@ -78,8 +79,40 @@ describe('planBoard', () => {
   })
 
   it('une expérience en retard sur l’horloge est quand même couverte', () => {
-    const c = makeBoardContent({})
-    expect(() => planBoard(c, { ...options, currentYear: 1990 })).not.toThrow()
+    const c = makeRealSizeBoard()
+    const plan = planBoard(c, { ...options, currentYear: 1990 })
+    const starts = c.experiences.map((e) => e.startYear)
+    expect(plan.timeline.firstYear).toBeLessThanOrEqual(Math.min(...starts))
+    expect(plan.timeline.lastYear).toBeGreaterThanOrEqual(Math.max(...starts))
+  })
+
+  it('les petits composants évitent puces, processeurs, bus et pistes', () => {
+    const plan = planBoard(makeRealSizeBoard(), options)
+    expect(plan.passives.length).toBeGreaterThan(0)
+    const boxes: Rect[] = [
+      ...plan.zones.flatMap((z) => z.chips.map((c) => rectOf(c.center, c.size, c.size))),
+      ...plan.district.processors.map((p) => rectOf(p.center, p.size, p.size)),
+      plan.timeline.bounds,
+    ]
+    // Les pistes, échantillonnées au quart de cellule.
+    const samples: Vec2[] = []
+    for (const route of plan.traces.routes)
+      for (let i = 1; i < route.points.length; i++) {
+        const [ax, az] = route.points[i - 1]!
+        const [bx, bz] = route.points[i]!
+        const n = Math.ceil(Math.hypot(bx - ax, bz - az) / (GRID / 4))
+        for (let k = 0; k <= n; k++)
+          samples.push([ax + ((bx - ax) * k) / n, az + ((bz - az) * k) / n])
+      }
+    expect(samples.length).toBeGreaterThan(0)
+    for (const p of plan.passives) {
+      const box = rectOf(p.center, p.rotated ? GRID : 2 * GRID, p.rotated ? 2 * GRID : GRID)
+      expect(boxes.some((other) => rectsOverlap(box, other))).toBe(false)
+      // Une cellule de dégagement : un échantillon pile sur le bord du halo (sommet
+      // d'une diagonale au coin d'une cellule voisine) n'est pas un contact.
+      const halo = inflate(box, GRID - 1e-6)
+      expect(samples.some((s) => inside(halo, s))).toBe(false)
+    }
   })
 
   it('grand contenu : passe, sans petit composant hors budget', () => {

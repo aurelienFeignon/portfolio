@@ -85,8 +85,15 @@ describe('scatterPassives', () => {
 
   it('ne modifie pas la grille', () => {
     const grid = new RoutingGrid(board)
+    grid.block({ minX: -1, minZ: -1, maxX: 1, maxZ: 1 })
+    const snapshot = () => {
+      const out: boolean[] = []
+      for (let r = 0; r < grid.rows; r++)
+        for (let c = 0; c < grid.cols; c++) out.push(grid.isFree([c, r]))
+      return out
+    }
+    const before = snapshot()
     scatterPassives(grid, 30, SEED)
-    expect(grid.isFree([10, 10])).toBe(true)
-    expect(scatterPassives(grid, 30, SEED)).toEqual(scatterPassives(grid, 30, SEED))
+    expect(snapshot()).toEqual(before)
   })
 })
