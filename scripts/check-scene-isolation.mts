@@ -35,6 +35,7 @@
 import { existsSync, readFileSync, readdirSync } from 'node:fs'
 import { basename, dirname, join } from 'node:path'
 
+import { sourcesModulePlanPur, sourcesPlanGenere } from './scene-isolation-rules.mts'
 import { NEXT_DIR, firstVisitScripts, onDisk } from './first-visit-scripts.mts'
 
 const CHUNKS_DIR = join(NEXT_DIR, 'static', 'chunks')
@@ -55,6 +56,8 @@ interface Analyse {
   readonly modules: readonly string[]
   /** `true` quand le verdict vient du repli, faute de source map. */
   readonly parRepli: boolean
+  /** Toutes les sources de la map (vide sans map) : la carte mère s'y lit (P8-15i). */
+  readonly sources: readonly string[]
 }
 
 function analyser(chemin: string): Analyse {
@@ -68,10 +71,20 @@ function analyser(chemin: string): Analyse {
   const map = lien === undefined ? undefined : join(dirname(chemin), lien)
   if (map !== undefined && existsSync(map)) {
     const sources = (JSON.parse(readFileSync(map, 'utf8')) as { sources?: string[] }).sources ?? []
-    return { script, modules: sources.filter((source) => MODULE_3D.test(source)), parRepli: false }
+    return {
+      script,
+      modules: sources.filter((source) => MODULE_3D.test(source)),
+      parRepli: false,
+      sources,
+    }
   }
 
-  return { script, modules: REPLI_3D.test(code) ? ['(détecté sans map)'] : [], parRepli: true }
+  return {
+    script,
+    modules: REPLI_3D.test(code) ? ['(détecté sans map)'] : [],
+    parRepli: true,
+    sources: [],
+  }
 }
 
 /* ------------------------------------------- 1. le témoin : l'instrument voit-il ? */
@@ -105,6 +118,51 @@ for (const porteur of porteurs) {
   console.log(`  ${porteur.script} — ${porteur.modules.length} module(s) 3D`)
 }
 
+/* ------------- 1 bis. la carte mère (P8-15i) : le plan est dans le chunk 3D, le module pur nulle part */
+
+/*
+ * ⭐ **Témoin du JSON** : « aucun `generated/` à la première visite » ne vaut rien tant qu'on n'a
+ * pas vu `board-plan.<locale>.json` dans un chunk — sinon, source map muette ou fichier renommé,
+ * l'absence se lirait comme une victoire.
+ */
+const porteursDuPlan = tousLesChunks.filter(
+  (analyse) => sourcesPlanGenere(analyse.sources).length > 0,
+)
+if (porteursDuPlan.length === 0) {
+  console.error(
+    `✗ Témoin absent : aucun chunk ne porte \`src/scene/generated/board-plan.*.json\`.\n` +
+      `  Le plan de la carte mère devrait être embarqué dans le chunk 3D ; sans lui ce garde\n` +
+      `  ne sait pas distinguer un plan absent d'un instrument aveugle (\`make board\` fait ?).`,
+  )
+  process.exit(1)
+}
+console.log(
+  `Témoin du plan : ${porteursDuPlan.map((p) => p.script).join(', ')} ` +
+    `(${sourcesPlanGenere(porteursDuPlan.flatMap((p) => p.sources)).length} fichier(s) généré(s)).`,
+)
+
+// Le module pur ne sert qu'au générateur : aucun chunk, 3D compris, n'en porte une valeur.
+const modulePlanEmbarque = tousLesChunks.filter(
+  (analyse) => sourcesModulePlanPur(analyse.sources).length > 0,
+)
+if (modulePlanEmbarque.length > 0) {
+  console.error(
+    `\n✗ Une valeur de \`src/scene/state/board/\` est embarquée dans un chunk — le module pur du\n` +
+      `  plan ne sert qu'au générateur (\`make board\`), la scène lit le JSON :\n` +
+      modulePlanEmbarque
+        .map(
+          (c) =>
+            `  ${c.script}\n` +
+            sourcesModulePlanPur(c.sources)
+              .map((m) => `      ${m}`)
+              .join('\n'),
+        )
+        .join('\n'),
+  )
+  process.exit(1)
+}
+console.log(`✓ Aucune valeur de \`scene/state/board/\` dans aucun chunk.`)
+
 /* ----------------------------- 2. la population qui doit être vide : première visite */
 
 /*
@@ -120,6 +178,7 @@ const premiereVisite = [
 ]
 const analyses = premiereVisite.map((src) => analyser(onDisk(src)))
 const fautifs = analyses.filter((analyse) => analyse.modules.length > 0)
+const avecPlan = analyses.filter((analyse) => sourcesPlanGenere(analyse.sources).length > 0)
 
 console.log(`\nPremière visite : ${analyses.length} script(s) distinct(s) examiné(s).`)
 
@@ -145,6 +204,15 @@ if (fautifs.length > 0) {
       `\n\n  La scène doit rester derrière son import dynamique (\`ssr: false\`, après idle).\n` +
       `  Un import statique de \`three\`, de \`@react-three/*\` ou d'un module qui en\n` +
       `  dépend depuis un composant du socle suffit à produire ceci.`,
+  )
+  process.exit(1)
+}
+
+if (avecPlan.length > 0) {
+  console.error(
+    `\n✗ Le plan de la carte mère (\`src/scene/generated/\`) est chargé à la PREMIÈRE VISITE :\n` +
+      avecPlan.map((a) => `  ${a.script}`).join('\n') +
+      `\n\n  Il ne doit être lu que depuis le chunk 3D, par import dynamique après idle.`,
   )
   process.exit(1)
 }
