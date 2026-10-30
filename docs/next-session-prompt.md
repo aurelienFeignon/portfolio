@@ -54,7 +54,7 @@ et §12.
 arbitrage **D13** ; l'écart de LCP mobile introduit par #58 s'est révélé un artefact de Lantern
 (**P11-11**, `performance-budget.md` §6.5).
 **Phase 8** : ⭐⭐ **D14 (2026-10-29) — la carte mère remplace la composition NEXUS** :
-[`carte-mere.md`](./carte-mere.md), trois plans (P8-13 contenu, livré par #84 ; P8-14 ; P8-15).
+[`carte-mere.md`](./carte-mere.md), trois plans (P8-13 contenu, livré par #84 ; P8-14 plan de carte, livré sur la branche `design/p8-14-plan-de-carte` ; P8-15).
 NEXUS reste en production tant que P8-15 n'est pas livrée.
 ⭐⭐ **NEXUS EST EN PRODUCTION depuis le 2026-10-23 (#58, `854d1fe`)** — D11 : le bureau 3D est
 remplacé par un noyau numérique et trois univers, avec navigation hybride et `ReadingPanel` en verre
@@ -188,7 +188,7 @@ URL, tout le reste rend toujours 302.
 | Socle partagé | **127,1 Ko** | cible 136 · bloquant 146 |
 | **Chunk 3D différé** | **234,5 Ko** — somme des **deux** chunks porteurs, hors du chemin critique | cible 260 · bloquant 320 |
 | Image de production | **281 Mo** | cible 250 · bloquant 400 |
-| Tests | **908** verts (2026-10-29, P8-13) ; couverture non remesurée depuis P8-12 : **100 %** sauf les branches, **99,72 %** — `layout.ts:121`, le côté `placer(-1)` de `closeUp`, qu'aucun des trois univers ne prend : inatteignable sans changer leurs positions, depuis #58 | ≥ 80 % |
+| Tests | **1126** verts (2026-10-30, P8-14) ; couverture non remesurée depuis P8-12 : **100 %** sauf les branches, **99,72 %** — `layout.ts:121`, le côté `placer(-1)` de `closeUp`, qu'aucun des trois univers ne prend : inatteignable sans changer leurs positions, depuis #58 | ≥ 80 % |
 | E2E | **153** verts sur 5 profils | — |
 | **Ce que le GPU rend** | **52 draw calls · 8 182 triangles** en desktop — la passe d'ombre incluse, soit **+73 %** sur les 4 114 de géométrie | ≤ 60 / ≤ 150 000 |
 
@@ -311,16 +311,20 @@ référence (#57), `ReadingPanel`, P6-04, décisions NEXUS (D11 et amendements d
 prototype, validation visuelle avec l'utilisateur, fusion et déploiement (#58), roadmap reprise.
 
 ⛔ **Avant toute chose, vérifie la fusion de cette mise à jour du prompt** (branche
-`design/d14-carte-mere`, PR #84) : `gh pr list --state all --head design/d14-carte-mere`, puis le
-déploiement de `main` (`gh run list --branch main --workflow ci.yml --limit 1`).
+`design/p8-14-plan-de-carte`, PR à ouvrir ou fusionner) : `gh pr list --state all --head
+design/p8-14-plan-de-carte`, puis le déploiement de `main` (`gh run list --branch main --workflow
+ci.yml --limit 1`).
 Les précédentes sont fusionnées et déployées : #80 (Phase 7), #81 (P8-12), #82 (`workflow_dispatch`),
-#83 (P11-11).
+#83 (P11-11), #84 (P8-13).
 
-⭐⭐ **La suite immédiate : le plan 2/3 de la carte mère (P8-14)**, le module pur du plan de carte
-(`carte-mere.md` §5 et §7) — à écrire avec superpowers:writing-plans, puis à exécuter. Le plan 1
-(P8-13, le contenu) est livré par #84. ⚠️ Repris de la revue de #84 : le dépôt de contenu
-n'impose `primary` et `experience` qu'au **build** ; le module du plan 2 doit appliquer son propre
-repli (aucun principal → le plus récent au centre) sans supposer le gate joué.
+⭐⭐ **P8-14 est livrée sur la branche `design/p8-14-plan-de-carte`** : le module pur
+`src/scene/state/board/` (plan de carte, mesures en [`carte-mere.md`](./carte-mere.md) §11).
+**La suite immédiate : le plan 3/3, P8-15** (rendu et interactions), à écrire avec
+superpowers:writing-plans. Décisions qu'il doit poser : **D2** (taille des puces, `ChipSizing`),
+l'affichage des **ponts** (`Traces.vias`), l'**affinité** des emplacements de processeurs, et la
+**mesure de `planBoard` sous bridage CPU** contre TBT ≤ 200 ms (ou calcul hors du fil principal / au
+build). ⚠️ Le module applique son propre repli sans supposer le gate joué (aucun principal → le plus
+récent au centre).
 
 ✅ **Phase 6 close le 2026-10-27** : P6-07 et P6-10 (`phase-6-log.md` §11), P6-11 et P6-12 (§12).
 ⛔ P6-11 a trouvé un défaut **en production** : `setFrameloop` remet l'horloge de R3F à zéro, et une
@@ -388,7 +392,8 @@ autour de la page entière). Firefox headless ne monte pas la scène : non couve
    prioriser si P8-11 montre un problème.
 4. **La carte mère (D14, 2026-10-29)** remplace la composition NEXUS — conception
    [`carte-mere.md`](./carte-mere.md), trois plans : **P8-13** contenu
-   (`plans/2026-10-29-carte-mere-1-contenu.md`, en cours), **P8-14** module pur du plan de carte,
+   (`plans/2026-10-29-carte-mere-1-contenu.md`, livré par #84), **P8-14** module pur du plan de carte
+   (livré sur sa branche),
    **P8-15** rendu et interactions. **P8-05, P8-08** se refont et se jugent sur la carte.
 5. ✅ **Le temps des shaders — P8-12, livrée le 2026-10-29** : `ambientFrame`
    (`src/scene/state/ambient-motion.ts`, pur) accumule le temps de scène au lieu de lire

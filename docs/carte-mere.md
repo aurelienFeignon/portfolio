@@ -254,3 +254,28 @@ pas.
 - Les shaders et matériaux, dans l'esprit de NEXUS (lueur dans la géométrie, mélange additif).
 - Le geste tactile (§8), dans les limites posées.
 - Le découpage en lots et l'ordre de livraison.
+
+### Mesuré par le constructeur (P8-14, 2026-10-30)
+
+Module `src/scene/state/board/`, tenu par les bancs de `tests/unit/scene/board/` ; les constantes
+sont des valeurs de départ, les bancs portent les invariants.
+
+- **Mode de routage du contenu réel** (40 compétences, 3 projets de 31, 10 et 7 technologies,
+  2 expériences) : **bus de famille**. 48/48 liaisons routées, 2/2 liaisons au bus, 5 ponts. Avec
+  un projet de plus : 51/51, 3/3, 10 ponts. Contenu de stress (80 compétences, 20 projets,
+  20 ans) : 80/80, 20/20, 161 ponts.
+- **Seuil de bascule** : le mode direct tient jusqu'à 9 puces d'une même famille alimentant un
+  processeur ; la 10e bascule en bus de famille (épinglé par un banc).
+- ⭐ **Décision prise en cours d'exécution** : « aucun croisement » (§5) était plus strict que §2 et
+  impossible sur une seule couche (K3,3). Le routeur admet des **ponts** : une piste n'en croise une
+  autre qu'à 90°, en ligne droite sur une cellule, déclarée dans `Traces.vias` — la seconde couche
+  d'un vrai circuit imprimé. Zéro perte sur le contenu de stress dépend des coûts réglés
+  (`BRIDGE_COST` 4, `HUG_COST` 1).
+- **« Une piste par couple compétence–projet »** (§5) est tenue comme un lien **logique** : chaque
+  `Link` est porté par au moins une `Route`. En bus de famille, plusieurs liens partagent un tronc.
+- **Coût** : `planBoard` sur le contenu réel ≈ 49 ms à chaud, 137 ms au premier appel (conteneur).
+  P8-15 doit le mesurer sous bridage CPU contre TBT ≤ 200 ms, ou le calculer hors du fil
+  principal / au build.
+- **Reporté à P8-15** : l'affinité des emplacements (placer un projet du côté de sa zone dominante
+  réduirait les ponts) ; D2 tranche `ChipSizing` (`'level'` ou `'uniform'`, sans défaut) ; les
+  jetons `globals.css` pour ambre et sarcelle, et leurs contrastes (P8-08).

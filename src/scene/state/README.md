@@ -14,6 +14,9 @@ WebGL (CT-10), couverture exigée à 95 %.
 | `camera-target.ts` | `getCameraTarget(state)` (P6-02) : **le seul endroit où `SceneFocus` rencontre `ViewId`**, par un `Record<SceneFocus, ViewId>` dont le **type** tient l'exhaustivité. Rend l'instance de `CAMERAS` elle-même, `fov` à 16:9 — la correction de format est celle de P6-04, sur la valeur interpolée |
 | `ambient-motion.ts` | `ambientFrame` (P8-12) : une image du mouvement ambiant de NEXUS — temps des shaders **accumulé**, jamais lu sur l'horloge de R3F, image bornée, surbrillance et survol indépendants de la cadence |
 | `scene-state.ts` | **Les deux sens du flux d'ADR-0002** : `resolveSceneState(pathname)` (P6-01) et `getRouteForScreen(focus, locale)` (P6-03), inverses l'un de l'autre — ils vivent ensemble pour la raison que `routing` applique déjà à `homePath`/`localeFromPathname`. ⭐ La **lecture** de l'URL n'est pas ici : `parsePagePath` vit dans `routing`, contre `pathFor`. Ce fichier ne porte que les décisions de scène |
+| `seeded-random.ts` | Le générateur pseudo-aléatoire à graine (P8-14), sorti de la géométrie de NEXUS pour que NEXUS et la carte partagent la même source de déterminisme |
+| `board/` | Le plan de la carte mère (P8-14), pur : `content`, `rect`, `timeline` (bus), `processors`, `zones`, `grid` (routeur A*), `traces`, `bounds`, `passives`, `plan` (`planBoard`) et `cameras`. ⭐ **Rien sur le chemin de première visite n'en importe une valeur** — gardé par `scene-state-stays-off-layout.test.ts` |
+
 
 ⭐⭐ **La règle de découpage n'est pas « un fichier par fonction », c'est l'empreinte d'import** :
 *rien sur le chemin de première visite ne doit tirer `layout.ts`*. `getCameraTarget` l'importe, et
