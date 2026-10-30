@@ -19,7 +19,7 @@ import { expect, test } from '../../support/test'
  *
  * P7-07 — la bascule de langue, scène montée : la page d'arrivée est **celle d'un
  * lien direct** vers la même adresse — langue du document, titre, `h1`, chrome,
- * étiquettes des univers et état de scène.
+ * étiquettes de la carte et état de scène.
  *
  * ⭐ **Un différentiel, comme E2E-16.** La référence est la page d'arrivée ouverte
  * directement, scène montée ; rien n'est écrit en dur de ce qu'elle doit contenir.

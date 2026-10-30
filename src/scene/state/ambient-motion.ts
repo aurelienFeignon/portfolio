@@ -1,8 +1,9 @@
 /**
- * Une image du mouvement ambiant de NEXUS, en nombres purs : le temps que voient
- * les shaders, la durée qu'avancent les rotations, la surbrillance et le
- * grossissement au survol des univers. Ce que `nexus-scene.tsx` faisait de tête
- * dans `useFrame`, et qu'aucun banc ne voyait.
+ * Une image du mouvement ambiant de la scène, en nombres purs : le temps que
+ * voient les shaders, la durée qu'avancent les animations, et la mise en valeur
+ * de chaque section (sa route ou son survol). Né avec NEXUS (P8-12) ; la carte
+ * mère (`board-scene.tsx`) le lit tel quel — le grossissement au survol des
+ * univers est parti avec eux (P8-15h).
  *
  * ⛔⛔ **Le temps des shaders s'ACCUMULE, image par image** — il ne se lit pas sur
  * l'horloge de R3F. `setFrameloop` remet `clock.elapsedTime` à zéro à chaque
@@ -16,28 +17,26 @@
 import { SECTIONS, type Section } from '@/routing/sections'
 
 import { approachFactor, boundedStepS, mix } from './camera-motion.ts'
-import { HOVER_SCALE } from './layout.ts'
 import type { SceneFocus } from './scene-state.ts'
 
 /** L'heure des shaders sous `prefers-reduced-motion` : impulsions visibles à l'arrêt. */
 export const FROZEN_TIME_S = 2.4
 
-/** Les taux de rattrapage, par seconde, de la surbrillance et du grossissement. */
+/** Le taux de rattrapage de la surbrillance, par seconde. */
 const HIGHLIGHT_EASE_PER_S = 4
-const SCALE_EASE_PER_S = 6
 
 export interface AmbientState {
   /** Le temps de scène accumulé, en secondes ; il ne court que si l'on anime. */
   readonly timeS: number
+  /** La mise en valeur de chaque section, de 0 à 1. */
   readonly highlight: Readonly<Record<Section, number>>
-  readonly scale: Readonly<Record<Section, number>>
 }
 
 export interface AmbientFrame {
   readonly state: AmbientState
   /** Le temps que voient les shaders : accumulé, ou figé sous `reduced-motion`. */
   readonly shaderTimeS: number
-  /** La durée qu'avancent les rotations à cette image, bornée. */
+  /** La durée qu'avancent les animations à cette image, bornée. */
   readonly stepS: number
 }
 
@@ -53,19 +52,14 @@ export function ambientFrame(
 ): AmbientFrame {
   const stepS = boundedStepS(input.deltaS)
   const kHighlight = approachFactor(HIGHLIGHT_EASE_PER_S, stepS, input.animated)
-  const kScale = approachFactor(SCALE_EASE_PER_S, stepS, input.animated)
   const highlight = { ...state.highlight }
-  const scale = { ...state.scale }
   for (const section of SECTIONS) {
     const goal = input.hovered === section || input.focus === section ? 1 : 0
     highlight[section] = mix(highlight[section], goal, kHighlight)
-    // ⭐ Le survol grandit l'univers — doucement, jamais d'un coup.
-    const scaleGoal = input.hovered === section ? HOVER_SCALE : 1
-    scale[section] = mix(scale[section], scaleGoal, kScale)
   }
   const timeS = input.animated ? state.timeS + stepS : state.timeS
   return {
-    state: { timeS, highlight, scale },
+    state: { timeS, highlight },
     shaderTimeS: input.animated ? timeS : FROZEN_TIME_S,
     stepS,
   }

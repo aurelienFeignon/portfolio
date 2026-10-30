@@ -136,7 +136,7 @@ export default async function LocaleLayout({
             savoir de la page. L'année est lue au build — toutes les routes sont
             prérendues, elle est donc gravée à chaque déploiement. */}
         <SiteFooter locale={locale} year={new Date().getFullYear()} />
-        {/* La scène NEXUS (P5-04, D11). Placée en DERNIER : `aria-hidden`, sans
+        {/* La scène 3D — la carte mère (P5-04, D14). Placée en DERNIER : `aria-hidden`, sans
             rien de focusable, montée après `idle` — jamais dans le chemin
             critique du LCP (ADR-0003). Au palier `none`, elle ne charge rien.
             Les noms de la carte lui sont DONNÉS : la scène n'importe aucun

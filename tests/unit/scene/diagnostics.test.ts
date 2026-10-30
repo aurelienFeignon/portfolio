@@ -122,7 +122,7 @@ describe('cadence des relevés', () => {
   })
 })
 
-describe('mesure sur appareil réel (NEXUS)', () => {
+describe('mesure sur appareil réel', () => {
   it('affiche GPU, compilation, première image, tâches longues et blocage', () => {
     expect(valeur(RELEVES, 'GPU')).toBe('ANGLE (NVIDIA)')
     expect(valeur(RELEVES, 'compilation parallèle')).toBe('oui')

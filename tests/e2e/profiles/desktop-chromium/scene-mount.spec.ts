@@ -48,8 +48,8 @@ test.describe('montage de la scène', () => {
     /*
      * ⭐⭐ **Le contrat a changé avec NEXUS (D11), et c'est écrit.** La Phase 5
      * exigeait une scène insensible au pointeur (`pointer-events: none`,
-     * `z-index: -1`) parce qu'elle n'avait rien à cliquer. NEXUS a besoin du
-     * survol, du clic et du glisser : la couche reçoit le pointeur, et c'est
+     * `z-index: -1`) parce qu'elle n'avait rien à cliquer. NEXUS, puis la carte
+     * mère qui l'a remplacé (D14), ont besoin du survol, du clic et du glisser : la couche reçoit le pointeur, et c'est
      * l'EMPILEMENT qui protège le contenu.
      *
      * ⛔ Les deux moitiés sont affirmées séparément, par ce qu'un pointeur

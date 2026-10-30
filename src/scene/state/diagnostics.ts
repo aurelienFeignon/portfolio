@@ -30,8 +30,8 @@ export interface SceneReadings {
   /** Tas JavaScript en Mo — Chromium seulement. */
   readonly jsHeapMb: number | null
   /*
-   * ⭐ Ce qui tranche la question de performance de NEXUS sur un appareil RÉEL
-   * (`nexus-prototype.md` §6) — le banc de mesure tourne sans GPU, et ne peut
+   * ⭐ Ce qui tranche la question de performance de la scène sur un appareil
+   * RÉEL (posée par NEXUS, `nexus-prototype.md` §6) — le banc de mesure tourne sans GPU, et ne peut
    * pas dire ce que coûte la première image avec un vrai pilote.
    */
   /** La carte graphique annoncée par le navigateur ; `null` s'il la masque. */

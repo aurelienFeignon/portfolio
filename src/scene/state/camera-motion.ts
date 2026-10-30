@@ -1,7 +1,7 @@
 /**
  * Le mouvement de caméra, en nombres purs — P6-04, sans three.
  *
- * ⭐ Le rig (`components/nexus/camera-rig.tsx`) ne fait qu'appliquer ces
+ * ⭐ Le rig (`components/camera-rig.tsx`) ne fait qu'appliquer ces
  * fonctions image par image. Tout ce qui peut se tromper — l'interpolation,
  * l'interruption, les bornes de l'orbite, le décentrage du cadrage — est ici, où
  * un banc l'éprouve sans navigateur.

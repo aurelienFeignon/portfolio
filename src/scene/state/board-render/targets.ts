@@ -17,7 +17,7 @@ import type { Section } from '../../../routing/sections.ts'
 
 /**
  * Au-delà de ce déplacement (pixels) entre l'appui et le relâché, un geste est une rotation ou
- * un défilement, pas un clic. Partagé avec NEXUS, qui l'a fixé le premier.
+ * un défilement, pas un clic. Seuil hérité de NEXUS (D11), qui l'avait fixé le premier.
  */
 export const CLICK_TOLERANCE_PX = 6
 

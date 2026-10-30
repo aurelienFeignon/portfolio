@@ -15,7 +15,7 @@ export const CANVAS = `${RACINE} canvas`
 /** Le panneau de lecture, que `SceneMount` mesure pour cadrer la scène (`reading-panel.tsx`). */
 export const PANNEAU = '[data-reading-panel]'
 
-/** Les étiquettes des univers : hors de la racine, `aria-hidden` (`scene-mount.tsx`). */
+/** Les étiquettes de la carte : hors de la racine, `aria-hidden` (`scene-mount.tsx`). */
 export const ETIQUETTES = '[data-scene-labels]'
 
 /** Le canvas marqué par `monterLaScene` : il doit survivre aux navigations. */
