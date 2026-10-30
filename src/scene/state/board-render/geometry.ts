@@ -354,8 +354,9 @@ export interface InstanceSet {
 
 export type BoardInstances = Readonly<Record<Shape, InstanceSet>>
 
-/** Les maillages qui ne sont pas des formes : plaque, sérigraphie, pistes, bus. */
-export const FIXED_MESHES = 4
+/** Les maillages qui ne sont pas des formes : plaque, sérigraphie, pistes, bus — dans cet ordre. */
+export const FIXED_MESHES = ['plate', 'silkscreen', 'traces', 'bus'] as const
+export type FixedMesh = (typeof FIXED_MESHES)[number]
 
 /** Le plafond de §9 sur ordinateur (P8-10). */
 export const MAX_DRAW_CALLS = 60
@@ -582,11 +583,19 @@ export function instances(plan: BoardPlan, tier: DensityTier): BoardInstances {
 }
 
 /**
- * Le nombre de maillages que la scène créera : les maillages fixes (plaque, sérigraphie, pistes,
- * bus) et un `InstancedMesh` par forme **non vide** — la scène ne monte pas une forme sans
- * instance. ⚠️ `renderer.info` compte aussi les passes de chaque maillage : la mesure de vérité
- * reste `?debug=scene` (tâche 9).
+ * **La** liste des maillages de la carte, dans l'ordre où `buildBoard` les monte : les maillages
+ * fixes, puis un `InstancedMesh` par forme **non vide** — la scène ne monte pas une forme sans
+ * instance. ⭐ `buildBoard` la parcourt et `drawCallBudget` la compte : les deux ne peuvent pas
+ * diverger.
+ */
+export function boardMeshes(set: BoardInstances): readonly (FixedMesh | Shape)[] {
+  return [...FIXED_MESHES, ...SHAPES.filter((shape) => set[shape].count > 0)]
+}
+
+/**
+ * Le nombre de maillages que la scène créera (`boardMeshes`). ⚠️ `renderer.info` compte aussi les
+ * passes de chaque maillage : la mesure de vérité reste `?debug=scene` (tâche 9).
  */
 export function drawCallBudget(set: BoardInstances): number {
-  return FIXED_MESHES + SHAPES.filter((shape) => set[shape].count > 0).length
+  return boardMeshes(set).length
 }

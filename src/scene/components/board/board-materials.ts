@@ -171,6 +171,7 @@ export function glowMaterial(): ShaderMaterial & { uniforms: BoardUniforms } {
  * `diffuseColor` et `totalEmissiveRadiance`.
  */
 function withLocalFrame(
+  name: string,
   material: MeshStandardMaterial,
   uniforms: Record<string, IUniform>,
   surface: string,
@@ -179,6 +180,12 @@ function withLocalFrame(
   const declarations = Object.entries(uniforms)
     .map(([name, u]) => `uniform ${u.value instanceof Color ? 'vec3' : 'float'} ${name};`)
     .join('\n')
+  /*
+   * ⛔⛔ Une clé de programme PAR APPELANT : par défaut, three range les programmes sous
+   * `onBeforeCompile.toString()` — le même texte pour toutes les retouches de cette fonction.
+   * Sans cette clé, les condensateurs étaient rendus avec le programme des capots.
+   */
+  material.customProgramCacheKey = () => `board:${name}`
   material.onBeforeCompile = (shader) => {
     Object.assign(shader.uniforms, uniforms)
     shader.vertexShader = shader.vertexShader
@@ -220,6 +227,7 @@ export function chipBodyMaterial(): MeshStandardMaterial & { userData: { rim: IU
   const rim: IUniform<number> = { value: 1 }
   material.userData['rim'] = rim
   withLocalFrame(
+    'chip',
     material,
     { uRim: rim },
     /* glsl */ `${LOCAL_FRAME}
@@ -241,6 +249,7 @@ export function lidMaterial(): MeshStandardMaterial & { userData: { glow: IUnifo
   const glow: IUniform<number> = { value: 1 }
   material.userData['glow'] = glow
   withLocalFrame(
+    'lid',
     material,
     { uGlow: glow, uGlowColor: { value: new Color('#8973F5') } },
     /* glsl */ `${LOCAL_FRAME}
@@ -263,6 +272,7 @@ export function lidMaterial(): MeshStandardMaterial & { userData: { glow: IUnifo
 export function capacitorMaterial(): MeshStandardMaterial {
   const material = new MeshStandardMaterial({ color: '#1F2A44', roughness: 0.4, metalness: 0.3 })
   withLocalFrame(
+    'capacitor',
     material,
     {},
     /* glsl */ `${LOCAL_FRAME}

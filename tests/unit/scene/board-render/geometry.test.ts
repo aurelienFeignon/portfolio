@@ -9,6 +9,7 @@ import type { BusJog, Timeline } from '@/scene/state/board/timeline'
 import type { Route } from '@/scene/state/board/traces'
 import type { Vec2 } from '@/scene/state/board/rect'
 import {
+  boardMeshes,
   busRibbons,
   drawCallBudget,
   FIXED_MESHES,
@@ -545,15 +546,23 @@ describe('drawCallBudget', () => {
       for (const tier of ['full', 'reduced', 'lite'] as const) {
         const budget = drawCallBudget(instances(plan, tier))
         expect(budget).toBeLessThanOrEqual(MAX_DRAW_CALLS)
-        expect(budget).toBeGreaterThan(FIXED_MESHES)
+        expect(budget).toBeGreaterThan(FIXED_MESHES.length)
       }
     }
+  })
+
+  it('une seule liste de maillages, celle que buildBoard monte dans cet ordre', () => {
+    const full = instances(real.plan, 'full')
+    expect(boardMeshes(full)).toEqual([...FIXED_MESHES, ...SHAPES.filter((s) => full[s].count > 0)])
+    expect(FIXED_MESHES).toEqual(['plate', 'silkscreen', 'traces', 'bus'])
+    expect(drawCallBudget(full)).toBe(boardMeshes(full).length)
+    expect(boardMeshes(instances(real.plan, 'lite'))).not.toContain('resistors')
   })
 
   it('compte les maillages fixes et une forme par InstancedMesh non vide', () => {
     const full = instances(real.plan, 'full')
     const nonEmpty = SHAPES.filter((s) => full[s].count > 0).length
-    expect(drawCallBudget(full)).toBe(FIXED_MESHES + nonEmpty)
+    expect(drawCallBudget(full)).toBe(FIXED_MESHES.length + nonEmpty)
     const lite = instances(real.plan, 'lite')
     expect(drawCallBudget(lite)).toBeLessThan(drawCallBudget(full))
   })

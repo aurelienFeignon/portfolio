@@ -29,13 +29,14 @@ import {
 import type { BoardFile } from '@/scene/state/board-render/file-format'
 import {
   type BoardInstances,
+  boardMeshes,
   busRibbons,
+  type FixedMesh,
   hexToLinear,
   instances,
   type Ribbons,
   routeTones,
   type Shape,
-  SHAPES,
   traceRibbons,
   traceWidth,
 } from '@/scene/state/board-render/geometry'
@@ -179,7 +180,6 @@ export function buildBoard(file: BoardFile, tier: DensityTier, anisotropy: numbe
   const plateMaterial = darkBodyMaterial('#0B1626', 0.62)
   const plate = new Mesh(plateGeometry, plateMaterial)
   plate.position.set(cx, -PLATE_THICKNESS / 2, cz)
-  root.add(plate)
   geometries.push(plateGeometry)
 
   // La sérigraphie : une texture pour toute la carte.
@@ -189,7 +189,6 @@ export function buildBoard(file: BoardFile, tier: DensityTier, anisotropy: numbe
   const silkMaterial = new MeshBasicMaterial({ map: texture, transparent: true, depthWrite: false })
   const silkscreen = new Mesh(silkGeometry, silkMaterial)
   silkscreen.position.set(cx, LAYER.silkscreen, cz)
-  root.add(silkscreen)
   geometries.push(silkGeometry)
 
   // Les pistes : une géométrie, une teinte par route.
@@ -200,7 +199,6 @@ export function buildBoard(file: BoardFile, tier: DensityTier, anisotropy: numbe
   traceMaterial.uniforms.uIntensity.value = 0.75
   const traceMesh = new Mesh(traceGeometry, traceMaterial)
   traceMesh.position.y = LAYER.traces
-  root.add(traceMesh)
   geometries.push(traceGeometry)
 
   // Le bus : une géométrie, une teinte par tronçon, les années éteintes en gris.
@@ -214,19 +212,29 @@ export function buildBoard(file: BoardFile, tier: DensityTier, anisotropy: numbe
   const busMaterial = ribbonMaterial({ core: 0.44, halo: 0.2, idleColor: '#55647A' })
   const busMesh = new Mesh(busGeometry, busMaterial)
   busMesh.position.y = LAYER.bus
-  root.add(busMesh)
   geometries.push(busGeometry)
 
-  // Les formes : un InstancedMesh chacune, et aucune sans instance.
+  // ⭐ Monté dans l'ordre de `boardMeshes`, la liste même que compte `drawCallBudget`.
+  const fixed: Record<FixedMesh, Mesh> = {
+    plate,
+    silkscreen,
+    traces: traceMesh,
+    bus: busMesh,
+  }
   const sets = instances(plan, tier)
   const materials = shapeMaterials()
   const meshes: InstancedMesh[] = []
-  for (const shape of SHAPES) {
-    const set = sets[shape]
-    if (set.count === 0) continue
+  for (const name of boardMeshes(sets)) {
+    if (name in fixed) {
+      fixed[name as FixedMesh].name = name
+      root.add(fixed[name as FixedMesh])
+      continue
+    }
+    const shape = name as Shape
     const geometry = unitGeometry(shape)
     geometries.push(geometry)
-    const mesh = instancedMesh(geometry, materials.byShape[shape], set)
+    const mesh = instancedMesh(geometry, materials.byShape[shape], sets[shape])
+    mesh.name = shape
     meshes.push(mesh)
     root.add(mesh)
   }

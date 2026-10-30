@@ -20,6 +20,12 @@ const large = buildBoardFile(makeLargeBoard(), { locale: 'fr', year: 2026, chipS
 /** Ce que la sérigraphie a le droit d'écrire : des années, des repères, la référence de carte. */
 const ALLOWED = /^(?:\d{4}|U\d+|IC\d+|R\d+|C\d+)$/
 
+describe('BOARD_REFERENCE', () => {
+  it('une référence neutre, sans initiales ni nom', () => {
+    expect(BOARD_REFERENCE).toBe('MB-01')
+  })
+})
+
 describe('silkscreenItems', () => {
   for (const [name, file] of [
     ['taille réelle', real],

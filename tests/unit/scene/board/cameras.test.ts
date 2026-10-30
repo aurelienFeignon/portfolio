@@ -10,6 +10,7 @@ import {
   ELEVATION_DEG,
   FRAME_MARGIN,
   frameRect,
+  viewRects,
 } from '@/scene/state/board/cameras'
 import { type BoardPlan, planBoard } from '@/scene/state/board/plan'
 import { type Rect, rectUnion } from '@/scene/state/board/rect'
@@ -50,6 +51,17 @@ function cornersInFrustum(cam: CameraSpec, r: Rect): boolean {
     const z = dot(p, f)
     return z > 0 && Math.abs(dot(p, right) / z) <= tanH && Math.abs(dot(p, up) / z) <= tanV
   })
+}
+
+/** Z du bord PROCHE de l'empreinte au sol : le rayon du milieu du bas de l'image (16:9). */
+function nearEdgeZ(cam: CameraSpec): number {
+  const f = norm(sub(cam.target, cam.position))
+  const right = norm(cross(f, [0, 1, 0]))
+  const up = cross(right, f)
+  const tanV = Math.tan((cam.fov / 2) * DEG)
+  const dir: Vec3 = [f[0] - up[0] * tanV, f[1] - up[1] * tanV, f[2] - up[2] * tanV]
+  const t = -cam.position[1] / dir[1]
+  return cam.position[2] + dir[2] * t
 }
 
 const rectsOf = (plan: BoardPlan): Record<ViewId, Rect> => ({
@@ -130,11 +142,32 @@ describe.each([
     plan = planBoard(make(), options)
   }, 30_000)
 
+  it('experiences : la frise entière, et rien devant le bord avant de la carte', () => {
+    const cam = boardCameras(plan).experiences
+    expect(cornersInFrustum(cam, plan.timeline.bounds)).toBe(true)
+    expect(nearEdgeZ(cam)).toBeLessThanOrEqual(plan.bounds.maxZ + 1e-9)
+  })
+
+  it('experiences : la frise étendue vers −Z, dans la carte', () => {
+    const r = viewRects(plan).experiences
+    const t = plan.timeline.bounds
+    expect(r.minX).toBe(t.minX)
+    expect(r.maxX).toBe(t.maxX)
+    expect(r.maxZ).toBeGreaterThanOrEqual(t.maxZ)
+    expect(r.minZ).toBeLessThan(t.minZ)
+    expect(r.minZ).toBeGreaterThanOrEqual(plan.bounds.minZ)
+    expect(r.maxZ).toBeLessThanOrEqual(plan.bounds.maxZ)
+    // Au format de référence, la bande cadrée a le format de la vue (projetée sous l'élévation).
+    const projected = (r.maxZ - r.minZ) * Math.sin(ELEVATION_DEG * DEG)
+    expect(projected).toBeLessThanOrEqual((r.maxX - r.minX) / REFERENCE_ASPECT + 1e-9)
+  })
+
   it.each(['accueil', 'experiences', 'projets', 'competences'] as const)(
     '%s : les quatre coins sont dans le tronc de pyramide',
     (view) => {
       const cam = boardCameras(plan)[view]
       expect(cornersInFrustum(cam, rectsOf(plan)[view])).toBe(true)
+      expect(cornersInFrustum(cam, viewRects(plan)[view])).toBe(true)
       expect(cam.focusNodeId).toBe(focusOf[view])
     },
   )

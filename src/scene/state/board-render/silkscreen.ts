@@ -22,7 +22,7 @@ import { seededRandom } from '../seeded-random.ts'
 import { yearSides } from './geometry.ts'
 
 /** La référence de la carte, gravée dans un coin : sans langue, comme un numéro de pièce. */
-export const BOARD_REFERENCE = 'AUG-MB-01'
+export const BOARD_REFERENCE = 'MB-01'
 
 export interface SilkscreenItem {
   readonly text: string

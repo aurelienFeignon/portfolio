@@ -122,10 +122,11 @@ export default function SceneCanvas({
        * n'arrive. Le rig pose l'une et l'autre à sa première image, qui précède
        * toute image rendue (`frameloop` reste `never` jusque-là).
        */
-      camera={{ near: 0.1, far: 80 }}
+      camera={{ near: 0.1, far: 400 }}
     >
-      {/* Le brouillard retient le fond de la carte : la profondeur se lit, le bord ne coupe pas. */}
-      <fog attach="fog" args={[PALETTE.background, 30, 72]} />
+      {/* Le brouillard retient le fond de la carte ; le rig règle sa portée sur la distance
+          de cadrage (`fogRange`), ces valeurs ne valent que pour la toute première image. */}
+      <fog attach="fog" args={[PALETTE.background, 36, 82]} />
       {plan === null ? null : (
         /*
          * ⭐ Review Focus 2 : le rig est monté À L'ARRIVÉE du plan, avec l'état
