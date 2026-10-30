@@ -18,7 +18,12 @@ import type { Section } from '../../routing/sections.ts'
 
 export type Vec3 = readonly [number, number, number]
 
-/** La palette NEXUS — la même que les tokens de `globals.css`. */
+/**
+ * La palette NEXUS — la même que les tokens de `globals.css`.
+ *
+ * ⚠️ `amber` et `teal` sont les teintes de la carte mère : leurs tokens dans
+ * `globals.css` et la vérification de contraste viennent avec P8-15 / P8-08.
+ */
 export const PALETTE = {
   background: '#080D18',
   surface: '#111C30',
@@ -26,8 +31,20 @@ export const PALETTE = {
   violet: '#8973F5',
   /** Bleu ciel : la troisième teinte des univers, entre le cyan et le violet. */
   sky: '#38BDF8',
+  amber: '#F5B342',
+  teal: '#2DD4BF',
   text: '#F1F5FB',
 } as const
+
+/** Les teintes d'accent, dans l'ordre où la carte les attribue. */
+export const TONES = [
+  'cyan',
+  'violet',
+  'sky',
+  'amber',
+  'teal',
+] as const satisfies readonly (keyof typeof PALETTE)[]
+export type Tone = (typeof TONES)[number]
 
 /* -------------------------------------------------------------------- univers */
 

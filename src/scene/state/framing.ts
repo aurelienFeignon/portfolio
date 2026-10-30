@@ -34,7 +34,8 @@ export const REFERENCE_ASPECT = 16 / 9
  */
 export const FOV_MAX_DEG = 50
 
-const DEG = Math.PI / 180
+/** Un degré, en radians. */
+export const DEG = Math.PI / 180
 
 /** Champ horizontal d'une caméra, à partir de son champ vertical et du format. */
 export function horizontalFovDeg(verticalFovDeg: number, aspect: number): number {

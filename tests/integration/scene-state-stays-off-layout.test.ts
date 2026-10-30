@@ -1,5 +1,8 @@
 /**
- * P6-02 — `scene-state.ts` ne tire pas `layout.ts`.
+ * P6-02 — `scene-state.ts` ne tire pas `layout.ts`. Depuis P8-14, le même
+ * graphe garde aussi `scene/state/board/` (le plan de carte) hors du chemin de
+ * première visite — dernier `describe`, avec son propre témoin. Le nom du
+ * fichier est resté celui de P6-02.
  *
  * ⭐⭐ **La règle de découpage de `src/scene/state` n'était gardée par rien.**
  * `resolveSceneState` sera lue depuis le chunk de première visite (P6-07), et le
@@ -36,6 +39,7 @@ import { describe, expect, it } from 'vitest'
 const RACINE = process.cwd()
 const SRC = join(RACINE, 'src')
 const LAYOUT = join(SRC, 'scene/state/layout.ts')
+const BOARD = join(SRC, 'scene/state/board')
 
 /**
  * ⭐ La résolution est celle du COMPILATEUR, avec le `tsconfig` du dépôt — alias
@@ -115,5 +119,24 @@ describe('le chemin de première visite n’embarque pas `layout.ts` (P6-02)', (
     // départ — et donc, trivialement, sans `layout.ts`.
     expect(graphe.size, enClair(graphe).join('\n')).toBeGreaterThan(1)
     expect(graphe.has(LAYOUT), enClair(graphe).join('\n')).toBe(false)
+  })
+})
+
+/**
+ * P8-14 — le plan de carte (`scene/state/board/`) est un module de la carte
+ * mère, chargé par P8-15 depuis un chunk à part : *rien* sur le chemin de
+ * première visite n'en importe une valeur.
+ */
+describe('le chemin de première visite n’embarque rien de `board/` (P8-14)', () => {
+  it('⭐ témoin : le parcours trouve `board/timeline.ts` depuis `board/plan.ts`', () => {
+    expect(fermeture(join(BOARD, 'plan.ts')).has(join(BOARD, 'timeline.ts'))).toBe(true)
+  })
+
+  it.each(RACINES)('%s', (racine) => {
+    const graphe = fermeture(join(SRC, racine))
+    const intrus = enClair(graphe).filter((f) => f.startsWith('src/scene/state/board/'))
+
+    expect(graphe.size).toBeGreaterThan(1)
+    expect(intrus).toEqual([])
   })
 })
