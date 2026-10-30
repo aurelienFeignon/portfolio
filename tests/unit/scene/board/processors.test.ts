@@ -44,6 +44,23 @@ describe('choosePrimary', () => {
     ]
     expect(choosePrimary(tie)?.slug).toBe('x')
   })
+  it('précisions mixtes à préfixe commun : la plus précise compte comme plus tardive', () => {
+    const a = [
+      makeBoardProject({ slug: 'a', startedAt: '2024-06' }),
+      makeBoardProject({ slug: 'b', startedAt: '2024' }),
+    ]
+    expect(choosePrimary(a)?.slug).toBe('a')
+    const b = [
+      makeBoardProject({ slug: 'a', startedAt: '2024-06' }),
+      makeBoardProject({ slug: 'b', startedAt: '2024-06-15' }),
+    ]
+    expect(choosePrimary(b)?.slug).toBe('b')
+  })
+  it('doublons de slug : déterministe, sans exception', () => {
+    const list = [makeBoardProject({ slug: 'd' }), makeBoardProject({ slug: 'd' })]
+    expect(choosePrimary(list)?.slug).toBe('d')
+    expect(planDistrict(list).processors.map((p) => p.ref)).toEqual(['U1', 'U2'])
+  })
   it('liste vide : null', () => {
     expect(choosePrimary([])).toBeNull()
   })
@@ -67,7 +84,7 @@ describe('planDistrict', () => {
     }
   })
 
-  it.each([1, 3, 9, 20])('aucun recouvrement (écart ≥ 0,5) pour %i projets', (n) => {
+  it.each([1, 3, 9, 20, 50])('aucun recouvrement (écart ≥ 0,5) pour %i projets', (n) => {
     const ps = planDistrict(projects(n)).processors
     expect(ps).toHaveLength(n)
     for (let i = 0; i < ps.length; i += 1) {
@@ -115,6 +132,44 @@ describe('planDistrict', () => {
       makeBoardProject({ slug: 'c', startedAt: '2025-01-02' }),
     ]
     expect(planDistrict(list).processors.map((p) => p.slug)).toEqual(['main', 'c', 'a', 'b'])
+  })
+
+  it('secondaires : précisions mixtes à préfixe commun et dates égales', () => {
+    const list = [
+      makeBoardProject({ slug: 'main', primary: true }),
+      makeBoardProject({ slug: 'y', startedAt: '2024' }),
+      makeBoardProject({ slug: 'x', startedAt: '2024-06' }),
+      makeBoardProject({ slug: 'w', startedAt: '2024-06-15' }),
+      makeBoardProject({ slug: 'v', startedAt: '2024-06' }),
+    ]
+    expect(planDistrict(list).processors.map((p) => p.slug)).toEqual(['main', 'w', 'v', 'x', 'y'])
+  })
+
+  it("l'anneau 2 s'ouvre dans l'ordre exact des cases", () => {
+    const ps = planDistrict(projects(1 + 8 + 16)).processors
+    const cells = ps.slice(9).map((p) => [p.center[0] / SLOT_PITCH, p.center[1] / SLOT_PITCH])
+    const expected = [
+      [-2, 0],
+      [2, 0],
+      [0, -2],
+      [-1, -2],
+      [1, -2],
+      [-2, -2],
+      [-2, -1],
+      [2, -2],
+      [2, -1],
+      [-2, 1],
+      [-2, 2],
+      [2, 1],
+      [2, 2],
+      [-1, 2],
+      [1, 2],
+      [0, 2],
+    ]
+    cells.forEach((c, i) => {
+      expect(c[0]).toBeCloseTo(expected[i]![0]!, 9)
+      expect(c[1]).toBeCloseTo(expected[i]![1]!, 9)
+    })
   })
 
   it('les ref sont U1…Un sans trou', () => {
