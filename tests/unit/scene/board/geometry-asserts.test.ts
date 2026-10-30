@@ -6,6 +6,7 @@ import {
   expectNoReversal,
   expectOctilinear,
   onPolyline,
+  rectContains,
 } from './geometry-asserts'
 
 const line = (...p: Vec2[]): Vec2[] => p
@@ -95,5 +96,21 @@ describe('onPolyline', () => {
     expect(onPolyline([2.5, 0.5], p)).toBe(true)
     expect(onPolyline([-1, 0], p)).toBe(false)
     expect(onPolyline([1, 0.1], p)).toBe(false)
+  })
+})
+
+describe('rectContains', () => {
+  const r = { minX: 0, minZ: 0, maxX: 2, maxZ: 1 }
+
+  it('inclut les bords par défaut, les exclut en strict', () => {
+    expect(rectContains(r, [0, 1])).toBe(true)
+    expect(rectContains(r, [0, 1], { strict: true })).toBe(false)
+    expect(rectContains(r, [1, 0.5], { strict: true })).toBe(true)
+    expect(rectContains(r, [3, 0.5])).toBe(false)
+  })
+
+  it('élargit (marge positive) ou rétrécit (négative) le rectangle', () => {
+    expect(rectContains(r, [2.05, 0.5], { margin: 0.1 })).toBe(true)
+    expect(rectContains(r, [1.95, 0.5], { margin: -0.1 })).toBe(false)
   })
 })

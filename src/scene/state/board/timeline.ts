@@ -11,8 +11,7 @@
  * est à `k × LANE_PITCH` de la voie 0.
  */
 import { type BoardExperience, compareSlugs } from './content.ts'
-import type { Rect, Vec2 } from './rect.ts'
-import { rectUnion } from './rect.ts'
+import { EPSILON, type Rect, rectUnion, type Vec2 } from './rect.ts'
 import { TONES, type Tone } from '../layout.ts'
 
 /** Longueur du bus en X, quel que soit le nombre d'années. */
@@ -61,8 +60,6 @@ export interface Timeline {
   /** Toutes les voies de toutes les rangées, demi-tours compris. */
   readonly bounds: Rect
 }
-
-const EPS = 1e-9
 
 /** Écart en Z entre les voies 0 de deux rangées consécutives. */
 const rowPitch = (lanes: number): number => lanes * LANE_PITCH + ROW_GAP
@@ -117,7 +114,7 @@ type Profile = readonly (readonly [number, number])[]
 /** Décalage en l'abscisse `u` (comprise dans le profil), interpolé linéairement. */
 function offsetAt(profile: Profile, u: number): number {
   let i = 1
-  while (i < profile.length - 1 && u > profile[i]![0] + EPS) i += 1
+  while (i < profile.length - 1 && u > profile[i]![0] + EPSILON) i += 1
   const [u0, o0] = profile[i - 1]!
   const [u1, o1] = profile[i]!
   return o0 + ((o1 - o0) * (u - u0)) / (u1 - u0)
@@ -144,15 +141,20 @@ function buildPath(
   const out: Vec2[] = []
   const push = (p: Vec2): void => {
     const last = out.at(-1)
-    if (!last || Math.abs(last[0] - p[0]) > EPS || Math.abs(last[1] - p[1]) > EPS) out.push(p)
+    if (!last || Math.abs(last[0] - p[0]) > EPSILON || Math.abs(last[1] - p[1]) > EPSILON)
+      out.push(p)
   }
-  const firstRow = Math.max(0, Math.ceil(from / YEARS_PER_ROW - EPS) - 1)
-  const lastRow = Math.ceil(to / YEARS_PER_ROW - EPS) - 1
+  const firstRow = Math.max(0, Math.ceil(from / YEARS_PER_ROW - EPSILON) - 1)
+  const lastRow = Math.ceil(to / YEARS_PER_ROW - EPSILON) - 1
   for (let row = firstRow; row <= lastRow; row += 1) {
     const rowStart = row * YEARS_PER_ROW
     const lo = Math.max(from, rowStart)
     const hi = Math.min(to, rowStart + YEARS_PER_ROW)
-    const us = [lo, ...profile.map(([u]) => u).filter((u) => u > lo + EPS && u < hi - EPS), hi]
+    const us = [
+      lo,
+      ...profile.map(([u]) => u).filter((u) => u > lo + EPSILON && u < hi - EPSILON),
+      hi,
+    ]
     for (const u of us) {
       push([xInRow(row, u - rowStart, step), zInRow(originZ, lanes, row, offsetAt(profile, u))])
     }
@@ -180,8 +182,11 @@ function buildPath(
  * ni ne finit dans le vide, et ne traverse jamais une voie intermédiaire. Un
  * poste en cours ne rejoint pas. Si le poste est trop court pour atteindre sa
  * voie, la pente s'arrête à mi-chemin (toujours à 45°).
+ *
+ * Les abscisses confondues sont retirées (une pente nulle se divise par zéro) :
+ * le profil rendu a ses `u` strictement croissants.
  */
-function rawLaneProfile(
+function laneProfile(
   s: number,
   e: number,
   lane: number,
@@ -190,48 +195,46 @@ function rawLaneProfile(
   ongoing: boolean,
   step: number,
 ): Profile {
-  if (lane === 0)
-    return [
-      [s, 0],
-      [e, 0],
-    ]
   const from = source * LANE_PITCH
   const top = lane * LANE_PITCH
   const to = target * LANE_PITCH
   const width = (e - s) * step
   const at = (x: number): number => s + x / step
-  // Un poste en cours monte jusqu'à sa voie — ou jusqu'au bout du bus, si la
-  // montée (plusieurs voies d'un coup) ne tient pas dans ce qui reste.
-  if (ongoing) {
+  let points: Profile
+  if (lane === 0) {
+    points = [
+      [s, 0],
+      [e, 0],
+    ]
+  } else if (ongoing) {
+    // Un poste en cours monte jusqu'à sa voie — ou jusqu'au bout du bus, si la
+    // montée (plusieurs voies d'un coup) ne tient pas dans ce qui reste.
     const rise = Math.min(top - from, width)
-    return [
+    points = [
       [s, from],
       [at(rise), from + rise],
       [e, from + rise],
     ]
-  }
-  if (width >= top - from + (top - to)) {
+  } else if (width >= top - from + (top - to)) {
     const rise = top - from
     const fall = top - to
-    return [
+    points = [
       [s, from],
       [at(rise), top],
       [at(width - fall), top],
       [e, to],
     ]
+  } else {
+    // Trop court : sommet à l'intersection des deux pentes (borné à la largeur).
+    const apex = Math.min(Math.max((to - from + width) / 2, 0), width)
+    points = [
+      [s, from],
+      [at(apex), from + apex],
+      [e, from + apex - (width - apex)],
+    ]
   }
-  // Trop court : sommet à l'intersection des deux pentes (borné à la largeur).
-  const apex = Math.min(Math.max((to - from + width) / 2, 0), width)
-  return [
-    [s, from],
-    [at(apex), from + apex],
-    [e, from + apex - (width - apex)],
-  ]
+  return points.filter((p, i) => i === points.length - 1 || points[i + 1]![0] - p[0] > EPSILON)
 }
-
-/** `rawLaneProfile` sans abscisses confondues (une pente nulle se divise par zéro). */
-const laneProfile = (...args: Parameters<typeof rawLaneProfile>): Profile =>
-  rawLaneProfile(...args).filter((p, i, all) => i === all.length - 1 || all[i + 1]![0] - p[0] > EPS)
 
 export function planTimeline(
   experiences: readonly BoardExperience[],
@@ -252,7 +255,7 @@ export function planTimeline(
 
   // Voies : la plus petite libre à l'année de début ; libérée l'année qui suit la fin.
   const freeFrom: number[] = []
-  const occupied = new Map<number, number>()
+  const occupied = new Set<number>()
   const placed = sorted.map((e) => {
     const end = e.endYear === null ? lastYear : Math.max(e.endYear, e.startYear)
     let lane = freeFrom.findIndex((from) => from <= e.startYear)
@@ -284,9 +287,9 @@ export function planTimeline(
       const profile = profiles.get(o)
       const holds =
         profile !== undefined &&
-        s < u - EPS &&
-        u <= e + EPS &&
-        Math.abs(offsetAt(profile, u) - o.lane * LANE_PITCH) < EPS
+        s < u - EPSILON &&
+        u <= e + EPSILON &&
+        Math.abs(offsetAt(profile, u) - o.lane * LANE_PITCH) < EPSILON
       return o.lane < lane && o.lane > best && holds ? o.lane : best
     }, 0)
   for (const p of [...placed].sort((a, b) => a.lane - b.lane)) {
@@ -313,7 +316,7 @@ export function planTimeline(
       labelAnchor: yearPos(mid, lane),
     })
     if (occupied.has(lane)) jogs.push({ lane, year: e.startYear, at: yearPos(e.startYear, lane) })
-    occupied.set(lane, i)
+    occupied.add(lane)
   })
 
   const idleYears: number[] = []

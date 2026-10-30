@@ -14,7 +14,7 @@
  * Module pur : ni Three.js, ni `Date`, ni `Math.random`.
  */
 import type { Section } from '../../../routing/sections.ts'
-import { REFERENCE_ASPECT } from '../framing.ts'
+import { DEG, REFERENCE_ASPECT } from '../framing.ts'
 import type { CameraSpec, ViewId } from '../layout.ts'
 import type { BoardPlan } from './plan.ts'
 import { type Rect, rectCenter, rectUnion } from './rect.ts'
@@ -25,8 +25,6 @@ export const BOARD_FOV = 40
 export const ELEVATION_DEG = 58
 /** Le recul supplémentaire, en facteur : de l'air autour du rectangle cadré. */
 export const FRAME_MARGIN = 1.15
-
-const DEG = Math.PI / 180
 
 /** Plancher de la distance : un rectangle réduit à un point ne pose pas la caméra sur sa cible. */
 const MIN_DISTANCE = 1

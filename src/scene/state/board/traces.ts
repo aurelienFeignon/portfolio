@@ -14,7 +14,7 @@
  *   **propre bus** (réseau `zone:<famille>`) : un tronc de `zone.exit` jusqu'au
  *   bord du quartier, de courtes pistes du tronc vers chaque processeur que la
  *   zone alimente, et une amorce de chaque puce vers la sortie de la zone. Les
- *   **ponts** y sont permis (`RoutingGrid.routeBridged`).
+ *   **ponts** y sont permis (`RoutingGrid.route`, option `bridges`).
  *
  * ⭐ Le seuil de bascule n'est pas un nombre écrit d'avance : §5 dit « quand
  * les canaux ne tiennent plus », et c'est exactement ce que mesure le routeur.
@@ -40,9 +40,9 @@
  * frise ou une puce absente du plan sont écartées sans exception.
  */
 import { type BoardContent, bySlug, compareSlugs, yearOf } from './content.ts'
-import { type Bridge, type Cell, GRID, octile, RoutingGrid, simplify } from './grid.ts'
+import { type Bridge, type Cell, type Footprint, octile, RoutingGrid, simplify } from './grid.ts'
 import { choosePrimary, type District, type Processor } from './processors.ts'
-import { inflate, type Rect, rectOf, type Vec2 } from './rect.ts'
+import { EPSILON, GRID, inflate, type Rect, rectOf, type Vec2 } from './rect.ts'
 import { type Timeline, yearPoint } from './timeline.ts'
 import type { Zone } from './zones.ts'
 
@@ -95,25 +95,6 @@ export interface Traces {
  */
 const BUS_BAND_MARGIN = GRID
 /**
- * Retrait du rectangle bloqué d'un boîtier : un demi-pas. Une cellule n'est
- * alors bloquée que si son **centre** est dans le boîtier, d'où trois
- * propriétés sur lesquelles reposent les pastilles :
- *
- * - deux puces à `CHIP_GAP` (deux pas) laissent toujours ≥ 2 cellules entre
- *   elles (`block` seul, qui interdit toute cellule effleurée, n'en laissait
- *   parfois qu'une : un seul réseau par couloir) ;
- * - le centre d'une pastille (`pads`, anneau sans les coins de cette même
- *   empreinte) est hors du boîtier sur un seul axe : le segment orthogonal
- *   jusqu'au **bord réel** (`landing`) reste dans la pastille et l'empreinte,
- *   deux cellules qu'aucun autre réseau ne peut tenir ;
- * - une diagonale entre deux cellules libres ne coupe jamais un boîtier (plus
- *   large qu'un pas, il contiendrait l'un des quatre centres).
- *
- * Revers accepté : une piste étrangère peut longer un boîtier à moins d'un
- * demi-pas de son bord, sans jamais y entrer.
- */
-const PAD_INSET = GRID / 2
-/**
  * Décalage en X de la prise d'un rattachement, par voie, en cellules : deux
  * postes simultanés rattachés la même année ne percent pas la même colonne
  * (la prise de la voie 1 traverse la voie 0). Deux cellules par voie : le
@@ -124,8 +105,6 @@ const PAD_INSET = GRID / 2
  * colonne candidate — rattachement perdu.
  */
 const TAP_STRIDE = 2
-/** Tolérance flottante des bornes de case. */
-const EPSILON = 1e-9
 
 /** Le principal d'abord, puis par slug : l'ordre publié des projets. */
 function projectOrder(content: BoardContent) {
@@ -198,8 +177,12 @@ interface Endpoints {
   readonly processors: ReadonlyMap<string, Processor>
 }
 
-/** Le rectangle bloqué (et dont on prend les pastilles) d'un boîtier. */
-const blockOf = (box: Rect): Rect => inflate(box, -PAD_INSET)
+/**
+ * Un boîtier ne prend que les cellules dont le centre est en lui (voir
+ * `Footprint` : les propriétés des pastilles en dépendent) ; il est bloqué et
+ * ses pastilles sont prises avec la même empreinte.
+ */
+const BOX: Footprint = 'centred'
 
 /**
  * Le point où la piste posée sur la pastille `cell` touche le **bord réel**
@@ -232,19 +215,8 @@ interface Laid {
   readonly bridges: readonly Bridge[]
 }
 
-/** Route sans pont (`direct`) ou avec (`family-bus`). */
-type Router = (
-  net: string,
-  from: readonly Cell[],
-  to: readonly Cell[],
-) => { cells: readonly Cell[]; bridges: readonly Bridge[] } | null
-
-const plainRouter =
-  (grid: RoutingGrid): Router =>
-  (net, from, to) => {
-    const cells = grid.route(net, from, to)
-    return cells && { cells, bridges: [] }
-  }
+/** Les ponts du mode `family-bus` ; le mode `direct` route sans. */
+const BRIDGED = { bridges: true } as const
 
 /**
  * Une grille neuve : puces, processeurs et bus bloqués. Le bus l'est sur
@@ -253,11 +225,11 @@ const plainRouter =
  */
 function freshGrid(board: Rect, endpoints: Endpoints, timeline: Timeline) {
   const grid = new RoutingGrid(board)
-  for (const chip of endpoints.chips.values()) grid.block(blockOf(chip.box))
+  for (const chip of endpoints.chips.values()) grid.block(chip.box, BOX)
   for (const p of endpoints.processors.values()) {
-    grid.block(blockOf(processorRect(p)))
+    grid.block(processorRect(p), BOX)
     // Les pastilles d'un processeur restent aux pistes qui y arrivent ou en partent.
-    grid.reserve(blockOf(processorRect(p)))
+    grid.reserve(processorRect(p), BOX)
   }
   grid.block(inflate(timeline.bounds, BUS_BAND_MARGIN))
   return grid
@@ -286,7 +258,7 @@ function freshGrid(board: Rect, endpoints: Endpoints, timeline: Timeline) {
  */
 function routeBusLinks(
   grid: RoutingGrid,
-  route: Router,
+  bridges: boolean,
   taps: readonly (Tap & { processor: Processor })[],
   timeline: Timeline,
   board: Rect,
@@ -306,7 +278,6 @@ function routeBusLinks(
     const net = `experience:${bus.experience}`
     const [x, z] = at
     const box = processorRect(processor)
-    const free = (cell: Cell) => grid.occupant(cell) === null || grid.occupant(cell) === net
     // Les colonnes candidates de la case : départ décalé par voie, ±`reach`
     // cellules — et jamais hors de la case (une demi-cellule de marge pour le
     // centre du puits).
@@ -316,14 +287,18 @@ function routeBusLinks(
       if (Math.abs(cx - x) > halfCell) continue
       if (cx <= board.minX || cx >= board.maxX) continue
       const [col, row] = grid.cellOf([cx, z])
-      const shaft = Array.from({ length: row - top + 1 }, (_, i): Cell => [col, top + i])
-      if (shaft.every(free)) shafts.set(col, shaft)
+      if (shaftFree(grid, col, top, row, net))
+        shafts.set(
+          col,
+          Array.from({ length: row - top + 1 }, (_, i): Cell => [col, top + i]),
+        )
     }
     // Une seule recherche vers toutes les cellules qui surplombent un puits
     // libre ; on ne perce que celui qu'elle atteint (le moins cher) : une
     // colonne sans chemin n'est jamais ouverte, la grille reste propre.
     const above = [...shafts.keys()].map((col): Cell => [col, top - 1])
-    const found = above.length === 0 ? null : route(net, grid.pads(blockOf(box), net), above)
+    const found =
+      above.length === 0 ? null : grid.route(net, grid.pads(box, net, BOX), above, { bridges })
     if (found === null) {
       failed.push(bus)
       continue
@@ -344,6 +319,18 @@ function routeBusLinks(
     })
   }
   return { laid, failed }
+}
+
+/**
+ * Vrai si aucune cellule de la colonne `col`, des lignes `top` à `row`, n'est
+ * tenue par un autre réseau que `net` — on s'arrête à la première qui l'est.
+ */
+function shaftFree(grid: RoutingGrid, col: number, top: number, row: number, net: string): boolean {
+  for (let r = top; r <= row; r += 1) {
+    const occupant = grid.occupant([col, r])
+    if (occupant !== null && occupant !== net) return false
+  }
+  return true
 }
 
 /**
@@ -391,17 +378,13 @@ function routeDirect(
       .sort((a, b) => a.angle - b.angle || compareSlugs(a.link.skill, b.link.skill))
     for (const { link, chip } of mine) {
       const net = `chip:${link.skill}`
-      const cells = grid.route(
-        net,
-        grid.pads(blockOf(chip.box), net),
-        grid.pads(blockOf(target), net),
-      )
-      if (cells === null) return null
+      const found = grid.route(net, grid.pads(chip.box, net, BOX), grid.pads(target, net, BOX))
+      if (found === null) return null
       routes.push({
         net,
         kind: 'link',
         links: [link],
-        points: polyline(grid, cells, chip.box, target),
+        points: polyline(grid, found.cells, chip.box, target),
       })
     }
   }
@@ -440,7 +423,6 @@ function routeFamilyBus(
   endpoints: Endpoints,
   district: District,
 ): { laid: Laid[]; unrouted: Link[] } {
-  const route: Router = (net, from, to) => grid.routeBridged(net, from, to)
   const zoneOf = (l: Link) => endpoints.chips.get(l.skill)!.zone
   const groups = [...new Set(links.map(zoneOf))].map((zone) => ({
     zone,
@@ -456,7 +438,7 @@ function routeFamilyBus(
   for (const g of groups) {
     for (const skill of [...new Set(g.links.map((l) => l.skill))].sort(compareSlugs)) {
       const chip = endpoints.chips.get(skill)!
-      const found = route(g.net, grid.pads(blockOf(chip.box), g.net), [g.exit])
+      const found = grid.route(g.net, grid.pads(chip.box, g.net, BOX), [g.exit], BRIDGED)
       if (found === null) continue
       g.stubbed.add(skill)
       const carried = g.links.filter((l) => l.skill === skill)
@@ -474,7 +456,7 @@ function routeFamilyBus(
 
   const districtRing = grid.cellsAround(district.bounds)
   for (const g of groups) {
-    const found = route(g.net, [g.exit], districtRing)
+    const found = grid.route(g.net, [g.exit], districtRing, BRIDGED)
     if (found === null) {
       // Sans tronc, les amorces ne mènent nulle part : leurs cellules sont rendues.
       grid.release(g.net)
@@ -511,7 +493,7 @@ function routeFamilyBus(
     .sort((a, b) => a.length - b.length)
   for (const { g, trunk, processor, carried } of branches) {
     const target = processorRect(processor)
-    const found = route(g.net, trunk, grid.pads(blockOf(target), g.net))
+    const found = grid.route(g.net, trunk, grid.pads(target, g.net, BOX), BRIDGED)
     if (found === null) continue
     g.reached.add(processor.slug)
     g.laid.push({
@@ -586,7 +568,7 @@ export function planTracesWithGrid(
 
   // Mode direct : sans pont, et tout doit passer — rattachements compris.
   const first = freshGrid(board, endpoints, timeline)
-  const firstBus = routeBusLinks(first, plainRouter(first), taps, timeline, board)
+  const firstBus = routeBusLinks(first, false, taps, timeline, board)
   const direct = firstBus.failed.length === 0 ? routeDirect(first, routable, endpoints) : null
   if (direct !== null) {
     return {
@@ -605,13 +587,7 @@ export function planTracesWithGrid(
 
   // Une seule liaison a échoué : tout recommence, sur une grille neuve, ponts permis.
   const grid = freshGrid(board, endpoints, timeline)
-  const bus = routeBusLinks(
-    grid,
-    (net, from, to) => grid.routeBridged(net, from, to),
-    taps,
-    timeline,
-    board,
-  )
+  const bus = routeBusLinks(grid, true, taps, timeline, board)
   const family = routeFamilyBus(grid, routable, endpoints, district)
   const laid = [...bus.laid, ...family.laid]
   // Un pont n'est déclaré que si la piste franchie existe encore (elle a pu

@@ -8,8 +8,7 @@
  * Module pur : ni `Date`, ni `Math.random`, ni Three.js.
  */
 import { SKILL_FAMILIES, type BoardSkill, compareSlugs, type SkillFamily } from './content.ts'
-import { GRID } from './grid.ts'
-import { type Rect, rectsOverlap, type Vec2 } from './rect.ts'
+import { EPSILON, GRID, LABEL_MARGIN, type Rect, rectsOverlap, type Vec2 } from './rect.ts'
 import { type Tone, TONES } from '../layout.ts'
 
 /** Largeur (X) d'une zone, remplissage compris. */
@@ -20,11 +19,6 @@ export const ZONE_PADDING = 0.4
 export const CHIP_GAP = 0.5
 /** Écart minimal entre deux zones, ou entre une zone et le quartier. */
 export const ZONE_GAP = 2
-
-/** Distance entre le bord arrière d'une zone et son étiquette. */
-const LABEL_MARGIN = 0.3
-/** Tolérance flottante : deux rectangles à `ZONE_GAP` exactement ne se recouvrent pas. */
-const EPSILON = 1e-9
 
 /**
  * `level` : la taille d'une puce croît avec le niveau (publie visuellement les

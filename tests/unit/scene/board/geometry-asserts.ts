@@ -3,9 +3,26 @@
  */
 import { expect } from 'vitest'
 
-import type { Vec2 } from '@/scene/state/board/rect'
+import { EPSILON as EPS, type Rect, type Vec2 } from '@/scene/state/board/rect'
 
-const EPS = 1e-9
+/**
+ * Le point `p` est-il dans `rect` ? `margin` élargit le rectangle de chaque
+ * côté (rétrécit s'il est négatif) ; `strict` exclut les bords, que le défaut
+ * inclut.
+ */
+export function rectContains(
+  rect: Rect,
+  [x, z]: Vec2,
+  { margin = 0, strict = false }: { margin?: number; strict?: boolean } = {},
+): boolean {
+  const le = (a: number, b: number) => (strict ? a < b : a <= b)
+  return (
+    le(rect.minX - margin, x) &&
+    le(x, rect.maxX + margin) &&
+    le(rect.minZ - margin, z) &&
+    le(z, rect.maxZ + margin)
+  )
+}
 
 /**
  * Chaque segment de la polyligne est horizontal, vertical ou à 45°, et aucun

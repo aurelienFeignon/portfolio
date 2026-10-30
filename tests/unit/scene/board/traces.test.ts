@@ -3,7 +3,7 @@ import { boardBounds, timelineOriginZ } from '@/scene/state/board/bounds'
 import type { BoardContent } from '@/scene/state/board/content'
 import { GRID } from '@/scene/state/board/grid'
 import { planDistrict } from '@/scene/state/board/processors'
-import { type Rect, rectOf, type Vec2 } from '@/scene/state/board/rect'
+import { EPSILON as EPS, type Rect, rectOf, type Vec2 } from '@/scene/state/board/rect'
 import { planTimeline, yearPoint } from '@/scene/state/board/timeline'
 import {
   type Link,
@@ -27,12 +27,12 @@ import {
   expectNoReversal,
   expectOctilinear,
   onPolyline,
+  rectContains,
 } from './geometry-asserts'
 
 const CURRENT_YEAR = 2026
 /** Capacité mesurée du mode direct : puces d'une famille vers un seul processeur. */
 const DIRECT_FAN = 9
-const EPS = 1e-9
 
 /** La chaîne du plan sans `planBoard` (tâche 7) : quartier → zones → frise → pistes. */
 function planFrom(content: BoardContent) {
@@ -119,8 +119,8 @@ function expectEveryLinkConnected(plan: ReturnType<typeof planFrom>): void {
 
 /** Aucun segment ne passe par l'intérieur d'un boîtier (échantillonné au quart de cellule). */
 function expectAvoids(routes: readonly Route[], rects: readonly Rect[]): void {
-  const inside = (p: Vec2, r: Rect) =>
-    p[0] > r.minX + EPS && p[0] < r.maxX - EPS && p[1] > r.minZ + EPS && p[1] < r.maxZ - EPS
+  // Intérieur strict, rétréci de `EPS` : longer un bord n'est pas le traverser.
+  const inside = (p: Vec2, r: Rect) => rectContains(r, p, { margin: -EPS, strict: true })
   for (const route of routes) {
     for (let i = 1; i < route.points.length; i += 1) {
       const [a, b] = [route.points[i - 1]!, route.points[i]!]

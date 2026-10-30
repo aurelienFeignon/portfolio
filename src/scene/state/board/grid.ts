@@ -14,7 +14,7 @@
  * `RoutingGrid` garde un état mutable (obstacles, occupants, ponts) : c'est la
  * mémoire de travail du routeur, elle ne sort jamais dans les données du plan.
  *
- * **Ponts** (`routeBridged`) — la seconde couche d'un vrai circuit. Une piste
+ * **Ponts** (`route(…, { bridges: true })`) — la seconde couche d'un vrai circuit. Une piste
  * peut franchir un **autre** réseau, et seulement ainsi : à 90° exactement,
  * droit au travers d'**une** cellule de cet autre réseau, dont la piste est
  * elle-même droite (orthogonale) dans cette cellule ; elle y entre et en ressort
@@ -26,15 +26,36 @@
  *
  * Module pur : ni `Date`, ni `Math.random`, ni Three.js.
  */
-import type { Rect, Vec2 } from './rect.ts'
+import { EPSILON, GRID, inflate, type Rect, type Vec2 } from './rect.ts'
 
-/** Pas de la grille du routeur. */
-export const GRID = 0.25
+export { GRID } from './rect.ts'
 
 export type Cell = readonly [col: number, row: number]
 
-/** Tolérance flottante : un bord posé sur une ligne de grille ne déborde pas sur la voisine. */
-const EPSILON = 1e-9
+/**
+ * Comment un rectangle prend ses cellules (`footprint`) :
+ *
+ * - `touched` (défaut) : toute cellule que l'intérieur du rectangle recouvre
+ *   d'une surface non nulle ;
+ * - `centred` : seulement celles dont le **centre** est dans le rectangle
+ *   (calculé en le rétrécissant d'un demi-pas). C'est le mode des boîtiers
+ *   (puces, processeurs), d'où trois propriétés sur lesquelles reposent les
+ *   pastilles :
+ *   - deux puces à `CHIP_GAP` (deux pas) laissent toujours ≥ 2 cellules entre
+ *     elles (`touched`, qui prend toute cellule effleurée, n'en laissait
+ *     parfois qu'une : un seul réseau par couloir) ;
+ *   - le centre d'une pastille (`pads`, anneau sans les coins de cette même
+ *     empreinte) est hors du boîtier sur un seul axe : le segment orthogonal
+ *     jusqu'au **bord réel** reste dans la pastille et l'empreinte, deux
+ *     cellules qu'aucun autre réseau ne peut tenir ;
+ *   - une diagonale entre deux cellules libres ne coupe jamais un boîtier
+ *     (plus large qu'un pas, il contiendrait l'un des quatre centres).
+ *
+ *   Revers accepté : une piste étrangère peut longer un boîtier à moins d'un
+ *   demi-pas de son bord, sans jamais y entrer.
+ */
+export type Footprint = 'touched' | 'centred'
+
 /** Pénalité d'un changement de direction : des pistes droites, pas des escaliers. */
 const TURN_COST = 0.5
 /**
@@ -67,7 +88,7 @@ const SHAPE_STRAIGHT_X = 1
 const SHAPE_STRAIGHT_Z = 2
 const SHAPE_OTHER = 3
 
-/** Un pont posé par `routeBridged` : la cellule franchie et le réseau qu'elle porte. */
+/** Un pont posé par `route` (option `bridges`) : la cellule franchie et le réseau qu'elle porte. */
 export interface Bridge {
   readonly cell: Cell
   readonly crosses: string
@@ -96,57 +117,71 @@ const STATES_PER_CELL = DIRS.length + 1
  * L'identifiant code `(ligne, colonne, direction)` dans cet ordre : à `f`
  * égal, le tas départage donc par ligne puis colonne — le routeur reste
  * déterministe sans dépendre de l'ordre d'insertion.
+ *
+ * Tableaux typés qui doublent à la demande, réutilisés d'une recherche à
+ * l'autre (`clear`) ; les tamisages déplacent un **trou** et n'écrivent
+ * l'élément déplacé qu'une fois, à sa place finale.
  */
 class MinHeap {
-  private readonly ids: number[] = []
-  private readonly keys: number[] = []
+  private ids = new Int32Array(256)
+  private keys = new Float64Array(256)
+  private length = 0
 
   get size(): number {
-    return this.ids.length
+    return this.length
   }
 
-  private less(i: number, j: number): boolean {
-    const a = this.keys[i]!
-    const b = this.keys[j]!
-    return a < b || (a === b && this.ids[i]! < this.ids[j]!)
-  }
-
-  private swap(i: number, j: number): void {
-    ;[this.ids[i], this.ids[j]] = [this.ids[j]!, this.ids[i]!]
-    ;[this.keys[i], this.keys[j]] = [this.keys[j]!, this.keys[i]!]
+  clear(): void {
+    this.length = 0
   }
 
   push(id: number, key: number): void {
-    this.ids.push(id)
-    this.keys.push(key)
-    let i = this.ids.length - 1
+    if (this.length === this.ids.length) {
+      const ids = new Int32Array(this.ids.length * 2)
+      const keys = new Float64Array(this.keys.length * 2)
+      ids.set(this.ids)
+      keys.set(this.keys)
+      this.ids = ids
+      this.keys = keys
+    }
+    const { ids, keys } = this
+    let i = this.length
+    this.length += 1
     while (i > 0) {
       const parent = (i - 1) >> 1
-      if (!this.less(i, parent)) break
-      this.swap(i, parent)
+      const pk = keys[parent]!
+      if (!(key < pk || (key === pk && id < ids[parent]!))) break
+      ids[i] = ids[parent]!
+      keys[i] = pk
       i = parent
     }
+    ids[i] = id
+    keys[i] = key
   }
 
   /** Retire et rend le plus petit identifiant (le tas ne doit pas être vide). */
   pop(): number {
-    const top = this.ids[0]!
-    const lastId = this.ids.pop()!
-    const lastKey = this.keys.pop()!
-    if (this.ids.length > 0) {
-      this.ids[0] = lastId
-      this.keys[0] = lastKey
+    const { ids, keys } = this
+    const top = ids[0]!
+    this.length -= 1
+    const n = this.length
+    if (n > 0) {
+      const id = ids[n]!
+      const key = keys[n]!
       let i = 0
       for (;;) {
-        const l = 2 * i + 1
-        const r = l + 1
-        let m = i
-        if (l < this.ids.length && this.less(l, m)) m = l
-        if (r < this.ids.length && this.less(r, m)) m = r
-        if (m === i) break
-        this.swap(i, m)
+        let m = 2 * i + 1
+        if (m >= n) break
+        const r = m + 1
+        if (r < n && (keys[r]! < keys[m]! || (keys[r] === keys[m] && ids[r]! < ids[m]!))) m = r
+        const mk = keys[m]!
+        if (!(mk < key || (mk === key && ids[m]! < id))) break
+        ids[i] = ids[m]!
+        keys[i] = mk
         i = m
       }
+      ids[i] = id
+      keys[i] = key
     }
     return top
   }
@@ -181,6 +216,7 @@ export class RoutingGrid {
   private readonly viaStep: Uint8Array
   private readonly targetStamp: Uint32Array
   private readonly sourceStamp: Uint32Array
+  private readonly heap = new MinHeap()
   private generation = 0
 
   /** Les bornes sont couvertes entièrement : une cellule partielle au bord compte. */
@@ -209,12 +245,16 @@ export class RoutingGrid {
   }
 
   /**
-   * Les cellules que `rect` recouvre d'une surface non nulle, rognées aux
+   * Les cellules que `rect` prend selon `mode` (voir `Footprint`), rognées aux
    * bornes : `[c0..c1] × [r0..r1]` (vide si `c1 < c0` ou `r1 < r0`). Un bord
    * posé exactement sur une ligne de grille ne déborde pas sur la voisine.
    */
-  private footprint(rect: Rect): { c0: number; c1: number; r0: number; r1: number } {
+  private footprint(
+    box: Rect,
+    mode: Footprint,
+  ): { c0: number; c1: number; r0: number; r1: number } {
     const { minX, minZ } = this.bounds
+    const rect = mode === 'centred' ? inflate(box, -GRID / 2) : box
     return {
       c0: Math.max(0, Math.floor((rect.minX - minX) / GRID + EPSILON)),
       c1: Math.min(this.cols - 1, Math.ceil((rect.maxX - minX) / GRID - EPSILON) - 1),
@@ -224,12 +264,12 @@ export class RoutingGrid {
   }
 
   /**
-   * Interdit à toute piste chaque cellule que `rect` recouvre (au sens de
-   * `footprint` : toute cellule touchée par l'intérieur du rectangle — rien de
-   * ce qui est bloqué ne laisse une piste passer sous une puce).
+   * Interdit à toute piste chaque cellule que `rect` prend (au sens de
+   * `footprint` et de `mode` — rien de ce qui est bloqué ne laisse une piste
+   * passer sous une puce).
    */
-  block(rect: Rect): void {
-    const { c0, c1, r0, r1 } = this.footprint(rect)
+  block(rect: Rect, mode: Footprint = 'touched'): void {
+    const { c0, c1, r0, r1 } = this.footprint(rect, mode)
     for (let r = r0; r <= r1; r += 1)
       for (let c = c0; c <= c1; c += 1) this.blocked[r * this.cols + c] = 1
   }
@@ -241,8 +281,8 @@ export class RoutingGrid {
    * une à une, toutes ses pastilles — un processeur se retrouvait ceinturé
    * par la liaison au bus d'un voisin, et plus rien ne l'atteignait.
    */
-  reserve(rect: Rect): void {
-    const { c0, c1, r0, r1 } = this.footprint(rect)
+  reserve(rect: Rect, mode: Footprint = 'touched'): void {
+    const { c0, c1, r0, r1 } = this.footprint(rect, mode)
     for (let r = r0 - 1; r <= r1 + 1; r += 1)
       for (let c = c0 - 1; c <= c1 + 1; c += 1)
         if ((r < r0 || r > r1 || c < c0 || c > c1) && this.inside(c, r))
@@ -261,21 +301,27 @@ export class RoutingGrid {
    * colonne. Avec `net`, les cellules que ce réseau occupe déjà comptent aussi.
    */
   cellsAround(rect: Rect, net?: string): readonly Cell[] {
-    return this.ring(rect, net, true)
+    return this.ring(rect, net, true, 'touched')
   }
 
   /**
    * Les **pastilles** de `rect` : comme `cellsAround`, sans les quatre coins —
    * une pastille borde un côté, et la piste qui en part rejoint le bord par un
    * segment orthogonal. Avec `net`, la deuxième piste d'une puce peut repartir
-   * de l'anneau que la première a pris (éventail).
+   * de l'anneau que la première a pris (éventail). `mode` : l'empreinte dont
+   * on prend l'anneau, celle avec laquelle le boîtier a été bloqué.
    */
-  pads(rect: Rect, net?: string): readonly Cell[] {
-    return this.ring(rect, net, false)
+  pads(rect: Rect, net?: string, mode: Footprint = 'touched'): readonly Cell[] {
+    return this.ring(rect, net, false, mode)
   }
 
-  private ring(rect: Rect, net: string | undefined, corners: boolean): readonly Cell[] {
-    const { c0, c1, r0, r1 } = this.footprint(rect)
+  private ring(
+    rect: Rect,
+    net: string | undefined,
+    corners: boolean,
+    mode: Footprint,
+  ): readonly Cell[] {
+    const { c0, c1, r0, r1 } = this.footprint(rect, mode)
     const own = net === undefined ? undefined : this.netIds.get(net)
     const out: Cell[] = []
     for (let r = r0 - 1; r <= r1 + 1; r += 1) {
@@ -391,8 +437,7 @@ export class RoutingGrid {
   /**
    * La piste la moins chère du réseau `net` d'une cellule de `from` à une
    * cellule de `to` — A* multi-sources (toutes à coût 0), multi-cibles, huit
-   * directions, **sans pont**. Le chemin trouvé est **occupé** par `net` ;
-   * `null` si aucun.
+   * directions. Le chemin trouvé est **occupé** par `net` ; `null` si aucun.
    *
    * - Une cellule est franchissable si elle n'est ni bloquée ni franchie par un
    *   pont, et si son occupant est `null` ou `net` : les pistes d'un même
@@ -409,32 +454,21 @@ export class RoutingGrid {
    * - Les cellules impraticables de `from` / `to` sont ignorées ; si `from` et
    *   `to` partagent une cellule, la piste est cette seule cellule (la plus
    *   petite en (ligne, colonne)).
+   * - **Ponts** (`bridges: true`, voir l'en-tête du module) : un pas
+   *   orthogonal peut enjamber une cellule d'un autre réseau dont la piste y
+   *   est droite et perpendiculaire, pour retomber sur la cellule suivante,
+   *   dans le même alignement, à `2 + BRIDGE_COST`. Sans l'option, aucun pont.
+   *
+   * Rend le chemin (cellules franchies comprises, dans l'ordre) et les ponts
+   * posés — toujours vides sans l'option.
    */
-  route(net: string, from: readonly Cell[], to: readonly Cell[]): readonly Cell[] | null {
-    return this.search(net, from, to, false)?.cells ?? null
-  }
-
-  /**
-   * Comme `route`, avec des **ponts** (voir l'en-tête du module) : un pas
-   * orthogonal peut enjamber une cellule d'un autre réseau dont la piste y est
-   * droite et perpendiculaire, pour retomber sur la cellule suivante, dans le
-   * même alignement, à `2 + BRIDGE_COST`. Rend le chemin (cellules franchies
-   * comprises, dans l'ordre) et les ponts posés.
-   */
-  routeBridged(
+  route(
     net: string,
     from: readonly Cell[],
     to: readonly Cell[],
+    options: { bridges?: boolean } = {},
   ): { cells: readonly Cell[]; bridges: readonly Bridge[] } | null {
-    return this.search(net, from, to, true)
-  }
-
-  private search(
-    net: string,
-    from: readonly Cell[],
-    to: readonly Cell[],
-    bridges: boolean,
-  ): { cells: readonly Cell[]; bridges: readonly Bridge[] } | null {
+    const bridges = options.bridges ?? false
     const id = this.netId(net)
     const sources = this.passableIndices(from, id)
     const targets = this.passableIndices(to, id)
@@ -467,8 +501,8 @@ export class RoutingGrid {
     const heuristic = (c: number, r: number): number =>
       octile(Math.max(0, tc0 - c, c - tc1), Math.max(0, tr0 - r, r - tr1))
 
-    const { cost, parent, stamp, closedStamp, viaStep } = this
-    const heap = new MinHeap()
+    const { cost, parent, stamp, closedStamp, viaStep, heap } = this
+    heap.clear()
     const relax = (state: number, from: number, g: number, c: number, r: number, via: number) => {
       if (stamp[state] === gen && g >= cost[state]!) return
       stamp[state] = gen
@@ -608,9 +642,6 @@ export class RoutingGrid {
   }
 }
 
-/** Tolérance de colinéarité, à l'échelle d'une carte en unités de scène. */
-const COLLINEAR_EPSILON = 1e-9
-
 /**
  * Distance octile pour des écarts `dx`, `dz` : la longueur du plus court chemin
  * à pas droits et diagonaux, sans obstacle.
@@ -630,19 +661,14 @@ export function simplify(points: readonly Vec2[]): readonly Vec2[] {
   const out: Vec2[] = []
   for (const p of points) {
     const last = out.at(-1)
-    if (
-      last &&
-      Math.abs(p[0] - last[0]) < COLLINEAR_EPSILON &&
-      Math.abs(p[1] - last[1]) < COLLINEAR_EPSILON
-    )
-      continue
+    if (last && Math.abs(p[0] - last[0]) < EPSILON && Math.abs(p[1] - last[1]) < EPSILON) continue
     const prev = out.at(-2)
     if (prev && last) {
       const ax = last[0] - prev[0]
       const az = last[1] - prev[1]
       const bx = p[0] - last[0]
       const bz = p[1] - last[1]
-      if (Math.abs(ax * bz - az * bx) < COLLINEAR_EPSILON && ax * bx + az * bz > 0) {
+      if (Math.abs(ax * bz - az * bx) < EPSILON && ax * bx + az * bz > 0) {
         out[out.length - 1] = p
         continue
       }

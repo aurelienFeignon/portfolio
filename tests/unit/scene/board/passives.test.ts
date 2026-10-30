@@ -1,15 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import { GRID, RoutingGrid } from '@/scene/state/board/grid'
-import {
-  BOARD_DENSITY,
-  LABEL_KEEP_OUT,
-  labelKeepOut,
-  scatterPassives,
-} from '@/scene/state/board/passives'
-import { type Rect, rectOf, rectsOverlap } from '@/scene/state/board/rect'
+import { BOARD_DENSITY, scatterPassives } from '@/scene/state/board/passives'
+import { type Rect, rectOf, rectsOverlap, type Vec2 } from '@/scene/state/board/rect'
 
 const board: Rect = { minX: -5, minZ: -5, maxX: 5, maxZ: 5 }
 const SEED = 7
+/** L'emplacement réservé à une étiquette, centré sur son ancre (épinglé ici, privé au module). */
+const labelKeepOut = (anchor: Vec2): Rect => rectOf(anchor, 2, 0.6)
 
 /** Les cellules couvertes par un petit composant (2×1, ou 1×2 si tourné). */
 function cellsOf(grid: RoutingGrid, p: { center: readonly [number, number]; rotated: boolean }) {
@@ -104,14 +101,21 @@ describe('scatterPassives', () => {
 
   it('laisse libres les rectangles réservés aux étiquettes', () => {
     const grid = new RoutingGrid(board)
-    const keepOut = [labelKeepOut([0, 0]), labelKeepOut([-3, 3])]
-    expect(keepOut[0]).toEqual(rectOf([0, 0], LABEL_KEEP_OUT.width, LABEL_KEEP_OUT.depth))
-    const out = scatterPassives(grid, 200, SEED, keepOut)
+    const anchors: Vec2[] = [
+      [0, 0],
+      [-3, 3],
+    ]
+    const keepOut = anchors.map(labelKeepOut)
+    const out = scatterPassives(grid, 200, SEED, anchors)
     expect(out.length).toBeGreaterThan(0)
     for (const p of out) {
       const box = rectOf(p.center, p.rotated ? GRID : 2 * GRID, p.rotated ? 2 * GRID : GRID)
       expect(keepOut.some((k) => rectsOverlap(box, k))).toBe(false)
     }
-    expect(scatterPassives(grid, 200, SEED, [board])).toEqual([])
+    // Des ancres qui pavent toute la carte : plus aucune place.
+    const everywhere: Vec2[] = []
+    for (let x = board.minX; x <= board.maxX; x += 1.5)
+      for (let z = board.minZ; z <= board.maxZ; z += 0.5) everywhere.push([x, z])
+    expect(scatterPassives(grid, 200, SEED, everywhere)).toEqual([])
   })
 })

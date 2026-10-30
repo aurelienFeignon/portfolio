@@ -18,6 +18,7 @@ import {
   makeLargeBoard,
   makeRealSizeBoard,
 } from '../../../fixtures/builders/board'
+import { rectContains } from './geometry-asserts'
 
 const EPS = 1e-6
 const chipRect = (c: { center: readonly [number, number]; size: number }): Rect => ({
@@ -26,11 +27,10 @@ const chipRect = (c: { center: readonly [number, number]; size: number }): Rect 
   minZ: c.center[1] - c.size / 2,
   maxZ: c.center[1] + c.size / 2,
 })
+/** `inner` tient dans `outer`, bornes comprises, à `EPS` près. */
 const inside = (inner: Rect, outer: Rect) =>
-  inner.minX >= outer.minX - EPS &&
-  inner.maxX <= outer.maxX + EPS &&
-  inner.minZ >= outer.minZ - EPS &&
-  inner.maxZ <= outer.maxZ + EPS
+  rectContains(outer, [inner.minX, inner.minZ], { margin: EPS }) &&
+  rectContains(outer, [inner.maxX, inner.maxZ], { margin: EPS })
 
 function district(n: number): Rect {
   const projects = Array.from({ length: n }, (_, i) =>

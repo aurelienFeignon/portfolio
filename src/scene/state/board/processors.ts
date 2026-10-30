@@ -10,7 +10,15 @@
  * gate de contenu : zéro, un ou plusieurs projets `primary` sont tous admis.
  */
 import { type BoardProject, bySlug, compareAtCommonPrecision } from './content.ts'
-import { EMPTY_RECT, inflate, type Rect, rectOf, rectUnion, type Vec2 } from './rect.ts'
+import {
+  EMPTY_RECT,
+  inflate,
+  LABEL_MARGIN,
+  type Rect,
+  rectOf,
+  rectUnion,
+  type Vec2,
+} from './rect.ts'
 
 /** Côté du processeur principal (carré). */
 export const PRIMARY_SIZE = 3.2
@@ -23,8 +31,6 @@ export const DISTRICT_MARGIN = 1
 /** Hauteur (Y) du boîtier principal et des boîtiers secondaires. */
 export const PRIMARY_HEIGHT = 0.5
 export const SECONDARY_HEIGHT = 0.35
-/** Écart entre le bord arrière du boîtier et son ancre d'étiquette. */
-const LABEL_MARGIN = 0.3
 
 export interface Processor {
   readonly slug: string
@@ -95,14 +101,14 @@ function ringCells(k: number): (readonly [number, number])[] {
   })
 }
 
-/** Le `index`-ième emplacement secondaire (0 = premier de l'anneau 1), en pas. */
-function slotCell(index: number): readonly [number, number] {
-  let remaining = index
-  for (let k = 1; ; k += 1) {
-    const size = 8 * k
-    if (remaining < size) return ringCells(k)[remaining]!
-    remaining -= size
-  }
+/**
+ * Les `count` premiers emplacements secondaires, en pas : les anneaux 1, 2…
+ * mis bout à bout, chacun dans son ordre de remplissage, jusqu'à en avoir assez.
+ */
+function slotCells(count: number): (readonly [number, number])[] {
+  const cells: (readonly [number, number])[] = []
+  for (let k = 1; cells.length < count; k += 1) cells.push(...ringCells(k))
+  return cells
 }
 
 /**
@@ -131,8 +137,9 @@ export function planDistrict(projects: readonly BoardProject[]): District {
   }
 
   const processors: Processor[] = [make(primary, 1, [0, 0], true)]
+  const slots = slotCells(secondaries.length)
   secondaries.forEach((project, i) => {
-    const [dx, dz] = slotCell(i)
+    const [dx, dz] = slots[i]!
     processors.push(make(project, i + 2, [dx * SLOT_PITCH, dz * SLOT_PITCH], false))
   })
 

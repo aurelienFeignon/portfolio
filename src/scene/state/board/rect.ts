@@ -5,6 +5,19 @@
 
 export type Vec2 = readonly [x: number, z: number]
 
+/**
+ * Tolérance flottante de toute la géométrie de la carte, à l'échelle d'une
+ * carte en unités de scène : un bord posé sur une ligne de grille ne déborde
+ * pas sur la voisine, deux rectangles à l'écart exact ne se recouvrent pas.
+ */
+export const EPSILON = 1e-9
+
+/** Pas de la grille du routeur (et des reculs de zone, des petits composants). */
+export const GRID = 0.25
+
+/** Écart entre le bord arrière d'un boîtier ou d'une zone et son ancre d'étiquette. */
+export const LABEL_MARGIN = 0.3
+
 export interface Rect {
   readonly minX: number
   readonly minZ: number

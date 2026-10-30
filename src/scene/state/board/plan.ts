@@ -15,7 +15,7 @@
 import type { DensityTier } from '../layout.ts'
 import { boardBounds, timelineOriginZ } from './bounds.ts'
 import { type BoardContent, bySlug } from './content.ts'
-import { BOARD_DENSITY, labelKeepOut, type Passive, scatterPassives } from './passives.ts'
+import { BOARD_DENSITY, type Passive, scatterPassives } from './passives.ts'
 import { type District, planDistrict } from './processors.ts'
 import type { Rect } from './rect.ts'
 import { planTimeline, type Timeline } from './timeline.ts'
@@ -77,7 +77,7 @@ export function planBoard(content: BoardContent, options: BoardOptions): BoardPl
     zones,
     timeline,
     traces,
-    passives: scatterPassives(grid, passives, BOARD_SEED, labels.map(labelKeepOut)),
+    passives: scatterPassives(grid, passives, BOARD_SEED, labels),
     pulses,
   }
 }

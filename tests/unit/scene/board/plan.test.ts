@@ -1,12 +1,14 @@
 import { describe, expect, it } from 'vitest'
 import { makeLargeBoard, makeRealSizeBoard } from '../../../fixtures/builders/board'
-import { BOARD_DENSITY, labelKeepOut } from '@/scene/state/board/passives'
+import { BOARD_DENSITY } from '@/scene/state/board/passives'
 import { BOARD_SEED, type BoardOptions, planBoard } from '@/scene/state/board/plan'
 import { GRID } from '@/scene/state/board/grid'
 import { inflate, type Rect, rectOf, rectsOverlap, type Vec2 } from '@/scene/state/board/rect'
+import { rectContains } from './geometry-asserts'
 
 const options: BoardOptions = { currentYear: 2026, chipSizing: 'level', tier: 'full' }
-const inside = (b: Rect, [x, z]: Vec2) => x >= b.minX && x <= b.maxX && z >= b.minZ && z <= b.maxZ
+/** Bornes comprises, sans tolérance. */
+const inside = (b: Rect, p: Vec2) => rectContains(b, p)
 const within = (b: Rect, r: Rect) => inside(b, [r.minX, r.minZ]) && inside(b, [r.maxX, r.maxZ])
 
 describe('planBoard', () => {
@@ -134,7 +136,8 @@ describe('planBoard', () => {
         ...plan.zones.map((z) => z.labelAnchor),
         ...plan.timeline.segments.map((s) => s.labelAnchor),
       ]
-      const keepOut = anchors.map(labelKeepOut)
+      // L'emplacement réservé à chaque étiquette (2 × 0,6, centré sur l'ancre).
+      const keepOut = anchors.map((a) => rectOf(a, 2, 0.6))
       expect(plan.passives.length).toBeGreaterThan(0)
       for (const p of plan.passives) {
         const box = rectOf(p.center, p.rotated ? GRID : 2 * GRID, p.rotated ? 2 * GRID : GRID)

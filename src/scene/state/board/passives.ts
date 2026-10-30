@@ -11,8 +11,8 @@
  */
 import type { DensityTier } from '../layout.ts'
 import { seededRandom } from '../seeded-random.ts'
-import { type Cell, GRID, type RoutingGrid } from './grid.ts'
-import { type Rect, rectOf, rectsOverlap, type Vec2 } from './rect.ts'
+import type { Cell, RoutingGrid } from './grid.ts'
+import { GRID, type Rect, rectOf, rectsOverlap, type Vec2 } from './rect.ts'
 
 /**
  * Le budget par palier : petits composants semés, impulsions animées sur les
@@ -43,10 +43,10 @@ const LONG = 2
  * derrière leur bord arrière, sur des cellules que rien ne bloque — sans
  * réserve, un petit composant s'y posait sous le texte.
  */
-export const LABEL_KEEP_OUT = { width: 2, depth: 0.6 } as const
+const LABEL_KEEP_OUT = { width: 2, depth: 0.6 } as const
 
 /** Le rectangle que les petits composants laissent libre autour d'une ancre d'étiquette. */
-export const labelKeepOut = (anchor: Vec2): Rect =>
+const labelKeepOut = (anchor: Vec2): Rect =>
   rectOf(anchor, LABEL_KEEP_OUT.width, LABEL_KEEP_OUT.depth)
 
 /** Mélange de Fisher-Yates, déterministe pour une graine donnée. */
@@ -62,7 +62,8 @@ function shuffle<T>(items: T[], random: () => number): T[] {
  * Sème au plus `count` petits composants sur les cellules libres de `grid`,
  * chacun avec une cellule de dégagement (l'emprise et ses huit voisines
  * doivent être libres), sans que deux composants se touchent, et sans que
- * l'emprise entame un rectangle de `keepOut` (les étiquettes, `labelKeepOut`).
+ * l'emprise entame l'emplacement réservé (`LABEL_KEEP_OUT`) autour de l'une
+ * des `labelAnchors`.
  *
  * La grille n'est pas modifiée : les cellules prises sont suivies localement.
  * Même graine, même grille → même sortie.
@@ -71,9 +72,10 @@ export function scatterPassives(
   grid: RoutingGrid,
   count: number,
   seed: number,
-  keepOut: readonly Rect[] = [],
+  labelAnchors: readonly Vec2[] = [],
 ): readonly Passive[] {
   if (count <= 0) return []
+  const keepOut = labelAnchors.map(labelKeepOut)
   const random = seededRandom(seed)
   const anchors: Cell[] = []
   for (let r = 0; r < grid.rows; r++) for (let c = 0; c < grid.cols; c++) anchors.push([c, r])
