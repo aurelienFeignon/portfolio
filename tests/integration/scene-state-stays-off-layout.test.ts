@@ -23,7 +23,8 @@
  *   de la première visite — c'est précisément la frontière que P5-04 emploie.
  *
  * ⭐⭐⭐ **Et il porte un témoin** : le même parcours, lancé depuis
- * `camera-target.ts`, doit trouver `layout.ts`. Sinon l'instrument est aveugle,
+ * `camera-motion.ts`, doit trouver `layout.ts` (depuis P8-15c, `camera-target.ts`
+ * reçoit ses cadrages en paramètre et n'en importe plus que des types). Sinon l'instrument est aveugle,
  * et l'absence qu'il rapporte ne vaut rien (P5-09).
  *
  * ⚠️ Il lit le SOURCE, pas le chunk. Ce que le build embarque réellement reste à
@@ -107,8 +108,8 @@ const enClair = (fichiers: Set<string>) => [...fichiers].map((f) => relative(RAC
 const RACINES = ['scene/components/scene-mount.tsx', 'scene/state/scene-state.ts']
 
 describe('le chemin de première visite n’embarque pas `layout.ts` (P6-02)', () => {
-  it('⭐ témoin : le parcours trouve `layout.ts` depuis `camera-target.ts`', () => {
-    expect(fermeture(join(SRC, 'scene/state/camera-target.ts')).has(LAYOUT)).toBe(true)
+  it('⭐ témoin : le parcours trouve `layout.ts` depuis `camera-motion.ts`', () => {
+    expect(fermeture(join(SRC, 'scene/state/camera-motion.ts')).has(LAYOUT)).toBe(true)
   })
 
   it.each(RACINES)('%s', (racine) => {

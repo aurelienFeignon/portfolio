@@ -15,14 +15,15 @@ import { Canvas } from '@react-three/fiber'
 import { type ComponentType, type RefObject, useCallback, useEffect, useState } from 'react'
 import { ACESFilmicToneMapping, SRGBColorSpace } from 'three'
 
+import type { Locale } from '@/i18n/locales'
 import type { Section } from '@/routing/sections'
 import type { Capability } from '@/scene/capability/resolve'
 import type { Rect } from '@/scene/state/camera-motion'
 import type { SceneReadings } from '@/scene/state/diagnostics'
-import { getCameraTarget } from '@/scene/state/camera-target'
 import { DENSITY, PALETTE } from '@/scene/state/layout'
 import type { SceneFocus, SceneState } from '@/scene/state/scene-state'
 
+import { useBoardFile } from './board/use-board-file'
 import { CameraRig } from './nexus/camera-rig'
 import { type LabelAnchors, LabelProjector } from './nexus/label-projector'
 import { NexusScene } from './nexus/nexus-scene'
@@ -30,6 +31,7 @@ import { ShaderWarmup } from './nexus/shader-warmup'
 
 export default function SceneCanvas({
   capability,
+  locale,
   state,
   free,
   visible,
@@ -42,6 +44,8 @@ export default function SceneCanvas({
   onReadings,
 }: {
   readonly capability: Capability
+  /** La locale de la page : la scène charge le plan de carte de celle-ci, jamais d'une autre. */
+  readonly locale: Locale
   readonly state: SceneState
   /** La zone de l'écran que le panneau de lecture laisse à la scène. */
   readonly free: Rect | null
@@ -72,16 +76,24 @@ export default function SceneCanvas({
    * premier rendu — voir `ShaderWarmup` et `nexus-prototype.md` §6.
    */
   const ambient = animated && tier !== 'lite'
-  const initial = getCameraTarget(state)
+  /*
+   * Le plan de carte de la locale (P8-15c), qui porte les cadrages précalculés.
+   * ⭐ Le canvas est créé SANS l'attendre — contexte WebGL et compilation des
+   * shaders avancent pendant le chargement — mais il ne rend aucune image avant
+   * son arrivée.
+   */
+  const plan = useBoardFile(locale)
   // Aucune image avant que les shaders soient compilés (`ShaderWarmup`).
-  const [pret, setPret] = useState(false)
-  const quandPret = useCallback(() => setPret(true), [])
+  const [shadersPrets, setShadersPrets] = useState(false)
+  const quandPret = useCallback(() => setShadersPrets(true), [])
+  const pret = shadersPrets && plan !== null
 
   return (
     <Canvas
       /*
        * ⭐ `always` seulement quand l'ambiance a quelque chose à montrer :
-       * - scène cachée (fiche) ou shaders en compilation : `never`, aucune image ;
+       * - scène cachée (fiche), shaders en compilation ou plan de carte pas encore
+       *   arrivé : `never`, aucune image ;
        * - mouvement refusé ou palier `lite` : `demand`, le rig demande les
        *   images d'une transition ;
        * - sinon `always` — la pulsation et les flux sont l'objet même de la scène.
@@ -105,17 +117,35 @@ export default function SceneCanvas({
          */
         gl.domElement.addEventListener('webglcontextlost', onContextLost, { once: true })
       }}
-      camera={{
-        position: initial.position as unknown as [number, number, number],
-        fov: initial.fov,
-        near: 0.1,
-        far: 80,
-      }}
+      /*
+       * ⛔ Ni position ni `fov` ici : la caméra est créée avant que le plan
+       * n'arrive. Le rig pose l'une et l'autre à sa première image, qui précède
+       * toute image rendue (`frameloop` reste `never` jusque-là).
+       */
+      camera={{ near: 0.1, far: 80 }}
     >
       <fog attach="fog" args={[PALETTE.background, 16, 42]} />
-      <CameraRig state={state} free={free} animated={animated} orbit={tier !== 'lite'} />
-      {/* Après le rig : la projection lit la pose que le rig vient de poser. */}
-      <LabelProjector anchors={labelAnchors} zone={labelZone} />
+      {plan === null ? null : (
+        /*
+         * ⭐ Review Focus 2 : le rig est monté À L'ARRIVÉE du plan, avec l'état
+         * COURANT — une navigation pendant le chargement est donc déjà prise en
+         * compte, et la caméra part de son cadrage, sans transition depuis celui
+         * du montage.
+         * ⛔ Rig et projection montés ENSEMBLE et dans cet ordre : la projection
+         * lit la pose que le rig vient de poser, et `useFrame` les appelle dans
+         * l'ordre où ils se sont abonnés.
+         */
+        <>
+          <CameraRig
+            state={state}
+            cameras={plan.cameras}
+            free={free}
+            animated={animated}
+            orbit={tier !== 'lite'}
+          />
+          <LabelProjector anchors={labelAnchors} zone={labelZone} />
+        </>
+      )}
       <NexusScene
         density={DENSITY[tier]}
         animated={ambient}

@@ -17,8 +17,8 @@
  * ne garde que ce qui est une décision de **scène** : l'effondrement de tout ce
  * qui n'est pas un écran vers la vue d'ensemble.
  *
- * ⭐ **Ce module reste sans `layout.ts`, et c'est gardé.** `getCameraTarget`
- * (P6-02, `camera-target.ts`) importe le plan coté du bureau entier, alors que `resolveSceneState`
+ * ⭐ **Ce module reste sans `layout.ts`, et c'est gardé.** `layout.ts` porte le
+ * plan coté du bureau entier (P6-02), alors que `resolveSceneState`
  * est lue depuis le chunk de **première visite** (P6-07, `data-scene-focus`).
  * *Un module est indivisible du point de vue d'un bundler* — ce que P5-08 a payé
  * en 0,5 Ko, vérifié dans les source maps. La règle n'est pas « un fichier par

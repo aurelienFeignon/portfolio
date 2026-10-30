@@ -28,7 +28,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import { useCallback, useEffect, useRef, useState } from 'react'
 
 import { resetFocusToDocumentStart } from '@/routing/focus-reset'
-import { homePath, localeFromPathname, parsePagePath } from '@/routing/paths'
+import { displayedLocale, homePath, localeFromPathname, parsePagePath } from '@/routing/paths'
 import { SECTIONS, type Section } from '@/routing/sections'
 
 import { readCapability } from '@/scene/capability/adapter'
@@ -320,6 +320,11 @@ export function SceneMount({
         <SceneBoundary onFailure={abandonner}>
           <SceneCanvas
             capability={etat.capability}
+            /*
+             * La locale de l'URL — `localeFromPathname`, avec le repli de la locale
+             * par défaut, que ce layout localisé n'atteint jamais en pratique.
+             */
+            locale={displayedLocale(chemin)}
             state={scene}
             free={libre}
             visible={visible}

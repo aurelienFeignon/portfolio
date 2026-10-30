@@ -36,23 +36,26 @@ import {
   type Rect,
   rigFrame,
 } from '@/scene/state/camera-motion'
-import { ORBIT_LIMITS, PARALLAX } from '@/scene/state/layout'
+import { type CameraSpec, ORBIT_LIMITS, PARALLAX, type ViewId } from '@/scene/state/layout'
 import type { SceneState } from '@/scene/state/scene-state'
 
 export function CameraRig({
   state,
+  cameras,
   free,
   animated,
   orbit,
 }: {
   readonly state: SceneState
+  /** Les cadrages du plan de carte de la locale (P8-15c) ; la cible en est une instance. */
+  readonly cameras: Readonly<Record<ViewId, CameraSpec>>
   readonly free: Rect | null
   readonly animated: boolean
   /** Faux sur un pointeur grossier : le tactile défile la page, il ne tourne pas la scène. */
   readonly orbit: boolean
 }) {
   const get = useThree((s) => s.get)
-  const goal = getCameraTarget(state)
+  const goal = getCameraTarget(state, cameras)
 
   const shown = useRef<Pose>(poseOf(goal))
   const from = useRef<Pose>(poseOf(goal))
