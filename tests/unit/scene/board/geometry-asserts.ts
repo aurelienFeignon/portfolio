@@ -35,6 +35,36 @@ function segmentsCross(p1: Vec2, p2: Vec2, q1: Vec2, q2: Vec2): boolean {
   return d1 * d2 < -EPS && d3 * d4 < -EPS
 }
 
+/** Le point `p`, colinéaire à `[a, b]`, est-il sur ce segment (bornes comprises) ? */
+const within = (a: Vec2, b: Vec2, p: Vec2): boolean =>
+  p[0] >= Math.min(a[0], b[0]) - EPS &&
+  p[0] <= Math.max(a[0], b[0]) + EPS &&
+  p[1] >= Math.min(a[1], b[1]) - EPS &&
+  p[1] <= Math.max(a[1], b[1]) + EPS
+
+/** Les segments `[p1,p2]` et `[q1,q2]` ont-ils un point commun **sans** se traverser ? */
+function segmentsTouch(p1: Vec2, p2: Vec2, q1: Vec2, q2: Vec2): boolean {
+  return (
+    (Math.abs(cross(q1, q2, p1)) < EPS && within(q1, q2, p1)) ||
+    (Math.abs(cross(q1, q2, p2)) < EPS && within(q1, q2, p2)) ||
+    (Math.abs(cross(p1, p2, q1)) < EPS && within(p1, p2, q1)) ||
+    (Math.abs(cross(p1, p2, q2)) < EPS && within(p1, p2, q2))
+  )
+}
+
+/** Le point où deux segments qui se traversent se coupent. */
+function crossingPoint(p1: Vec2, p2: Vec2, q1: Vec2, q2: Vec2): Vec2 {
+  const t = cross(q1, q2, p1) / (cross(q1, q2, p1) - cross(q1, q2, p2))
+  return [p1[0] + t * (p2[0] - p1[0]), p1[1] + t * (p2[1] - p1[1])]
+}
+
+/** Un pont déclaré : `net` franchit `crosses` en `at`. */
+export interface DeclaredVia {
+  readonly at: Vec2
+  readonly net: string
+  readonly crosses: string
+}
+
 /**
  * Aucune paire de polylignes ne se traverse. Un croisement est une
  * intersection **propre** (les deux segments se coupent en un point intérieur
@@ -43,22 +73,53 @@ function segmentsCross(p1: Vec2, p2: Vec2, q1: Vec2, q2: Vec2): boolean {
  *
  * `groupOf(i)` donne le groupe de la polyligne `i` (par exemple le `net` d'une
  * route) : les paires d'un même groupe sont exclues.
+ *
+ * `strict` (pistes de réseaux différents) : **tout** point commun est refusé —
+ * T, contact par les extrémités, superposition colinéaire — et un croisement
+ * propre n'est admis qu'en un pont de `vias` déclaré entre ces deux groupes.
  */
 export function expectNoCrossing(
   polylines: readonly (readonly Vec2[])[],
   groupOf?: (index: number) => string | number,
+  options: { strict?: boolean; vias?: readonly DeclaredVia[] } = {},
 ): void {
+  const { strict = false, vias = [] } = options
+  const declared = (p: Vec2, a: string | number, b: string | number) =>
+    vias.some(
+      (v) =>
+        Math.abs(v.at[0] - p[0]) < 1e-6 &&
+        Math.abs(v.at[1] - p[1]) < 1e-6 &&
+        ((v.net === a && v.crosses === b) || (v.net === b && v.crosses === a)),
+    )
+  // Boîtes englobantes : seules les paires qui peuvent se toucher sont examinées,
+  // et `expect` n'est appelé que sur une faute (il coûte cher par paire).
+  const boxOf = (points: readonly Vec2[]) => ({
+    minX: Math.min(...points.map((p) => p[0])) - EPS,
+    maxX: Math.max(...points.map((p) => p[0])) + EPS,
+    minZ: Math.min(...points.map((p) => p[1])) - EPS,
+    maxZ: Math.max(...points.map((p) => p[1])) + EPS,
+  })
+  const boxes = polylines.map(boxOf)
+  const apart = (a: ReturnType<typeof boxOf>, b: ReturnType<typeof boxOf>) =>
+    a.maxX < b.minX || b.maxX < a.minX || a.maxZ < b.minZ || b.maxZ < a.minZ
   for (let i = 0; i < polylines.length; i += 1) {
     for (let j = i + 1; j < polylines.length; j += 1) {
-      if (groupOf && groupOf(i) === groupOf(j)) continue
+      const gi = groupOf ? groupOf(i) : i
+      const gj = groupOf ? groupOf(j) : j
+      if ((groupOf && gi === gj) || apart(boxes[i]!, boxes[j]!)) continue
       const a = polylines[i]!
       const b = polylines[j]!
       for (let s = 1; s < a.length; s += 1) {
         for (let t = 1; t < b.length; t += 1) {
-          expect(
-            segmentsCross(a[s - 1]!, a[s]!, b[t - 1]!, b[t]!),
-            `polylignes ${i} (segment ${s - 1}) et ${j} (segment ${t - 1}) se croisent`,
-          ).toBe(false)
+          const [p1, p2, q1, q2] = [a[s - 1]!, a[s]!, b[t - 1]!, b[t]!]
+          if (apart(boxOf([p1, p2]), boxOf([q1, q2]))) continue
+          const where = `polylignes ${i} (segment ${s - 1}) et ${j} (segment ${t - 1})`
+          if (segmentsCross(p1, p2, q1, q2)) {
+            if (!(strict && declared(crossingPoint(p1, p2, q1, q2), gi, gj)))
+              expect.fail(`${where} se croisent`)
+          } else if (strict && segmentsTouch(p1, p2, q1, q2)) {
+            expect.fail(`${where} se touchent`)
+          }
         }
       }
     }

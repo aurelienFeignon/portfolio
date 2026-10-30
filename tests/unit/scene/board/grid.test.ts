@@ -177,18 +177,165 @@ describe('RoutingGrid.open', () => {
   })
 })
 
-describe('RoutingGrid.landing', () => {
-  it('un demi-pas vers l’empreinte : orthogonal au bord, diagonal au coin', () => {
+describe('RoutingGrid.pads', () => {
+  it('l’anneau sans ses coins, et avec un réseau ses propres cellules', () => {
     const grid = gridOf(5, 5)
     const rect = cellsRect(2, 2, 2, 2)
-    const at = (c: Cell) => grid.landing(c, rect)
-    const [cx, cz] = grid.toPoint([2, 2])
-    const h = GRID / 2
-    expect(at([2, 1])).toEqual([cx, cz - h])
-    expect(at([3, 2])).toEqual([cx + h, cz])
-    expect(at([1, 3])).toEqual([cx - h, cz + h])
-    // Une cellule de l'empreinte n'a pas de bord à rejoindre : son centre.
-    expect(at([2, 2])).toEqual([cx, cz])
+    grid.block(rect)
+    expect(grid.pads(rect).map(key)).toEqual(['2,1', '1,2', '3,2', '2,3'])
+    grid.route('a', [[2, 1]], [[2, 1]])
+    expect(grid.pads(rect).map(key)).toEqual(['1,2', '3,2', '2,3'])
+    expect(grid.pads(rect, 'a').map(key)).toEqual(['2,1', '1,2', '3,2', '2,3'])
+  })
+})
+
+describe('RoutingGrid.reserve', () => {
+  it('l’anneau réservé ne s’emprunte qu’en départ ou en arrivée', () => {
+    const grid = gridOf(7, 3)
+    const box = cellsRect(3, 1, 3, 1)
+    grid.block(box)
+    grid.reserve(box)
+    // Les colonnes 2 à 4 sont l'anneau et le boîtier : rien ne les traverse.
+    expect(grid.route('a', [[0, 1]], [[6, 1]])).toBeNull()
+    // Arriver sur une pastille, ou en partir, reste permis.
+    expect(grid.route('a', [[0, 1]], [[2, 1]])!.at(-1)).toEqual([2, 1])
+    expect(grid.route('b', [[4, 1]], [[6, 1]])![0]).toEqual([4, 1])
+    expect(grid.isFree([2, 0])).toBe(true)
+  })
+})
+
+describe('RoutingGrid.release / claim', () => {
+  it('release rend les cellules d’un réseau ; claim les réinscrit', () => {
+    const grid = gridOf(6, 3)
+    const path = grid.route('a', [[0, 1]], [[5, 1]])!
+    grid.route('b', [[0, 0]], [[0, 0]])
+    grid.release('a')
+    grid.release('inconnu')
+    for (const cell of path) expect(grid.isFree(cell)).toBe(true)
+    expect(grid.occupant([0, 0])).toBe('b')
+    grid.claim('a', path)
+    for (const cell of path) expect(grid.occupant(cell)).toBe('a')
+  })
+})
+
+describe('RoutingGrid.routeBridged — ponts', () => {
+  /** Un mur vertical du réseau `wall` en colonne 3, de bord à bord (7 lignes). */
+  function walled() {
+    const grid = gridOf(7, 7)
+    grid.route('wall', [[3, 0]], [[3, 6]])
+    return grid
+  }
+
+  it('sans pont, un mur de bord à bord est infranchissable', () => {
+    expect(walled().route('a', [[0, 3]], [[6, 3]])).toBeNull()
+  })
+
+  it('franchit à 90° une piste droite, au travers d’une seule cellule', () => {
+    const grid = walled()
+    const result = grid.routeBridged('a', [[0, 3]], [[6, 3]])!
+    expect(result.bridges).toEqual([{ cell: [3, 3], crosses: 'wall' }])
+    expect(result.cells.map(key)).toEqual(['0,3', '1,3', '2,3', '3,3', '4,3', '5,3', '6,3'])
+    // La cellule franchie reste au mur, n'est plus libre, et ne se franchit plus.
+    expect(grid.occupant([3, 3])).toBe('wall')
+    expect(grid.isFree([3, 3])).toBe(false)
+    const again = grid.routeBridged('c', [[3, 2]], [[3, 4]])
+    expect(again === null || again.cells.every(([c, r]) => !(c === 3 && r === 3))).toBe(true)
+    // Un second réseau franchit ailleurs, jamais sur la même cellule.
+    const other = grid.routeBridged('d', [[0, 2]], [[6, 2]])!
+    expect(other.bridges).toHaveLength(1)
+    expect(other.bridges[0]!.cell).not.toEqual([3, 3])
+  })
+
+  it('préfère un détour court à un pont', () => {
+    const grid = gridOf(7, 7)
+    // Le mur laisse les lignes 0 et 1 libres : contourner coûte moins que BRIDGE_COST.
+    grid.route('wall', [[3, 2]], [[3, 6]])
+    const result = grid.routeBridged('a', [[0, 3]], [[6, 3]])!
+    expect(result.bridges).toEqual([])
+  })
+
+  it('jamais sur une cellule où l’autre réseau tourne ou s’arrête', () => {
+    /** Seule la ligne 1 est praticable ; le mur la traverse en (3, 1). */
+    const corridor = (wall: readonly Cell[]) => {
+      const grid = gridOf(7, 3)
+      grid.block(cellsRect(0, 0, 6, 0))
+      grid.block(cellsRect(0, 2, 6, 2))
+      grid.claim('wall', wall)
+      return grid.routeBridged('a', [[0, 1]], [[6, 1]])
+    }
+    const straight = corridor([
+      [3, 0],
+      [3, 1],
+      [3, 2],
+    ])
+    expect(straight!.bridges).toEqual([{ cell: [3, 1], crosses: 'wall' }])
+    // Le mur tourne en (3, 1) : pas de pont.
+    expect(
+      corridor([
+        [3, 0],
+        [3, 1],
+        [4, 2],
+      ]),
+    ).toBeNull()
+    // Le mur s'arrête en (3, 1) (une pastille) : pas de pont.
+    expect(
+      corridor([
+        [3, 0],
+        [3, 1],
+      ]),
+    ).toBeNull()
+    // Le mur court le long du couloir (droit, mais parallèle) : pas de pont.
+    expect(
+      corridor([
+        [2, 1],
+        [3, 1],
+        [4, 1],
+      ]),
+    ).toBeNull()
+  })
+
+  it('jamais deux ponts consécutifs : deux murs collés ne se franchissent pas', () => {
+    const grid = gridOf(8, 5)
+    const column = (c: number): Cell[] => [0, 1, 2, 3, 4].map((r): Cell => [c, r])
+    grid.claim('w1', column(3))
+    grid.claim('w2', column(4))
+    expect(grid.routeBridged('a', [[0, 2]], [[7, 2]])).toBeNull()
+    // Écartés d'une cellule, ils se franchissent l'un après l'autre.
+    const spaced = gridOf(8, 5)
+    spaced.claim('w1', column(2))
+    spaced.claim('w2', column(4))
+    expect(spaced.routeBridged('a', [[0, 2]], [[7, 2]])!.bridges.map((b) => b.crosses)).toEqual([
+      'w1',
+      'w2',
+    ])
+  })
+
+  it('un pont n’atterrit pas hors de la grille ni sur un obstacle', () => {
+    const grid = gridOf(5, 3)
+    grid.route('wall', [[3, 0]], [[3, 2]])
+    grid.block(cellsRect(4, 0, 4, 2))
+    expect(
+      grid.routeBridged(
+        'a',
+        [[0, 1]],
+        [
+          [2, 1],
+          [4, 1],
+        ],
+      )!.bridges,
+    ).toEqual([])
+    const edge = gridOf(4, 3)
+    edge.route('wall', [[3, 0]], [[3, 2]])
+    // Depuis (2, 1), enjamber la colonne 3 retomberait hors de la grille.
+    expect(edge.routeBridged('a', [[2, 1]], [[0, 1]])!.bridges).toEqual([])
+  })
+
+  it('la mémoire de travail réutilisée ne fausse pas les appels suivants', () => {
+    const a = gridOf(12, 12)
+    const b = gridOf(12, 12)
+    a.route('x', [[0, 0]], [[11, 11]])
+    a.release('x')
+    expect(a.route('y', [[0, 11]], [[11, 0]])).toEqual(b.route('y', [[0, 11]], [[11, 0]]))
   })
 })
 

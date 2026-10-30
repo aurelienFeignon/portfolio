@@ -25,6 +25,33 @@ describe('expectNoCrossing', () => {
   })
 })
 
+describe('expectNoCrossing — strict (réseaux de pistes)', () => {
+  const strict = (polylines: Vec2[][], vias: { at: Vec2; net: string; crosses: string }[] = []) =>
+    expectNoCrossing(polylines, (i) => `n${i}`, { strict: true, vias })
+
+  it('rejette un T : l’extrémité de l’un posée sur l’autre', () => {
+    expect(() => strict([line([0, 0], [2, 0]), line([1, 0], [1, 1])])).toThrow(/se touchent/)
+  })
+
+  it('rejette une superposition colinéaire et un contact par les extrémités', () => {
+    expect(() => strict([line([0, 0], [2, 0]), line([1, 0], [3, 0])])).toThrow(/se touchent/)
+    expect(() => strict([line([0, 0], [1, 1]), line([1, 1], [2, 0])])).toThrow(/se touchent/)
+  })
+
+  it('rejette un croisement hors pont, l’admet sur un pont déclaré entre ces deux réseaux', () => {
+    const x = [line([0, 1], [2, 1]), line([1, 0], [1, 2])]
+    expect(() => strict(x)).toThrow(/se croisent/)
+    expect(() => strict(x, [{ at: [1, 1], net: 'n0', crosses: 'n9' }])).toThrow(/se croisent/)
+    expect(() => strict(x, [{ at: [1.5, 1], net: 'n0', crosses: 'n1' }])).toThrow(/se croisent/)
+    strict(x, [{ at: [1, 1], net: 'n1', crosses: 'n0' }])
+  })
+
+  it('ignore les paires d’un même réseau, et laisse passer des pistes disjointes', () => {
+    expectNoCrossing([line([0, 0], [2, 0]), line([1, 0], [1, 1])], () => 'net', { strict: true })
+    strict([line([0, 0], [2, 0]), line([0, 1], [2, 1])])
+  })
+})
+
 describe('expectOctilinear', () => {
   it('refuse une pente quelconque et un segment nul', () => {
     expect(() =>
