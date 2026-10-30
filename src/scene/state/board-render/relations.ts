@@ -114,10 +114,57 @@ export function relationsOf(file: BoardFile, target: BoardTarget): Relations {
 }
 
 /**
+ * Ce que `pick` relit à chaque mouvement du pointeur, calculé **une fois par plan** : la liste à
+ * plat des puces, et la polyligne de chaque tronçon avec ses marches. Mémoïsé sur l'identité du
+ * plan (un plan chargé ne change pas ; un autre plan, une autre entrée).
+ */
+interface Picking {
+  readonly chips: readonly string[]
+  readonly segments: readonly { readonly experience: string; readonly points: readonly Vec2[] }[]
+}
+
+const pickingCache = new WeakMap<BoardPlan, Picking>()
+
+function picking(plan: BoardPlan): Picking {
+  let cached = pickingCache.get(plan)
+  if (cached === undefined) {
+    const { timeline } = plan
+    cached = {
+      chips: plan.zones.flatMap((z) => z.chips.map((c) => c.slug)),
+      segments: timeline.segments.map((segment) => {
+        let points: readonly Vec2[] = segment.points
+        for (const jog of timeline.jogs)
+          if (jog.lane === segment.lane) points = withJog(points, jog)
+        return { experience: segment.experience, points }
+      }),
+    }
+    pickingCache.set(plan, cached)
+  }
+  return cached
+}
+
+/**
+ * Les maillages que le lancer de rayon teste : la plaque (le bus se désigne par le point touché
+ * dessus, `targetAtPoint`) et les **corps** désignables. ⛔⛔ Jamais les lueurs : un carré de
+ * lueur déborde son objet — celui d'un processeur fait 2,3 fois son côté, coins invisibles
+ * compris —, il volait le survol du bus et des années posés dessous, et celui d'un jalon (0,8)
+ * l'emportait sur la portée d'une année. Les autres maillages (broches, passifs, pistes,
+ * impulsions) ne sont pas testés du tout : rien ne doit coûter à chaque mouvement du pointeur.
+ */
+export const PICKABLE_MESHES: ReadonlySet<string> = new Set([
+  'plate',
+  'chips',
+  'leds',
+  'processors',
+  'lids',
+  'milestones',
+])
+
+/**
  * La cible d'une instance touchée par le lancer de rayon. L'ordre des instances est celui de
- * `instances` : une puce (corps, diode, lueur de diode) par puce du plan ; un processeur (corps,
- * capot) par processeur ; un jalon par année — et les lueurs, dans cet ordre : puces,
- * processeurs, jalons. Les autres formes (broches, passifs…) ne désignent rien.
+ * `instances` : une puce (corps, diode) par puce du plan ; un processeur (corps, capot) par
+ * processeur ; un jalon par année. Les autres formes — lueurs comprises (`PICKABLE_MESHES`) — ne
+ * désignent rien.
  */
 export function targetOfInstance(
   plan: BoardPlan,
@@ -125,35 +172,21 @@ export function targetOfInstance(
   instanceId: number | undefined,
 ): BoardTarget | null {
   if (instanceId === undefined) return null
-  const chips = plan.zones.flatMap((z) => z.chips)
-  const { processors } = plan.district
-  const { milestones } = plan.timeline
-  const chipAt = (i: number): BoardTarget | null => {
-    const chip = chips[i]
-    return chip ? { kind: 'chip', slug: chip.slug } : null
-  }
-  const processorAt = (i: number): BoardTarget | null => {
-    const cpu = processors[i]
-    return cpu ? { kind: 'processor', slug: cpu.slug } : null
-  }
-  const yearAt = (i: number): BoardTarget | null => {
-    const m = milestones[i]
-    return m ? { kind: 'year', year: m.year } : null
-  }
   switch (shape) {
     case 'chips':
-    case 'leds':
-      return chipAt(instanceId)
+    case 'leds': {
+      const slug = picking(plan).chips[instanceId]
+      return slug === undefined ? null : { kind: 'chip', slug }
+    }
     case 'processors':
-    case 'lids':
-      return processorAt(instanceId)
-    case 'milestones':
-      return yearAt(instanceId)
-    case 'glows':
-      if (instanceId < chips.length) return chipAt(instanceId)
-      if (instanceId < chips.length + processors.length)
-        return processorAt(instanceId - chips.length)
-      return yearAt(instanceId - chips.length - processors.length)
+    case 'lids': {
+      const cpu = plan.district.processors[instanceId]
+      return cpu ? { kind: 'processor', slug: cpu.slug } : null
+    }
+    case 'milestones': {
+      const m = plan.timeline.milestones[instanceId]
+      return m ? { kind: 'year', year: m.year } : null
+    }
     default:
       return null
   }
@@ -191,10 +224,8 @@ export function targetAtPoint(plan: BoardPlan, x: number, z: number): BoardTarge
     if (Math.hypot(x - m.at[0], z - m.at[1]) <= YEAR_REACH) return { kind: 'year', year: m.year }
   }
   let best: { experience: string; distance: number } | null = null
-  for (const segment of timeline.segments) {
-    let points: readonly Vec2[] = segment.points
-    for (const jog of timeline.jogs) if (jog.lane === segment.lane) points = withJog(points, jog)
-    const distance = distanceToPath(points, x, z)
+  for (const segment of picking(plan).segments) {
+    const distance = distanceToPath(segment.points, x, z)
     if (distance <= BUS_REACH && (best === null || distance < best.distance)) {
       best = { experience: segment.experience, distance }
     }
@@ -208,6 +239,16 @@ export const LEVEL = { neutral: 1, lit: 1.375, dim: 0.25 } as const
 
 /** Les formes dont les instances portent un niveau. */
 export type LitShape = 'chips' | 'leds' | 'processors' | 'lids' | 'milestones' | 'glows'
+
+/** Les formes atténuées avec leur objet — les lueurs comprises, qui ne se désignent pas. */
+export const LIT_SHAPES: readonly LitShape[] = [
+  'chips',
+  'leds',
+  'processors',
+  'lids',
+  'milestones',
+  'glows',
+]
 
 /** Le niveau de chaque instance des formes désignables ; tout au neutre sans `relations`. */
 export function instanceLevels(

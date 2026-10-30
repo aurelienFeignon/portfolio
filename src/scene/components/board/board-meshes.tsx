@@ -46,8 +46,10 @@ import { BOARD_DENSITY, type DensityTier, PALETTE } from '@/scene/state/layout'
 import { type PulsePath, pulseFrame, pulsePaths } from '@/scene/state/board-render/pulses'
 import {
   instanceLevels,
+  LIT_SHAPES,
   type LitShape,
   litSegments,
+  PICKABLE_MESHES,
   type Relations,
   ribbonLevels,
 } from '@/scene/state/board-render/relations'
@@ -145,23 +147,6 @@ export interface BuiltBoard {
   highlight(relations: Relations | null): void
   dispose(): void
 }
-
-/** Les formes qui portent un niveau de survol, par leur teinte d'instance. */
-const LIT_SHAPES: readonly LitShape[] = [
-  'chips',
-  'leds',
-  'processors',
-  'lids',
-  'milestones',
-  'glows',
-]
-
-/**
- * Ce que le lancer de rayon peut toucher : la plaque (le bus se désigne par le point touché
- * dessus, `targetAtPoint`) et les formes désignables. ⛔ Les autres maillages ne sont pas
- * testés du tout : des milliers de broches ne doivent rien coûter à chaque mouvement du pointeur.
- */
-const PICKABLE = new Set<string>(['plate', ...LIT_SHAPES])
 
 const noRaycast = (): void => {}
 
@@ -353,7 +338,7 @@ export function buildBoard(file: BoardFile, tier: DensityTier, anisotropy: numbe
       object = mesh
     }
     object.name = name
-    if (!PICKABLE.has(name)) object.raycast = noRaycast
+    if (!PICKABLE_MESHES.has(name)) object.raycast = noRaycast
     root.add(object)
   }
 
