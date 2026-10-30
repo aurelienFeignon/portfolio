@@ -1,10 +1,32 @@
 import { describe, expect, it } from 'vitest'
 
-import { BUS_LENGTH, LANE_PITCH, planTimeline, yearPoint } from '@/scene/state/board/timeline'
+import {
+  BUS_LENGTH,
+  LANE_PITCH,
+  planTimeline,
+  type Timeline,
+  yearPoint,
+} from '@/scene/state/board/timeline'
 import { makeBoardExperience, makeLargeBoard } from '../../../fixtures/builders/board'
-import { expectNoCrossing, expectOctilinear } from './geometry-asserts'
+import { expectNoCrossing, expectOctilinear, onPolyline } from './geometry-asserts'
 
 const exp = makeBoardExperience
+
+/**
+ * Aucun tronçon ne commence ni ne finit dans le vide : son premier point — et
+ * son dernier, sauf poste en cours — est posé sur un autre tronçon ou sur la
+ * voie 0 (`spine`), à ε près.
+ */
+function expectAttached(t: Timeline): void {
+  const wired = (p: readonly [number, number], self: number) =>
+    onPolyline(p, t.spine, 1e-6) ||
+    t.segments.some((o, j) => j !== self && onPolyline(p, o.points, 1e-6))
+  t.segments.forEach((s, i) => {
+    expect(wired(s.points[0]!, i), `${s.experience} commence dans le vide`).toBe(true)
+    if (!s.ongoing)
+      expect(wired(s.points.at(-1)!, i), `${s.experience} finit dans le vide`).toBe(true)
+  })
+}
 
 describe('planTimeline', () => {
   it('un pas par année, la frise garde sa longueur', () => {
@@ -227,6 +249,43 @@ describe('planTimeline', () => {
     expect(t.rows).toBe(2)
     const [a, b] = t.segments
     expect(b!.points[0]).toEqual(a!.points.at(-1))
+    for (const s of t.segments) expectOctilinear(s.points)
+  })
+
+  it('les tronçons du grand contenu partent et finissent sur un fil', () => {
+    expectAttached(planTimeline(makeLargeBoard().experiences, 2026, 6))
+  })
+
+  it('rejoint une voie encore à sa hauteur, pas une voie qui redescend la même année', () => {
+    // B (voie 1) et C (voie 2) finissent en 2023 : B redescend dans cette case,
+    // C ne peut pas le rejoindre à la hauteur de la voie 1 — il n'y a plus de fil.
+    const t = planTimeline(
+      [
+        exp({ slug: 'a', startYear: 2018, endYear: null }),
+        exp({ slug: 'b', startYear: 2019, endYear: 2023 }),
+        exp({ slug: 'c', startYear: 2020, endYear: 2023 }),
+      ],
+      2026,
+      6,
+    )
+    expect(t.segments.map((s) => s.lane)).toEqual([0, 1, 2])
+    expectAttached(t)
+    expectNoCrossing(t.segments.map((s) => s.points))
+  })
+
+  it('part d’une voie déjà à sa hauteur, pas d’une voie qui monte la même année', () => {
+    const t = planTimeline(
+      [
+        exp({ slug: 'a', startYear: 2020, endYear: null }),
+        exp({ slug: 'b', startYear: 2020, endYear: 2024 }),
+        exp({ slug: 'c', startYear: 2020, endYear: null }),
+      ],
+      2026,
+      6,
+    )
+    expect(t.segments.map((s) => s.lane)).toEqual([0, 1, 2])
+    expectAttached(t)
+    expectNoCrossing(t.segments.map((s) => s.points))
     for (const s of t.segments) expectOctilinear(s.points)
   })
 

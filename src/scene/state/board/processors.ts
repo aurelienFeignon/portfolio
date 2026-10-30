@@ -9,8 +9,8 @@
  * Module pur : ni `Date`, ni `Math.random`, ni Three.js. Il n'impose pas le
  * gate de contenu : zéro, un ou plusieurs projets `primary` sont tous admis.
  */
-import { type BoardProject, compareSlugs } from './content'
-import { inflate, type Rect, rectOf, rectUnion, type Vec2 } from './rect'
+import { type BoardProject, bySlug, compareAtCommonPrecision } from './content.ts'
+import { EMPTY_RECT, inflate, type Rect, rectOf, rectUnion, type Vec2 } from './rect.ts'
 
 /** Côté du processeur principal (carré). */
 export const PRIMARY_SIZE = 3.2
@@ -25,8 +25,6 @@ export const PRIMARY_HEIGHT = 0.5
 export const SECONDARY_HEIGHT = 0.35
 /** Écart entre le bord arrière du boîtier et son ancre d'étiquette. */
 const LABEL_MARGIN = 0.3
-/** Côté du carré vide rendu quand il n'y a aucun projet. */
-const EMPTY_SIDE = 4
 
 export interface Processor {
   readonly slug: string
@@ -49,15 +47,16 @@ export interface District {
   readonly bounds: Rect
 }
 
-const bySlug = (a: BoardProject, b: BoardProject): number => compareSlugs(a.slug, b.slug)
-
 /**
  * Plus récent d'abord, puis par slug. Les `startedAt` sont des ISO de précision
- * variable ('2024', '2024-03', '2025-01-02') : la comparaison lexicographique
- * suffit, un préfixe commun plus long comptant comme plus tardif ou égal.
+ * variable ('2024', '2024-03', '2025-01-02') : ils se comparent **à la précision
+ * commune** — '2024' et '2024-03' sont égaux, et le slug départage. C'est la
+ * règle de la couche Content (`byMostRecent`) : la comparaison brute lisait
+ * '2024' comme janvier, et le repli du principal pouvait désigner un autre
+ * projet que celui que l'ordre publié met en tête.
  */
 const newestFirst = (a: BoardProject, b: BoardProject): number =>
-  a.startedAt < b.startedAt ? 1 : a.startedAt > b.startedAt ? -1 : bySlug(a, b)
+  compareAtCommonPrecision(b.startedAt, a.startedAt) || bySlug(a, b)
 
 /**
  * Le projet principal : le projet `primary` (le premier par slug s'il y en a
@@ -114,7 +113,7 @@ function slotCell(index: number): readonly [number, number] {
 export function planDistrict(projects: readonly BoardProject[]): District {
   const primary = choosePrimary(projects)
   if (primary === null) {
-    return { processors: [], bounds: rectOf([0, 0], EMPTY_SIDE, EMPTY_SIDE) }
+    return { processors: [], bounds: EMPTY_RECT }
   }
   const secondaries = projects.filter((p) => p !== primary).sort(newestFirst)
 

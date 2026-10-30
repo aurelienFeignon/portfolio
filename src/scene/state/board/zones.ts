@@ -7,10 +7,10 @@
  *
  * Module pur : ni `Date`, ni `Math.random`, ni Three.js.
  */
-import { SKILL_FAMILIES, type BoardSkill, compareSlugs, type SkillFamily } from './content'
-import { GRID } from './grid'
-import { type Rect, rectsOverlap, type Vec2 } from './rect'
-import { type Tone, TONES } from '../layout'
+import { SKILL_FAMILIES, type BoardSkill, compareSlugs, type SkillFamily } from './content.ts'
+import { GRID } from './grid.ts'
+import { type Rect, rectsOverlap, type Vec2 } from './rect.ts'
+import { type Tone, TONES } from '../layout.ts'
 
 /** Largeur (X) d'une zone, remplissage compris. */
 export const ZONE_WIDTH = 5.2
@@ -46,7 +46,10 @@ export interface Chip {
 
 export interface Zone {
   readonly family: SkillFamily
-  /** Fixe par famille (`TONES[indice dans SKILL_FAMILIES]`) : ne bouge pas quand une famille est vide. */
+  /**
+   * Fixe par famille (`TONES[indice dans SKILL_FAMILIES]`) : ne bouge pas quand
+   * une famille est vide. ⚠️ Un banc épingle `TONES.length >= SKILL_FAMILIES.length`.
+   */
   readonly tone: Tone
   readonly bounds: Rect
   readonly chips: readonly Chip[]

@@ -44,17 +44,27 @@ describe('choosePrimary', () => {
     ]
     expect(choosePrimary(tie)?.slug).toBe('x')
   })
-  it('précisions mixtes à préfixe commun : la plus précise compte comme plus tardive', () => {
+  it('précisions mixtes à préfixe commun : égales, départagées par slug', () => {
+    // La règle de la couche Content (`byMostRecent`, `compareAtCommonPrecision`) :
+    // '2024' et '2024-06' ne disent pas la même chose, ils sont donc égaux — la
+    // comparaison brute lisait '2024' comme janvier, et le repli du principal
+    // désignait un autre projet que celui que l'ordre publié met en tête.
     const a = [
-      makeBoardProject({ slug: 'a', startedAt: '2024-06' }),
-      makeBoardProject({ slug: 'b', startedAt: '2024' }),
+      makeBoardProject({ slug: 'b', startedAt: '2024-06' }),
+      makeBoardProject({ slug: 'a', startedAt: '2024' }),
     ]
     expect(choosePrimary(a)?.slug).toBe('a')
     const b = [
-      makeBoardProject({ slug: 'a', startedAt: '2024-06' }),
       makeBoardProject({ slug: 'b', startedAt: '2024-06-15' }),
+      makeBoardProject({ slug: 'a', startedAt: '2024-06' }),
     ]
-    expect(choosePrimary(b)?.slug).toBe('b')
+    expect(choosePrimary(b)?.slug).toBe('a')
+    // Une différence que les deux affirment tranche toujours.
+    const c = [
+      makeBoardProject({ slug: 'a', startedAt: '2024' }),
+      makeBoardProject({ slug: 'b', startedAt: '2025-01' }),
+    ]
+    expect(choosePrimary(c)?.slug).toBe('b')
   })
   it('doublons de slug : déterministe, sans exception', () => {
     const list = [makeBoardProject({ slug: 'd' }), makeBoardProject({ slug: 'd' })]
@@ -135,14 +145,24 @@ describe('planDistrict', () => {
   })
 
   it('secondaires : précisions mixtes à préfixe commun et dates égales', () => {
+    // Toutes ces dates s'accordent sur ce qu'elles affirment en commun : égales
+    // (règle de la couche Content), l'ordre est celui des slugs.
     const list = [
       makeBoardProject({ slug: 'main', primary: true }),
       makeBoardProject({ slug: 'y', startedAt: '2024' }),
       makeBoardProject({ slug: 'x', startedAt: '2024-06' }),
       makeBoardProject({ slug: 'w', startedAt: '2024-06-15' }),
       makeBoardProject({ slug: 'v', startedAt: '2024-06' }),
+      makeBoardProject({ slug: 'z', startedAt: '2025' }),
     ]
-    expect(planDistrict(list).processors.map((p) => p.slug)).toEqual(['main', 'w', 'v', 'x', 'y'])
+    expect(planDistrict(list).processors.map((p) => p.slug)).toEqual([
+      'main',
+      'z',
+      'v',
+      'w',
+      'x',
+      'y',
+    ])
   })
 
   it("l'anneau 2 s'ouvre dans l'ordre exact des cases", () => {

@@ -9,10 +9,10 @@
  * Module pur : ni `Date`, ni `Math.random` (la graine est un paramètre), ni
  * Three.js.
  */
-import type { DensityTier } from '../layout'
-import { seededRandom } from '../seeded-random'
-import { type Cell, GRID, type RoutingGrid } from './grid'
-import type { Vec2 } from './rect'
+import type { DensityTier } from '../layout.ts'
+import { seededRandom } from '../seeded-random.ts'
+import { type Cell, GRID, type RoutingGrid } from './grid.ts'
+import { type Rect, rectOf, rectsOverlap, type Vec2 } from './rect.ts'
 
 /**
  * Le budget par palier : petits composants semés, impulsions animées sur les
@@ -37,6 +37,18 @@ export interface Passive {
 /** Emprise d'un petit composant : 2 × 1 cellules (1 × 2 s'il est tourné). */
 const LONG = 2
 
+/**
+ * L'emplacement réservé à une étiquette, centré sur son ancre : largeur (X) et
+ * profondeur (Z). Les ancres des processeurs et des zones tombent juste
+ * derrière leur bord arrière, sur des cellules que rien ne bloque — sans
+ * réserve, un petit composant s'y posait sous le texte.
+ */
+export const LABEL_KEEP_OUT = { width: 2, depth: 0.6 } as const
+
+/** Le rectangle que les petits composants laissent libre autour d'une ancre d'étiquette. */
+export const labelKeepOut = (anchor: Vec2): Rect =>
+  rectOf(anchor, LABEL_KEEP_OUT.width, LABEL_KEEP_OUT.depth)
+
 /** Mélange de Fisher-Yates, déterministe pour une graine donnée. */
 function shuffle<T>(items: T[], random: () => number): T[] {
   for (let i = items.length - 1; i > 0; i--) {
@@ -49,7 +61,8 @@ function shuffle<T>(items: T[], random: () => number): T[] {
 /**
  * Sème au plus `count` petits composants sur les cellules libres de `grid`,
  * chacun avec une cellule de dégagement (l'emprise et ses huit voisines
- * doivent être libres), sans que deux composants se touchent.
+ * doivent être libres), sans que deux composants se touchent, et sans que
+ * l'emprise entame un rectangle de `keepOut` (les étiquettes, `labelKeepOut`).
  *
  * La grille n'est pas modifiée : les cellules prises sont suivies localement.
  * Même graine, même grille → même sortie.
@@ -58,6 +71,7 @@ export function scatterPassives(
   grid: RoutingGrid,
   count: number,
   seed: number,
+  keepOut: readonly Rect[] = [],
 ): readonly Passive[] {
   if (count <= 0) return []
   const random = seededRandom(seed)
@@ -85,16 +99,14 @@ export function scatterPassives(
         fits = grid.isFree([cc, rr]) && !taken.has(key(cc, rr))
       }
     if (!fits) continue
+    const origin = grid.toPoint([c, r])
+    const center: Vec2 = [origin[0] + ((w - 1) * GRID) / 2, origin[1] + ((h - 1) * GRID) / 2]
+    const box = rectOf(center, w * GRID, h * GRID)
+    if (keepOut.some((k) => rectsOverlap(box, k))) continue
     for (let dc = 0; dc < w; dc++) for (let dr = 0; dr < h; dr++) taken.add(key(c + dc, r + dr))
     const kind = random() < 0.5 ? 'resistor' : 'capacitor'
     const ref = kind === 'resistor' ? `R${++resistors}` : `C${++capacitors}`
-    const origin = grid.toPoint([c, r])
-    out.push({
-      kind,
-      ref,
-      center: [origin[0] + ((w - 1) * GRID) / 2, origin[1] + ((h - 1) * GRID) / 2],
-      rotated,
-    })
+    out.push({ kind, ref, center, rotated })
   }
   return out
 }

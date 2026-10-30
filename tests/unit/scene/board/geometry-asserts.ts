@@ -125,3 +125,38 @@ export function expectNoCrossing(
     }
   }
 }
+
+/** Le point `p` est sur un segment de la polyligne, à `EPS` près. */
+export function onPolyline(p: Vec2, points: readonly Vec2[], eps = EPS): boolean {
+  for (let i = 1; i < points.length; i += 1) {
+    const [a, b] = [points[i - 1]!, points[i]!]
+    const length = Math.hypot(b[0] - a[0], b[1] - a[1])
+    const cross = (b[0] - a[0]) * (p[1] - a[1]) - (b[1] - a[1]) * (p[0] - a[0])
+    const inBox =
+      p[0] >= Math.min(a[0], b[0]) - eps &&
+      p[0] <= Math.max(a[0], b[0]) + eps &&
+      p[1] >= Math.min(a[1], b[1]) - eps &&
+      p[1] <= Math.max(a[1], b[1]) + eps
+    if (Math.abs(cross) <= eps * Math.max(1, length) && inBox) return true
+  }
+  return false
+}
+
+/**
+ * Aucun demi-tour sur place : deux segments consécutifs ne sont jamais
+ * antiparallèles (une pointe de largeur nulle, invisible au tracé mais que le
+ * survol allumerait).
+ */
+export function expectNoReversal(points: readonly Vec2[]): void {
+  for (let i = 2; i < points.length; i += 1) {
+    const [a, b, c] = [points[i - 2]!, points[i - 1]!, points[i]!]
+    const u: Vec2 = [b[0] - a[0], b[1] - a[1]]
+    const v: Vec2 = [c[0] - b[0], c[1] - b[1]]
+    const cross = u[0] * v[1] - u[1] * v[0]
+    const dot = u[0] * v[0] + u[1] * v[1]
+    expect(
+      Math.abs(cross) < EPS && dot < 0,
+      `demi-tour en ${b[0]}, ${b[1]} (sommet ${i - 1})`,
+    ).toBe(false)
+  }
+}

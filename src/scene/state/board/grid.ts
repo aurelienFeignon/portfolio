@@ -26,7 +26,7 @@
  *
  * Module pur : ni `Date`, ni `Math.random`, ni Three.js.
  */
-import type { Rect, Vec2 } from './rect'
+import type { Rect, Vec2 } from './rect.ts'
 
 /** Pas de la grille du routeur. */
 export const GRID = 0.25
@@ -464,11 +464,8 @@ export class RoutingGrid {
       tr0 = Math.min(tr0, r)
       tr1 = Math.max(tr1, r)
     }
-    const heuristic = (c: number, r: number): number => {
-      const dx = Math.max(0, tc0 - c, c - tc1)
-      const dz = Math.max(0, tr0 - r, r - tr1)
-      return Math.max(dx, dz) + (Math.SQRT2 - 1) * Math.min(dx, dz)
-    }
+    const heuristic = (c: number, r: number): number =>
+      octile(Math.max(0, tc0 - c, c - tc1), Math.max(0, tr0 - r, r - tr1))
 
     const { cost, parent, stamp, closedStamp, viaStep } = this
     const heap = new MinHeap()
@@ -613,6 +610,16 @@ export class RoutingGrid {
 
 /** Tolérance de colinéarité, à l'échelle d'une carte en unités de scène. */
 const COLLINEAR_EPSILON = 1e-9
+
+/**
+ * Distance octile pour des écarts `dx`, `dz` : la longueur du plus court chemin
+ * à pas droits et diagonaux, sans obstacle.
+ */
+export const octile = (dx: number, dz: number): number => {
+  const ax = Math.abs(dx)
+  const az = Math.abs(dz)
+  return Math.max(ax, az) + (Math.SQRT2 - 1) * Math.min(ax, az)
+}
 
 /**
  * Ne garde que les sommets d'une polyligne : un point est retiré s'il double

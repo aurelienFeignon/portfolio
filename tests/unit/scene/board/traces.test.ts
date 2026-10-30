@@ -22,7 +22,12 @@ import {
   makeRealSizeBoard,
   makeSaturatedBoard,
 } from '../../../fixtures/builders/board'
-import { expectNoCrossing, expectOctilinear } from './geometry-asserts'
+import {
+  expectNoCrossing,
+  expectNoReversal,
+  expectOctilinear,
+  onPolyline,
+} from './geometry-asserts'
 
 const CURRENT_YEAR = 2026
 /** Capacité mesurée du mode direct : puces d'une famille vers un seul processeur. */
@@ -70,21 +75,6 @@ const touches = (route: Route, r: Rect): boolean =>
 /** Le segment est horizontal ou vertical (une pastille ne part jamais en biais). */
 const orthogonal = (a: Vec2, b: Vec2): boolean =>
   Math.abs(a[0] - b[0]) < EPS || Math.abs(a[1] - b[1]) < EPS
-
-/** Le point est sur un segment de la polyligne. */
-function onPolyline(p: Vec2, points: readonly Vec2[]): boolean {
-  for (let i = 1; i < points.length; i += 1) {
-    const [a, b] = [points[i - 1]!, points[i]!]
-    const cross = (b[0] - a[0]) * (p[1] - a[1]) - (b[1] - a[1]) * (p[0] - a[0])
-    const inBox =
-      p[0] >= Math.min(a[0], b[0]) - EPS &&
-      p[0] <= Math.max(a[0], b[0]) + EPS &&
-      p[1] >= Math.min(a[1], b[1]) - EPS &&
-      p[1] <= Math.max(a[1], b[1]) + EPS
-    if (Math.abs(cross) < EPS && inBox) return true
-  }
-  return false
-}
 
 /** Deux routes se touchent si une extrémité de l'une est posée sur l'autre. */
 const joined = (a: Route, b: Route): boolean =>
@@ -185,7 +175,10 @@ function expectExactEnds(plan: ReturnType<typeof planFrom>): void {
 }
 
 function expectWellFormed(plan: ReturnType<typeof planFrom>): void {
-  for (const route of plan.traces.routes) expectOctilinear(route.points)
+  for (const route of plan.traces.routes) {
+    expectOctilinear(route.points)
+    expectNoReversal(route.points)
+  }
   expectNoCrossing(
     plan.traces.routes.map((r) => r.points),
     (i) => plan.traces.routes[i]!.net,
@@ -392,6 +385,26 @@ describe('planTraces — rattachements au bus', () => {
     expect(end[1]).toBeCloseTo(target[1], 9)
     expectWellFormed(plan)
   })
+  it('six postes simultanés sur 11 années : la prise de la voie 5 reste dans sa case', () => {
+    // 11 années, pas de 2,5 : la case n'a que ±4 colonnes, et la voie 5 décalée
+    // de 5 × TAP_STRIDE cellules sortait de la case — aucune colonne candidate, rattachement perdu.
+    const experiences = Array.from({ length: 6 }, (_, i) =>
+      makeBoardExperience({ slug: `exp-${i}`, startYear: 2016 + i, endYear: null }),
+    )
+    const content: BoardContent = {
+      skills: [],
+      experiences,
+      projects: [
+        makeBoardProject({ slug: 'p', primary: true, startedAt: '2023', experience: 'exp-5' }),
+      ],
+    }
+    const plan = planFrom(content)
+    expect(plan.timeline.step).toBeCloseTo(2.5)
+    const lane = plan.timeline.segments.find((s) => s.experience === 'exp-5')!.lane
+    expect(lane).toBe(5)
+    expect(plan.traces.unroutedBusLinks).toEqual([])
+    expectComplete(plan)
+  })
 })
 
 describe('planTraces — liaisons', () => {
@@ -454,11 +467,14 @@ describe('planTraces — liaisons', () => {
       for (const content of [makeRealSizeBoard(), makeSaturatedBoard()]) {
         const plan = planFrom(content)
         for (const route of plan.traces.routes) {
-          // Les sommets posés au centre d'une cellule (les atterrissages tombent sur un bord).
+          // Les sommets posés au centre d'une cellule (les atterrissages tombent sur un
+          // bord) ; et la fin d'un rattachement, sur la ligne de la voie, dans la
+          // dernière cellule du puits — un rattachement tout droit n'a aucun autre sommet.
           const centers = route.points.filter((p) => {
             const c = plan.grid.toPoint(plan.grid.cellOf(p))
             return Math.abs(c[0] - p[0]) < EPS && Math.abs(c[1] - p[1]) < EPS
           })
+          if (route.kind === 'bus-link') centers.push(route.points.at(-1)!)
           expect(centers.length, route.net).toBeGreaterThan(0)
           for (const p of centers)
             expect(plan.grid.occupant(plan.grid.cellOf(p)), route.net).toBe(route.net)

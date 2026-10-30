@@ -10,10 +10,10 @@
  * rangées s'empilent vers +Z à partir de `originZ`, et la voie `k` d'une rangée
  * est à `k × LANE_PITCH` de la voie 0.
  */
-import { type BoardExperience, compareSlugs } from './content'
-import type { Rect, Vec2 } from './rect'
-import { rectUnion } from './rect'
-import { TONES, type Tone } from '../layout'
+import { type BoardExperience, compareSlugs } from './content.ts'
+import type { Rect, Vec2 } from './rect.ts'
+import { rectUnion } from './rect.ts'
+import { TONES, type Tone } from '../layout.ts'
 
 /** Longueur du bus en X, quel que soit le nombre d'années. */
 export const BUS_LENGTH = 20
@@ -174,10 +174,10 @@ function buildPath(
 /**
  * Le profil de décalage d'un poste de `s` à `e` (en années) sur la voie `lane`.
  *
- * La voie `k` **part de la voie k−1** (toujours occupée à ce moment-là : les
- * voies se prennent de la plus basse à la plus haute) et **rejoint la voie
- * `target`**, la plus haute voie plus basse encore occupée à la fin — la voie 0
- * à défaut. Ainsi une branche ne traverse jamais une voie intermédiaire. Un
+ * La voie `k` **part de la voie `source`** et **rejoint la voie `target`** :
+ * chacune est la plus haute voie plus basse qui tient **sa hauteur** à cette
+ * abscisse — la voie 0 à défaut (`attachLane`). Ainsi une branche ne commence
+ * ni ne finit dans le vide, et ne traverse jamais une voie intermédiaire. Un
  * poste en cours ne rejoint pas. Si le poste est trop court pour atteindre sa
  * voie, la pente s'arrête à mi-chemin (toujours à 45°).
  */
@@ -185,6 +185,7 @@ function rawLaneProfile(
   s: number,
   e: number,
   lane: number,
+  source: number,
   target: number,
   ongoing: boolean,
   step: number,
@@ -194,19 +195,21 @@ function rawLaneProfile(
       [s, 0],
       [e, 0],
     ]
-  const from = (lane - 1) * LANE_PITCH
+  const from = source * LANE_PITCH
   const top = lane * LANE_PITCH
   const to = target * LANE_PITCH
   const width = (e - s) * step
   const at = (x: number): number => s + x / step
-  // ⭐ `width ≥ step ≥ BUS_LENGTH / YEARS_PER_ROW > LANE_PITCH` : la montée tient
-  // toujours dans un poste en cours.
-  if (ongoing)
+  // Un poste en cours monte jusqu'à sa voie — ou jusqu'au bout du bus, si la
+  // montée (plusieurs voies d'un coup) ne tient pas dans ce qui reste.
+  if (ongoing) {
+    const rise = Math.min(top - from, width)
     return [
       [s, from],
-      [at(LANE_PITCH), top],
-      [e, top],
+      [at(rise), from + rise],
+      [e, from + rise],
     ]
+  }
   if (width >= top - from + (top - to)) {
     const rise = top - from
     const fall = top - to
@@ -263,17 +266,41 @@ export function planTimeline(
   const yearPos = (year: number, lane: number): Vec2 =>
     cellPoint(year - firstYear, lane, step, lanes, originZ)
 
+  // Abscisses (en années depuis le début du bus) de chaque poste.
+  const spanOf = (p: (typeof placed)[number]) => ({
+    s: p.e.startYear - firstYear,
+    e: p.end - firstYear + 1,
+  })
+  // Les profils, de la voie la plus basse à la plus haute : une voie se
+  // rattache aux voies plus basses, dont le profil est alors connu.
+  const profiles = new Map<(typeof placed)[number], Profile>()
+  /**
+   * La plus haute voie plus basse que `lane` qui tient **sa hauteur** en `u` —
+   * un poste qui y monte ou en redescend n'y est pas ; la voie 0 à défaut.
+   */
+  const attachLane = (lane: number, u: number): number =>
+    placed.reduce((best, o) => {
+      const { s, e } = spanOf(o)
+      const profile = profiles.get(o)
+      const holds =
+        profile !== undefined &&
+        s < u - EPS &&
+        u <= e + EPS &&
+        Math.abs(offsetAt(profile, u) - o.lane * LANE_PITCH) < EPS
+      return o.lane < lane && o.lane > best && holds ? o.lane : best
+    }, 0)
+  for (const p of [...placed].sort((a, b) => a.lane - b.lane)) {
+    const { s, e } = spanOf(p)
+    const source = attachLane(p.lane, s)
+    const target = attachLane(p.lane, e)
+    profiles.set(p, laneProfile(s, e, p.lane, source, target, p.ongoing, step))
+  }
+
   const segments: BusSegment[] = []
   const jogs: BusJog[] = []
-  placed.forEach(({ e, lane, end, ongoing }, i) => {
-    const s = e.startYear - firstYear
-    // La voie rejointe : la plus haute voie plus basse encore occupée à la fin.
-    const target = placed.reduce(
-      (best, o) =>
-        o.lane < lane && o.lane > best && o.e.startYear <= end && end <= o.end ? o.lane : best,
-      0,
-    )
-    const profile = laneProfile(s, end - firstYear + 1, lane, target, ongoing, step)
+  placed.forEach((p, i) => {
+    const { e, lane, end, ongoing } = p
+    const span = spanOf(p)
     const mid = e.startYear + Math.floor((end - e.startYear) / 2)
     segments.push({
       experience: e.slug,
@@ -282,7 +309,7 @@ export function planTimeline(
       startYear: e.startYear,
       endYear: end,
       ongoing,
-      points: buildPath(s, end - firstYear + 1, profile, step, lanes, originZ),
+      points: buildPath(span.s, span.e, profiles.get(p)!, step, lanes, originZ),
       labelAnchor: yearPos(mid, lane),
     })
     if (occupied.has(lane)) jogs.push({ lane, year: e.startYear, at: yearPos(e.startYear, lane) })

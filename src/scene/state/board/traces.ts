@@ -39,12 +39,12 @@
  * gate de contenu : une technologie inconnue, une expérience absente de la
  * frise ou une puce absente du plan sont écartées sans exception.
  */
-import { type BoardContent, compareSlugs, yearOf } from './content'
-import { type Bridge, type Cell, GRID, RoutingGrid, simplify } from './grid'
-import { choosePrimary, type District, type Processor } from './processors'
-import { inflate, type Rect, rectOf, type Vec2 } from './rect'
-import { type Timeline, yearPoint } from './timeline'
-import type { Zone } from './zones'
+import { type BoardContent, bySlug, compareSlugs, yearOf } from './content.ts'
+import { type Bridge, type Cell, GRID, octile, RoutingGrid, simplify } from './grid.ts'
+import { choosePrimary, type District, type Processor } from './processors.ts'
+import { inflate, type Rect, rectOf, type Vec2 } from './rect.ts'
+import { type Timeline, yearPoint } from './timeline.ts'
+import type { Zone } from './zones.ts'
 
 export type RoutingMode = 'direct' | 'family-bus'
 
@@ -114,12 +114,16 @@ const BUS_BAND_MARGIN = GRID
  */
 const PAD_INSET = GRID / 2
 /**
- * Décalage en X de la prise d'un rattachement, par voie : deux postes
- * simultanés rattachés la même année ne percent pas la même colonne (la
- * prise de la voie 1 traverse la voie 0). Deux cellules par voie : le
+ * Décalage en X de la prise d'un rattachement, par voie, en cellules : deux
+ * postes simultanés rattachés la même année ne percent pas la même colonne
+ * (la prise de la voie 1 traverse la voie 0). Deux cellules par voie : le
  * puits d'une voie et celui de la suivante ne sont jamais adjacents.
+ *
+ * ⭐ Le décalage **s'enroule** dans la case (`tapShift`) : sans cela, au-delà
+ * de quelques voies il sortait de la case et la voie n'avait plus aucune
+ * colonne candidate — rattachement perdu.
  */
-const TAP_SHIFT = 2 * GRID
+const TAP_STRIDE = 2
 /** Tolérance flottante des bornes de case. */
 const EPSILON = 1e-9
 
@@ -146,22 +150,39 @@ export function listLinks(content: BoardContent): readonly Link[] {
   )
 }
 
+/** Un rattachement, avec ce que le routeur en lit : sa voie et le centre de sa prise. */
+interface Tap {
+  readonly bus: BusLink
+  readonly lane: number
+  /** Centre de la case de l'année, sur la ligne de la voie. */
+  readonly at: Vec2
+}
+
 /**
  * Un rattachement par projet dont `experience` désigne un tronçon **présent
  * dans la frise** (fiche absente de la locale, gate non joué : rien, sans
  * exception). L'année est celle du début du projet, bornée à la période du
  * poste — un projet commencé avant l'embauche se branche à la première année.
  */
-function listBusLinks(content: BoardContent, timeline: Timeline): readonly BusLink[] {
+function listBusLinks(content: BoardContent, timeline: Timeline): readonly Tap[] {
   return projectOrder(content).flatMap((p) => {
     const segment = timeline.segments.find((s) => s.experience === p.experience)
     if (segment === undefined) return []
     const year = Math.min(segment.endYear, Math.max(segment.startYear, yearOf(p.startedAt)))
-    return [{ project: p.slug, experience: segment.experience, year }]
+    return [
+      {
+        bus: { project: p.slug, experience: segment.experience, year },
+        lane: segment.lane,
+        at: yearPoint(timeline, year, segment.lane),
+      },
+    ]
   })
 }
 
 const processorRect = (p: Processor): Rect => rectOf(p.center, p.size, p.size)
+
+/** Distance octile entre deux points : la longueur d'une piste sans obstacle. */
+const distance = (a: Vec2, b: Vec2): number => octile(a[0] - b[0], a[1] - b[1])
 
 /**
  * L'angle d'un point autour d'un centre, compté depuis l'arrière (−Z) dans le
@@ -252,11 +273,12 @@ function freshGrid(board: Rect, endpoints: Endpoints, timeline: Timeline) {
  * sur la ligne de la voie.
  *
  * Les colonnes candidates entourent le centre de la case, décalé de
- * `TAP_SHIFT` par voie, sans sortir de la case ni de la carte ; une colonne
- * dont une cellule est tenue par une autre prise est écartée (lacet : une
- * année de la rangée 1 tombe au-dessous d'une année de la rangée 0). La prise
- * retenue est celle que la piste atteint au moindre coût. Sans colonne libre
- * ni chemin, le rattachement est rendu dans `failed`.
+ * `TAP_STRIDE` cellules par voie **enroulées dans la case** (`tapShift`), sans
+ * sortir de la case ni de la carte ; une colonne dont une cellule est tenue
+ * par une autre prise est écartée (lacet : une année de la rangée 1 tombe
+ * au-dessous d'une année de la rangée 0). La prise retenue est celle que la
+ * piste atteint au moindre coût. Sans colonne libre ni chemin, le
+ * rattachement est rendu dans `failed`.
  *
  * Ordre : les rattachements **les plus courts d'abord** (distance du
  * processeur à sa prise) — mesuré sur le grand contenu, l'ordre publié
@@ -265,8 +287,7 @@ function freshGrid(board: Rect, endpoints: Endpoints, timeline: Timeline) {
 function routeBusLinks(
   grid: RoutingGrid,
   route: Router,
-  busLinks: readonly BusLink[],
-  endpoints: Endpoints,
+  taps: readonly (Tap & { processor: Processor })[],
   timeline: Timeline,
   board: Rect,
 ): { laid: Laid[]; failed: BusLink[] } {
@@ -274,31 +295,24 @@ function routeBusLinks(
   const top = grid.cellOf([0, band.minZ])[1]
   const reach = Math.floor((timeline.step / 2 - GRID) / GRID)
   const halfCell = timeline.step / 2 - GRID / 2 + EPSILON
+  const shift = tapShift(halfCell)
   const laid: Laid[] = []
   const failed: BusLink[] = []
-  const tapOf = (bus: BusLink) => {
-    const segment = timeline.segments.find((s) => s.experience === bus.experience)!
-    return yearPoint(timeline, bus.year, segment.lane)
-  }
-  const order = busLinks
-    .map((bus) => ({
-      bus,
-      length: octile(endpoints.processors.get(bus.project)!.center, tapOf(bus)),
-    }))
+  const order = taps
+    .map((tap) => ({ tap, length: distance(tap.processor.center, tap.at) }))
     .sort((a, b) => a.length - b.length)
-    .map((e) => e.bus)
-  for (const bus of order) {
-    const segment = timeline.segments.find((s) => s.experience === bus.experience)!
+    .map((e) => e.tap)
+  for (const { bus, lane, at, processor } of order) {
     const net = `experience:${bus.experience}`
-    const [x, z] = yearPoint(timeline, bus.year, segment.lane)
-    const box = processorRect(endpoints.processors.get(bus.project)!)
+    const [x, z] = at
+    const box = processorRect(processor)
     const free = (cell: Cell) => grid.occupant(cell) === null || grid.occupant(cell) === net
     // Les colonnes candidates de la case : départ décalé par voie, ±`reach`
-    // cellules — et jamais hors de la case : le décalage par voie n'est gardé
-    // que là où il tient (une demi-cellule de marge pour le centre du puits).
+    // cellules — et jamais hors de la case (une demi-cellule de marge pour le
+    // centre du puits).
     const shafts = new Map<number, Cell[]>()
     for (let k = -reach; k <= reach && z > board.minZ && z < board.maxZ; k += 1) {
-      const cx = x + segment.lane * TAP_SHIFT + k * GRID
+      const cx = x + shift(lane) + k * GRID
       if (Math.abs(cx - x) > halfCell) continue
       if (cx <= board.minX || cx >= board.maxX) continue
       const [col, row] = grid.cellOf([cx, z])
@@ -318,8 +332,11 @@ function routeBusLinks(
     for (const cell of shaft) grid.open(cell, net)
     const cells = [...found.cells, ...shaft]
     const points = [...polyline(grid, cells, box, null)]
-    // Dernier demi-pas : du centre de la prise à la ligne de la voie.
-    points.push([grid.toPoint(shaft.at(-1)!)[0], z])
+    // La piste descend le puits jusqu'à la ligne de la voie : le dernier sommet
+    // (centre de la dernière cellule) y est **ramené**, pas prolongé — la ligne
+    // peut tomber dans la moitié haute de la cellule, et un point ajouté après
+    // le centre ferait alors rebrousser la piste sur place.
+    points[points.length - 1] = [points.at(-1)![0], z]
     laid.push({
       route: { net, kind: 'bus-link', links: [], busLink: bus, points: simplify(points) },
       cells,
@@ -329,10 +346,24 @@ function routeBusLinks(
   return { laid, failed }
 }
 
+/**
+ * Le décalage en X de la prise de la voie `lane`, enroulé dans les colonnes
+ * que la case offre (`halfCell` de part et d'autre de son centre) : les voies
+ * successives prennent des colonnes distinctes tant qu'il en reste — le nombre
+ * de colonnes est impair, un pas de deux les visite toutes avant de revenir.
+ */
+const tapShift =
+  (halfCell: number) =>
+  (lane: number): number => {
+    const side = Math.floor(halfCell / GRID)
+    const columns = 2 * side + 1
+    return (((lane * TAP_STRIDE + side) % columns) - side) * GRID
+  }
+
 /** Les processeurs dans l'ordre de routage : le principal, puis par slug. */
 function processorOrder(endpoints: Endpoints): Processor[] {
-  const bySlug = [...endpoints.processors.values()].sort((a, b) => compareSlugs(a.slug, b.slug))
-  return [...bySlug.filter((p) => p.primary), ...bySlug.filter((p) => !p.primary)]
+  const sorted = [...endpoints.processors.values()].sort(bySlug)
+  return [...sorted.filter((p) => p.primary), ...sorted.filter((p) => !p.primary)]
 }
 
 /**
@@ -375,13 +406,6 @@ function routeDirect(
     }
   }
   return routes
-}
-
-/** Distance octile entre deux points : la longueur d'une piste sans obstacle. */
-const octile = (a: Vec2, b: Vec2): number => {
-  const dx = Math.abs(a[0] - b[0])
-  const dz = Math.abs(a[1] - b[1])
-  return Math.max(dx, dz) + (Math.SQRT2 - 1) * Math.min(dx, dz)
 }
 
 /**
@@ -469,16 +493,17 @@ function routeFamilyBus(
     })
   }
 
+  const processors = processorOrder(endpoints)
   const branches = groups
     .flatMap((g) =>
       g.trunk === null
         ? []
-        : processorOrder(endpoints).map((processor) => ({
+        : processors.map((processor) => ({
             g,
             trunk: g.trunk!,
             processor,
             carried: g.links.filter((l) => l.project === processor.slug),
-            length: octile(grid.toPoint(g.trunk!.at(-1)!), processor.center),
+            length: distance(grid.toPoint(g.trunk!.at(-1)!), processor.center),
           })),
     )
     .filter((b) => b.carried.length > 0)
@@ -548,9 +573,11 @@ export function planTracesWithGrid(
     processors: new Map(district.processors.map((p) => [p.slug, p])),
   }
   const links = listLinks(content)
-  const busLinks = listBusLinks(content, timeline).filter((b) =>
-    endpoints.processors.has(b.project),
-  )
+  const taps = listBusLinks(content, timeline).flatMap((tap) => {
+    const processor = endpoints.processors.get(tap.bus.project)
+    return processor === undefined ? [] : [{ ...tap, processor }]
+  })
+  const busLinks = taps.map((t) => t.bus)
   // Une extrémité absente du plan (zones ou quartier d'un autre contenu) n'est
   // pas un échec de routage : elle ne fait pas basculer le mode.
   const placed = (l: Link) => endpoints.chips.has(l.skill) && endpoints.processors.has(l.project)
@@ -559,7 +586,7 @@ export function planTracesWithGrid(
 
   // Mode direct : sans pont, et tout doit passer — rattachements compris.
   const first = freshGrid(board, endpoints, timeline)
-  const firstBus = routeBusLinks(first, plainRouter(first), busLinks, endpoints, timeline, board)
+  const firstBus = routeBusLinks(first, plainRouter(first), taps, timeline, board)
   const direct = firstBus.failed.length === 0 ? routeDirect(first, routable, endpoints) : null
   if (direct !== null) {
     return {
@@ -581,8 +608,7 @@ export function planTracesWithGrid(
   const bus = routeBusLinks(
     grid,
     (net, from, to) => grid.routeBridged(net, from, to),
-    busLinks,
-    endpoints,
+    taps,
     timeline,
     board,
   )

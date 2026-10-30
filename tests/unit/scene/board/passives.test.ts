@@ -1,7 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import { GRID, RoutingGrid } from '@/scene/state/board/grid'
-import { BOARD_DENSITY, scatterPassives } from '@/scene/state/board/passives'
-import type { Rect } from '@/scene/state/board/rect'
+import {
+  BOARD_DENSITY,
+  LABEL_KEEP_OUT,
+  labelKeepOut,
+  scatterPassives,
+} from '@/scene/state/board/passives'
+import { type Rect, rectOf, rectsOverlap } from '@/scene/state/board/rect'
 
 const board: Rect = { minX: -5, minZ: -5, maxX: 5, maxZ: 5 }
 const SEED = 7
@@ -95,5 +100,18 @@ describe('scatterPassives', () => {
     const before = snapshot()
     scatterPassives(grid, 30, SEED)
     expect(snapshot()).toEqual(before)
+  })
+
+  it('laisse libres les rectangles réservés aux étiquettes', () => {
+    const grid = new RoutingGrid(board)
+    const keepOut = [labelKeepOut([0, 0]), labelKeepOut([-3, 3])]
+    expect(keepOut[0]).toEqual(rectOf([0, 0], LABEL_KEEP_OUT.width, LABEL_KEEP_OUT.depth))
+    const out = scatterPassives(grid, 200, SEED, keepOut)
+    expect(out.length).toBeGreaterThan(0)
+    for (const p of out) {
+      const box = rectOf(p.center, p.rotated ? GRID : 2 * GRID, p.rotated ? 2 * GRID : GRID)
+      expect(keepOut.some((k) => rectsOverlap(box, k))).toBe(false)
+    }
+    expect(scatterPassives(grid, 200, SEED, [board])).toEqual([])
   })
 })

@@ -22,6 +22,13 @@ export function rectOf(center: Vec2, w: number, d: number): Rect {
   }
 }
 
+/**
+ * Ce qui tient lieu de rectangle quand il n'y a rien à englober (carte ou
+ * quartier vides) : un carré de côté 4 centré sur l'origine, jamais un
+ * rectangle dégénéré.
+ */
+export const EMPTY_RECT: Rect = rectOf([0, 0], 4, 4)
+
 /** Le plus petit rectangle qui les contient tous ; `null` pour une liste vide. */
 export function rectUnion(rects: readonly Rect[]): Rect | null {
   if (rects.length === 0) return null

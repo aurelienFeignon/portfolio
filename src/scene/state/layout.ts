@@ -37,8 +37,14 @@ export const PALETTE = {
 } as const
 
 /** Les teintes d'accent, dans l'ordre où la carte les attribue. */
-export type Tone = 'cyan' | 'violet' | 'sky' | 'amber' | 'teal'
-export const TONES: readonly Tone[] = ['cyan', 'violet', 'sky', 'amber', 'teal']
+export const TONES = [
+  'cyan',
+  'violet',
+  'sky',
+  'amber',
+  'teal',
+] as const satisfies readonly (keyof typeof PALETTE)[]
+export type Tone = (typeof TONES)[number]
 
 /* -------------------------------------------------------------------- univers */
 

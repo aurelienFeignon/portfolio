@@ -65,6 +65,12 @@ describe('chipDimensions', () => {
   })
 })
 
+describe('TONES', () => {
+  it('une teinte par famille au moins : `planZones` n’en manque jamais', () => {
+    expect(TONES.length).toBeGreaterThanOrEqual(SKILL_FAMILIES.length)
+  })
+})
+
 describe('DIRECTIONS', () => {
   it('une direction par famille au moins : `planZones` n’en manque jamais', () => {
     expect(DIRECTIONS.length).toBeGreaterThanOrEqual(SKILL_FAMILIES.length)

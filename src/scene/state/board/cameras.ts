@@ -13,11 +13,11 @@
  *
  * Module pur : ni Three.js, ni `Date`, ni `Math.random`.
  */
-import type { Section } from '../../../routing/sections'
-import { REFERENCE_ASPECT } from '../framing'
-import type { CameraSpec, ViewId } from '../layout'
-import type { BoardPlan } from './plan'
-import { type Rect, rectCenter, rectUnion } from './rect'
+import type { Section } from '../../../routing/sections.ts'
+import { REFERENCE_ASPECT } from '../framing.ts'
+import type { CameraSpec, ViewId } from '../layout.ts'
+import type { BoardPlan } from './plan.ts'
+import { type Rect, rectCenter, rectUnion } from './rect.ts'
 
 /** Champ vertical, en degrés, pour un rapport 16:9. */
 export const BOARD_FOV = 40

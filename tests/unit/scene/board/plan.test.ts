@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { makeLargeBoard, makeRealSizeBoard } from '../../../fixtures/builders/board'
-import { BOARD_DENSITY } from '@/scene/state/board/passives'
+import { BOARD_DENSITY, labelKeepOut } from '@/scene/state/board/passives'
 import { BOARD_SEED, type BoardOptions, planBoard } from '@/scene/state/board/plan'
 import { GRID } from '@/scene/state/board/grid'
 import { inflate, type Rect, rectOf, rectsOverlap, type Vec2 } from '@/scene/state/board/rect'
@@ -123,6 +123,23 @@ describe('planBoard', () => {
       // d'une diagonale au coin d'une cellule voisine) n'est pas un contact.
       const halo = inflate(box, GRID - 1e-6)
       expect(samples.some((s) => inside(halo, s))).toBe(false)
+    }
+  })
+
+  it('les petits composants laissent libres les ancres d’étiquettes', { timeout: 30_000 }, () => {
+    for (const content of [makeRealSizeBoard(), makeLargeBoard()]) {
+      const plan = planBoard(content, options)
+      const anchors: Vec2[] = [
+        ...plan.district.processors.map((p) => p.labelAnchor),
+        ...plan.zones.map((z) => z.labelAnchor),
+        ...plan.timeline.segments.map((s) => s.labelAnchor),
+      ]
+      const keepOut = anchors.map(labelKeepOut)
+      expect(plan.passives.length).toBeGreaterThan(0)
+      for (const p of plan.passives) {
+        const box = rectOf(p.center, p.rotated ? GRID : 2 * GRID, p.rotated ? 2 * GRID : GRID)
+        expect(keepOut.some((k) => rectsOverlap(box, k))).toBe(false)
+      }
     }
   })
 

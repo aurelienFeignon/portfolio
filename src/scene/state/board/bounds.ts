@@ -7,15 +7,13 @@
  *
  * Module pur : ni `Date`, ni `Math.random`, ni Three.js.
  */
-import { inflate, type Rect, rectOf, rectUnion } from './rect'
-import type { Zone } from './zones'
+import { EMPTY_RECT, inflate, type Rect, rectUnion } from './rect.ts'
+import type { Zone } from './zones.ts'
 
 /** Marge autour de tout ce que porte la carte : les pistes contournent par là. */
 export const BOARD_MARGIN = 1.5
 /** Écart entre le bord avant du quartier (ou d'une zone) et la voie 0 du bus. */
 const BUS_CLEARANCE = 2
-/** Côté de la carte vide (aucun rectangle). */
-const EMPTY_SIDE = 4
 
 /**
  * L'origine en Z du bus : `BUS_CLEARANCE` devant le plus grand `maxZ` du
@@ -33,5 +31,5 @@ export function timelineOriginZ(district: Rect, zones: readonly Zone[]): number 
  */
 export function boardBounds(rects: readonly Rect[]): Rect {
   const union = rectUnion(rects)
-  return union === null ? rectOf([0, 0], EMPTY_SIDE, EMPTY_SIDE) : inflate(union, BOARD_MARGIN)
+  return union === null ? EMPTY_RECT : inflate(union, BOARD_MARGIN)
 }

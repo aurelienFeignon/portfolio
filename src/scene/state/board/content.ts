@@ -56,6 +56,24 @@ export interface BoardContent {
  */
 export const compareSlugs = (a: string, b: string): number => (a < b ? -1 : a > b ? 1 : 0)
 
+/** L'ordre des slugs d'entités (`compareSlugs` sur leur champ `slug`). */
+export const bySlug = (a: { readonly slug: string }, b: { readonly slug: string }): number =>
+  compareSlugs(a.slug, b.slug)
+
+/**
+ * Compare deux dates ISO **sur ce qu'elles affirment toutes les deux** : la
+ * comparaison est tronquée à la précision commune, et deux valeurs qui ne
+ * disent pas la même chose (`2024`, `2024-06`) sont **égales**.
+ *
+ * ⚠️ Recopié de `compareAtCommonPrecision` (`src/content/schemas/common.ts`) :
+ * le cloisonnement interdit de l'importer, et la carte doit ordonner les
+ * projets comme la couche Content les publie (`byMostRecent`).
+ */
+export function compareAtCommonPrecision(a: string, b: string): number {
+  const common = Math.min(a.length, b.length)
+  return compareSlugs(a.slice(0, common), b.slice(0, common))
+}
+
 /** L'année d'une date ISO, à toute précision. */
 export const yearOf = (isoDate: string): number => Number.parseInt(isoDate.slice(0, 4), 10)
 

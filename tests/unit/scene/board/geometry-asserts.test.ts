@@ -1,7 +1,12 @@
 import { describe, expect, it } from 'vitest'
 
 import type { Vec2 } from '@/scene/state/board/rect'
-import { expectNoCrossing, expectOctilinear } from './geometry-asserts'
+import {
+  expectNoCrossing,
+  expectNoReversal,
+  expectOctilinear,
+  onPolyline,
+} from './geometry-asserts'
 
 const line = (...p: Vec2[]): Vec2[] => p
 
@@ -71,5 +76,24 @@ describe('expectOctilinear', () => {
       [1, 1],
       [1, 3],
     ])
+  })
+})
+
+describe('expectNoReversal', () => {
+  it('refuse un aller-retour sur place, admet un coude et une ligne droite', () => {
+    expect(() => expectNoReversal(line([0, 0], [0, 2], [0, 1]))).toThrow(/demi-tour/)
+    expectNoReversal(line([0, 0], [0, 2], [1, 3], [3, 3]))
+    expectNoReversal(line([0, 0], [1, 0], [2, 0]))
+  })
+})
+
+describe('onPolyline', () => {
+  it('sur un segment, bornes comprises ; hors du segment ou de sa droite, non', () => {
+    const p = line([0, 0], [2, 0], [3, 1])
+    expect(onPolyline([1, 0], p)).toBe(true)
+    expect(onPolyline([3, 1], p)).toBe(true)
+    expect(onPolyline([2.5, 0.5], p)).toBe(true)
+    expect(onPolyline([-1, 0], p)).toBe(false)
+    expect(onPolyline([1, 0.1], p)).toBe(false)
   })
 })

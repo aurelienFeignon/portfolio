@@ -12,15 +12,15 @@
  * Module pur : ni `Date` (l'année courante est un paramètre), ni
  * `Math.random` (la graine est fixe), ni Three.js.
  */
-import type { DensityTier } from '../layout'
-import { boardBounds, timelineOriginZ } from './bounds'
-import { type BoardContent, compareSlugs } from './content'
-import { BOARD_DENSITY, type Passive, scatterPassives } from './passives'
-import { type District, planDistrict } from './processors'
-import type { Rect } from './rect'
-import { planTimeline, type Timeline } from './timeline'
-import { planTracesWithGrid, type Traces } from './traces'
-import { type ChipSizing, planZones, type Zone } from './zones'
+import type { DensityTier } from '../layout.ts'
+import { boardBounds, timelineOriginZ } from './bounds.ts'
+import { type BoardContent, bySlug } from './content.ts'
+import { BOARD_DENSITY, labelKeepOut, type Passive, scatterPassives } from './passives.ts'
+import { type District, planDistrict } from './processors.ts'
+import type { Rect } from './rect.ts'
+import { planTimeline, type Timeline } from './timeline.ts'
+import { planTracesWithGrid, type Traces } from './traces.ts'
+import { type ChipSizing, planZones, type Zone } from './zones.ts'
 
 /** La graine des petits composants : fixe, pour que deux visites voient la même carte. */
 export const BOARD_SEED = 0x0b0a12d
@@ -41,8 +41,6 @@ export interface BoardPlan {
   /** Les impulsions animées sur les pistes (`BOARD_DENSITY[tier].pulses`). */
   readonly pulses: number
 }
-
-const bySlug = (a: { slug: string }, b: { slug: string }): number => compareSlugs(a.slug, b.slug)
 
 /**
  * Assemble le plan : tri par slug → quartier → zones → frise (`originZ` devant
@@ -65,6 +63,13 @@ export function planBoard(content: BoardContent, options: BoardOptions): BoardPl
   const bounds = boardBounds([district.bounds, ...zones.map((z) => z.bounds), timeline.bounds])
   const { traces, grid } = planTracesWithGrid(sorted, zones, district, timeline, bounds)
   const { passives, pulses } = BOARD_DENSITY[options.tier]
+  // Les ancres d'étiquettes (processeurs, zones, tronçons du bus) : aucun petit
+  // composant n'y passe sous le texte.
+  const labels = [
+    ...district.processors.map((p) => p.labelAnchor),
+    ...zones.map((z) => z.labelAnchor),
+    ...timeline.segments.map((s) => s.labelAnchor),
+  ]
 
   return {
     bounds,
@@ -72,7 +77,7 @@ export function planBoard(content: BoardContent, options: BoardOptions): BoardPl
     zones,
     timeline,
     traces,
-    passives: scatterPassives(grid, passives, BOARD_SEED),
+    passives: scatterPassives(grid, passives, BOARD_SEED, labels.map(labelKeepOut)),
     pulses,
   }
 }
