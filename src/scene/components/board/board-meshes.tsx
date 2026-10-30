@@ -9,7 +9,7 @@
  * fonction rend `{ root, update, dispose }` — React monte `root`, avance les uniformes à chaque
  * image, et **rend la mémoire du GPU** au démontage : géométries, matériaux, texture.
  */
-import { useThree } from '@react-three/fiber'
+import { type ThreeElements, useThree } from '@react-three/fiber'
 import { useEffect, useMemo } from 'react'
 import {
   AdditiveBlending,
@@ -44,6 +44,13 @@ import {
 } from '@/scene/state/board-render/geometry'
 import { BOARD_DENSITY, type DensityTier, PALETTE } from '@/scene/state/layout'
 import { type PulsePath, pulseFrame, pulsePaths } from '@/scene/state/board-render/pulses'
+import {
+  instanceLevels,
+  type LitShape,
+  litSegments,
+  type Relations,
+  ribbonLevels,
+} from '@/scene/state/board-render/relations'
 
 import {
   type BoardUniforms,
@@ -130,8 +137,33 @@ export interface BoardFrame {
 export interface BuiltBoard {
   readonly root: Group
   update(frame: BoardFrame): void
+  /**
+   * L'état de survol (P8-15f) : allume ce que `relations` désigne et atténue le reste ; `null`
+   * rend tout au neutre. ⭐ Écrit dans des attributs (`aLevel` des rubans, `instanceColor` des
+   * formes), jamais par un matériau de plus.
+   */
+  highlight(relations: Relations | null): void
   dispose(): void
 }
+
+/** Les formes qui portent un niveau de survol, par leur teinte d'instance. */
+const LIT_SHAPES: readonly LitShape[] = [
+  'chips',
+  'leds',
+  'processors',
+  'lids',
+  'milestones',
+  'glows',
+]
+
+/**
+ * Ce que le lancer de rayon peut toucher : la plaque (le bus se désigne par le point touché
+ * dessus, `targetAtPoint`) et les formes désignables. ⛔ Les autres maillages ne sont pas
+ * testés du tout : des milliers de broches ne doivent rien coûter à chaque mouvement du pointeur.
+ */
+const PICKABLE = new Set<string>(['plate', ...LIT_SHAPES])
+
+const noRaycast = (): void => {}
 
 /** Les géométries unitaires des formes, posées à plat sur XZ quand elles le sont. */
 function unitGeometry(shape: Shape): BufferGeometry {
@@ -179,6 +211,7 @@ function shapeMaterials(): { readonly byShape: Record<Shape, Material>; readonly
 function ribbonGeometry(
   ribbons: Ribbons,
   colors: Float32Array,
+  level: Float32Array,
   idle?: Float32Array,
 ): BufferGeometry {
   const geometry = new BufferGeometry()
@@ -190,6 +223,7 @@ function ribbonGeometry(
     'aIdle',
     new BufferAttribute(idle ?? new Float32Array(ribbons.across.length), 1),
   )
+  geometry.setAttribute('aLevel', new BufferAttribute(level, 1))
   geometry.setIndex(new BufferAttribute(ribbons.indices, 1))
   geometry.computeBoundingSphere()
   return geometry
@@ -210,10 +244,16 @@ function instancedMesh(
   geometry: BufferGeometry,
   material: Material,
   set: BoardInstances[Shape],
+  lit: boolean,
 ): InstancedMesh {
   const mesh = new InstancedMesh(geometry, material, set.count)
   mesh.instanceMatrix = new InstancedBufferAttribute(set.matrices, 16)
-  if (set.colors !== null) mesh.instanceColor = new InstancedBufferAttribute(set.colors, 3)
+  /*
+   * ⭐ Une forme qui porte un niveau de survol a TOUJOURS une teinte d'instance, blanche à défaut :
+   * le programme se compile avec elle dès la première image, et le survol n'a qu'à l'écrire.
+   */
+  const colors = set.colors ?? (lit ? new Float32Array(set.count * 3).fill(1) : null)
+  if (colors !== null) mesh.instanceColor = new InstancedBufferAttribute(colors.slice(), 3)
   // ⭐ Les boîtes englobantes viennent des instances : sans elles, la sélection et l'élagage
   // raisonneraient sur la géométrie unité, posée à l'origine.
   mesh.computeBoundingBox()
@@ -250,7 +290,12 @@ export function buildBoard(file: BoardFile, tier: DensityTier, anisotropy: numbe
   // Les pistes : une géométrie, une teinte par route.
   const tones = routeTones(plan).map((tone) => hexToLinear(PALETTE[tone]))
   const traces = traceRibbons(plan.traces.routes, traceWidth)
-  const traceGeometry = ribbonGeometry(traces, expandColors(traces.routeIndex, tones, [1, 1, 1]))
+  const traceLevel = new Float32Array(traces.routeIndex.length).fill(1)
+  const traceGeometry = ribbonGeometry(
+    traces,
+    expandColors(traces.routeIndex, tones, [1, 1, 1]),
+    traceLevel,
+  )
   const traceMaterial = ribbonMaterial({ core: 0.36, halo: 0.28, idleColor: '#3A4658' })
   traceMaterial.uniforms.uIntensity.value = 0.75
   const traceMesh = new Mesh(traceGeometry, traceMaterial)
@@ -260,9 +305,11 @@ export function buildBoard(file: BoardFile, tier: DensityTier, anisotropy: numbe
   // Le bus : une géométrie, une teinte par tronçon, les années éteintes en gris.
   const segmentTones = plan.timeline.segments.map((s) => hexToLinear(PALETTE[s.tone]))
   const bus = busRibbons(plan.timeline)
+  const busLevel = new Float32Array(bus.segmentIndex.length).fill(1)
   const busGeometry = ribbonGeometry(
     bus,
     expandColors(bus.segmentIndex, segmentTones, [0, 0, 0]),
+    busLevel,
     bus.idle,
   )
   const busMaterial = ribbonMaterial({ core: 0.44, halo: 0.2, idleColor: '#55647A' })
@@ -287,19 +334,27 @@ export function buildBoard(file: BoardFile, tier: DensityTier, anisotropy: numbe
   const sets = instances(plan, tier)
   const materials = shapeMaterials()
   const meshes: InstancedMesh[] = []
+  const litMeshes: { shape: LitShape; mesh: InstancedMesh; base: Float32Array }[] = []
   for (const name of boardMeshes(sets)) {
+    let object: Mesh
     if (name in fixed) {
-      fixed[name as FixedMesh].name = name
-      root.add(fixed[name as FixedMesh])
-      continue
+      object = fixed[name as FixedMesh]
+    } else {
+      const shape = name as Shape
+      const geometry = unitGeometry(shape)
+      geometries.push(geometry)
+      const lit = (LIT_SHAPES as readonly string[]).includes(shape)
+      const mesh = instancedMesh(geometry, materials.byShape[shape], sets[shape], lit)
+      meshes.push(mesh)
+      if (lit && mesh.instanceColor !== null) {
+        const base = (mesh.instanceColor.array as Float32Array).slice()
+        litMeshes.push({ shape: shape as LitShape, mesh, base })
+      }
+      object = mesh
     }
-    const shape = name as Shape
-    const geometry = unitGeometry(shape)
-    geometries.push(geometry)
-    const mesh = instancedMesh(geometry, materials.byShape[shape], sets[shape])
-    mesh.name = shape
-    meshes.push(mesh)
-    root.add(mesh)
+    object.name = name
+    if (!PICKABLE.has(name)) object.raycast = noRaycast
+    root.add(object)
   }
 
   const chip = materials.byShape.chips as ReturnType<typeof chipBodyMaterial>
@@ -319,6 +374,25 @@ export function buildBoard(file: BoardFile, tier: DensityTier, anisotropy: numbe
       chip.userData.rim.value = 0.85 + 0.6 * highlight.skills
       lid.userData.glow.value = 0.8 + 1.2 * highlight.projects
       pulses.place(time)
+    },
+    highlight(relations) {
+      ribbonLevels(traces.routeIndex, relations?.routes ?? null, traceLevel)
+      traceGeometry.getAttribute('aLevel').needsUpdate = true
+      ribbonLevels(
+        bus.segmentIndex,
+        relations === null ? null : litSegments(plan, relations),
+        busLevel,
+      )
+      busGeometry.getAttribute('aLevel').needsUpdate = true
+      const levels = instanceLevels(plan, relations)
+      for (const { shape, mesh, base } of litMeshes) {
+        const colors = mesh.instanceColor!.array as Float32Array
+        const level = levels[shape]
+        for (let i = 0; i < level.length; i++) {
+          for (let c = 0; c < 3; c++) colors[i * 3 + c] = base[i * 3 + c]! * level[i]!
+        }
+        mesh.instanceColor!.needsUpdate = true
+      }
     },
     dispose() {
       // ⭐ `InstancedMesh.dispose` rend les tampons d'instances ; la géométrie ne les porte pas.
@@ -350,7 +424,13 @@ export function useBoard(file: BoardFile, tier: DensityTier): BuiltBoard {
   return built
 }
 
-/** La carte construite, posée dans la scène. */
-export function BoardMeshes({ built }: { readonly built: BuiltBoard }) {
-  return <primitive object={built.root} />
+/** La carte construite, posée dans la scène, avec les gestionnaires de pointeur de `BoardScene`. */
+export function BoardMeshes({
+  built,
+  ...handlers
+}: { readonly built: BuiltBoard } & Pick<
+  ThreeElements['group'],
+  'onPointerDown' | 'onPointerMove' | 'onPointerOut' | 'onClick' | 'onPointerMissed'
+>) {
+  return <primitive object={built.root} {...handlers} />
 }

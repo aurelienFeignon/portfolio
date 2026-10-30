@@ -19,6 +19,7 @@ import { type Group, MeshBasicMaterial, SphereGeometry } from 'three'
 
 import { SECTIONS, type Section } from '@/routing/sections'
 import { type AmbientState, ambientFrame } from '@/scene/state/ambient-motion'
+import { CLICK_TOLERANCE_PX } from '@/scene/state/board-render/targets'
 import { type Density, PALETTE, UNIVERSES } from '@/scene/state/layout'
 import type { SceneFocus } from '@/scene/state/scene-state'
 
@@ -32,9 +33,6 @@ import {
   buildPrism,
   buildStack,
 } from './builders'
-
-/** Au-delà de ce déplacement (pixels), un appui est une rotation, pas un clic. */
-const CLICK_TOLERANCE_PX = 6
 
 const BUILD_UNIVERSE: Readonly<Record<Section, () => Built>> = {
   experiences: buildStack,

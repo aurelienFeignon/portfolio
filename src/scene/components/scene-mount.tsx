@@ -41,9 +41,10 @@ import {
 } from '@/scene/capability/mount-state'
 import { resolveCapability, shouldMountScene } from '@/scene/capability/resolve'
 import { tierMark } from '@/scene/capability/tier-mark'
+import { type BoardTarget, hrefOf, sectionOf } from '@/scene/state/board-render/targets'
 import type { Rect } from '@/scene/state/camera-motion'
 import { shouldShowDiagnostics } from '@/scene/state/debug-flag'
-import { getRouteForScreen, resolveSceneState } from '@/scene/state/scene-state'
+import { resolveSceneState } from '@/scene/state/scene-state'
 import type { SceneReadings } from '@/scene/state/diagnostics'
 
 import type { LabelAnchors } from './nexus/label-projector'
@@ -161,7 +162,8 @@ export function SceneMount({
   const [diagnostics, setDiagnostics] = useState(false)
   const [releves, setReleves] = useState<SceneReadings | null>(null)
   // Le survol est rattaché au chemin où il a eu lieu : il ne survit pas à une navigation.
-  const [survolAt, setSurvolAt] = useState<{ section: Section; chemin: string } | null>(null)
+  // ⭐ Review Focus 4 : une cible restée allumée ne survit pas à un changement de route.
+  const [survolAt, setSurvolAt] = useState<{ cible: BoardTarget; chemin: string } | null>(null)
   const [libre, setLibre] = useState<Rect | null>(null)
   const [zoneDesEtiquettes, setZoneDesEtiquettes] = useState<Rect | null>(null)
   // Les étiquettes, que la scène place à chaque image (`LabelProjector`).
@@ -177,19 +179,29 @@ export function SceneMount({
   const scene = resolveSceneState(chemin)
   const locale = localeFromPathname(chemin)
   const monte = etat.phase === 'mounted'
-  const survol = survolAt !== null && survolAt.chemin === chemin ? survolAt.section : null
+  const survol = survolAt !== null && survolAt.chemin === chemin ? survolAt.cible : null
   const survoler = useCallback(
-    (section: Section | null) => setSurvolAt(section === null ? null : { section, chemin }),
+    (cible: BoardTarget | null) => setSurvolAt(cible === null ? null : { cible, chemin }),
     [chemin],
   )
+  // La section qu'avive la cible survolée : son étiquette s'allume.
+  const sectionSurvolee = survol === null ? null : sectionOf(survol)
+  // Le pointeur de lien seulement sur ce qui mène quelque part (une année n'allume que).
+  const cliquable = survol !== null && hrefOf(survol, displayedLocale(chemin)) !== null
   // Une fiche se lit sans scène : elle reste montée, cachée, et ne calcule rien.
   const visible = scene.detail === null
 
+  /*
+   * Un clic dans la carte : un chemin du site, poussé comme le ferait un lien. ⛔ Vers la page
+   * affichée (une puce depuis les compétences), le chemin ne change pas et rien ne repart du
+   * début : on le fait ici, comme l'intercepteur des liens.
+   */
   const choisir = useCallback(
-    (section: Section) => {
-      if (locale !== null) routeur.push(getRouteForScreen(section, locale))
+    (href: string) => {
+      if (href === window.location.pathname) resetFocusToDocumentStart(document)
+      routeur.push(href)
     },
-    [locale, routeur],
+    [routeur],
   )
 
   /*
@@ -313,7 +325,13 @@ export function SceneMount({
          * au lieu de pixels (`testing-strategy.md` §4).
          */
         data-scene-focus={scene.focus}
-        className={[styles.decor, visible ? '' : styles.cachee, survol ? styles.pointe : '']
+        /*
+         * La cible survolée de la carte (P8-15f) : son genre seulement — `processor`, `chip`,
+         * `year`, `segment` —, jamais son nom (aucun texte de contenu dans la racine). Le banc
+         * E2E y trouve un processeur sans connaître sa position à l'écran.
+         */
+        data-scene-hover={survol?.kind}
+        className={[styles.decor, visible ? '' : styles.cachee, cliquable ? styles.pointe : '']
           .filter(Boolean)
           .join(' ')}
       >
@@ -368,7 +386,7 @@ export function SceneMount({
                 ancres.current[section] = element
               }}
               data-section={section}
-              data-active={!eclipsee && (survol === section || scene.focus === section)}
+              data-active={!eclipsee && (sectionSurvolee === section || scene.focus === section)}
               data-eclipsed={eclipsee}
               className={styles.etiquette}
             >
