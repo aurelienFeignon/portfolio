@@ -141,3 +141,20 @@ describe('le chemin de première visite n’embarque rien de `board/` (P8-14)', 
     expect(intrus).toEqual([])
   })
 })
+
+/**
+ * P8-15 — `stale-board-file-error.ts` est sur le chemin de première visite (la frontière
+ * d'erreur la reconnaît par `instanceof`) : il ne doit tirer **aucun** import, pas même de
+ * valeur, sans quoi le chargeur ou le format du plan y entreraient avec lui.
+ */
+describe('`stale-board-file-error.ts` ne tire rien (P8-15)', () => {
+  const ERREUR = join(SRC, 'scene/state/board-render/stale-board-file-error.ts')
+
+  it('⭐ témoin : le parcours voit des arêtes depuis `load.ts`', () => {
+    expect(fermeture(join(SRC, 'scene/state/board-render/load.ts')).size).toBeGreaterThan(1)
+  })
+
+  it('sa fermeture se réduit à elle-même', () => {
+    expect(enClair(fermeture(ERREUR))).toEqual([relative(RACINE, ERREUR)])
+  })
+})
