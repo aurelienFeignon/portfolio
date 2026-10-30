@@ -113,6 +113,26 @@ export default tseslint.config(
     },
   },
 
+  // Exception de couche, pour ce SEUL fichier : `scripts` n'importe pas `scene`, sauf que le
+  // générateur du plan de carte (P8-15b) est le seul pont contenu → scène, et qu'il tourne hors
+  // du site, au build. Il n'ouvre que le plan pur (`state/board`) et son format
+  // (`state/board-render`) : tout autre import de `src/scene` reste interdit.
+  {
+    files: ['scripts/generate-board-plan.mts'],
+    rules: {
+      'import/no-restricted-paths': [
+        'error',
+        {
+          zones: zones.map((zone) =>
+            zone.target === './scripts' && zone.from === './src/scene'
+              ? { ...zone, except: ['./state/board', './state/board-render'] }
+              : zone,
+          ),
+        },
+      ],
+    },
+  },
+
   // La couche Content est du TypeScript pur : ni React, ni Three.js (CT-09).
   // C'est ce qui la rend testable sans DOM et réutilisable hors rendu.
   {

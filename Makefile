@@ -36,7 +36,7 @@ $(MOUNTPOINTS):
 install up up-d sh typecheck lint format test test-watch coverage bundle: | $(MOUNTPOINTS)
 
 .PHONY: help doctor image install up up-d down sh logs ps reset typecheck lint format e2e \
-        build prod-up prod-down e2e-prod bundle ci check-dns check-uptime check-content check-image-size \
+        build prod-up prod-down e2e-prod bundle ci check-dns check-uptime check-content board check-image-size \
         lighthouse perf-baseline \
         test test-watch coverage check-public-seo
 
@@ -135,6 +135,9 @@ check-uptime: ## Interroge le site EN LIGNE depuis l'extérieur, comme la sonde 
 
 check-content: ## Valide tout le contenu Markdown/MDX (CF-10) — inclus dans `build`
 	$(RUN) pnpm check-content
+
+board: ## Régénère le plan de la carte mère depuis le contenu (carte-mere.md §12)
+	$(RUN) node scripts/generate-board-plan.mts
 
 bundle: ## Mesure le JS de première visite : budgets (P1-12) + isolation de la scène 3D (P5-09)
 	$(COMPOSE) run --rm -e NODE_ENV=production web \
