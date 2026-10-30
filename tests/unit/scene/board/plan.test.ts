@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { makeLargeBoard, makeRealSizeBoard } from '../../../fixtures/builders/board'
-import { BOARD_DENSITY } from '@/scene/state/board/passives'
+import { BOARD_DENSITY } from '@/scene/state/layout'
 import { BOARD_SEED, type BoardOptions, planBoard } from '@/scene/state/board/plan'
 import { GRID } from '@/scene/state/board/grid'
 import { inflate, type Rect, rectOf, rectsOverlap, type Vec2 } from '@/scene/state/board/rect'

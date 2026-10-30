@@ -3,13 +3,13 @@
 /**
  * Le `<canvas>` React Three Fiber — **le seul endroit du site qui touche Three.js**.
  *
- * Il porte la scène NEXUS (D11) : le noyau, les trois univers, l'ambiance, et le
- * rig de caméra qui suit la route. Ni texte, ni information : les étiquettes des
+ * Il porte la carte mère (D14, P8-15) : le plan de carte de la locale, dessiné
+ * par `BoardScene`, et le rig de caméra qui suit la route. Ni texte, ni information : les étiquettes des
  * univers sont du HTML rendu **hors** du canvas, par `SceneMount` (ADR-0003) — la
  * scène ne fait que leur donner leur position (`LabelProjector`).
  *
  * ⛔ `drei` s'importe composant par composant, jamais en entier (ADR-0016) — et
- * NEXUS n'en importe aucun.
+ * la carte n'en importe aucun.
  */
 import { Canvas } from '@react-three/fiber'
 import { type ComponentType, type RefObject, useCallback, useEffect, useState } from 'react'
@@ -20,13 +20,13 @@ import type { Section } from '@/routing/sections'
 import type { Capability } from '@/scene/capability/resolve'
 import type { Rect } from '@/scene/state/camera-motion'
 import type { SceneReadings } from '@/scene/state/diagnostics'
-import { DENSITY, PALETTE } from '@/scene/state/layout'
+import { PALETTE } from '@/scene/state/layout'
 import type { SceneFocus, SceneState } from '@/scene/state/scene-state'
 
+import { BoardScene } from './board/board-scene'
 import { useBoardFile } from './board/use-board-file'
 import { CameraRig } from './nexus/camera-rig'
 import { type LabelAnchors, LabelProjector } from './nexus/label-projector'
-import { NexusScene } from './nexus/nexus-scene'
 import { ShaderWarmup } from './nexus/shader-warmup'
 
 export default function SceneCanvas({
@@ -124,7 +124,8 @@ export default function SceneCanvas({
        */
       camera={{ near: 0.1, far: 80 }}
     >
-      <fog attach="fog" args={[PALETTE.background, 16, 42]} />
+      {/* Le brouillard retient le fond de la carte : la profondeur se lit, le bord ne coupe pas. */}
+      <fog attach="fog" args={[PALETTE.background, 30, 72]} />
       {plan === null ? null : (
         /*
          * ⭐ Review Focus 2 : le rig est monté À L'ARRIVÉE du plan, avec l'état
@@ -134,6 +135,9 @@ export default function SceneCanvas({
          * ⛔ Rig et projection montés ENSEMBLE et dans cet ordre : la projection
          * lit la pose que le rig vient de poser, et `useFrame` les appelle dans
          * l'ordre où ils se sont abonnés.
+         * ⭐ La carte et la compilation de ses shaders viennent avec le plan :
+         * `ShaderWarmup` se place APRÈS la carte, pour que ses effets trouvent les
+         * maillages déjà dans le graphe à compiler.
          */
         <>
           <CameraRig
@@ -144,17 +148,18 @@ export default function SceneCanvas({
             orbit={tier !== 'lite'}
           />
           <LabelProjector anchors={labelAnchors} zone={labelZone} />
+          <BoardScene
+            file={plan}
+            tier={tier}
+            animated={ambient}
+            hovered={hovered}
+            focus={state.focus}
+            onHover={onHover}
+            onSelect={onSelect}
+          />
+          <ShaderWarmup onReady={quandPret} />
         </>
       )}
-      <NexusScene
-        density={DENSITY[tier]}
-        animated={ambient}
-        hovered={hovered}
-        focus={state.focus}
-        onHover={onHover}
-        onSelect={onSelect}
-      />
-      <ShaderWarmup onReady={quandPret} />
       {/* La sonde vient d'un état posé UNE fois (`useSonde`) : son identité ne
           change pas d'un rendu à l'autre, ce que la règle veut garantir. */}
       {/* eslint-disable-next-line react-hooks/static-components */}

@@ -153,6 +153,8 @@ describe('la palette', () => {
     expect(css).toContain(`--color-accent: ${PALETTE.cyan.toLowerCase()}`)
     expect(css).toContain(`--color-violet: ${PALETTE.violet.toLowerCase()}`)
     expect(css).toContain(`--color-sky: ${PALETTE.sky.toLowerCase()}`)
+    expect(css).toContain(`--color-amber: ${PALETTE.amber.toLowerCase()}`)
+    expect(css).toContain(`--color-teal: ${PALETTE.teal.toLowerCase()}`)
     expect(css).toContain(`--color-text: ${PALETTE.text.toLowerCase()}`)
   })
 })

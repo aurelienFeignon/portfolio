@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { GRID, RoutingGrid } from '@/scene/state/board/grid'
-import { BOARD_DENSITY, scatterPassives } from '@/scene/state/board/passives'
+import { BOARD_DENSITY } from '@/scene/state/layout'
+import { scatterPassives } from '@/scene/state/board/passives'
 import { type Rect, rectOf, rectsOverlap, type Vec2 } from '@/scene/state/board/rect'
 
 const board: Rect = { minX: -5, minZ: -5, maxX: 5, maxZ: 5 }
