@@ -1,9 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import {
-  makeBoardContent,
-  makeLargeBoard,
-  makeRealSizeBoard,
-} from '../../../fixtures/builders/board'
+import { makeLargeBoard, makeRealSizeBoard } from '../../../fixtures/builders/board'
 import { BOARD_DENSITY } from '@/scene/state/board/passives'
 import { BOARD_SEED, type BoardOptions, planBoard } from '@/scene/state/board/plan'
 import { GRID } from '@/scene/state/board/grid'
