@@ -14,19 +14,7 @@
 import type { Locale } from '@/i18n/locales'
 
 import { type BoardFile, isBoardFile } from './file-format.ts'
-
-/**
- * Un plan relu qui n'est pas celui qu'attend ce code : autre version du format, autre locale,
- * ou réponse qui n'est pas un plan.
- *
- * ⭐ **Nommée `ChunkLoadError`, et c'est la même cause** : un JSON d'une autre version est un
- * chunk d'un autre déploiement, servi à une page restée ouverte. `SceneBoundary` range en
- * `chunk` sur ce nom-là et sur lui seul — le visiteur voit la page sans scène, comme pour un
- * chunk introuvable.
- */
-export class StaleBoardFileError extends Error {
-  override readonly name = 'ChunkLoadError'
-}
+import { StaleBoardFileError } from './stale-board-file-error.ts'
 
 /** Le fichier relu, s'il est un plan de cette version ET de cette locale ; une erreur sinon. */
 export function checkBoardFile(value: unknown, locale: Locale): BoardFile {

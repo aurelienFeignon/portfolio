@@ -10,11 +10,8 @@ import { describe, expect, it } from 'vitest'
 
 import { LOCALES } from '@/i18n/locales'
 import { BOARD_FILE_VERSION } from '@/scene/state/board-render/file-format'
-import {
-  boardFileLoader,
-  checkBoardFile,
-  StaleBoardFileError,
-} from '@/scene/state/board-render/load'
+import { boardFileLoader, checkBoardFile } from '@/scene/state/board-render/load'
+import { StaleBoardFileError } from '@/scene/state/board-render/stale-board-file-error'
 
 import { makeBoardContent } from '../../../fixtures/builders/board'
 import { buildBoardFile } from '@/scene/state/board/file'
@@ -43,9 +40,10 @@ describe('checkBoardFile', () => {
   it('⭐ refuse une autre version, par une erreur que la frontière range en `chunk`', () => {
     const perime = { ...(fichier('fr') as object), version: BOARD_FILE_VERSION + 1 }
     const essai = () => checkBoardFile(perime, 'fr')
+    // `SceneBoundary` classe en `chunk` sur ce type (`scene-boundary.test.tsx`).
     expect(essai).toThrow(StaleBoardFileError)
-    // `SceneBoundary` classe en `chunk` sur ce nom, et sur lui seul.
-    expect(essai).toThrow(expect.objectContaining({ name: 'ChunkLoadError' }))
+    // ⭐ Son propre nom : il n'emprunte plus celui de Turbopack (P8-15h).
+    expect(essai).toThrow(expect.objectContaining({ name: 'StaleBoardFileError' }))
   })
 
   it('⭐ refuse le plan d’une autre locale', () => {

@@ -20,6 +20,7 @@
 import { Component, type ReactNode } from 'react'
 
 import type { SceneFailure } from '@/scene/capability/mount-state'
+import { StaleBoardFileError } from '@/scene/state/board-render/stale-board-file-error'
 
 interface Props {
   readonly children: ReactNode
@@ -35,18 +36,26 @@ interface State {
  * chemin — le composant paresseux lève au rendu. Les distinguer sert le
  * diagnostic, jamais le comportement : les deux mènent au même palier `none`.
  *
- * ⭐ **Le critère est celui qui a été MESURÉ, et rien d'autre.** Turbopack nomme
- * l'erreur `ChunkLoadError` : le banc E2E qui refuse le chunk du moteur l'a fait
- * écrire en toutes lettres (`phase-5-log.md` §7.4). Une première écriture y
- * ajoutait trois motifs de message glanés d'autres écosystèmes — du code qu'aucun
- * banc n'atteint, pour un diagnostic qu'on ne saurait pas vérifier.
+ * Deux producteurs, et deux seulement — chacun nommé :
+ *
+ * 1. ⭐ **Turbopack, par le nom MESURÉ, et rien d'autre.** Il nomme l'erreur
+ *    `ChunkLoadError` : le banc E2E qui refuse le chunk du moteur l'a fait écrire
+ *    en toutes lettres (`phase-5-log.md` §7.4). Une première écriture y ajoutait
+ *    trois motifs de message glanés d'autres écosystèmes — du code qu'aucun banc
+ *    n'atteint, pour un diagnostic qu'on ne saurait pas vérifier.
+ * 2. **Le plan de carte périmé** (`StaleBoardFileError`, P8-15c) : un JSON d'un
+ *    autre déploiement ou d'une autre locale est un chunk qui ne correspond plus.
+ *    Reconnu par son TYPE, pas par un nom emprunté (P8-15h).
  *
  * ⚠️ Sa limite, écrite plutôt que tue : un moteur qui nommerait l'erreur
  * autrement verrait sa défaillance classée `render`. Le visiteur, lui, voit
  * exactement la même chose — la bascule est la même.
  */
 function estEchecDeChargement(erreur: unknown): boolean {
-  return erreur instanceof Error && erreur.name === 'ChunkLoadError'
+  return (
+    erreur instanceof StaleBoardFileError ||
+    (erreur instanceof Error && erreur.name === 'ChunkLoadError')
+  )
 }
 
 export class SceneBoundary extends Component<Props, State> {
