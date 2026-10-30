@@ -124,6 +124,64 @@ describe('RoutingGrid.cellsAround', () => {
     expect(grid.route('n', [[0, 1]], [[0, 1]])).toEqual([[0, 1]])
     expect(grid.cellsAround(rect).map(key)).toEqual(['1,1', '2,1'])
   })
+
+  it('avec un réseau : garde aussi les cellules que ce réseau occupe déjà', () => {
+    const grid = gridOf(5, 5)
+    const rect = cellsRect(2, 2, 2, 2)
+    grid.block(rect)
+    grid.route('a', [[1, 1]], [[3, 1]])
+    grid.route('b', [[1, 3]], [[1, 3]])
+    expect(grid.cellsAround(rect).map(key)).toEqual(['1,2', '3,2', '2,3', '3,3'])
+    expect(grid.cellsAround(rect, 'a').map(key)).toEqual(['1,1', '2,1', '3,1', '1,2', '3,2', '2,3', '3,3'])
+    expect(grid.cellsAround(rect, 'inconnu').map(key)).toEqual(['1,2', '3,2', '2,3', '3,3'])
+  })
+})
+
+describe('RoutingGrid.cellOf', () => {
+  it('la cellule qui contient le point, rognée aux bornes', () => {
+    const grid = new RoutingGrid({ minX: -1, minZ: -1, maxX: 1, maxZ: 1 })
+    expect(grid.cellOf([-1 + GRID / 2, -1 + GRID / 2])).toEqual([0, 0])
+    expect(grid.cellOf([0.3, -0.6])).toEqual([5, 1])
+    expect(grid.cellOf([-5, 9])).toEqual([0, 7])
+    // Un point posé sur une ligne de grille appartient à la cellule qui le suit.
+    expect(grid.cellOf([0, 0])).toEqual([4, 4])
+  })
+})
+
+describe('RoutingGrid.open', () => {
+  it('rend une cellule bloquée praticable au seul réseau qui l’ouvre', () => {
+    const grid = gridOf(5, 3)
+    grid.block(cellsRect(2, 0, 2, 2))
+    expect(grid.open([2, 1], 'a')).toBe(true)
+    expect(grid.occupant([2, 1])).toBe('a')
+    expect(grid.isFree([2, 1])).toBe(false)
+    expect(grid.route('b', [[0, 1]], [[4, 1]])).toBeNull()
+    expect(grid.route('a', [[0, 1]], [[4, 1]])).not.toBeNull()
+  })
+
+  it('refuse une cellule hors de la grille ou déjà tenue par un autre réseau', () => {
+    const grid = gridOf(3, 3)
+    expect(grid.open([5, 0], 'a')).toBe(false)
+    grid.route('b', [[1, 1]], [[1, 1]])
+    expect(grid.open([1, 1], 'a')).toBe(false)
+    expect(grid.occupant([1, 1])).toBe('b')
+    expect(grid.open([1, 1], 'b')).toBe(true)
+  })
+})
+
+describe('RoutingGrid.landing', () => {
+  it('un demi-pas vers l’empreinte : orthogonal au bord, diagonal au coin', () => {
+    const grid = gridOf(5, 5)
+    const rect = cellsRect(2, 2, 2, 2)
+    const at = (c: Cell) => grid.landing(c, rect)
+    const [cx, cz] = grid.toPoint([2, 2])
+    const h = GRID / 2
+    expect(at([2, 1])).toEqual([cx, cz - h])
+    expect(at([3, 2])).toEqual([cx + h, cz])
+    expect(at([1, 3])).toEqual([cx - h, cz + h])
+    // Une cellule de l'empreinte n'a pas de bord à rejoindre : son centre.
+    expect(at([2, 2])).toEqual([cx, cz])
+  })
 })
 
 describe('RoutingGrid.route', () => {

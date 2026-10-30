@@ -160,17 +160,69 @@ export class RoutingGrid {
    * Les cellules **libres** (ni bloquées ni occupées) 8-adjacentes à
    * l'empreinte de `rect`, hors de l'empreinte elle-même — les pastilles
    * possibles d'une piste qui part de ce rectangle. Ordre ligne puis colonne.
+   *
+   * Avec `net`, les cellules que ce réseau occupe déjà comptent aussi : la
+   * deuxième piste d'une puce peut repartir de l'anneau que la première a pris
+   * (éventail), au lieu de ne plus trouver de départ.
    */
-  cellsAround(rect: Rect): readonly Cell[] {
+  cellsAround(rect: Rect, net?: string): readonly Cell[] {
     const { c0, c1, r0, r1 } = this.footprint(rect)
+    const own = net === undefined ? undefined : this.netIds.get(net)
     const out: Cell[] = []
     for (let r = r0 - 1; r <= r1 + 1; r += 1) {
       for (let c = c0 - 1; c <= c1 + 1; c += 1) {
         const onRing = r < r0 || r > r1 || c < c0 || c > c1
-        if (onRing && this.isFree([c, r])) out.push([c, r])
+        if (!onRing || !this.inside(c, r)) continue
+        const i = r * this.cols + c
+        if (this.blocked[i] === 0 && (this.occupants[i] === 0 || this.occupants[i] === own))
+          out.push([c, r])
       }
     }
     return out
+  }
+
+  /**
+   * La cellule qui contient `point`, rognée aux bornes. Un point posé sur une
+   * ligne de grille appartient à la cellule qui la suit.
+   */
+  cellOf(point: Vec2): Cell {
+    const { minX, minZ } = this.bounds
+    const clamp = (v: number, n: number) => Math.min(n - 1, Math.max(0, v))
+    return [
+      clamp(Math.floor((point[0] - minX) / GRID + EPSILON), this.cols),
+      clamp(Math.floor((point[1] - minZ) / GRID + EPSILON), this.rows),
+    ]
+  }
+
+  /**
+   * Ouvre la cellule au **seul** réseau `net` : elle n'est plus bloquée et
+   * `net` l'occupe, donc aucune autre piste n'y passe (c'est la prise d'un
+   * tronçon du bus, percée pour un rattachement). Rend `false` — sans rien
+   * changer — si la cellule est hors de la grille ou tenue par un autre réseau.
+   */
+  open(cell: Cell, net: string): boolean {
+    if (!this.inside(cell[0], cell[1])) return false
+    const i = cell[1] * this.cols + cell[0]
+    const id = this.netId(net)
+    if (this.occupants[i] !== 0 && this.occupants[i] !== id) return false
+    this.blocked[i] = 0
+    this.occupants[i] = id
+    return true
+  }
+
+  /**
+   * Le point où une piste posée sur `cell` touche l'empreinte de `rect` : un
+   * demi-pas depuis le centre de la cellule, orthogonal si la cellule borde un
+   * côté, à 45° si elle en borde un coin. Le segment reste dans la cellule
+   * (il finit sur son bord ou son coin) : il ne peut couper aucune autre piste,
+   * qui joint toujours des centres. Une cellule de l'empreinte rend son centre.
+   */
+  landing(cell: Cell, rect: Rect): Vec2 {
+    const { c0, c1, r0, r1 } = this.footprint(rect)
+    const dc = Math.sign(Math.min(c1, Math.max(c0, cell[0])) - cell[0])
+    const dr = Math.sign(Math.min(r1, Math.max(r0, cell[1])) - cell[1])
+    const [x, z] = this.toPoint(cell)
+    return [x + (dc * GRID) / 2, z + (dr * GRID) / 2]
   }
 
   /** Le réseau qui occupe la cellule ; `null` si elle est inoccupée ou hors de la grille. */
