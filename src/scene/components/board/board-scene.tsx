@@ -92,7 +92,6 @@ export function BoardScene({
   const ambience = useRef<AmbientState>({
     timeS: 0,
     highlight: { experiences: 0, projects: 0, skills: 0 },
-    scale: { experiences: 1, projects: 1, skills: 1 },
   })
 
   useFrame((_, delta) => {
@@ -118,7 +117,7 @@ export function BoardScene({
       {/*
        * Une lumière principale froide, haute et de face gauche, qui pose les boîtiers sur la
        * plaque et accroche l'or des broches ; un contre-jour violet de l'arrière droite, qui
-       * dessine les arêtes. Le processeur central éclaire son quartier, comme le noyau de NEXUS.
+       * dessine les arêtes. Le processeur central éclaire son quartier.
        */}
       <directionalLight color="#D6E6FF" intensity={1.9} position={[cx - 9, 16, cz + 12]} />
       <directionalLight color={PALETTE.violet} intensity={0.9} position={[cx + 12, 6, cz - 14]} />

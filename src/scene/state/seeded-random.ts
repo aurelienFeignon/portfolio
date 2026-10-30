@@ -1,5 +1,5 @@
 /**
- * Le générateur à graine, partagé par NEXUS et par la carte mère.
+ * Le générateur à graine de la carte mère (sorti de la géométrie de NEXUS, D11, retirée en P8-15h).
  *
  * ⭐ Un `Math.random()` ferait de chaque chargement une autre scène : avec une
  * graine fixe, deux visites voient la même forme, un banc peut affirmer une

@@ -26,8 +26,8 @@ import type { SceneState } from '@/scene/state/scene-state'
 import { BoardScene } from './board/board-scene'
 import { type LabelElements, LabelProjector } from './board/label-projector'
 import { useBoardFile } from './board/use-board-file'
-import { CameraRig } from './nexus/camera-rig'
-import { ShaderWarmup } from './nexus/shader-warmup'
+import { CameraRig } from './camera-rig'
+import { ShaderWarmup } from './shader-warmup'
 
 export default function SceneCanvas({
   capability,

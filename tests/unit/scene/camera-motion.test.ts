@@ -29,7 +29,18 @@ import { buildBoardFile } from '@/scene/state/board/file'
 import { viewRects } from '@/scene/state/board/cameras'
 import type { Rect as BoardRect } from '@/scene/state/board/rect'
 import { makeLargeBoard, makeRealSizeBoard } from '../../fixtures/builders/board'
-import { CAMERAS, ORBIT_LIMITS, PARALLAX, type Vec3, type ViewId } from '@/scene/state/layout'
+import { ORBIT_LIMITS, PARALLAX, type Vec3, type ViewId } from '@/scene/state/layout'
+
+/**
+ * Les cadrages d'un plan de carte réel (P8-15h) : ceux que le rig reçoit en
+ * production. Les bancs de mouvement ci-dessous n'affirment rien sur leurs cotes,
+ * seulement sur ce que l'interpolation, l'orbite et le recul en font.
+ */
+const CAMERAS = buildBoardFile(makeRealSizeBoard(), {
+  locale: 'fr',
+  year: 2026,
+  chipSizing: 'uniform',
+}).cameras
 
 const distance = (a: readonly number[], b: readonly number[]) =>
   Math.hypot((a[0] ?? 0) - (b[0] ?? 0), (a[1] ?? 0) - (b[1] ?? 0), (a[2] ?? 0) - (b[2] ?? 0))

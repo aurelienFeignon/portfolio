@@ -131,7 +131,7 @@ export const fr = {
   ongoing: 'En cours',
 
   /**
-   * Le lien qui ramène à l'accueil — la vue d'ensemble de NEXUS (D11).
+   * Le lien qui ramène à l'accueil — la vue d'ensemble de la carte mère.
    * Il est un lien ordinaire : sans scène, il mène à l'accueil, rien de plus.
    */
   overview: 'Vue d’ensemble',

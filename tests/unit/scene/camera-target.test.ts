@@ -8,59 +8,71 @@
  * plan de carte versionné (`BoardFile.cameras`) et sont PASSÉS à
  * `getCameraTarget` ; ce banc n'affirme que la correspondance entre les deux
  * vocabulaires — `SceneFocus` (l'URL, en anglais) et `ViewId` (le plan coté, en
- * français) — sur un jeu de cadrages qu'il fabrique, copie de ceux de
- * `layout.ts`, pour prouver que la fonction rend CELUI qu'on lui passe.
+ * français) — sur un jeu de cadrages qu'il fabrique, copie de ceux d'un plan de
+ * carte construit sur le banc de taille réelle, pour prouver que la fonction rend
+ * CELUI qu'on lui passe.
  */
 import { describe, expect, it } from 'vitest'
 
-import { CAMERAS, type CameraSpec, type ViewId } from '@/scene/state/layout'
+import { buildBoardFile } from '@/scene/state/board/file'
 import { getCameraTarget } from '@/scene/state/camera-target'
+import type { CameraSpec, ViewId } from '@/scene/state/layout'
 import type { SceneFocus } from '@/scene/state/scene-state'
 
+import { makeRealSizeBoard } from '../../fixtures/builders/board'
+
 /**
- * L'oracle : l'univers que chaque focus doit cadrer, `undefined` pour la vue
+ * L'oracle : la section que chaque focus doit cadrer, `undefined` pour la vue
  * d'ensemble.
  *
  * ⭐⭐ **C'est un `Record<SceneFocus, …>`, donc l'exhaustivité est tenue par le
  * compilateur** — une section ajoutée sans y être déclarée ne compile pas.
  *
  * ⛔ **Ce n'est pas une recopie du mapping, c'est un second énoncé du même fait.**
- * Sans lui, échanger deux univers dans le `Record` du module laisserait le banc
- * vert : chaque focus viserait toujours *un* cadrage de `layout.ts`, distinct des
- * autres. Depuis NEXUS (D11), chaque univers EST une section : l'oracle dit que
- * le focus `projects` cadre l'univers `projects`, et rien d'autre.
+ * Sans lui, échanger deux vues dans le `Record` du module laisserait le banc
+ * vert : chaque focus viserait toujours *un* cadrage du plan, distinct des
+ * autres. Chaque cadrage de section porte sa section (`focusNodeId`, posé par
+ * `boardCameras`) : l'oracle dit que le focus `projects` cadre la section
+ * `projects`, et rien d'autre.
  */
-const UNIVERS_ATTENDU: Record<SceneFocus, string | undefined> = {
+const SECTION_ATTENDUE: Record<SceneFocus, string | undefined> = {
   overview: undefined,
   experiences: 'experiences',
   projects: 'projects',
   skills: 'skills',
 }
 
-const FOCUSES = Object.keys(UNIVERS_ATTENDU) as readonly SceneFocus[]
+const FOCUSES = Object.keys(SECTION_ATTENDUE) as readonly SceneFocus[]
+
+/** Les cadrages d'un plan réel, tels que `make board` les écrit. */
+const PLAN = buildBoardFile(makeRealSizeBoard(), {
+  locale: 'fr',
+  year: 2026,
+  chipSizing: 'uniform',
+}).cameras
 
 /**
- * Les cadrages passés à la fonction : des COPIES de ceux de `layout.ts`, donc des
- * instances distinctes. Une fonction qui lirait encore `CAMERAS` en interne
+ * Les cadrages passés à la fonction : des COPIES de ceux du plan, donc des
+ * instances distinctes. Une fonction qui lirait un jeu de cadrages en interne
  * rendrait des objets égaux mais pas identiques — `toBe` la refuse.
  */
 const CADRAGES: Readonly<Record<ViewId, CameraSpec>> = {
-  accueil: { ...CAMERAS.accueil },
-  experiences: { ...CAMERAS.experiences },
-  projets: { ...CAMERAS.projets },
-  competences: { ...CAMERAS.competences },
+  accueil: { ...PLAN.accueil },
+  experiences: { ...PLAN.experiences },
+  projets: { ...PLAN.projets },
+  competences: { ...PLAN.competences },
 }
 
 const cadrage = (focus: SceneFocus, detail: string | null = null) =>
   getCameraTarget({ focus, detail }, CADRAGES)
 
-describe('chaque focus cadre son univers', () => {
-  // ⭐ Le cas `experiences` est l'exemple de `testing-strategy.md` §4.3 —
-  // « le cadrage de l'écran gauche ». Que ce cadrage vise le centre de son univers,
-  // de face, est une propriété de `layout.ts`, tenue par `layout.test.ts`.
+describe('chaque focus cadre sa section', () => {
+  // ⭐ Le cas `experiences` est l'exemple de `testing-strategy.md` §4.3. Que ce
+  // cadrage montre bien la frise, la zone ou le quartier de sa section est une
+  // propriété de `board/cameras.ts`, tenue par `board/cameras.test.ts`.
   for (const focus of FOCUSES) {
-    it(`${focus} → ${UNIVERS_ATTENDU[focus] ?? 'aucun univers, la vue d’ensemble'}`, () => {
-      expect(cadrage(focus).focusNodeId).toBe(UNIVERS_ATTENDU[focus])
+    it(`${focus} → ${SECTION_ATTENDUE[focus] ?? 'aucune section, la vue d’ensemble'}`, () => {
+      expect(cadrage(focus).focusNodeId).toBe(SECTION_ATTENDUE[focus])
     })
   }
 })
@@ -72,7 +84,7 @@ describe('les cadrages sont LUS dans ceux qu’on passe, jamais recopiés', () =
     // comparer coordonnée à coordonnée.
     for (const focus of FOCUSES) {
       expect(Object.values(CADRAGES), focus).toContain(cadrage(focus))
-      expect(Object.values(CAMERAS), focus).not.toContain(cadrage(focus))
+      expect(Object.values(PLAN), focus).not.toContain(cadrage(focus))
     }
   })
 })

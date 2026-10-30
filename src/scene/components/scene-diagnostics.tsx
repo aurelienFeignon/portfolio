@@ -91,7 +91,7 @@ export function DiagnosticsProbe({
   useEffect(() => invalidate(), [invalidate])
 
   /*
-   * ⭐ NEXUS (`nexus-prototype.md` §6) : ce que le banc sans GPU ne peut pas
+   * ⭐ Depuis NEXUS (`nexus-prototype.md` §6) : ce que le banc sans GPU ne peut pas
    * dire. La carte et l'extension se lisent une fois ; les tâches longues
    * s'observent depuis le début de la page (`buffered`) et ne sont imputées à
    * la scène qu'à partir de sa décision de montage.

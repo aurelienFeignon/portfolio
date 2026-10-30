@@ -1,8 +1,9 @@
 /*
- * La scène NEXUS : plein écran, SOUS le contenu, et désormais interactive (D11).
+ * La scène — la carte mère (D14) : plein écran, SOUS le contenu, et interactive
+ * depuis NEXUS (D11).
  *
  * ⭐⭐ **L'empilement remplace `pointer-events: none`.** La Phase 5 rendait la
- * couche insensible au pointeur parce qu'elle couvrait tout le site. NEXUS a
+ * couche insensible au pointeur parce qu'elle couvrait tout le site. La scène a
  * besoin du survol, du clic et du glisser : la couche reçoit donc le pointeur,
  * et c'est l'empilement qui protège le contenu — en-tête, panneau et pied de
  * page sont positionnés au-dessus (`z-index: 1` et plus), et la boîte `.grow`
@@ -20,7 +21,7 @@
 /*
  * La scène apparaît en fondu une fois ses shaders compilés (`ShaderWarmup`) :
  * jusque-là le canvas ne rend rien, et c'est le halo CSS du fond qui tient lieu
- * de noyau.
+ * de scène.
  */
 .decor :global([data-ready='false']) {
   opacity: 0;
@@ -49,7 +50,7 @@
 /*
  * Les étiquettes de la carte : du HTML sur sa propre surface, jamais un texte
  * posé sur le WebGL (ADR-0004). La scène écrit leur position à chaque image ;
- * elles ne reçoivent pas le pointeur, qui passe à l'univers en dessous.
+ * elles ne reçoivent pas le pointeur, qui passe à la carte en dessous.
  *
  * ⛔ `z-index: 0`, comme la scène, et non au-dessus : placées après elle dans le
  * DOM, elles la recouvrent, mais le panneau de lecture (`z-index: 1`) passe
@@ -75,7 +76,7 @@
   gap: var(--space-1);
   margin: 0;
   padding: var(--space-1) var(--space-3);
-  /* Ancrée par le milieu de son bord bas : elle se pose au-dessus de l'univers. */
+  /* Ancrée par le milieu de son bord bas : elle se pose au-dessus de son ancre. */
   translate: -50% -100%;
   background: rgb(8 13 24 / 0.8);
   border: 1px solid color-mix(in srgb, var(--tone) 45%, transparent);
@@ -147,7 +148,7 @@
   text-transform: uppercase;
 }
 
-/* La pastille de teinte : la même couleur que le faisceau qui mène à l'univers. */
+/* La pastille de teinte : la couleur de la section (`--tone`, posée par l'étiquette). */
 .nom::before {
   width: 0.4rem;
   height: 0.4rem;

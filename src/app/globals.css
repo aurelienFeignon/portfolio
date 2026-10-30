@@ -38,7 +38,7 @@
   /* Violet : décoratif seulement (4,1:1 sur surface). Pour du texte : `--color-violet-text`. */
   --color-violet: #8973f5;
   --color-violet-text: #a796ff; /* 7,8:1 · 6,9:1 · 6,0:1 */
-  /* Bleu ciel : la teinte de l'univers Compétences, décorative seulement. */
+  /* Bleu ciel : la teinte des compétences, décorative seulement. */
   --color-sky: #38bdf8;
   /*
    * Ambre et vert d'eau : les deux teintes que la carte mère ajoute à la palette (`PALETTE`,
@@ -145,7 +145,7 @@ body {
   line-height: 1.5;
   color: var(--color-text);
   /*
-   * ⭐ Le fond porte déjà le halo du noyau, en CSS : c'est ce que voit un
+   * ⭐ Le fond porte déjà un halo, en CSS (né avec le noyau de NEXUS) : c'est ce que voit un
    * visiteur sans WebGL, et ce qui est sous le canvas transparent avant qu'il
    * ne se monte — aucun saut de couleur à l'apparition de la scène.
    */

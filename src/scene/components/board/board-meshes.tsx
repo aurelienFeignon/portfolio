@@ -5,7 +5,7 @@
  * `InstancedMesh` par forme** (`SHAPES`). Tout ce qui se calcule vient du module pur
  * (`board-render/geometry.ts`) ; ce composant ne fait que poser des tampons dans des géométries.
  *
- * ⭐ Les objets sont construits hors de React, comme ceux de NEXUS (`nexus/builders.ts`) : une
+ * ⭐ Les objets sont construits hors de React, comme l'étaient ceux de NEXUS (D11) : une
  * fonction rend `{ root, update, dispose }` — React monte `root`, avance les uniformes à chaque
  * image, et **rend la mémoire du GPU** au démontage : géométries, matériaux, texture.
  */
