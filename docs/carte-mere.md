@@ -314,3 +314,96 @@ bien moins nombreux) :
   **décrochement d'employeur** : un changement d'employeur sur une même voie (la voie 0 du contenu
   réel) n'émet qu'un marqueur (`Timeline.jogs`), alors que §5 demande une marche à 45° **dessinée**
   — P8-15 doit la tracer ; les jetons `globals.css` pour ambre et sarcelle, et leurs contrastes (P8-08).
+
+## 12. Génération et montage (décisions du 2026-10-30)
+
+> Décidé avec l'utilisateur le 2026-10-30, après P8-14. Tranche le choix « worker ou build » laissé
+> ouvert au §11, et fixe ce que P8-15 livre.
+
+**Le besoin, dans les mots de l'utilisateur.** « Quand on met à jour les compétences, on est obligé
+de recoder la carte mère » : il veut que la carte suive **ses fichiers MDX** sans écrire une ligne de
+scène, et pouvoir le **vérifier en localhost**. Et que la carte mère **soit montée à la place de
+NEXUS**.
+
+### 12.1 La commande de génération
+
+- `make board` lit le contenu (le dépôt de contenu, comme `generate-route-manifest.mts`), applique
+  `toBoardContent` puis `planBoard`, et **écrit un fichier engendré, versionné** dans
+  `src/scene/state/board/` (nom au choix du constructeur). Décision de l'utilisateur : la carte est
+  produite **par une commande**, pas recodée.
+- La commande **affiche un résumé** : puces, processeurs, années de la frise, liaisons routées et
+  perdues, liaisons au bus routées et perdues, ponts, mode de routage, temps de calcul. Une liaison
+  perdue est **dite**, nommément — jamais seulement comptée.
+- ⛔ **Une liaison perdue fait échouer la commande** (sortie non nulle) — décision de l'utilisateur
+  le 2026-10-30. Comme `pnpm build` relance la génération, elle bloque aussi le build et donc le
+  déploiement : une carte qui tait une relation réelle ne part jamais en ligne. Le message nomme
+  chaque couple compétence–projet ou projet–expérience perdu.
+- *Choix du rédacteur* — **le fichier est versionné**, comme `src/routing/route-manifest.ts` : le
+  diff d'une PR montre ce que la mise à jour du contenu change sur la carte. Un test de fraîcheur,
+  sur le modèle de `route-manifest-is-fresh.test.ts` (générateur lancé en sous-processus, jamais
+  importé), **refuse un fichier qui ne correspond plus au contenu** : oublier `make board` fait
+  rougir la CI au lieu de publier une carte périmée. La forme écrite est déjà passée par Prettier.
+- `pnpm build` relance la génération avant `next build`, comme pour le manifeste : la production
+  lit toujours un plan frais.
+- **Puces de taille égale** (`chipSizing: 'uniform'`) — décision de l'utilisateur le 2026-10-30,
+  **D2 reste ouverte** : les niveaux ne sont pas relus, donc rien ne les rend visibles. Le jour où
+  D2 est tranchée, c'est un paramètre de la commande à changer, pas du code de scène.
+
+### 12.2 Ce que cela change à la conception
+
+- **Le plan n'est plus calculé dans le navigateur.** La tâche longue mesurée au §11 (≈ 130–200 ms à
+  chaud) disparaît du fil principal : la scène **lit** un plan, elle ne le calcule plus. Le module
+  pur ne sert plus qu'à la génération et aux bancs ; il ne doit **pas** entrer dans le chunk 3D (le
+  garde d'isolation l'y interdit déjà pour le chemin de première visite — à étendre au chunk 3D,
+  sauf le fichier engendré).
+- ⚠️ **L'année est figée à la génération**, ce qui amende §5 (« l'année du navigateur, lue au
+  montage ») : la frise ne s'allonge plus seule au 1er janvier. Conséquence assumée, et rattrapée
+  par le garde de fraîcheur : le 1er janvier, le plan versionné ne correspond plus à ce que produit
+  la commande avec l'année courante, la CI rougit, et `make board` suivi d'un déploiement allonge la
+  frise. ⚠️ *Choix du rédacteur* — l'année de génération est un argument de la commande (par défaut
+  l'année courante), pour que le test de fraîcheur compare à l'année **écrite dans le fichier** et
+  ne rougisse pas un 1er janvier sans que le contenu ait changé ; un second garde, distinct, signale
+  qu'une année a passé. Le constructeur peut proposer mieux.
+- Le contenu est **par locale** (R-07 : une fiche non traduite n'existe que dans une locale). Le
+  constructeur mesure si les plans `fr` et `en` diffèrent ; s'ils sont identiques, un seul plan
+  suffit, sinon un par locale — et la scène charge celui de sa locale sans embarquer l'autre. Poids
+  à mesurer contre le budget du chunk 3D (≤ 300 Ko, seuil 350).
+
+### 12.3 Le montage à la place de NEXUS (P8-15)
+
+- La carte mère **remplace NEXUS en production** : composants `nexus/`, univers, noyau, gros plans
+  calculés autour du noyau et `nexus-geometry.ts` sont retirés, comme `desk.tsx` l'a été en D11
+  (§7). `getCameraTarget` prend les cadrages de `boardCameras` sur le plan engendré.
+- Tout le reste est déjà écrit et **ne change pas** : rendu (§4, §9 : instanciation, pistes
+  fusionnées, ≤ 60 appels de dessin, densité par palier), interactions (§8 : étiquettes HTML par
+  vue, survol des relations, clic par `router.push`), accessibilité et budgets (§9), ce que D11
+  garantissait (§3).
+- Les **ponts** (`Traces.vias`) sont dessinés comme les vias d'un circuit — c'est un élément visuel
+  nouveau, que l'utilisateur jugera en localhost avant la fusion.
+- La **marche à 45°** d'un changement d'employeur sur une voie (§11, reporté) est dessinée.
+- **Vérification en localhost** par l'utilisateur, avant toute fusion : `make board`, `make up`,
+  puis la carte dans le navigateur, sur les quatre vues.
+
+### 12.4 Précisions arrêtées après relecture (choix du rédacteur, sauf mention)
+
+- **Un seul fichier de plan par locale, toujours** : `fr` et `en` peuvent diverger (R-07), et un
+  plan unique casserait en silence le jour où une fiche n'existe que dans une langue. La scène charge
+  **par import dynamique** le plan de sa locale seulement. Format **JSON** (données, pas de code),
+  indenté pour que le diff d'une mise à jour reste lisible ; poids mesuré contre le chunk 3D.
+- **Le fichier porte tout ce que la scène dessine, déjà calculé** : le plan au palier `full`
+  (petits composants dans un ordre stable), **les quatre cadrages** (`boardCameras`), et l'**année
+  de génération**. Les paliers plus légers prennent les N premiers petits composants et moins
+  d'impulsions — la composition ne change pas (§9). La scène n'importe **aucune valeur** du module
+  pur : les types communs passent dans un fichier de types seul (imports de type, effacés), et le
+  garde d'isolation s'étend au chunk 3D.
+- **La marche à 45° d'un changement d'employeur** est calculée par le module pur (une géométrie
+  dans le plan, testée par les bancs), pas déduite par la scène.
+- **L'année** : `pnpm build` génère avec l'année courante, donc la production est toujours à
+  l'année du déploiement. Le fichier versionné porte son année ; le test de fraîcheur régénère
+  **avec cette année-là**, et ne rougit donc que si le **contenu** a changé. Le passage d'une année
+  est **dit** par le résumé de `make board`, pas imposé par un test qui rougirait une PR sans
+  rapport chaque 1er janvier.
+- **Ce que P8-15 retire avec NEXUS** : les bancs, parcours et repères qui nomment NEXUS sont
+  réécrits sur la carte, ou retirés s'ils n'ont plus d'objet — jamais affaiblis pour verdir.
+  La mesure `Avant / Après / Gain` (§9) fait partie de P8-15.
+- Le lot de contenu (§6) est livré (#84) : fiches Augure et Askor, dates fournies par l'utilisateur.
