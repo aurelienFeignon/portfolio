@@ -12,9 +12,11 @@
 import { useThree } from '@react-three/fiber'
 import { useEffect, useMemo } from 'react'
 import {
+  AdditiveBlending,
   BoxGeometry,
   BufferAttribute,
   BufferGeometry,
+  CircleGeometry,
   CylinderGeometry,
   Group,
   InstancedBufferAttribute,
@@ -41,6 +43,7 @@ import {
   traceWidth,
 } from '@/scene/state/board-render/geometry'
 import { BOARD_DENSITY, type DensityTier, PALETTE } from '@/scene/state/layout'
+import { type PulsePath, pulseFrame, pulsePaths } from '@/scene/state/board-render/pulses'
 
 import {
   type BoardUniforms,
@@ -58,7 +61,60 @@ import { paintSilkscreen } from './board-silkscreen'
 
 /** Épaisseur de la plaque, et hauteurs des couches posées dessus (pas de combat de profondeur). */
 const PLATE_THICKNESS = 0.24
-const LAYER = { silkscreen: 0.002, traces: 0.006, bus: 0.008 } as const
+const LAYER = { silkscreen: 0.002, traces: 0.006, bus: 0.008, pulses: 0.03 } as const
+
+/** Rayon d'une impulsion (un point lumineux) et sa teinte, froide et claire. */
+const PULSE_RADIUS = 0.1
+const PULSE_COLOR = '#BFE0FF'
+
+/**
+ * Les impulsions : un `InstancedMesh` de disques à plat. Seules les colonnes de translation
+ * (x, z) de chaque matrice changent ; l'échelle est posée une fois. `place` écrit dans le tampon
+ * de l'instance, sans allocation par image.
+ */
+function pulseMesh(
+  paths: readonly PulsePath[],
+  count: number,
+): {
+  mesh: InstancedMesh
+  geometry: BufferGeometry
+  material: MeshBasicMaterial
+  place(t: number): void
+} {
+  const geometry = new CircleGeometry(PULSE_RADIUS, 16).rotateX(-Math.PI / 2)
+  const material = new MeshBasicMaterial({
+    color: PULSE_COLOR,
+    toneMapped: false,
+    transparent: true,
+    blending: AdditiveBlending,
+    depthWrite: false,
+  })
+  const mesh = new InstancedMesh(geometry, material, count)
+  const matrices = mesh.instanceMatrix.array as Float32Array
+  for (let i = 0; i < count; i++) {
+    matrices[i * 16] = 1
+    matrices[i * 16 + 5] = 1
+    matrices[i * 16 + 10] = 1
+    matrices[i * 16 + 15] = 1
+  }
+  mesh.position.y = LAYER.pulses
+  // Les instances bougent à chaque image : la sphère englobante initiale ne vaut rien.
+  mesh.frustumCulled = false
+  const scratch = new Float32Array(count * 2)
+  return {
+    mesh,
+    geometry,
+    material,
+    place(t) {
+      pulseFrame(paths, count, t, scratch)
+      for (let i = 0; i < count; i++) {
+        matrices[i * 16 + 12] = scratch[i * 2]!
+        matrices[i * 16 + 14] = scratch[i * 2 + 1]!
+      }
+      mesh.instanceMatrix.needsUpdate = true
+    },
+  }
+}
 
 /** Ce que la scène transmet à chaque image. */
 export interface BoardFrame {
@@ -214,12 +270,19 @@ export function buildBoard(file: BoardFile, tier: DensityTier, anisotropy: numbe
   busMesh.position.y = LAYER.bus
   geometries.push(busGeometry)
 
+  // Les impulsions : le bus dans le sens du temps, les liaisons vers les processeurs.
+  const paths = pulsePaths(file)
+  const pulses = pulseMesh(paths, paths.length === 0 ? 0 : BOARD_DENSITY[tier].pulses)
+  geometries.push(pulses.geometry)
+  pulses.place(0)
+
   // ⭐ Monté dans l'ordre de `boardMeshes`, la liste même que compte `drawCallBudget`.
   const fixed: Record<FixedMesh, Mesh> = {
     plate,
     silkscreen,
     traces: traceMesh,
     bus: busMesh,
+    pulses: pulses.mesh,
   }
   const sets = instances(plan, tier)
   const materials = shapeMaterials()
@@ -255,16 +318,19 @@ export function buildBoard(file: BoardFile, tier: DensityTier, anisotropy: numbe
       traceMaterial.uniforms.uIntensity.value = 0.75 + 0.2 * highlight.projects
       chip.userData.rim.value = 0.85 + 0.6 * highlight.skills
       lid.userData.glow.value = 0.8 + 1.2 * highlight.projects
+      pulses.place(time)
     },
     dispose() {
       // ⭐ `InstancedMesh.dispose` rend les tampons d'instances ; la géométrie ne les porte pas.
       for (const mesh of meshes) mesh.dispose()
+      pulses.mesh.dispose()
       for (const geometry of geometries) geometry.dispose()
       for (const material of [
         plateMaterial,
         silkMaterial,
         traceMaterial,
         busMaterial,
+        pulses.material,
         ...materials.all,
       ])
         material.dispose()

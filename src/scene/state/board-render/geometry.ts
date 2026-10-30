@@ -354,8 +354,12 @@ export interface InstanceSet {
 
 export type BoardInstances = Readonly<Record<Shape, InstanceSet>>
 
-/** Les maillages qui ne sont pas des formes : plaque, sérigraphie, pistes, bus — dans cet ordre. */
-export const FIXED_MESHES = ['plate', 'silkscreen', 'traces', 'bus'] as const
+/**
+ * Les maillages qui ne sont pas des formes : plaque, sérigraphie, pistes, bus, impulsions — dans
+ * cet ordre. ⭐ Les impulsions (P8-15e) sont UN `InstancedMesh` dont les matrices changent à
+ * chaque image (`pulses.ts`) : elles ne viennent pas de `instances`, mais comptent au budget.
+ */
+export const FIXED_MESHES = ['plate', 'silkscreen', 'traces', 'bus', 'pulses'] as const
 export type FixedMesh = (typeof FIXED_MESHES)[number]
 
 /** Le plafond de §9 sur ordinateur (P8-10). */

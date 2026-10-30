@@ -554,7 +554,7 @@ describe('drawCallBudget', () => {
   it('une seule liste de maillages, celle que buildBoard monte dans cet ordre', () => {
     const full = instances(real.plan, 'full')
     expect(boardMeshes(full)).toEqual([...FIXED_MESHES, ...SHAPES.filter((s) => full[s].count > 0)])
-    expect(FIXED_MESHES).toEqual(['plate', 'silkscreen', 'traces', 'bus'])
+    expect(FIXED_MESHES).toEqual(['plate', 'silkscreen', 'traces', 'bus', 'pulses'])
     expect(drawCallBudget(full)).toBe(boardMeshes(full).length)
     expect(boardMeshes(instances(real.plan, 'lite'))).not.toContain('resistors')
   })
