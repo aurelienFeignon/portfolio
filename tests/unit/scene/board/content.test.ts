@@ -4,7 +4,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { skillFrontmatterSchema } from '@/content/schemas/skill'
-import { SKILL_FAMILIES, toBoardContent, yearOf } from '@/scene/state/board/content'
+import { compareSlugs, SKILL_FAMILIES, toBoardContent, yearOf } from '@/scene/state/board/content'
 import {
   inflate,
   type Rect,
@@ -156,5 +156,15 @@ describe('les fixtures aux dimensions du contenu réel', () => {
     expect(s.projects).toHaveLength(1)
     expect(s.projects[0]?.technologies).toHaveLength(200)
     expect(new Set(s.skills.map((k) => k.family)).size).toBe(1)
+  })
+})
+
+describe('compareSlugs', () => {
+  it('ordonne par unités de code, égalité comprise', () => {
+    expect(compareSlugs('a', 'b')).toBe(-1)
+    expect(compareSlugs('b', 'a')).toBe(1)
+    expect(compareSlugs('a', 'a')).toBe(0)
+    // Majuscules avant minuscules : jamais l'ordre de la locale.
+    expect(['b', 'B', 'a'].sort(compareSlugs)).toEqual(['B', 'a', 'b'])
   })
 })

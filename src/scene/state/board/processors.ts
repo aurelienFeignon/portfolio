@@ -9,7 +9,7 @@
  * Module pur : ni `Date`, ni `Math.random`, ni Three.js. Il n'impose pas le
  * gate de contenu : zéro, un ou plusieurs projets `primary` sont tous admis.
  */
-import type { BoardProject } from './content'
+import { type BoardProject, compareSlugs } from './content'
 import { inflate, type Rect, rectOf, rectUnion, type Vec2 } from './rect'
 
 /** Côté du processeur principal (carré). */
@@ -49,8 +49,7 @@ export interface District {
   readonly bounds: Rect
 }
 
-const bySlug = (a: BoardProject, b: BoardProject): number =>
-  a.slug < b.slug ? -1 : a.slug > b.slug ? 1 : 0
+const bySlug = (a: BoardProject, b: BoardProject): number => compareSlugs(a.slug, b.slug)
 
 /**
  * Plus récent d'abord, puis par slug. Les `startedAt` sont des ISO de précision

@@ -5,6 +5,7 @@ import { type Rect, rectsOverlap } from '@/scene/state/board/rect'
 import {
   CHIP_GAP,
   chipDimensions,
+  DIRECTIONS,
   planZones,
   ZONE_GAP,
   ZONE_PADDING,
@@ -61,6 +62,13 @@ describe('chipDimensions', () => {
     for (const l of [1, 2, 3, 4, 5] as const) {
       expect(chipDimensions(l, 'uniform')).toEqual({ size: 0.9, height: 0.2 })
     }
+  })
+})
+
+describe('DIRECTIONS', () => {
+  it('une direction par famille au moins : `planZones` n’en manque jamais', () => {
+    expect(DIRECTIONS.length).toBeGreaterThanOrEqual(SKILL_FAMILIES.length)
+    expect(new Set(DIRECTIONS).size).toBe(DIRECTIONS.length)
   })
 })
 

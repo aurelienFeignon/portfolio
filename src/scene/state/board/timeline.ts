@@ -10,7 +10,7 @@
  * rangées s'empilent vers +Z à partir de `originZ`, et la voie `k` d'une rangée
  * est à `k × LANE_PITCH` de la voie 0.
  */
-import type { BoardExperience } from './content'
+import { type BoardExperience, compareSlugs } from './content'
 import type { Rect, Vec2 } from './rect'
 import { rectUnion } from './rect'
 import { TONES, type Tone } from '../layout'
@@ -50,6 +50,8 @@ export interface Timeline {
   readonly step: number
   readonly rows: number
   readonly lanes: number
+  /** Z de la voie 0 au début de la rangée 0 : l'origine du bus (`timelineOriginZ`). */
+  readonly originZ: number
   readonly segments: readonly BusSegment[]
   readonly idleYears: readonly number[]
   readonly jogs: readonly BusJog[]
@@ -234,7 +236,7 @@ export function planTimeline(
   originZ: number,
 ): Timeline {
   const sorted = [...experiences].sort(
-    (a, b) => a.startYear - b.startYear || Number(a.slug > b.slug) - Number(a.slug < b.slug),
+    (a, b) => a.startYear - b.startYear || compareSlugs(a.slug, b.slug),
   )
   const firstYear = sorted.length > 0 ? sorted[0]!.startYear : currentYear
   const lastYear = Math.max(
@@ -315,6 +317,7 @@ export function planTimeline(
     step,
     rows,
     lanes,
+    originZ,
     segments,
     idleYears,
     jogs,
@@ -336,15 +339,8 @@ export function planTimeline(
 
 /**
  * Le centre de la cellule de `year`, sur la ligne de la voie `lane`, rangée et
- * sens du lacet pris en compte. L'origine en Z se lit sur le début de la
- * voie 0 (`spine[0]`).
+ * sens du lacet pris en compte.
  */
 export function yearPoint(timeline: Timeline, year: number, lane: number): Vec2 {
-  return cellPoint(
-    year - timeline.firstYear,
-    lane,
-    timeline.step,
-    timeline.lanes,
-    timeline.spine[0]![1],
-  )
+  return cellPoint(year - timeline.firstYear, lane, timeline.step, timeline.lanes, timeline.originZ)
 }

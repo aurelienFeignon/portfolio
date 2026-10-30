@@ -7,7 +7,8 @@
  *
  * Module pur : ni `Date`, ni `Math.random`, ni Three.js.
  */
-import { SKILL_FAMILIES, type BoardSkill, type SkillFamily } from './content'
+import { SKILL_FAMILIES, type BoardSkill, compareSlugs, type SkillFamily } from './content'
+import { GRID } from './grid'
 import { type Rect, rectsOverlap, type Vec2 } from './rect'
 import { type Tone, TONES } from '../layout'
 
@@ -20,8 +21,6 @@ export const CHIP_GAP = 0.5
 /** Écart minimal entre deux zones, ou entre une zone et le quartier. */
 export const ZONE_GAP = 2
 
-/** Pas de la grille du routeur (tâche 5) : une zone recule par cellules de cette taille. */
-const GRID_STEP = 0.25
 /** Distance entre le bord arrière d'une zone et son étiquette. */
 const LABEL_MARGIN = 0.3
 /** Tolérance flottante : deux rectangles à `ZONE_GAP` exactement ne se recouvrent pas. */
@@ -67,8 +66,12 @@ export function chipDimensions(
 }
 
 type Direction = 'W' | 'E' | 'N' | 'NW' | 'NE'
-/** Ordre d'attribution : la zone la plus peuplée prend O, puis E, N, NO, NE. */
-const DIRECTIONS: readonly Direction[] = ['W', 'E', 'N', 'NW', 'NE']
+/**
+ * Ordre d'attribution : la zone la plus peuplée prend O, puis E, N, NO, NE.
+ * ⚠️ Une direction par famille (`DIRECTIONS[i]!` dans `planZones`) : un banc
+ * épingle `DIRECTIONS.length >= SKILL_FAMILIES.length`.
+ */
+export const DIRECTIONS: readonly Direction[] = ['W', 'E', 'N', 'NW', 'NE']
 
 /** Sens de recul d'une zone, vers l'extérieur du quartier. */
 const OUTWARD: Record<Direction, Vec2> = {
@@ -100,7 +103,7 @@ function shelve(
   const inner = ZONE_WIDTH - 2 * ZONE_PADDING
   const sorted = skills
     .map((s) => ({ slug: s.slug, ...chipDimensions(s.level, sizing) }))
-    .sort((a, b) => b.size - a.size || (a.slug < b.slug ? -1 : a.slug > b.slug ? 1 : 0))
+    .sort((a, b) => b.size - a.size || compareSlugs(a.slug, b.slug))
 
   const placed: Shelved[] = []
   let x = 0
@@ -124,8 +127,8 @@ function shelve(
 /** Le rectangle d'ancrage `k` cellules vers l'extérieur de la position de départ. */
 function anchored(dir: Direction, district: Rect, depth: number, k: number): Rect {
   const [ox, oz] = OUTWARD[dir]
-  const dx = ox * GRID_STEP * k
-  const dz = oz * GRID_STEP * k
+  const dx = ox * GRID * k
+  const dz = oz * GRID * k
   // O/E : bord avant aligné sur `district.maxZ` (jamais devant le bus), la zone
   // s'étend vers l'arrière. N/NO/NE : derrière le quartier.
   const front = dir === 'W' || dir === 'E' ? district.maxZ : district.minZ - ZONE_GAP

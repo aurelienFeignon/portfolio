@@ -14,7 +14,7 @@
  */
 import type { DensityTier } from '../layout'
 import { boardBounds, timelineOriginZ } from './bounds'
-import type { BoardContent } from './content'
+import { type BoardContent, compareSlugs } from './content'
 import { BOARD_DENSITY, type Passive, scatterPassives } from './passives'
 import { type District, planDistrict } from './processors'
 import type { Rect } from './rect'
@@ -42,8 +42,7 @@ export interface BoardPlan {
   readonly pulses: number
 }
 
-const bySlug = (a: { slug: string }, b: { slug: string }): number =>
-  a.slug < b.slug ? -1 : a.slug > b.slug ? 1 : 0
+const bySlug = (a: { slug: string }, b: { slug: string }): number => compareSlugs(a.slug, b.slug)
 
 /**
  * Assemble le plan : tri par slug → quartier → zones → frise (`originZ` devant

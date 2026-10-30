@@ -188,7 +188,7 @@ URL, tout le reste rend toujours 302.
 | Socle partagé | **127,1 Ko** | cible 136 · bloquant 146 |
 | **Chunk 3D différé** | **234,5 Ko** — somme des **deux** chunks porteurs, hors du chemin critique | cible 260 · bloquant 320 |
 | Image de production | **281 Mo** | cible 250 · bloquant 400 |
-| Tests | **1126** verts (2026-10-30, P8-14) ; couverture de `src/scene/state` remesurée le 2026-10-30 (P8-14) : instructions, fonctions et lignes **100 %**, branches **98,68 %** — les branches non prises sont les égalités de slug des comparateurs (`board/plan.ts:46`, `board/processors.ts:53`, `board/zones.ts:103`, slugs dupliqués) et `layout.ts:135`, le côté `placer(-1)` de `closeUp`, qu'aucun des trois univers ne prend (inatteignable sans changer leurs positions, depuis #58). Le chiffre global du dépôt n'a pas été relevé | ≥ 80 % |
+| Tests | **1130** verts (2026-10-30, P8-14) ; couverture de `src/scene/state` remesurée le 2026-10-30 (P8-14) : instructions, fonctions et lignes **100 %**, branches **98,68 %** (`board/` : **100 %** sur les quatre axes, depuis le comparateur unique `compareSlugs`) — la seule branche non prise est `layout.ts:135`, le côté `placer(-1)` de `closeUp`, qu'aucun des trois univers ne prend (inatteignable sans changer leurs positions, depuis #58). Le chiffre global du dépôt n'a pas été relevé | ≥ 80 % |
 | E2E | **153** verts sur 5 profils | — |
 | **Ce que le GPU rend** | **52 draw calls · 8 182 triangles** en desktop — la passe d'ombre incluse, soit **+73 %** sur les 4 114 de géométrie | ≤ 60 / ≤ 150 000 |
 
@@ -321,9 +321,10 @@ Les précédentes sont fusionnées et déployées : #80 (Phase 7), #81 (P8-12), 
 `src/scene/state/board/` (plan de carte, mesures en [`carte-mere.md`](./carte-mere.md) §11).
 **La suite immédiate : le plan 3/3, P8-15** (rendu et interactions), à écrire avec
 superpowers:writing-plans. Décisions qu'il doit poser : **D2** (taille des puces, `ChipSizing`),
-l'affichage des **ponts** (`Traces.vias`), l'**affinité** des emplacements de processeurs, et la
-**mesure de `planBoard` sous bridage CPU** contre TBT ≤ 200 ms (ou calcul hors du fil principal / au
-build). ⚠️ Le module applique son propre repli sans supposer le gate joué (aucun principal → le plus
+l'affichage des **ponts** (`Traces.vias`), l'**affinité** des emplacements de processeurs, **où
+calculer `planBoard`** (worker ou build : sur le contenu réel c'est une tâche longue, le fil
+principal est exclu), et le **décrochement d'employeur** à dessiner — tout est dans la liste
+« Reporté à P8-15 » et les mesures du contenu réel de §11 (chiffres une seule fois, là-bas). ⚠️ Le module applique son propre repli sans supposer le gate joué (aucun principal → le plus
 récent au centre).
 
 ✅ **Phase 6 close le 2026-10-27** : P6-07 et P6-10 (`phase-6-log.md` §11), P6-11 et P6-12 (§12).

@@ -258,24 +258,59 @@ pas.
 ### Mesuré par le constructeur (P8-14, 2026-10-30)
 
 Module `src/scene/state/board/`, tenu par les bancs de `tests/unit/scene/board/` ; les constantes
-sont des valeurs de départ, les bancs portent les invariants.
+sont des valeurs de départ, les bancs portent les invariants. ⚠️ Deux sortes de chiffres, à ne pas
+confondre : ceux des **bancs** (contenus fabriqués, épinglés par un test) et ceux du **contenu
+réel** (mesurés une fois, à date — aucun test ne lit `content/`).
 
-- **Mode de routage du contenu réel** (40 compétences, 3 projets de 31, 10 et 7 technologies,
-  2 expériences) : **bus de famille**. 48/48 liaisons routées, 2/2 liaisons au bus, 5 ponts. Avec
-  un projet de plus : 51/51, 3/3, 10 ponts. Contenu de stress (80 compétences, 20 projets,
-  20 ans) : 80/80, 20/20, 161 ponts.
-- **Seuil de bascule** : le mode direct tient jusqu'à 9 puces d'une même famille alimentant un
-  processeur ; la 10e bascule en bus de famille (épinglé par un banc).
-- ⭐ **Décision prise en cours d'exécution** : « aucun croisement » (§5) était plus strict que §2 et
-  impossible sur une seule couche (K3,3). Le routeur admet des **ponts** : une piste n'en croise une
-  autre qu'à 90°, en ligne droite sur une cellule, déclarée dans `Traces.vias` — la seconde couche
-  d'un vrai circuit imprimé. Zéro perte sur le contenu de stress dépend des coûts réglés
-  (`BRIDGE_COST` 4, `HUG_COST` 1).
+**Contenu réel** — `planBoard(toBoardContent(…))` sur le dépôt de contenu, `fr` et `en` (mêmes
+chiffres), mesuré le **2026-10-30, dans le conteneur, sans bridage** CPU, par un script jetable non
+versionné. 40 compétences, 3 projets, 2 expériences :
+
+| `chipSizing` | `currentYear` | mode         | liaisons | au bus | ponts | à chaud (médiane) | 1er appel du processus |
+| ------------ | ------------- | ------------ | -------- | ------ | ----- | ----------------- | ---------------------- |
+| `level`      | 2026          | bus de fam.  | 48/48    | 2/2    | 16    | ≈ 145–175 ms      | ≈ 275–325 ms           |
+| `uniform`    | 2026          | bus de fam.  | 48/48    | 2/2    | 19    | ≈ 130–200 ms      | —                      |
+| les deux     | 2027          | bus de fam.  | 48/48    | 2/2    | 12    | ≈ 75–115 ms       | —                      |
+
+- ⚠️ **La carte change de forme au 1er janvier** : `currentYear` allonge la frise d'une case, la
+  géométrie du bus bouge, et le nombre de ponts avec (16 → 12 en `level`). Ce n'est pas un défaut,
+  mais deux visites à cheval sur l'an ne voient pas la même carte.
+- Les extrêmes à chaud vont de ≈ 115 à ≈ 255 ms en 2026 (deux passes de sept appels par cas).
+
+**Bancs** (`tests/fixtures/builders/board.ts`, contenus **fabriqués** : `makeRealSizeBoard` copie
+les dimensions du contenu réel, pas ses correspondances technologie → compétence, d'où des ponts
+bien moins nombreux) :
+
+- `makeRealSizeBoard` : bus de famille, 48/48, 2/2, **5 ponts** (épinglé, `plan.test.ts`) ;
+  ≈ 16–28 ms à chaud. Avec un projet de plus (`realPlusOne`, `traces.test.ts`) : 51/51, 3/3.
+- `makeLargeBoard` (80 compétences, 20 projets, 20 ans) : 80/80, 20/20, **170 ponts** en `level`
+  (épinglé, `plan.test.ts`) ; ≈ 0,8–1 s à chaud.
+- **Capacité du mode direct** (banc `fan` de `traces.test.ts` : une seule zone, à l'ouest, de puces
+  de taille `uniform`, un seul processeur, aucun rattachement au bus) : 9 puces passent en direct,
+  la 10e bascule en bus de famille. C'est la capacité **de ce banc**, pas un seuil général : le
+  routeur bascule dès qu'une liaison échoue (§5, « quand les canaux ne tiennent plus »).
+
+**Décisions et lectures :**
+
+- ⭐ **Décision prise en cours d'exécution** : « aucun croisement » était un invariant **du plan**
+  (`plans/2026-10-30-carte-mere-2-plan-de-carte.md`), plus strict que §2 — qui ne rejette les
+  croisements qu'« au point de ne plus rien dire » — et impossible sur une seule couche (K3,3). Le
+  routeur admet des **ponts** : une piste n'en croise une autre qu'à 90°, en ligne droite sur une
+  cellule, déclarée dans `Traces.vias` — la seconde couche d'un vrai circuit imprimé. Zéro perte sur
+  le grand banc dépend des coûts réglés (`BRIDGE_COST` 4, `HUG_COST` 1).
 - **« Une piste par couple compétence–projet »** (§5) est tenue comme un lien **logique** : chaque
   `Link` est porté par au moins une `Route`. En bus de famille, plusieurs liens partagent un tronc.
-- **Coût** : `planBoard` sur le contenu réel ≈ 49 ms à chaud, 137 ms au premier appel (conteneur).
-  P8-15 doit le mesurer sous bridage CPU contre TBT ≤ 200 ms, ou le calculer hors du fil
-  principal / au build.
+- **Prise au bus** : une liaison au bus perce la voie de son poste **dans la case de son année**
+  (§5), quelle que soit la voie — tenu sur chaque liaison au bus des bancs de taille réelle et du
+  grand banc.
+- **Coût** : sur le contenu réel, `planBoard` est une **tâche longue** dès le conteneur non bridé
+  (tableau ci-dessus ; le banc de taille réelle, dix fois plus rapide, ne le laissait pas voir).
+  Une tâche longue compte au TBT pour ce qui dépasse 50 ms : non bridée, elle en coûte déjà près de
+  la moitié du budget TBT ≤ 200 ms ; sous un bridage CPU ×4, elle le dépasserait seule. ⇒ **P8-15
+  calcule le plan hors du fil principal (worker) ou au build** — le choix entre les deux est à
+  trancher dans P8-15 ; le calcul sur le fil principal est exclu.
 - **Reporté à P8-15** : l'affinité des emplacements (placer un projet du côté de sa zone dominante
-  réduirait les ponts) ; D2 tranche `ChipSizing` (`'level'` ou `'uniform'`, sans défaut) ; les
-  jetons `globals.css` pour ambre et sarcelle, et leurs contrastes (P8-08).
+  réduirait les ponts) ; D2 tranche `ChipSizing` (`'level'` ou `'uniform'`, sans défaut) ; le
+  **décrochement d'employeur** : un changement d'employeur sur une même voie (la voie 0 du contenu
+  réel) n'émet qu'un marqueur (`Timeline.jogs`), alors que §5 demande une marche à 45° **dessinée**
+  — P8-15 doit la tracer ; les jetons `globals.css` pour ambre et sarcelle, et leurs contrastes (P8-08).

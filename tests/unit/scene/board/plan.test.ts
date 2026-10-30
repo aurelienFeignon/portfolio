@@ -10,7 +10,7 @@ const inside = (b: Rect, [x, z]: Vec2) => x >= b.minX && x <= b.maxX && z >= b.m
 const within = (b: Rect, r: Rect) => inside(b, [r.minX, r.minZ]) && inside(b, [r.maxX, r.maxZ])
 
 describe('planBoard', () => {
-  it('BOARD_SEED est une graine fixe', { timeout: 30_000 }, () => {
+  it('BOARD_SEED est une graine fixe', () => {
     expect(BOARD_SEED).toBe(0x0b0a12d)
   })
 
@@ -24,20 +24,16 @@ describe('planBoard', () => {
     expect(planBoard(shuffled, options)).toEqual(planBoard(c, options))
   })
 
-  it(
-    'contenu creux : un plan valide, sans zone ni processeur, une frise éteinte',
-    { timeout: 30_000 },
-    () => {
-      const plan = planBoard({ skills: [], experiences: [], projects: [] }, options)
-      expect(plan.zones).toEqual([])
-      expect(plan.district.processors).toEqual([])
-      expect(plan.timeline.segments).toEqual([])
-      expect(plan.timeline.firstYear).toBe(2026)
-      expect(plan.timeline.lastYear).toBe(2026)
-      expect(plan.traces.routes).toEqual([])
-      expect(Number.isFinite(plan.bounds.minX)).toBe(true)
-    },
-  )
+  it('contenu creux : un plan valide, sans zone ni processeur, une frise éteinte', () => {
+    const plan = planBoard({ skills: [], experiences: [], projects: [] }, options)
+    expect(plan.zones).toEqual([])
+    expect(plan.district.processors).toEqual([])
+    expect(plan.timeline.segments).toEqual([])
+    expect(plan.timeline.firstYear).toBe(2026)
+    expect(plan.timeline.lastYear).toBe(2026)
+    expect(plan.traces.routes).toEqual([])
+    expect(Number.isFinite(plan.bounds.minX)).toBe(true)
+  })
 
   it('tout tient dans bounds, le bus est devant', { timeout: 30_000 }, () => {
     const c = makeRealSizeBoard()
@@ -54,6 +50,17 @@ describe('planBoard', () => {
       for (const p of r.points) expect(inside(plan.bounds, p)).toBe(true)
     for (const p of plan.passives) expect(inside(plan.bounds, p.center)).toBe(true)
   })
+
+  it(
+    'banc de taille réelle : bus de famille, 5 ponts (chiffre de §11)',
+    { timeout: 30_000 },
+    () => {
+      const plan = planBoard(makeRealSizeBoard(), options)
+      expect(plan.traces.mode).toBe('family-bus')
+      expect(plan.traces.unrouted).toEqual([])
+      expect(plan.traces.vias).toHaveLength(5)
+    },
+  )
 
   it('budgets recomptés depuis les données', { timeout: 30_000 }, () => {
     const c = makeRealSizeBoard()
@@ -119,13 +126,11 @@ describe('planBoard', () => {
     }
   })
 
-  it(
-    'grand contenu : passe, sans petit composant hors budget',
-    { timeout: 30_000 },
-    () => {
-      const plan = planBoard(makeLargeBoard(), options)
-      expect(plan.passives.length).toBeLessThanOrEqual(BOARD_DENSITY.full.passives)
-    },
-    30_000,
-  )
+  it('grand contenu : passe, sans petit composant hors budget', { timeout: 30_000 }, () => {
+    const plan = planBoard(makeLargeBoard(), options)
+    expect(plan.passives.length).toBeLessThanOrEqual(BOARD_DENSITY.full.passives)
+    // Épinglé : le chiffre que cite `carte-mere.md` §11 (bancs, pas contenu réel).
+    expect(plan.traces.mode).toBe('family-bus')
+    expect(plan.traces.vias).toHaveLength(170)
+  })
 })

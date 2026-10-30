@@ -13,6 +13,13 @@ describe('planTimeline', () => {
     expect(t.step * 6).toBeCloseTo(BUS_LENGTH)
   })
 
+  it('porte son origine en Z : la voie 0 y commence', () => {
+    const t = planTimeline([exp({ startYear: 2015, endYear: null })], 2026, 6.5)
+    expect(t.originZ).toBe(6.5)
+    expect(t.spine[0]![1]).toBe(6.5)
+    expect(yearPoint(t, 2015, 0)[1]).toBe(6.5)
+  })
+
   it('fait un lacet au-delà de 8 années, et un second au-delà de 16', () => {
     expect(planTimeline([exp({ startYear: 2015, endYear: null })], 2026, 6).rows).toBe(2)
     expect(planTimeline([exp({ startYear: 2005, endYear: null })], 2026, 6).rows).toBe(3)

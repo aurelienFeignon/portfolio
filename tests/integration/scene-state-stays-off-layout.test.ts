@@ -1,5 +1,8 @@
 /**
- * P6-02 — `scene-state.ts` ne tire pas `layout.ts`.
+ * P6-02 — `scene-state.ts` ne tire pas `layout.ts`. Depuis P8-14, le même
+ * graphe garde aussi `scene/state/board/` (le plan de carte) hors du chemin de
+ * première visite — dernier `describe`, avec son propre témoin. Le nom du
+ * fichier est resté celui de P6-02.
  *
  * ⭐⭐ **La règle de découpage de `src/scene/state` n'était gardée par rien.**
  * `resolveSceneState` sera lue depuis le chunk de première visite (P6-07), et le

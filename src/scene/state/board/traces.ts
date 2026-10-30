@@ -39,7 +39,7 @@
  * gate de contenu : une technologie inconnue, une expérience absente de la
  * frise ou une puce absente du plan sont écartées sans exception.
  */
-import { type BoardContent, yearOf } from './content'
+import { type BoardContent, compareSlugs, yearOf } from './content'
 import { type Bridge, type Cell, GRID, RoutingGrid, simplify } from './grid'
 import { choosePrimary, type District, type Processor } from './processors'
 import { inflate, type Rect, rectOf, type Vec2 } from './rect'
@@ -93,7 +93,7 @@ export interface Traces {
  * des lignes, la bande qui les englobe peut n'avoir aucune épaisseur (une
  * seule voie) — une cellule de chaque côté garde les pistes hors des fils.
  */
-const BUS_CLEARANCE = GRID
+const BUS_BAND_MARGIN = GRID
 /**
  * Retrait du rectangle bloqué d'un boîtier : un demi-pas. Une cellule n'est
  * alors bloquée que si son **centre** est dans le boîtier, d'où trois
@@ -120,14 +120,14 @@ const PAD_INSET = GRID / 2
  * puits d'une voie et celui de la suivante ne sont jamais adjacents.
  */
 const TAP_SHIFT = 2 * GRID
-
-const compare = (a: string, b: string): number => (a < b ? -1 : a > b ? 1 : 0)
+/** Tolérance flottante des bornes de case. */
+const EPSILON = 1e-9
 
 /** Le principal d'abord, puis par slug : l'ordre publié des projets. */
 function projectOrder(content: BoardContent) {
   const primary = choosePrimary(content.projects)
   return [...content.projects].sort((a, b) =>
-    a === primary ? -1 : b === primary ? 1 : compare(a.slug, b.slug),
+    a === primary ? -1 : b === primary ? 1 : compareSlugs(a.slug, b.slug),
   )
 }
 
@@ -141,7 +141,7 @@ export function listLinks(content: BoardContent): readonly Link[] {
   return projectOrder(content).flatMap((p) =>
     [...new Set(p.technologies)]
       .filter((t) => known.has(t))
-      .sort(compare)
+      .sort(compareSlugs)
       .map((skill) => ({ skill, project: p.slug })),
   )
 }
@@ -238,7 +238,7 @@ function freshGrid(board: Rect, endpoints: Endpoints, timeline: Timeline) {
     // Les pastilles d'un processeur restent aux pistes qui y arrivent ou en partent.
     grid.reserve(blockOf(processorRect(p)))
   }
-  grid.block(inflate(timeline.bounds, BUS_CLEARANCE))
+  grid.block(inflate(timeline.bounds, BUS_BAND_MARGIN))
   return grid
 }
 
@@ -270,9 +270,10 @@ function routeBusLinks(
   timeline: Timeline,
   board: Rect,
 ): { laid: Laid[]; failed: BusLink[] } {
-  const band = inflate(timeline.bounds, BUS_CLEARANCE)
+  const band = inflate(timeline.bounds, BUS_BAND_MARGIN)
   const top = grid.cellOf([0, band.minZ])[1]
   const reach = Math.floor((timeline.step / 2 - GRID) / GRID)
+  const halfCell = timeline.step / 2 - GRID / 2 + EPSILON
   const laid: Laid[] = []
   const failed: BusLink[] = []
   const tapOf = (bus: BusLink) => {
@@ -292,10 +293,13 @@ function routeBusLinks(
     const [x, z] = yearPoint(timeline, bus.year, segment.lane)
     const box = processorRect(endpoints.processors.get(bus.project)!)
     const free = (cell: Cell) => grid.occupant(cell) === null || grid.occupant(cell) === net
-    // Les colonnes candidates de la case : départ décalé par voie, ±`reach` cellules.
+    // Les colonnes candidates de la case : départ décalé par voie, ±`reach`
+    // cellules — et jamais hors de la case : le décalage par voie n'est gardé
+    // que là où il tient (une demi-cellule de marge pour le centre du puits).
     const shafts = new Map<number, Cell[]>()
     for (let k = -reach; k <= reach && z > board.minZ && z < board.maxZ; k += 1) {
       const cx = x + segment.lane * TAP_SHIFT + k * GRID
+      if (Math.abs(cx - x) > halfCell) continue
       if (cx <= board.minX || cx >= board.maxX) continue
       const [col, row] = grid.cellOf([cx, z])
       const shaft = Array.from({ length: row - top + 1 }, (_, i): Cell => [col, top + i])
@@ -327,7 +331,7 @@ function routeBusLinks(
 
 /** Les processeurs dans l'ordre de routage : le principal, puis par slug. */
 function processorOrder(endpoints: Endpoints): Processor[] {
-  const bySlug = [...endpoints.processors.values()].sort((a, b) => compare(a.slug, b.slug))
+  const bySlug = [...endpoints.processors.values()].sort((a, b) => compareSlugs(a.slug, b.slug))
   return [...bySlug.filter((p) => p.primary), ...bySlug.filter((p) => !p.primary)]
 }
 
@@ -353,7 +357,7 @@ function routeDirect(
       .filter((l) => l.project === processor.slug)
       .map((l) => ({ link: l, chip: endpoints.chips.get(l.skill)! }))
       .map((e) => ({ ...e, angle: angleAround(processor.center, e.chip.center) }))
-      .sort((a, b) => a.angle - b.angle || compare(a.link.skill, b.link.skill))
+      .sort((a, b) => a.angle - b.angle || compareSlugs(a.link.skill, b.link.skill))
     for (const { link, chip } of mine) {
       const net = `chip:${link.skill}`
       const cells = grid.route(
@@ -426,7 +430,7 @@ function routeFamilyBus(
   }))
 
   for (const g of groups) {
-    for (const skill of [...new Set(g.links.map((l) => l.skill))].sort(compare)) {
+    for (const skill of [...new Set(g.links.map((l) => l.skill))].sort(compareSlugs)) {
       const chip = endpoints.chips.get(skill)!
       const found = route(g.net, grid.pads(blockOf(chip.box), g.net), [g.exit])
       if (found === null) continue

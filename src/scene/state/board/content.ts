@@ -50,6 +50,12 @@ export interface BoardContent {
   readonly projects: readonly BoardProject[]
 }
 
+/**
+ * L'ordre des slugs, par unités de code (jamais `localeCompare`, qui dépend de
+ * l'environnement) : le seul comparateur de chaînes du plan de carte.
+ */
+export const compareSlugs = (a: string, b: string): number => (a < b ? -1 : a > b ? 1 : 0)
+
 /** L'année d'une date ISO, à toute précision. */
 export const yearOf = (isoDate: string): number => Number.parseInt(isoDate.slice(0, 4), 10)
 
