@@ -16,6 +16,7 @@ import { render, screen } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { SceneBoundary } from '@/scene/components/scene-boundary'
+import { StaleBoardFileError } from '@/scene/state/board-render/stale-board-file-error'
 
 function Explose(): never {
   throw new Error('la scène a échoué')
@@ -73,6 +74,24 @@ describe('frontière d’erreur de la scène', () => {
     render(
       <SceneBoundary onFailure={onFailure}>
         <ChunkAbsent />
+      </SceneBoundary>,
+    )
+
+    expect(onFailure).toHaveBeenCalledWith('chunk')
+  })
+
+  it('⭐ range un plan de carte périmé en `chunk`, comme un chunk introuvable', () => {
+    // Un JSON d'un autre déploiement servi à une page restée ouverte : même cause,
+    // même classement. Reconnu par son type — il ne porte plus le nom de Turbopack.
+    const onFailure = vi.fn()
+
+    function PlanPerime(): never {
+      throw new StaleBoardFileError('Plan de carte d’une autre version du format')
+    }
+
+    render(
+      <SceneBoundary onFailure={onFailure}>
+        <PlanPerime />
       </SceneBoundary>,
     )
 
