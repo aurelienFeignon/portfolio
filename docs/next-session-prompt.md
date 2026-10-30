@@ -184,15 +184,14 @@ URL, tout le reste rend toujours 302.
 
 | Relevé | Valeur | Seuil |
 |---|---|---|
-| JS propre à chaque route | **14,4 Ko** — le seul JavaScript applicatif du site | cible 25 · bloquant 40 |
-| Socle partagé | **128,7 Ko** | cible 136 · bloquant 146 |
-| **Chunk 3D différé** | **249,0 Ko** (2026-10-30, P8-15i) — somme des **deux** chunks porteurs, hors du chemin critique | cible 260 · bloquant 320 |
+| Chunk 3D, socle partagé, JS par route | chiffres courants en **un seul endroit** : [`performance-budget.md`](./performance-budget.md) §4.5 | — |
 | Image de production | **281 Mo** | cible 250 · bloquant 400 |
 | Tests | **1130** verts (2026-10-30, P8-14) ; couverture de `src/scene/state` remesurée le 2026-10-30 (P8-14) : instructions, fonctions et lignes **100 %**, branches **98,68 %** (`board/` : **100 %** sur les quatre axes, depuis le comparateur unique `compareSlugs`) — la seule branche non prise est `layout.ts:135`, le côté `placer(-1)` de `closeUp`, qu'aucun des trois univers ne prend (inatteignable sans changer leurs positions, depuis #58). Le chiffre global du dépôt n'a pas été relevé | ≥ 80 % |
 | E2E | **153** verts sur 5 profils | — |
-| **Ce que le GPU rend** | **52 draw calls · 8 182 triangles** en desktop — la passe d'ombre incluse, soit **+73 %** sur les 4 114 de géométrie | ≤ 60 / ≤ 150 000 |
+| **Ce que le GPU rend** | ⚠️ dernier relevé = **NEXUS, 2026-08-25** (52 draw calls · 8 182 triangles, passe d'ombre incluse) ; **à remesurer par l'utilisateur sur la carte mère** (`carte-mere.md` §12.5) | ≤ 60 / ≤ 150 000 |
 
-⚠️ **Relevés du 2026-08-25, à la clôture de la Phase 5**, tous remesurés ce jour-là dans le même
+⚠️ **Relevés historiques du 2026-08-25 (Phase 5)** — les chiffres de bundle ont été refaits le
+2026-10-30 (voir ci-dessus), les 127,1 / 11,0 / 234,5 qui suivent sont **datés** ; tous remesurés ce jour-là dans le même
 conteneur et par le même geste (`gzip -9`). L'image de production est vérifiée par
 `make check-image-size`, les tests par `pnpm vitest run`.
 ⭐ **Trois lignes ont été remesurées le 2026-08-26 (P6-01 puis P6-03) puis le 2026-10-11 (P6-02)** :
@@ -202,7 +201,7 @@ rien d'autre que ce qui est écrit : **aucun des trois modules n'a encore d'appe
 n'entre dans un chunk.
 
 ⛔⛔ **Le chunk 3D n'est plus UN chunk depuis P5-08** : l'import dynamique du panneau l'a scindé en
-deux (225,4 + 9,1 Ko). Les 234,5 ci-dessus sont leur somme, mesurée à la clôture de la phase. Les
+deux (225,4 + 9,1 Ko). Les 234,5 d'alors étaient leur somme, mesurée à la clôture de la phase 5. Les
 relevés antérieurs — 226, 229, 230,0, 230,8 — comptaient **un seul fichier** : ils ne se comparent
 pas à celui-ci, et une « dérive de 4 Ko » lue entre eux serait un artefact de méthode.
 ⭐ Le garde de P5-09 énumère les chunks porteurs à chaque build : c'est lui qui dit combien il y en a,
@@ -430,7 +429,7 @@ elle a été prise dans le rig. Conservé pour l'historique de l'arbitrage, pas 
 ressorts. `docs/adr/README.md` la réserve « parce qu'elle dépend du **ressenti réel**, non prévisible
 sur le papier » : ⛔ **ne la tranche donc pas sur le papier.** Pose-la comme une liste de choix avec
 un défaut recommandé, **au moment où elle naît**, et ce que chaque option coûte en octets dans le
-chunk 3D (seuil 320 Ko, 234,5 aujourd'hui) **mesuré**, pas estimé. CT-08 s'applique : problème /
+chunk 3D (seuil 350 Ko, chiffre courant en `performance-budget.md` §4.5) **mesuré**, pas estimé. CT-08 s'applique : problème /
 adéquation / alternatives / arbitrage.
 ⚠️ **Ce que l'option retenue doit permettre, et qui est déjà écrit** : l'**interruption** d'une
 transition en cours (P6-04), le `fov` **interpolé avec la position** puis passé par `fovForAspect`,

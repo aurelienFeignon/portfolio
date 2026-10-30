@@ -131,11 +131,28 @@ const porteursDuPlan = tousLesChunks.filter(
 if (porteursDuPlan.length === 0) {
   console.error(
     `✗ Témoin absent : aucun chunk ne porte \`src/scene/generated/board-plan.*.json\`.\n` +
-      `  Le plan de la carte mère devrait être embarqué dans le chunk 3D ; sans lui ce garde\n` +
+      `  Le plan de la carte mère devrait figurer dans un chunk différé à part (un par locale) ; sans lui ce garde\n` +
       `  ne sait pas distinguer un plan absent d'un instrument aveugle (\`make board\` fait ?).`,
   )
   process.exit(1)
 }
+// ⭐ Témoin de FORME pour le motif du module pur : une source réelle de `board-render/` (même
+// dossier parent, mêmes préfixes `turbopack:///[project]/`) doit, une fois son segment changé en
+// `board/`, être reconnue — sinon le motif ne sait pas lire les chemins de CE bundler.
+const exempleRender = tousLesChunks
+  .flatMap((a) => a.sources)
+  .find((x) => x.includes('/state/board-render/'))
+if (
+  exempleRender === undefined ||
+  sourcesModulePlanPur([exempleRender.replace('/board-render/', '/board/')]).length === 0
+) {
+  console.error(
+    `✗ Témoin absent : le motif de \`scene/state/board/\` ne reconnaît pas la forme des chemins du\n` +
+      `  bundle (exemple lu : ${exempleRender ?? 'aucune source board-render/'}).`,
+  )
+  process.exit(1)
+}
+
 console.log(
   `Témoin du plan : ${porteursDuPlan.map((p) => p.script).join(', ')} ` +
     `(${sourcesPlanGenere(porteursDuPlan.flatMap((p) => p.sources)).length} fichier(s) généré(s)).`,
@@ -184,6 +201,8 @@ console.log(`\nPremière visite : ${analyses.length} script(s) distinct(s) exami
 
 const sansMap = analyses.filter((analyse) => analyse.parRepli)
 if (sansMap.length > 0) {
+  // ⚠️ Sans map, les contrôles du PLAN (generated/, board/) sont aveugles : seul le repli `three`
+  // s'applique. C'est le cas des scripts `nomodule`, qui ne sont pas le chemin des navigateurs modernes.
   // ⭐ Une limite d'instrument s'affiche, elle ne se tait pas : ces scripts-là
   // sont jugés sur une chaîne, pas sur leur graphe.
   console.log(
@@ -212,7 +231,7 @@ if (avecPlan.length > 0) {
   console.error(
     `\n✗ Le plan de la carte mère (\`src/scene/generated/\`) est chargé à la PREMIÈRE VISITE :\n` +
       avecPlan.map((a) => `  ${a.script}`).join('\n') +
-      `\n\n  Il ne doit être lu que depuis le chunk 3D, par import dynamique après idle.`,
+      `\n\n  Il ne doit être lu que par import dynamique, après idle, depuis le chunk 3D.`,
   )
   process.exit(1)
 }
