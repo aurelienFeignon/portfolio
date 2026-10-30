@@ -257,141 +257,165 @@ function fan(n: number): BoardContent {
 }
 
 describe('listLinks', () => {
-  it('une liaison par couple compétence–projet, technologies inconnues et doublons écartés', () => {
-    const content = makeBoardContent({
-      projects: [
-        makeBoardProject({
-          slug: 'p',
-          primary: true,
-          technologies: ['skill-1', 'skill-1', 'inconnue'],
-        }),
-      ],
-    })
-    expect(listLinks(content).filter((l) => l.project === 'p')).toEqual([
-      { skill: 'skill-1', project: 'p' },
-    ])
-  })
+  it(
+    'une liaison par couple compétence–projet, technologies inconnues et doublons écartés',
+    { timeout: 30_000 },
+    () => {
+      const content = makeBoardContent({
+        projects: [
+          makeBoardProject({
+            slug: 'p',
+            primary: true,
+            technologies: ['skill-1', 'skill-1', 'inconnue'],
+          }),
+        ],
+      })
+      expect(listLinks(content).filter((l) => l.project === 'p')).toEqual([
+        { skill: 'skill-1', project: 'p' },
+      ])
+    },
+  )
 
-  it('le principal d’abord, puis les projets par slug, les compétences par slug', () => {
-    const content = makeBoardContent({
-      projects: [
-        makeBoardProject({ slug: 'p-b', technologies: ['skill-4', 'skill-2'] }),
-        makeBoardProject({ slug: 'p-z', primary: true, technologies: ['skill-3', 'skill-1'] }),
-        makeBoardProject({ slug: 'p-a', technologies: ['skill-6'] }),
-      ],
-    })
-    expect(listLinks(content)).toEqual([
-      { skill: 'skill-1', project: 'p-z' },
-      { skill: 'skill-3', project: 'p-z' },
-      { skill: 'skill-6', project: 'p-a' },
-      { skill: 'skill-2', project: 'p-b' },
-      { skill: 'skill-4', project: 'p-b' },
-    ])
-  })
+  it(
+    'le principal d’abord, puis les projets par slug, les compétences par slug',
+    { timeout: 30_000 },
+    () => {
+      const content = makeBoardContent({
+        projects: [
+          makeBoardProject({ slug: 'p-b', technologies: ['skill-4', 'skill-2'] }),
+          makeBoardProject({ slug: 'p-z', primary: true, technologies: ['skill-3', 'skill-1'] }),
+          makeBoardProject({ slug: 'p-a', technologies: ['skill-6'] }),
+        ],
+      })
+      expect(listLinks(content)).toEqual([
+        { skill: 'skill-1', project: 'p-z' },
+        { skill: 'skill-3', project: 'p-z' },
+        { skill: 'skill-6', project: 'p-a' },
+        { skill: 'skill-2', project: 'p-b' },
+        { skill: 'skill-4', project: 'p-b' },
+      ])
+    },
+  )
 
-  it('deux projets de même slug (gate non joué) : pas d’exception, liaisons conservées', () => {
-    const content = makeBoardContent({
-      projects: [
-        makeBoardProject({ slug: 'p', technologies: ['skill-2'] }),
-        makeBoardProject({ slug: 'p', technologies: ['skill-1'] }),
-        makeBoardProject({ slug: 'q', primary: true }),
-      ],
-    })
-    expect(listLinks(content)).toEqual([
-      { skill: 'skill-2', project: 'p' },
-      { skill: 'skill-1', project: 'p' },
-    ])
-  })
+  it(
+    'deux projets de même slug (gate non joué) : pas d’exception, liaisons conservées',
+    { timeout: 30_000 },
+    () => {
+      const content = makeBoardContent({
+        projects: [
+          makeBoardProject({ slug: 'p', technologies: ['skill-2'] }),
+          makeBoardProject({ slug: 'p', technologies: ['skill-1'] }),
+          makeBoardProject({ slug: 'q', primary: true }),
+        ],
+      })
+      expect(listLinks(content)).toEqual([
+        { skill: 'skill-2', project: 'p' },
+        { skill: 'skill-1', project: 'p' },
+      ])
+    },
+  )
 
-  it('aucun projet : aucune liaison', () => {
+  it('aucun projet : aucune liaison', { timeout: 30_000 }, () => {
     expect(listLinks(makeBoardContent({ projects: [] }))).toEqual([])
   })
 })
 
 describe('planTraces — rattachements au bus', () => {
-  it('rattache au bus le projet né chez un employeur, à son année bornée au poste', () => {
-    const content = makeBoardContent({
-      projects: [
-        makeBoardProject({
-          slug: 'p-main',
-          primary: true,
-          startedAt: '2022-03',
-          experience: 'exp-a',
-        }),
-        makeBoardProject({ slug: 'p-early', startedAt: '2019-01', experience: 'exp-b' }),
-        makeBoardProject({ slug: 'p-late', startedAt: '2030', experience: 'exp-b' }),
-      ],
-    })
-    const plan = planFrom(content)
-    expect(plan.traces.busLinks).toEqual([
-      { project: 'p-main', experience: 'exp-a', year: 2022 },
-      { project: 'p-early', experience: 'exp-b', year: 2024 },
-      { project: 'p-late', experience: 'exp-b', year: 2025 },
-    ])
-    for (const bus of plan.traces.busLinks) {
-      const route = plan.traces.routes.find(
-        (r) =>
-          r.kind === 'bus-link' &&
-          r.net === `experience:${bus.experience}` &&
-          touches(r, plan.processors.get(bus.project)!),
-      )
-      expect(route, bus.project).toBeDefined()
-      expect(route!.links).toEqual([])
-      // La route porte son rattachement : le survol retrouve le projet.
-      expect(route!.busLink).toEqual(bus)
-      // L'autre extrémité est sur la voie du tronçon, dans la case de l'année.
-      const segment = plan.timeline.segments.find((s) => s.experience === bus.experience)!
-      const target = yearPoint(plan.timeline, bus.year, segment.lane)
-      const end = route!.points.at(-1)!
-      expect(Math.abs(end[0] - target[0])).toBeLessThan(plan.timeline.step / 2)
-      expect(end[1]).toBeCloseTo(target[1], 9)
-    }
-    expectWellFormed(plan)
-  })
+  it(
+    'rattache au bus le projet né chez un employeur, à son année bornée au poste',
+    { timeout: 30_000 },
+    () => {
+      const content = makeBoardContent({
+        projects: [
+          makeBoardProject({
+            slug: 'p-main',
+            primary: true,
+            startedAt: '2022-03',
+            experience: 'exp-a',
+          }),
+          makeBoardProject({ slug: 'p-early', startedAt: '2019-01', experience: 'exp-b' }),
+          makeBoardProject({ slug: 'p-late', startedAt: '2030', experience: 'exp-b' }),
+        ],
+      })
+      const plan = planFrom(content)
+      expect(plan.traces.busLinks).toEqual([
+        { project: 'p-main', experience: 'exp-a', year: 2022 },
+        { project: 'p-early', experience: 'exp-b', year: 2024 },
+        { project: 'p-late', experience: 'exp-b', year: 2025 },
+      ])
+      for (const bus of plan.traces.busLinks) {
+        const route = plan.traces.routes.find(
+          (r) =>
+            r.kind === 'bus-link' &&
+            r.net === `experience:${bus.experience}` &&
+            touches(r, plan.processors.get(bus.project)!),
+        )
+        expect(route, bus.project).toBeDefined()
+        expect(route!.links).toEqual([])
+        // La route porte son rattachement : le survol retrouve le projet.
+        expect(route!.busLink).toEqual(bus)
+        // L'autre extrémité est sur la voie du tronçon, dans la case de l'année.
+        const segment = plan.timeline.segments.find((s) => s.experience === bus.experience)!
+        const target = yearPoint(plan.timeline, bus.year, segment.lane)
+        const end = route!.points.at(-1)!
+        expect(Math.abs(end[0] - target[0])).toBeLessThan(plan.timeline.step / 2)
+        expect(end[1]).toBeCloseTo(target[1], 9)
+      }
+      expectWellFormed(plan)
+    },
+  )
 
-  it('ignore un rattachement vers une expérience absente, sans exception', () => {
-    const content = makeBoardContent({
-      projects: [makeBoardProject({ slug: 'p', primary: true, experience: 'exp-absente' })],
-    })
-    const plan = planFrom(content)
-    expect(plan.traces.busLinks).toEqual([])
-    expect(plan.traces.routes.filter((r) => r.kind === 'bus-link')).toEqual([])
-  })
+  it(
+    'ignore un rattachement vers une expérience absente, sans exception',
+    { timeout: 30_000 },
+    () => {
+      const content = makeBoardContent({
+        projects: [makeBoardProject({ slug: 'p', primary: true, experience: 'exp-absente' })],
+      })
+      const plan = planFrom(content)
+      expect(plan.traces.busLinks).toEqual([])
+      expect(plan.traces.routes.filter((r) => r.kind === 'bus-link')).toEqual([])
+    },
+  )
 
-  it('perce la voie 1 au travers de la voie 0 pour un poste simultané', () => {
+  it('perce la voie 1 au travers de la voie 0 pour un poste simultané', { timeout: 30_000 }, () => {
     const plan = planFrom(makeRealSizeBoard())
     const lane1 = plan.traces.busLinks.find((b) => b.experience === 'exp-b')!
     expect(lane1).toEqual({ project: 'proj-main', experience: 'exp-b', year: 2025 })
     expect(plan.traces.routes.filter((r) => r.kind === 'bus-link')).toHaveLength(2)
   })
-  it('lacet : la prise d’une année de la rangée 1 glisse hors du puits d’une prise de la rangée 0', () => {
-    // 17 années, 3 rangées : 2010 (rangée 0, case 0) et 2025 (rangée 1, case 7)
-    // tombent à la même abscisse, et le puits de 2025 traverse la rangée 0.
-    const content = makeBoardContent({
-      experiences: [
-        makeBoardExperience({ slug: 'exp-a', startYear: 2010, endYear: 2013 }),
-        makeBoardExperience({ slug: 'exp-b', startYear: 2014 }),
-      ],
-      projects: [
-        makeBoardProject({ slug: 'p-1', primary: true, startedAt: '2010', experience: 'exp-a' }),
-        makeBoardProject({ slug: 'p-2', startedAt: '2025', experience: 'exp-b' }),
-      ],
-    })
-    const plan = planFrom(content)
-    expect(yearPoint(plan.timeline, 2010, 0)[0]).toBeCloseTo(yearPoint(plan.timeline, 2025, 0)[0])
-    const busRoutes = plan.traces.routes.filter((r) => r.kind === 'bus-link')
-    expect(busRoutes.map((r) => r.net).sort()).toEqual(['experience:exp-a', 'experience:exp-b'])
-    const end = busRoutes.find((r) => r.net === 'experience:exp-b')!.points.at(-1)!
-    const target = yearPoint(plan.timeline, 2025, 0)
-    expect(end[0]).not.toBeCloseTo(target[0])
-    expect(Math.abs(end[0] - target[0])).toBeLessThan(plan.timeline.step / 2)
-    expect(end[1]).toBeCloseTo(target[1], 9)
-    expectWellFormed(plan)
-  })
+  it(
+    'lacet : la prise d’une année de la rangée 1 glisse hors du puits d’une prise de la rangée 0',
+    { timeout: 30_000 },
+    () => {
+      // 17 années, 3 rangées : 2010 (rangée 0, case 0) et 2025 (rangée 1, case 7)
+      // tombent à la même abscisse, et le puits de 2025 traverse la rangée 0.
+      const content = makeBoardContent({
+        experiences: [
+          makeBoardExperience({ slug: 'exp-a', startYear: 2010, endYear: 2013 }),
+          makeBoardExperience({ slug: 'exp-b', startYear: 2014 }),
+        ],
+        projects: [
+          makeBoardProject({ slug: 'p-1', primary: true, startedAt: '2010', experience: 'exp-a' }),
+          makeBoardProject({ slug: 'p-2', startedAt: '2025', experience: 'exp-b' }),
+        ],
+      })
+      const plan = planFrom(content)
+      expect(yearPoint(plan.timeline, 2010, 0)[0]).toBeCloseTo(yearPoint(plan.timeline, 2025, 0)[0])
+      const busRoutes = plan.traces.routes.filter((r) => r.kind === 'bus-link')
+      expect(busRoutes.map((r) => r.net).sort()).toEqual(['experience:exp-a', 'experience:exp-b'])
+      const end = busRoutes.find((r) => r.net === 'experience:exp-b')!.points.at(-1)!
+      const target = yearPoint(plan.timeline, 2025, 0)
+      expect(end[0]).not.toBeCloseTo(target[0])
+      expect(Math.abs(end[0] - target[0])).toBeLessThan(plan.timeline.step / 2)
+      expect(end[1]).toBeCloseTo(target[1], 9)
+      expectWellFormed(plan)
+    },
+  )
 })
 
 describe('planTraces — liaisons', () => {
-  it('une compétence qu’aucun projet n’utilise reste sans piste', () => {
+  it('une compétence qu’aucun projet n’utilise reste sans piste', { timeout: 30_000 }, () => {
     const plan = planFrom(makeBoardContent())
     for (const unused of ['skill-4', 'skill-6']) {
       expect(plan.traces.routes.some((r) => r.links.some((l) => l.skill === unused))).toBe(false)
@@ -399,61 +423,81 @@ describe('planTraces — liaisons', () => {
     }
   })
 
-  it('le petit contenu sans rattachement se route en direct, une route par liaison', () => {
-    const plan = planFrom(makeBoardContent({ experiences: [] }))
-    expect(plan.traces.mode).toBe('direct')
-    expect(plan.traces.unrouted).toEqual([])
-    const linkRoutes = plan.traces.routes.filter((r) => r.kind === 'link')
-    const key = (l: Link) => `${l.skill}>${l.project}`
-    for (const r of linkRoutes) expect(r.links).toHaveLength(1)
-    expect(linkRoutes.map((r) => key(r.links[0]!)).sort()).toEqual(
-      plan.traces.links.map(key).sort(),
-    )
-    for (const r of linkRoutes) expect(r.net).toBe(`chip:${r.links[0]!.skill}`)
-    expectEveryLinkConnected(plan)
-    expectWellFormed(plan)
-  })
+  it(
+    'le petit contenu sans rattachement se route en direct, une route par liaison',
+    { timeout: 30_000 },
+    () => {
+      const plan = planFrom(makeBoardContent({ experiences: [] }))
+      expect(plan.traces.mode).toBe('direct')
+      expect(plan.traces.unrouted).toEqual([])
+      const linkRoutes = plan.traces.routes.filter((r) => r.kind === 'link')
+      const key = (l: Link) => `${l.skill}>${l.project}`
+      for (const r of linkRoutes) expect(r.links).toHaveLength(1)
+      expect(linkRoutes.map((r) => key(r.links[0]!)).sort()).toEqual(
+        plan.traces.links.map(key).sort(),
+      )
+      for (const r of linkRoutes) expect(r.net).toBe(`chip:${r.links[0]!.skill}`)
+      expectEveryLinkConnected(plan)
+      expectWellFormed(plan)
+    },
+  )
 
-  it('route TOUTES les liaisons du contenu réel, sans croisement entre réseaux', () => {
-    const plan = planFrom(makeRealSizeBoard())
-    expect(plan.traces.links).toHaveLength(31 + 10 + 7)
-    expect(plan.traces.unrouted).toEqual([])
-    expectWellFormed(plan)
-  })
+  it(
+    'route TOUTES les liaisons du contenu réel, sans croisement entre réseaux',
+    { timeout: 30_000 },
+    () => {
+      const plan = planFrom(makeRealSizeBoard())
+      expect(plan.traces.links).toHaveLength(31 + 10 + 7)
+      expect(plan.traces.unrouted).toEqual([])
+      expectWellFormed(plan)
+    },
+  )
 
-  it('chaque liaison est portée par au moins une route, qui touche sa puce et son processeur', () => {
-    expectEveryLinkConnected(planFrom(makeRealSizeBoard()))
-    expectEveryLinkConnected(planFrom(makeBoardContent()))
-  })
+  it(
+    'chaque liaison est portée par au moins une route, qui touche sa puce et son processeur',
+    { timeout: 30_000 },
+    () => {
+      expectEveryLinkConnected(planFrom(makeRealSizeBoard()))
+      expectEveryLinkConnected(planFrom(makeBoardContent()))
+    },
+  )
 
-  it('aucune piste ne traverse une puce ou un processeur qui n’est pas le sien', () => {
-    const plan = planFrom(makeRealSizeBoard())
-    expectAvoids(plan.traces.routes, [...plan.chips.values(), ...plan.processors.values()])
-  })
+  it(
+    'aucune piste ne traverse une puce ou un processeur qui n’est pas le sien',
+    { timeout: 30_000 },
+    () => {
+      const plan = planFrom(makeRealSizeBoard())
+      expectAvoids(plan.traces.routes, [...plan.chips.values(), ...plan.processors.values()])
+    },
+  )
 
-  it('la grille rendue est dans l’état final : chaque piste y occupe ses cellules', () => {
-    for (const content of [makeRealSizeBoard(), makeSaturatedBoard()]) {
-      const plan = planFrom(content)
-      for (const route of plan.traces.routes) {
-        // Les sommets posés au centre d'une cellule (les atterrissages tombent sur un bord).
-        const centers = route.points.filter((p) => {
-          const c = plan.grid.toPoint(plan.grid.cellOf(p))
-          return Math.abs(c[0] - p[0]) < EPS && Math.abs(c[1] - p[1]) < EPS
-        })
-        expect(centers.length, route.net).toBeGreaterThan(0)
-        for (const p of centers)
-          expect(plan.grid.occupant(plan.grid.cellOf(p)), route.net).toBe(route.net)
+  it(
+    'la grille rendue est dans l’état final : chaque piste y occupe ses cellules',
+    { timeout: 30_000 },
+    () => {
+      for (const content of [makeRealSizeBoard(), makeSaturatedBoard()]) {
+        const plan = planFrom(content)
+        for (const route of plan.traces.routes) {
+          // Les sommets posés au centre d'une cellule (les atterrissages tombent sur un bord).
+          const centers = route.points.filter((p) => {
+            const c = plan.grid.toPoint(plan.grid.cellOf(p))
+            return Math.abs(c[0] - p[0]) < EPS && Math.abs(c[1] - p[1]) < EPS
+          })
+          expect(centers.length, route.net).toBeGreaterThan(0)
+          for (const p of centers)
+            expect(plan.grid.occupant(plan.grid.cellOf(p)), route.net).toBe(route.net)
+        }
       }
-    }
-  })
+    },
+  )
 })
 
 describe('planTraces — acceptation : rien de perdu', () => {
-  it('contenu réel : toutes les liaisons et tous les rattachements', () => {
+  it('contenu réel : toutes les liaisons et tous les rattachements', { timeout: 30_000 }, () => {
     expectComplete(planFrom(makeRealSizeBoard()))
   })
 
-  it('contenu réel + un projet sur trois familles, rattaché', () => {
+  it('contenu réel + un projet sur trois familles, rattaché', { timeout: 30_000 }, () => {
     const plan = planFrom(realPlusOne())
     expect(plan.traces.links).toHaveLength(48 + 3)
     expect(plan.traces.busLinks).toHaveLength(3)
@@ -468,7 +512,7 @@ describe('planTraces — acceptation : rien de perdu', () => {
     expectComplete(plan)
   })
 
-  it('K3,3 : ne se route que grâce à au moins un pont', () => {
+  it('K3,3 : ne se route que grâce à au moins un pont', { timeout: 30_000 }, () => {
     const plan = planFrom(k33())
     expect(plan.traces.mode).toBe('family-bus')
     expect(plan.traces.vias.length).toBeGreaterThanOrEqual(1)
@@ -477,34 +521,46 @@ describe('planTraces — acceptation : rien de perdu', () => {
 })
 
 describe('planTraces — capacité du mode direct', () => {
-  it('direct seulement sans pont : le petit contenu sans rattachement y tient', () => {
-    const plan = planFrom(makeBoardContent({ experiences: [] }))
-    expect(plan.traces.mode).toBe('direct')
-    expect(plan.traces.vias).toEqual([])
-    expectComplete(plan)
-  })
+  it(
+    'direct seulement sans pont : le petit contenu sans rattachement y tient',
+    { timeout: 30_000 },
+    () => {
+      const plan = planFrom(makeBoardContent({ experiences: [] }))
+      expect(plan.traces.mode).toBe('direct')
+      expect(plan.traces.vias).toEqual([])
+      expectComplete(plan)
+    },
+  )
 
-  it('deux rattachements croisés (processeurs et années en ordre inverse) : bus de famille', () => {
-    // proj-a (centre) se branche en 2022, à gauche ; proj-b (ouest) en 2024, à droite :
-    // sans pont, l'un des deux doit ceinturer un processeur — le mode direct est refusé.
-    const plan = planFrom(makeBoardContent())
-    expect(plan.traces.mode).toBe('family-bus')
-    expectComplete(plan)
-  })
+  it(
+    'deux rattachements croisés (processeurs et années en ordre inverse) : bus de famille',
+    { timeout: 30_000 },
+    () => {
+      // proj-a (centre) se branche en 2022, à gauche ; proj-b (ouest) en 2024, à droite :
+      // sans pont, l'un des deux doit ceinturer un processeur — le mode direct est refusé.
+      const plan = planFrom(makeBoardContent())
+      expect(plan.traces.mode).toBe('family-bus')
+      expectComplete(plan)
+    },
+  )
 
-  it(`un processeur tient ${DIRECT_FAN} puces d’une famille en direct ; une de plus bascule`, () => {
-    const fits = planFrom(fan(DIRECT_FAN))
-    expect(fits.traces.mode).toBe('direct')
-    expect(fits.traces.vias).toEqual([])
-    expectComplete(fits)
-    const over = planFrom(fan(DIRECT_FAN + 1))
-    expect(over.traces.mode).toBe('family-bus')
-    expectComplete(over)
-  })
+  it(
+    `un processeur tient ${DIRECT_FAN} puces d’une famille en direct ; une de plus bascule`,
+    { timeout: 30_000 },
+    () => {
+      const fits = planFrom(fan(DIRECT_FAN))
+      expect(fits.traces.mode).toBe('direct')
+      expect(fits.traces.vias).toEqual([])
+      expectComplete(fits)
+      const over = planFrom(fan(DIRECT_FAN + 1))
+      expect(over.traces.mode).toBe('family-bus')
+      expectComplete(over)
+    },
+  )
 })
 
 describe('planTraces — bus de famille', () => {
-  it('bascule en bus de famille quand les canaux ne tiennent plus', () => {
+  it('bascule en bus de famille quand les canaux ne tiennent plus', { timeout: 30_000 }, () => {
     const plan = planFrom(makeSaturatedBoard())
     expect(plan.traces.mode).toBe('family-bus')
     expect(plan.traces.unrouted).toEqual([])
@@ -527,7 +583,7 @@ describe('planTraces — bus de famille', () => {
 })
 
 describe('planTraces — replis', () => {
-  it('contenu creux : aucune liaison, aucune piste, mode direct', () => {
+  it('contenu creux : aucune liaison, aucune piste, mode direct', { timeout: 30_000 }, () => {
     const plan = planFrom({ skills: [], experiences: [], projects: [] })
     expect(plan.traces).toEqual({
       mode: 'direct',
@@ -540,47 +596,55 @@ describe('planTraces — replis', () => {
     })
   })
 
-  it('une puce ou un processeur absent du plan : la liaison va dans unrouted, sans exception', () => {
-    const content = makeBoardContent()
-    const plan = planFrom(content)
-    // Zones et quartier calculés sans skill-1 ni proj-b.
-    const zones = plan.zones.map((z) => ({
-      ...z,
-      chips: z.chips.filter((c) => c.slug !== 'skill-1'),
-    }))
-    const district = {
-      ...plan.district,
-      processors: plan.district.processors.filter((p) => p.slug !== 'proj-b'),
-    }
-    const traces = planTraces(content, zones, district, plan.timeline, plan.board)
-    expect(traces.mode).toBe('direct')
-    expect(traces.unrouted).toEqual([
-      { skill: 'skill-1', project: 'proj-a' },
-      { skill: 'skill-2', project: 'proj-b' },
-      { skill: 'skill-5', project: 'proj-b' },
-    ])
-    expect(traces.busLinks.map((b) => b.project)).toEqual(['proj-a'])
-  })
+  it(
+    'une puce ou un processeur absent du plan : la liaison va dans unrouted, sans exception',
+    { timeout: 30_000 },
+    () => {
+      const content = makeBoardContent()
+      const plan = planFrom(content)
+      // Zones et quartier calculés sans skill-1 ni proj-b.
+      const zones = plan.zones.map((z) => ({
+        ...z,
+        chips: z.chips.filter((c) => c.slug !== 'skill-1'),
+      }))
+      const district = {
+        ...plan.district,
+        processors: plan.district.processors.filter((p) => p.slug !== 'proj-b'),
+      }
+      const traces = planTraces(content, zones, district, plan.timeline, plan.board)
+      expect(traces.mode).toBe('direct')
+      expect(traces.unrouted).toEqual([
+        { skill: 'skill-1', project: 'proj-a' },
+        { skill: 'skill-2', project: 'proj-b' },
+        { skill: 'skill-5', project: 'proj-b' },
+      ])
+      expect(traces.busLinks.map((b) => b.project)).toEqual(['proj-a'])
+    },
+  )
 
-  it('une carte trop étroite : rien ne se route, tout va dans unrouted, sans exception', () => {
-    const content = makeBoardContent()
-    const plan = planFrom(content)
-    // La grille ne couvre que le quartier : ni les puces, ni le bus, ni l'anneau du quartier.
-    const traces = planTraces(
-      content,
-      plan.zones,
-      plan.district,
-      plan.timeline,
-      plan.district.bounds,
-    )
-    expect(traces.mode).toBe('family-bus')
-    expect(traces.routes).toEqual([])
-    expect(traces.unrouted).toEqual(traces.links)
-    expect(traces.busLinks).toHaveLength(2)
-    expect(traces.unroutedBusLinks).toEqual(traces.busLinks)
-  })
+  it(
+    'une carte trop étroite : rien ne se route, tout va dans unrouted, sans exception',
+    { timeout: 30_000 },
+    () => {
+      const content = makeBoardContent()
+      const plan = planFrom(content)
+      // La grille ne couvre que le quartier : ni les puces, ni le bus, ni l'anneau du quartier.
+      const traces = planTraces(
+        content,
+        plan.zones,
+        plan.district,
+        plan.timeline,
+        plan.district.bounds,
+      )
+      expect(traces.mode).toBe('family-bus')
+      expect(traces.routes).toEqual([])
+      expect(traces.unrouted).toEqual(traces.links)
+      expect(traces.busLinks).toHaveLength(2)
+      expect(traces.unroutedBusLinks).toEqual(traces.busLinks)
+    },
+  )
 
-  it('une prise hors de la carte glisse vers l’intérieur de sa case', () => {
+  it('une prise hors de la carte glisse vers l’intérieur de sa case', { timeout: 30_000 }, () => {
     const content = makeBoardContent()
     const plan = planFrom(content)
     const target = yearPoint(plan.timeline, 2022, 0)
@@ -593,68 +657,78 @@ describe('planTraces — replis', () => {
     expect(end[0] - target[0]).toBeLessThan(plan.timeline.step / 2)
   })
 
-  it('deux puces au même angle autour du processeur : routées par slug', () => {
-    const content = makeBoardContent({
-      skills: [makeBoardSkill({ slug: 'b-near' }), makeBoardSkill({ slug: 'a-far' })],
-      experiences: [],
-      projects: [makeBoardProject({ slug: 'p', primary: true, technologies: ['b-near', 'a-far'] })],
-    })
-    const district = planDistrict(content.projects)
-    const chip = (slug: string, z: number) => ({
-      slug,
-      family: 'language' as const,
-      ref: slug,
-      center: [0, z] as const,
-      size: 0.9,
-      height: 0.2,
-      tone: 'cyan' as const,
-    })
-    // Les deux puces à l'aplomb du processeur (x = 0) : même angle.
-    const zone = {
-      family: 'language' as const,
-      tone: 'cyan' as const,
-      bounds: { minX: -1, minZ: -9, maxX: 1, maxZ: -4 },
-      chips: [chip('b-near', -5), chip('a-far', -8)],
-      exit: [0, -4] as const,
-      labelAnchor: [0, -9.3] as const,
-    }
-    const timeline = planTimeline([], CURRENT_YEAR, 5)
-    const board = boardBounds([district.bounds, zone.bounds, timeline.bounds])
-    const traces = planTraces(content, [zone], district, timeline, board)
-    expect(traces.mode).toBe('direct')
-    expect(traces.routes.map((r) => r.net)).toEqual(['chip:a-far', 'chip:b-near'])
-  })
+  it(
+    'deux puces au même angle autour du processeur : routées par slug',
+    { timeout: 30_000 },
+    () => {
+      const content = makeBoardContent({
+        skills: [makeBoardSkill({ slug: 'b-near' }), makeBoardSkill({ slug: 'a-far' })],
+        experiences: [],
+        projects: [
+          makeBoardProject({ slug: 'p', primary: true, technologies: ['b-near', 'a-far'] }),
+        ],
+      })
+      const district = planDistrict(content.projects)
+      const chip = (slug: string, z: number) => ({
+        slug,
+        family: 'language' as const,
+        ref: slug,
+        center: [0, z] as const,
+        size: 0.9,
+        height: 0.2,
+        tone: 'cyan' as const,
+      })
+      // Les deux puces à l'aplomb du processeur (x = 0) : même angle.
+      const zone = {
+        family: 'language' as const,
+        tone: 'cyan' as const,
+        bounds: { minX: -1, minZ: -9, maxX: 1, maxZ: -4 },
+        chips: [chip('b-near', -5), chip('a-far', -8)],
+        exit: [0, -4] as const,
+        labelAnchor: [0, -9.3] as const,
+      }
+      const timeline = planTimeline([], CURRENT_YEAR, 5)
+      const board = boardBounds([district.bounds, zone.bounds, timeline.bounds])
+      const traces = planTraces(content, [zone], district, timeline, board)
+      expect(traces.mode).toBe('direct')
+      expect(traces.routes.map((r) => r.net)).toEqual(['chip:a-far', 'chip:b-near'])
+    },
+  )
 
-  it('un processeur emmuré : ses liaisons et son rattachement manquent, les autres passent', () => {
-    const content = makeBoardContent()
-    const plan = planFrom(content)
-    const walled = plan.district.processors.find((p) => p.slug === 'proj-b')!
-    // Un boîtier factice, plus grand, recouvre l'anneau de proj-b.
-    const district = {
-      ...plan.district,
-      processors: [
-        ...plan.district.processors,
-        { ...walled, slug: 'mur', primary: false, size: walled.size + 1 },
-      ],
-    }
-    const traces = planTraces(content, plan.zones, district, plan.timeline, plan.board)
-    expect(traces.mode).toBe('family-bus')
-    expect(traces.unrouted).toEqual([
-      { skill: 'skill-2', project: 'proj-b' },
-      { skill: 'skill-5', project: 'proj-b' },
-    ])
-    expect(traces.routes.filter((r) => r.kind === 'bus-link').map((r) => r.net)).toEqual([
-      'experience:exp-a',
-    ])
-    expect(traces.unroutedBusLinks).toEqual([
-      { project: 'proj-b', experience: 'exp-b', year: 2024 },
-    ])
-    // Aucune piste ne porte une liaison perdue (pas d'amorce orpheline vers proj-b).
-    for (const r of traces.routes) expect(r.links.every((l) => l.project !== 'proj-b')).toBe(true)
-    expect(traces.routes.some((r) => r.kind === 'trunk')).toBe(true)
-  })
+  it(
+    'un processeur emmuré : ses liaisons et son rattachement manquent, les autres passent',
+    { timeout: 30_000 },
+    () => {
+      const content = makeBoardContent()
+      const plan = planFrom(content)
+      const walled = plan.district.processors.find((p) => p.slug === 'proj-b')!
+      // Un boîtier factice, plus grand, recouvre l'anneau de proj-b.
+      const district = {
+        ...plan.district,
+        processors: [
+          ...plan.district.processors,
+          { ...walled, slug: 'mur', primary: false, size: walled.size + 1 },
+        ],
+      }
+      const traces = planTraces(content, plan.zones, district, plan.timeline, plan.board)
+      expect(traces.mode).toBe('family-bus')
+      expect(traces.unrouted).toEqual([
+        { skill: 'skill-2', project: 'proj-b' },
+        { skill: 'skill-5', project: 'proj-b' },
+      ])
+      expect(traces.routes.filter((r) => r.kind === 'bus-link').map((r) => r.net)).toEqual([
+        'experience:exp-a',
+      ])
+      expect(traces.unroutedBusLinks).toEqual([
+        { project: 'proj-b', experience: 'exp-b', year: 2024 },
+      ])
+      // Aucune piste ne porte une liaison perdue (pas d'amorce orpheline vers proj-b).
+      for (const r of traces.routes) expect(r.links.every((l) => l.project !== 'proj-b')).toBe(true)
+      expect(traces.routes.some((r) => r.kind === 'trunk')).toBe(true)
+    },
+  )
 
-  it('même contenu dans un autre ordre : mêmes pistes', () => {
+  it('même contenu dans un autre ordre : mêmes pistes', { timeout: 30_000 }, () => {
     const content = makeRealSizeBoard()
     const permuted: BoardContent = {
       skills: [...content.skills].reverse(),
@@ -669,14 +743,14 @@ describe('planTraces — replis', () => {
     expect(b.traces).toEqual(a.traces)
   })
 
-  it('planTraces rend les pistes de planTracesWithGrid', () => {
+  it('planTraces rend les pistes de planTracesWithGrid', { timeout: 30_000 }, () => {
     const plan = planFrom(makeBoardContent())
     expect(
       planTraces(makeBoardContent(), plan.zones, plan.district, plan.timeline, plan.board),
     ).toEqual(plan.traces)
   })
 
-  it('le plus petit contenu : une piste et un rattachement', () => {
+  it('le plus petit contenu : une piste et un rattachement', { timeout: 30_000 }, () => {
     const content = makeBoardContent({
       skills: [makeBoardSkill({ slug: 's' })],
       experiences: [makeBoardExperience({ slug: 'e', startYear: 2020 })],

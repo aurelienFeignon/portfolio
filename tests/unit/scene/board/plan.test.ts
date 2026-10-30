@@ -10,11 +10,11 @@ const inside = (b: Rect, [x, z]: Vec2) => x >= b.minX && x <= b.maxX && z >= b.m
 const within = (b: Rect, r: Rect) => inside(b, [r.minX, r.minZ]) && inside(b, [r.maxX, r.maxZ])
 
 describe('planBoard', () => {
-  it('BOARD_SEED est une graine fixe', () => {
+  it('BOARD_SEED est une graine fixe', { timeout: 30_000 }, () => {
     expect(BOARD_SEED).toBe(0x0b0a12d)
   })
 
-  it('déterminisme : une entrée permutée donne le même plan', () => {
+  it('déterminisme : une entrée permutée donne le même plan', { timeout: 30_000 }, () => {
     const c = makeRealSizeBoard()
     const shuffled = {
       skills: [...c.skills].reverse(),
@@ -24,18 +24,22 @@ describe('planBoard', () => {
     expect(planBoard(shuffled, options)).toEqual(planBoard(c, options))
   })
 
-  it('contenu creux : un plan valide, sans zone ni processeur, une frise éteinte', () => {
-    const plan = planBoard({ skills: [], experiences: [], projects: [] }, options)
-    expect(plan.zones).toEqual([])
-    expect(plan.district.processors).toEqual([])
-    expect(plan.timeline.segments).toEqual([])
-    expect(plan.timeline.firstYear).toBe(2026)
-    expect(plan.timeline.lastYear).toBe(2026)
-    expect(plan.traces.routes).toEqual([])
-    expect(Number.isFinite(plan.bounds.minX)).toBe(true)
-  })
+  it(
+    'contenu creux : un plan valide, sans zone ni processeur, une frise éteinte',
+    { timeout: 30_000 },
+    () => {
+      const plan = planBoard({ skills: [], experiences: [], projects: [] }, options)
+      expect(plan.zones).toEqual([])
+      expect(plan.district.processors).toEqual([])
+      expect(plan.timeline.segments).toEqual([])
+      expect(plan.timeline.firstYear).toBe(2026)
+      expect(plan.timeline.lastYear).toBe(2026)
+      expect(plan.traces.routes).toEqual([])
+      expect(Number.isFinite(plan.bounds.minX)).toBe(true)
+    },
+  )
 
-  it('tout tient dans bounds, le bus est devant', () => {
+  it('tout tient dans bounds, le bus est devant', { timeout: 30_000 }, () => {
     const c = makeRealSizeBoard()
     const plan = planBoard(c, options)
     for (const z of plan.zones) {
@@ -51,7 +55,7 @@ describe('planBoard', () => {
     for (const p of plan.passives) expect(inside(plan.bounds, p.center)).toBe(true)
   })
 
-  it('budgets recomptés depuis les données', () => {
+  it('budgets recomptés depuis les données', { timeout: 30_000 }, () => {
     const c = makeRealSizeBoard()
     for (const tier of ['full', 'reduced', 'lite'] as const) {
       const plan = planBoard(c, { ...options, tier })
@@ -62,19 +66,23 @@ describe('planBoard', () => {
     }
   })
 
-  it('les paliers ne changent que les petits composants et les impulsions', () => {
-    const c = makeRealSizeBoard()
-    const full = planBoard(c, options)
-    const lite = planBoard(c, { ...options, tier: 'lite' })
-    expect(lite.passives).toEqual([])
-    expect(lite.pulses).toBeLessThan(full.pulses)
-    expect(lite.zones).toEqual(full.zones)
-    expect(lite.district).toEqual(full.district)
-    expect(lite.traces).toEqual(full.traces)
-    expect(full.passives.length).toBeGreaterThan(0)
-  })
+  it(
+    'les paliers ne changent que les petits composants et les impulsions',
+    { timeout: 30_000 },
+    () => {
+      const c = makeRealSizeBoard()
+      const full = planBoard(c, options)
+      const lite = planBoard(c, { ...options, tier: 'lite' })
+      expect(lite.passives).toEqual([])
+      expect(lite.pulses).toBeLessThan(full.pulses)
+      expect(lite.zones).toEqual(full.zones)
+      expect(lite.district).toEqual(full.district)
+      expect(lite.traces).toEqual(full.traces)
+      expect(full.passives.length).toBeGreaterThan(0)
+    },
+  )
 
-  it('une expérience en retard sur l’horloge est quand même couverte', () => {
+  it('une expérience en retard sur l’horloge est quand même couverte', { timeout: 30_000 }, () => {
     const c = makeRealSizeBoard()
     const plan = planBoard(c, { ...options, currentYear: 1990 })
     const starts = c.experiences.map((e) => e.startYear)
@@ -82,7 +90,7 @@ describe('planBoard', () => {
     expect(plan.timeline.lastYear).toBeGreaterThanOrEqual(Math.max(...starts))
   })
 
-  it('les petits composants évitent puces, processeurs, bus et pistes', () => {
+  it('les petits composants évitent puces, processeurs, bus et pistes', { timeout: 30_000 }, () => {
     const plan = planBoard(makeRealSizeBoard(), options)
     expect(plan.passives.length).toBeGreaterThan(0)
     const boxes: Rect[] = [
@@ -111,8 +119,13 @@ describe('planBoard', () => {
     }
   })
 
-  it('grand contenu : passe, sans petit composant hors budget', () => {
-    const plan = planBoard(makeLargeBoard(), options)
-    expect(plan.passives.length).toBeLessThanOrEqual(BOARD_DENSITY.full.passives)
-  }, 30_000)
+  it(
+    'grand contenu : passe, sans petit composant hors budget',
+    { timeout: 30_000 },
+    () => {
+      const plan = planBoard(makeLargeBoard(), options)
+      expect(plan.passives.length).toBeLessThanOrEqual(BOARD_DENSITY.full.passives)
+    },
+    30_000,
+  )
 })

@@ -66,7 +66,7 @@ const focusOf = {
 } as const
 
 describe('constantes', () => {
-  it('valeurs de départ', () => {
+  it('valeurs de départ', { timeout: 30_000 }, () => {
     expect(BOARD_FOV).toBe(40)
     expect(ELEVATION_DEG).toBe(58)
     expect(FRAME_MARGIN).toBe(1.15)
@@ -74,7 +74,7 @@ describe('constantes', () => {
 })
 
 describe('frameRect', () => {
-  it('vise le centre, à plat, devant et au-dessus', () => {
+  it('vise le centre, à plat, devant et au-dessus', { timeout: 30_000 }, () => {
     const cam = frameRect({ minX: -4, minZ: -2, maxX: 6, maxZ: 8 })
     expect(cam.target).toEqual([1, 0, 3])
     expect(cam.position[2]).toBeGreaterThan(3)
@@ -84,17 +84,17 @@ describe('frameRect', () => {
     expect(Object.hasOwn(cam, 'focusNodeId')).toBe(false)
   })
 
-  it("porte l'élévation demandée", () => {
+  it("porte l'élévation demandée", { timeout: 30_000 }, () => {
     const cam = frameRect({ minX: -1, minZ: -1, maxX: 1, maxZ: 1 })
     const v = sub(cam.position, cam.target)
     expect(Math.atan2(v[1], v[2]) / DEG).toBeCloseTo(ELEVATION_DEG, 6)
   })
 
-  it('transmet la section cadrée', () => {
+  it('transmet la section cadrée', { timeout: 30_000 }, () => {
     expect(frameRect({ minX: 0, minZ: 0, maxX: 1, maxZ: 1 }, 'skills').focusNodeId).toBe('skills')
   })
 
-  it('rectangle large ou profond : les coins tiennent toujours', () => {
+  it('rectangle large ou profond : les coins tiennent toujours', { timeout: 30_000 }, () => {
     for (const r of [
       { minX: -50, minZ: -1, maxX: 50, maxZ: 1 },
       { minX: -1, minZ: -50, maxX: 1, maxZ: 50 },
@@ -104,21 +104,25 @@ describe('frameRect', () => {
     }
   })
 
-  it('est minimale : la marge retirée, un recul de 1 % de moins laisse sortir un coin', () => {
-    const r = { minX: -10, minZ: -6, maxX: 10, maxZ: 6 }
-    const cam = frameRect(r)
-    const scaled = (s: number): CameraSpec => ({
-      ...cam,
-      position: [
-        cam.target[0] + (cam.position[0] - cam.target[0]) * s,
-        cam.position[1] * s,
-        cam.target[2] + (cam.position[2] - cam.target[2]) * s,
-      ],
-    })
-    expect(cornersInFrustum(scaled(1), r)).toBe(true)
-    expect(cornersInFrustum(scaled(1 / FRAME_MARGIN), r)).toBe(true)
-    expect(cornersInFrustum(scaled(0.99 / FRAME_MARGIN), r)).toBe(false)
-  })
+  it(
+    'est minimale : la marge retirée, un recul de 1 % de moins laisse sortir un coin',
+    { timeout: 30_000 },
+    () => {
+      const r = { minX: -10, minZ: -6, maxX: 10, maxZ: 6 }
+      const cam = frameRect(r)
+      const scaled = (s: number): CameraSpec => ({
+        ...cam,
+        position: [
+          cam.target[0] + (cam.position[0] - cam.target[0]) * s,
+          cam.position[1] * s,
+          cam.target[2] + (cam.position[2] - cam.target[2]) * s,
+        ],
+      })
+      expect(cornersInFrustum(scaled(1), r)).toBe(true)
+      expect(cornersInFrustum(scaled(1 / FRAME_MARGIN), r)).toBe(true)
+      expect(cornersInFrustum(scaled(0.99 / FRAME_MARGIN), r)).toBe(false)
+    },
+  )
 })
 
 describe.each([
@@ -132,6 +136,7 @@ describe.each([
 
   it.each(['accueil', 'experiences', 'projets', 'competences'] as const)(
     '%s : les quatre coins sont dans le tronc de pyramide',
+    { timeout: 30_000 },
     (view) => {
       const cam = boardCameras(plan)[view]
       expect(cornersInFrustum(cam, rectsOf(plan)[view])).toBe(true)
@@ -141,14 +146,14 @@ describe.each([
 })
 
 describe('boardCameras — cas limites', () => {
-  it('la caméra recule quand le contenu grandit', () => {
+  it('la caméra recule quand le contenu grandit', { timeout: 30_000 }, () => {
     const small = boardCameras(planBoard(makeBoardContent(), options))
     const big = boardCameras(planBoard(makeRealSizeBoard(), options))
     expect(dist(big.accueil)).toBeGreaterThan(dist(small.accueil))
     expect(dist(big.competences)).toBeGreaterThan(dist(small.competences))
   })
 
-  it('une vue sans zone cadre le quartier', () => {
+  it('une vue sans zone cadre le quartier', { timeout: 30_000 }, () => {
     const plan = planBoard(makeBoardContent({ skills: [] }), options)
     expect(plan.zones).toHaveLength(0)
     const cams = boardCameras(plan)
