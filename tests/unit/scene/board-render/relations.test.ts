@@ -11,6 +11,8 @@ import type { Vec2 } from '@/scene/state/board/rect'
 import {
   instanceLevels,
   LEVEL,
+  LIT_SHAPES,
+  PICKABLE_MESHES,
   litSegments,
   relationsOf,
   ribbonLevels,
@@ -201,37 +203,52 @@ describe('targetOfInstance', () => {
   const nChips = chips.length
   const nCpu = plan.district.processors.length
 
-  it('puce, diode et lueur de diode → la puce', () => {
+  it('puce et diode → la puce', () => {
     expect(targetOfInstance(plan, 'chips', 3)).toEqual({ kind: 'chip', slug: chips[3]!.slug })
     expect(targetOfInstance(plan, 'leds', 3)).toEqual({ kind: 'chip', slug: chips[3]!.slug })
-    expect(targetOfInstance(plan, 'glows', 3)).toEqual({ kind: 'chip', slug: chips[3]!.slug })
   })
 
-  it('corps, capot et lueur d’un processeur → le processeur', () => {
+  it('corps et capot d’un processeur → le processeur', () => {
     const slug = plan.district.processors[1]!.slug
     expect(targetOfInstance(plan, 'processors', 1)).toEqual({ kind: 'processor', slug })
     expect(targetOfInstance(plan, 'lids', 1)).toEqual({ kind: 'processor', slug })
-    expect(targetOfInstance(plan, 'glows', nChips + 1)).toEqual({ kind: 'processor', slug })
   })
 
-  it('jalon et sa lueur → l’année', () => {
+  it('jalon → l’année', () => {
     const year = plan.timeline.milestones[2]!.year
     expect(targetOfInstance(plan, 'milestones', 2)).toEqual({ kind: 'year', year })
-    expect(targetOfInstance(plan, 'glows', nChips + nCpu + 2)).toEqual({ kind: 'year', year })
   })
 
-  it('l’ordre des lueurs est celui de `instances`', () => {
+  it('l’ordre des lueurs est celui de `instances` (pour l’atténuation)', () => {
     expect(instances(plan, 'full').glows.count).toBe(
       nChips + nCpu + plan.timeline.milestones.length,
     )
+  })
+
+  it('une lueur ne désigne rien : elle déborde son objet (halo d’un processeur ×2,3)', () => {
+    expect(targetOfInstance(plan, 'glows', 0)).toBeNull()
+    expect(targetOfInstance(plan, 'glows', nChips)).toBeNull()
+    expect(targetOfInstance(plan, 'glows', nChips + nCpu)).toBeNull()
   })
 
   it('une forme non désignable, ou hors bornes → rien', () => {
     expect(targetOfInstance(plan, 'pads', 0)).toBeNull()
     expect(targetOfInstance(plan, 'chips', 10_000)).toBeNull()
     expect(targetOfInstance(plan, 'lids', 10_000)).toBeNull()
-    expect(targetOfInstance(plan, 'glows', 10_000)).toBeNull()
     expect(targetOfInstance(plan, 'chips', undefined)).toBeNull()
+  })
+})
+
+describe('PICKABLE_MESHES', () => {
+  it('la plaque et les corps désignables, jamais les lueurs', () => {
+    expect([...PICKABLE_MESHES].sort()).toEqual(
+      ['chips', 'leds', 'lids', 'milestones', 'plate', 'processors'].sort(),
+    )
+    expect(PICKABLE_MESHES.has('glows')).toBe(false)
+  })
+
+  it('les lueurs restent atténuées avec leur objet', () => {
+    expect(LIT_SHAPES).toContain('glows')
   })
 })
 

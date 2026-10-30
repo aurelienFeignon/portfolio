@@ -179,6 +179,16 @@ export function SceneMount({
   const scene = resolveSceneState(chemin)
   const locale = localeFromPathname(chemin)
   const monte = etat.phase === 'mounted'
+  /*
+   * ⛔⛔ Le survol est EFFACÉ au premier rendu d'un autre chemin, pas seulement masqué. Masqué,
+   * il revenait avec la page : processeur cliqué → fiche → retour arrière, et le processeur
+   * était rallumé, la carte atténuée, le curseur en lien — et au toucher, l'état « premier
+   * appui fait » revenait aussi, si bien que l'appui suivant naviguait d'emblée. L'état du
+   * toucher n'est autre que cette cible (`tap` la compare au survol) : l'effacer suffit.
+   * ⭐ Ajustement pendant le rendu, comme React le recommande pour un état qui suit une prop :
+   * aucune image ne montre l'ancien survol sur la nouvelle route.
+   */
+  if (survolAt !== null && survolAt.chemin !== chemin) setSurvolAt(null)
   const survol = survolAt !== null && survolAt.chemin === chemin ? survolAt.cible : null
   const survoler = useCallback(
     (cible: BoardTarget | null) => setSurvolAt(cible === null ? null : { cible, chemin }),

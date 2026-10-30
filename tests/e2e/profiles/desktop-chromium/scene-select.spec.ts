@@ -57,6 +57,13 @@ async function trouverUnProcesseur(page: Page): Promise<{ x: number; y: number }
   )
   for (const point of points) {
     await page.mouse.move(point.x, point.y)
+    if ((await survolee(page)) !== 'processor') continue
+    /*
+     * ⛔ La caméra a une parallaxe : le point a pu ne frôler le processeur que le temps d'une
+     * image. On s'y repose et on relit avant de le retenir.
+     */
+    await page.mouse.move(point.x + 1, point.y)
+    await page.mouse.move(point.x, point.y)
     if ((await survolee(page)) === 'processor') return point
   }
   return null
@@ -86,5 +93,17 @@ test.describe('carte mère — survol et clic', () => {
     await expect(page.locator(TEMOIN)).toBeAttached()
     // ⭐ Review Focus 4 : le survol ne survit pas au changement de route.
     await expect(page.locator(RACINE)).not.toHaveAttribute('data-scene-hover', /.+/)
+
+    /*
+     * ⛔ Et il ne REVIENT pas avec la page : retour arrière vers la vue des projets, le pointeur
+     * immobile (aucun mouvement ne peut rallumer) — rien ne doit être allumé, ni rester prêt à
+     * naviguer au prochain toucher.
+     */
+    await page.goBack()
+    await expect(page).toHaveURL((url) => url.pathname === '/fr/projects')
+    await expect(page.locator(TEMOIN)).toBeAttached()
+    await expect(page.locator(RACINE)).toHaveAttribute('data-scene-visible', 'true')
+    await expect(page.locator(RACINE)).not.toHaveAttribute('data-scene-hover', /.+/)
+    await expect(page.locator(RACINE)).not.toHaveCSS('cursor', 'pointer')
   })
 })
