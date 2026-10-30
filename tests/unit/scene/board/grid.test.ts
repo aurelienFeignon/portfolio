@@ -132,7 +132,15 @@ describe('RoutingGrid.cellsAround', () => {
     grid.route('a', [[1, 1]], [[3, 1]])
     grid.route('b', [[1, 3]], [[1, 3]])
     expect(grid.cellsAround(rect).map(key)).toEqual(['1,2', '3,2', '2,3', '3,3'])
-    expect(grid.cellsAround(rect, 'a').map(key)).toEqual(['1,1', '2,1', '3,1', '1,2', '3,2', '2,3', '3,3'])
+    expect(grid.cellsAround(rect, 'a').map(key)).toEqual([
+      '1,1',
+      '2,1',
+      '3,1',
+      '1,2',
+      '3,2',
+      '2,3',
+      '3,3',
+    ])
     expect(grid.cellsAround(rect, 'inconnu').map(key)).toEqual(['1,2', '3,2', '2,3', '3,3'])
   })
 })
