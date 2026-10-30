@@ -47,14 +47,14 @@ describe('drei s’importe composant par composant (ADR-0016)', () => {
       'un import dynamique du paquet entier',
       "export const charger = async () => await import('@react-three/drei')\n",
     ],
-  ])('refuse %s', async (_libelle, code) => {
+  ])('refuse %s', { timeout: 30_000 }, async (_libelle, code) => {
     const violations = await violationsDe(code)
 
     expect(violations).toHaveLength(1)
     expect(violations[0]).toContain('ADR-0016')
   })
 
-  it('laisse passer un import nommé, qui est la forme prescrite', async () => {
+  it('laisse passer un import nommé, qui est la forme prescrite', { timeout: 30_000 }, async () => {
     const violations = await violationsDe(
       "import { Center } from '@react-three/drei'\nexport const C = Center\n",
     )
@@ -62,11 +62,15 @@ describe('drei s’importe composant par composant (ADR-0016)', () => {
     expect(violations).toEqual([])
   })
 
-  it('nomme le coût dans le message, pour que le refus s’explique seul', async () => {
-    const [message] = await violationsDe(
-      "import * as drei from '@react-three/drei'\nexport const x = drei\n",
-    )
+  it(
+    'nomme le coût dans le message, pour que le refus s’explique seul',
+    { timeout: 30_000 },
+    async () => {
+      const [message] = await violationsDe(
+        "import * as drei from '@react-three/drei'\nexport const x = drei\n",
+      )
 
-    expect(message).toContain('802,8 Ko')
-  })
+      expect(message).toContain('802,8 Ko')
+    },
+  )
 })

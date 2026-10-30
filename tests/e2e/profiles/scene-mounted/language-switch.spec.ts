@@ -65,8 +65,9 @@ test.describe('bascule de langue, scène montée', () => {
     page,
     context,
   }) => {
-    // Six bascules, chacune avec deux montages de scène.
-    test.slow()
+    // Six bascules, chacune avec deux montages de scène. Mesuré sur le serveur de dev pendant
+    // P8-15 : 60 à 78 s, soit près des 90 s de `test.slow()` (3 × 30 s) — d'où 180 s explicites.
+    test.setTimeout(180_000)
     const fiche = await translatedPair(page.request)
     const departs = ['/fr', '/fr/projects', fiche.fr, '/en', '/en/skills', fiche.en]
 

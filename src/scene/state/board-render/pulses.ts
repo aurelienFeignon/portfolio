@@ -45,9 +45,11 @@ const distanceToBox = (point: Vec2, center: Vec2, size: number): number => {
 /**
  * Les chemins des impulsions : le bus d'abord (sa colonne vertébrale, de la plus ancienne année
  * à la plus récente), puis chaque piste **orientée vers un processeur** : l'extrémité la plus
- * proche d'un processeur est la dernière. Une prise au bus (`bus-link`) est tracée du processeur
- * au bus : on la renverse pour que la lumière aille **du bus vers le processeur**, comme les
- * liaisons. Les routes sans point exploitable sont ignorées.
+ * proche d'un processeur est la dernière. Le sens se décide **sur la géométrie, jamais sur
+ * `route.kind`** : si le premier point est plus près d'un processeur que le dernier, la route est
+ * renversée, et la lumière va donc toujours **du côté éloigné vers le processeur** (du bus vers le
+ * processeur pour une prise au bus ou une liaison). Les routes sans point exploitable sont
+ * ignorées.
  */
 export function pulsePaths(file: BoardFile): readonly PulsePath[] {
   const { timeline, traces, district } = file.plan
