@@ -59,29 +59,30 @@ const BASE_PRIORITY = 10
 const lift = (x: number, z: number): Vec3 => [x, LABEL_LIFT, z]
 const centerOf = (r: Rect): Vec3 => lift((r.minX + r.maxX) / 2, (r.minZ + r.maxZ) / 2)
 
-/** L'union de rectangles, `null` sans rectangle (recopiée de `board/rect.ts`, qu'on ne tire pas). */
-function union(rects: readonly Rect[]): Rect | null {
-  if (rects.length === 0) return null
-  return {
-    minX: Math.min(...rects.map((r) => r.minX)),
-    maxX: Math.max(...rects.map((r) => r.maxX)),
-    minZ: Math.min(...rects.map((r) => r.minZ)),
-    maxZ: Math.max(...rects.map((r) => r.maxZ)),
-  }
-}
+const area = (r: Rect): number => (r.maxX - r.minX) * (r.maxZ - r.minZ)
 
 /**
- * Les trois sections, chacune au centre de ce que cadre sa vue : l'union des zones, la frise, le
- * quartier (comme `viewRects`, à ceci près que la frise est prise seule : la bande cadrée en est
- * étendue vers l'arrière, l'étiquette se pose sur le bus lui-même).
+ * Les trois sections, chacune sur un repère DISTINCT de la carte :
+ * - **Projets** : l'ancre du processeur principal (au-dessus de U1) ;
+ * - **Expériences** : le centre de la frise, sur le bus ;
+ * - **Compétences** : l'ancre de la plus grande zone (aire, puis famille : déterministe).
+ *
+ * ⛔ Pas le centre de ce que cadre chaque vue : les zones entourent le quartier, et le centre de
+ * leur union tombait sur U1 — COMPÉTENCES s'empilait sur PROJETS, et l'une des deux se cachait.
+ * Une carte sans processeur ou sans zone retombe sur le centre du quartier.
  */
 function sectionLabels(file: BoardFile): BoardLabel[] {
   const { plan } = file
-  const skills = union(plan.zones.map((z) => z.bounds)) ?? plan.district.bounds
+  const { processors } = plan.district
+  const primary = processors.find((p) => p.primary) ?? processors[0]
+  const largest = [...plan.zones].sort(
+    (a, b) => area(b.bounds) - area(a.bounds) || (a.family < b.family ? -1 : 1),
+  )[0]
+  const fallback = centerOf(plan.district.bounds)
   const anchors: Record<Section, Vec3> = {
     experiences: centerOf(plan.timeline.bounds),
-    projects: centerOf(plan.district.bounds),
-    skills: centerOf(skills),
+    projects: primary === undefined ? fallback : lift(...primary.labelAnchor),
+    skills: largest === undefined ? fallback : lift(...largest.labelAnchor),
   }
   return (Object.keys(anchors) as Section[]).map((section) => ({
     id: boardLabelId('section', section),
@@ -174,40 +175,85 @@ export function labelsForView(
 
 /* ---------------------------------------------------------------- collisions */
 
-/** L'écart minimal, en pixels, entre deux étiquettes visibles. */
+/** L'écart minimal, en pixels, entre deux étiquettes qui s'affichent. */
 export const LABEL_GAP_PX = 4
+/** La marge, en pixels, entre le bas d'une étiquette et le bas de sa zone. */
+export const LABEL_MARGIN_BOTTOM_PX = 16
+/**
+ * L'hystérésis, en pixels : une étiquette DÉJÀ visible le reste tant que son ancre ne sort pas de
+ * la zone de plus de ce jeu, et qu'aucune plus prioritaire ne l'approche à moins de
+ * `LABEL_GAP_PX - LABEL_HYSTERESIS_PX` (donc jamais en recouvrement réel). Sans elle, la
+ * parallaxe faisait clignoter une étiquette posée juste au seuil.
+ */
+export const LABEL_HYSTERESIS_PX = 4
 
 /**
- * Une étiquette projetée : `(x, y)` est le milieu de son bord BAS (comme `labelPlacement`), la
- * boîte s'étend de `width / 2` de part et d'autre et de `height` au-dessus.
+ * Une étiquette projetée : `(x, y)` est le milieu de son bord BAS — l'ancre projetée en entrée,
+ * la position ramenée dans la zone en sortie (`placeLabels` l'écrit). La boîte s'étend de
+ * `width / 2` de part et d'autre et de `height` au-dessus.
  */
 export interface PlacedCandidate {
   readonly id: string
-  readonly x: number
-  readonly y: number
-  readonly width: number
-  readonly height: number
+  x: number
+  y: number
+  /** La taille rendue, en pixels — mutable : le projecteur réutilise ses cases d'une image à l'autre. */
+  width: number
+  height: number
   readonly priority: number
 }
 
-const left = (c: PlacedCandidate) => c.x - c.width / 2
-const right = (c: PlacedCandidate) => c.x + c.width / 2
+const EMPTY: ReadonlySet<string> = new Set()
 
-function inside(c: PlacedCandidate, zone: ScreenRect): boolean {
-  return (
-    left(c) >= zone.x &&
-    right(c) <= zone.x + zone.width &&
-    c.y - c.height >= zone.y &&
-    c.y <= zone.y + zone.height
-  )
+/**
+ * Pose en `c.x`, `c.y` (pixels du canvas) l'ancre projetée `ndc` — coordonnées normalisées de
+ * l'appareil, celles de `Vector3.project`. `false` si elle est derrière la caméra ou au-delà du
+ * plan lointain (`z` hors de `]-1, 1[`) : l'étiquette se cache.
+ */
+export function toScreen(
+  c: PlacedCandidate,
+  ndcX: number,
+  ndcY: number,
+  ndcZ: number,
+  width: number,
+  height: number,
+): boolean {
+  if (!(ndcZ > -1 && ndcZ < 1)) return false
+  c.x = ((ndcX + 1) / 2) * width
+  c.y = ((1 - ndcY) / 2) * height
+  return true
 }
 
-function collide(a: PlacedCandidate, b: PlacedCandidate): boolean {
+/**
+ * Ramène la boîte de `c` dans la zone, si son ANCRE y est (au jeu `slack` près) : une étiquette
+ * dont l'ancre est visible reste lisible au lieu de disparaître — une famille posée sur le bord de
+ * la carte, au mobile, est ce qui nomme la carte (§8). Ancre hors zone, ou boîte plus grande que
+ * la zone : `false`, l'étiquette se cache.
+ * ⭐ La seule règle de zone des étiquettes : rien d'autre ne la vérifie.
+ */
+export function fitToZone(c: PlacedCandidate, zone: ScreenRect, slack = 0): boolean {
+  const minX = zone.x + c.width / 2
+  const maxX = zone.x + zone.width - c.width / 2
+  const minY = zone.y + c.height
+  const maxY = zone.y + zone.height - LABEL_MARGIN_BOTTOM_PX
+  if (minX > maxX || minY > maxY) return false
+  const anchored =
+    c.x >= zone.x - slack &&
+    c.x <= zone.x + zone.width + slack &&
+    c.y >= zone.y - slack &&
+    c.y <= zone.y + zone.height + slack
+  if (!anchored) return false
+  c.x = Math.min(maxX, Math.max(minX, c.x))
+  c.y = Math.min(maxY, Math.max(minY, c.y))
+  return true
+}
+
+/** Deux boîtes plus proches que `gap` (négatif : qui se recouvrent de plus de `-gap`). */
+function collide(a: PlacedCandidate, b: PlacedCandidate, gap: number): boolean {
   return (
-    left(a) < right(b) + LABEL_GAP_PX &&
-    left(b) < right(a) + LABEL_GAP_PX &&
-    a.y - a.height < b.y + LABEL_GAP_PX &&
-    b.y - b.height < a.y + LABEL_GAP_PX
+    a.x - a.width / 2 < b.x + b.width / 2 + gap &&
+    b.x - b.width / 2 < a.x + a.width / 2 + gap &&
+    a.y - a.height < b.y + gap &&
+    b.y - b.height < a.y + gap
   )
 }
 
@@ -216,17 +262,33 @@ const byRank = (a: PlacedCandidate, b: PlacedCandidate): number =>
   b.priority - a.priority || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0)
 
 /**
- * Les étiquettes visibles (Review Focus 5) : dans la zone, et **jamais deux superposées** — en
- * cas de chevauchement, la moins prioritaire se cache. Glouton par rang, donc indépendant de
- * l'ordre d'entrée ; une étiquette hors zone est écartée avant, et ne cache personne.
+ * Les étiquettes visibles (Review Focus 5) : ramenées dans la zone (`fitToZone`), et **jamais
+ * deux superposées** — en cas de chevauchement, la moins prioritaire se cache. Glouton par rang,
+ * donc indépendant de l'ordre d'entrée ; une étiquette hors zone ne cache personne. `previous`
+ * (les visibles de l'image d'avant) donne l'hystérésis.
+ *
+ * ⭐ Sans allocation à l'image : `candidates` est TRIÉ sur place et ses positions sont écrites
+ * (ramenées dans la zone) ; le résultat va dans `into`, vidé d'abord.
  */
 export function placeLabels(
-  candidates: readonly PlacedCandidate[],
+  candidates: PlacedCandidate[],
   zone: ScreenRect,
+  previous: ReadonlySet<string> = EMPTY,
+  into: Set<string> = new Set(),
 ): ReadonlySet<string> {
-  const kept: PlacedCandidate[] = []
-  for (const c of candidates.filter((c) => inside(c, zone)).sort(byRank)) {
-    if (!kept.some((k) => collide(k, c))) kept.push(c)
+  into.clear()
+  candidates.sort(byRank)
+  for (let i = 0; i < candidates.length; i += 1) {
+    const c = candidates[i]!
+    const incumbent = previous.has(c.id)
+    if (!fitToZone(c, zone, incumbent ? LABEL_HYSTERESIS_PX : 0)) continue
+    const gap = incumbent ? LABEL_GAP_PX - LABEL_HYSTERESIS_PX : LABEL_GAP_PX
+    let free = true
+    for (let j = 0; j < i && free; j += 1) {
+      const k = candidates[j]!
+      if (into.has(k.id) && collide(k, c, gap)) free = false
+    }
+    if (free) into.add(c.id)
   }
-  return new Set(kept.map((k) => k.id))
+  return into
 }
