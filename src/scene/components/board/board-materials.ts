@@ -41,7 +41,8 @@ const FOG_FADE = /* glsl */ `
 /**
  * Le ruban d'une piste ou d'un fil du bus : un **cœur** net (`|across|` petit) et un **halo**
  * qui s'éteint vers les bords — une piste qui émet, pas un trait plat. Un fil éteint (`aIdle`)
- * prend le gris d'une piste morte, sans halo.
+ * prend le gris d'une piste morte, sans halo. `aLevel` porte l'état de survol de chaque sommet
+ * (`relations.ts`) : la mise en relief d'une piste ne demande pas un matériau de plus.
  */
 export function ribbonMaterial(options: {
   readonly core: number
@@ -65,15 +66,18 @@ export function ribbonMaterial(options: {
       attribute float aAcross;
       attribute float aAlong;
       attribute float aIdle;
+      attribute float aLevel;
       varying vec3 vColor;
       varying float vAcross;
       varying float vAlong;
       varying float vIdle;
+      varying float vLevel;
       void main() {
         vColor = aColor;
         vAcross = aAcross;
         vAlong = aAlong;
         vIdle = aIdle;
+        vLevel = aLevel;
         vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
         gl_Position = projectionMatrix * mvPosition;
         #include <fog_vertex>
@@ -90,6 +94,7 @@ export function ribbonMaterial(options: {
       varying float vAcross;
       varying float vAlong;
       varying float vIdle;
+      varying float vLevel;
       void main() {
         float d = abs(vAcross);
         // Le cuivre de la piste, un filament plus vif en son milieu, un halo qui s'éteint au bord.
@@ -100,7 +105,8 @@ export function ribbonMaterial(options: {
         float shimmer = 0.9 + 0.1 * sin(vAlong * 2.3 - uTime * 0.9);
         vec3 lit = vColor * (body * 0.42 + filament * 0.85 + halo) * shimmer;
         vec3 idle = uIdleColor * body * 0.55;
-        gl_FragColor = vec4(mix(lit, idle, vIdle) * uIntensity, 1.0);
+        // ⭐ Le niveau de survol (P8-15f) : allumé, neutre ou atténué, par sommet (attribut aLevel).
+        gl_FragColor = vec4(mix(lit, idle, vIdle) * uIntensity * vLevel, 1.0);
         #include <tonemapping_fragment>
         #include <colorspace_fragment>
         ${FOG_FADE}
@@ -260,7 +266,9 @@ export function lidMaterial(): MeshStandardMaterial & { userData: { glow: IUnifo
     totalEmissiveRadiance += vec3(0.05, 0.055, 0.07) * sheen;
     float arete = 1.0 - smoothstep(0.0, 0.03, top > 0.5 ? edge : fromTop);
     totalEmissiveRadiance += uGlowColor * arete * 0.55 * uGlow;`,
-    { keepInstanceColor: false },
+    // La teinte d'instance (blanc au repos) porte le niveau de survol : le capot s'éclaircit
+    // ou s'assombrit avec son processeur (P8-15f).
+    { keepInstanceColor: true },
   )
   return material as MeshStandardMaterial & { userData: { glow: IUniform<number> } }
 }

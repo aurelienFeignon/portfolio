@@ -16,12 +16,12 @@ import { type ComponentType, type RefObject, useCallback, useEffect, useState } 
 import { ACESFilmicToneMapping, SRGBColorSpace } from 'three'
 
 import type { Locale } from '@/i18n/locales'
-import type { Section } from '@/routing/sections'
 import type { Capability } from '@/scene/capability/resolve'
+import type { BoardTarget } from '@/scene/state/board-render/targets'
 import type { Rect } from '@/scene/state/camera-motion'
 import type { SceneReadings } from '@/scene/state/diagnostics'
 import { PALETTE } from '@/scene/state/layout'
-import type { SceneFocus, SceneState } from '@/scene/state/scene-state'
+import type { SceneState } from '@/scene/state/scene-state'
 
 import { BoardScene } from './board/board-scene'
 import { useBoardFile } from './board/use-board-file'
@@ -51,13 +51,15 @@ export default function SceneCanvas({
   readonly free: Rect | null
   /** Faux sur une fiche : la scène est cachée et ne calcule plus d'image. */
   readonly visible: boolean
-  readonly hovered: SceneFocus | null
+  /** La cible survolée de la carte (P8-15f), que `SceneMount` rattache à la route. */
+  readonly hovered: BoardTarget | null
   /** Les étiquettes HTML des univers, que la scène place à chaque image. */
   readonly labelAnchors: RefObject<LabelAnchors>
   /** Où les étiquettes peuvent se poser : hors du panneau, sous l'en-tête. */
   readonly labelZone: Rect | null
-  readonly onHover: (section: Section | null) => void
-  readonly onSelect: (section: Section) => void
+  readonly onHover: (target: BoardTarget | null) => void
+  /** Un clic dans la carte : le chemin où aller, que `SceneMount` pousse dans le routeur. */
+  readonly onSelect: (href: string) => void
   readonly onContextLost: () => void
   /** Présent sous `?debug=scene` seulement : la scène se mesure et rend ses relevés. */
   readonly onReadings?: (readings: SceneReadings) => void
@@ -153,6 +155,7 @@ export default function SceneCanvas({
             file={plan}
             tier={tier}
             animated={ambient}
+            locale={locale}
             hovered={hovered}
             focus={state.focus}
             onHover={onHover}
