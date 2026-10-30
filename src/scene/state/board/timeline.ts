@@ -40,11 +40,15 @@ export interface BusSegment {
 export interface BusJog {
   readonly lane: number
   readonly year: number
-  /** Le milieu de la marche : sur la ligne de la voie, à la frontière des deux années. */
+  /**
+   * Le milieu de la marche, sur la ligne de la voie : la frontière des deux
+   * années ; au lacet (première case d'une rangée), un demi-pas de voie plus
+   * loin, dans la case suivante.
+   */
   readonly at: Vec2
   /**
    * La marche dessinée : la voie quitte sa ligne à 45° d'un demi-pas de voie
-   * (`LANE_PITCH / 2`) vers l'extérieur de la rangée, puis y revient à 45°.
+   * (`LANE_PITCH / 2`) vers le bord de la rangée le plus proche, puis y revient à 45°.
    * Premier et dernier points sont sur la ligne de la voie.
    */
   readonly points: readonly Vec2[]
@@ -109,10 +113,12 @@ function zInRow(originZ: number, lanes: number, row: number, offset: number): nu
  * de longueur en X de chaque côté.
  *
  * ⭐ « Vers l'extérieur de la rangée » : le côté de la ligne de la voie qui
- * **s'éloigne des autres voies de la rangée**, pour ne jamais couper une voisine.
- * On le lit sur le Z réel (l'ordre des voies s'inverse d'une rangée à l'autre,
- * voir `zInRow`) : une voie sous le milieu de la rangée (en Z) bombe vers −Z,
- * une voie au-dessus vers +Z. Une voie au milieu exact — dont la rangée à voie
+ * regarde le **bord de rangée le plus proche**. Un demi-pas de voie n'atteint
+ * jamais la voisine (à un pas) : la marche ne la coupe pas, même pour une voie
+ * intérieure d'une rangée de 4 voies ou plus (elle bombe alors vers la voisine
+ * du côté du bord, sans l'atteindre). On le lit sur le Z réel (l'ordre des voies
+ * s'inverse d'une rangée à l'autre, voir `zInRow`) : une voie sous le milieu de
+ * la rangée (en Z) bombe vers −Z, une voie au-dessus vers +Z. Une voie au milieu exact — dont la rangée à voie
  * unique — bombe vers −Z (à l'opposé du bord du bus qui fait face au visiteur).
  *
  * ⭐ Si la frontière tombe sur un lacet (première case d'une rangée), la marche

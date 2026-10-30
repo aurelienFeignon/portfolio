@@ -172,8 +172,65 @@ describe('planTimeline', () => {
       )
       const jog = t.jogs[0]!
       expectWalk(t, jog)
-      const cellEdge = yearPoint(t, 2026, 0)[0] + t.step / 2 // rangée impaire : bord gauche→droit inversé
-      expect(Math.abs(jog.points[0]![0] - cellEdge)).toBeCloseTo(0, 9)
+      // Rangée 1 (de droite à gauche) : la frontière est le bord droit de la case.
+      const boundary = yearPoint(t, 2026, 0)[0] + t.step / 2
+      expect(jog.points[0]![0]).toBeCloseTo(boundary, 9)
+      expect(jog.at[0]).toBeCloseTo(boundary - LANE_PITCH / 2, 9)
+      for (const p of [jog.points[0]!, jog.points.at(-1)!]) {
+        expect(onPolyline(p, t.spine, 1e-6)).toBe(true)
+      }
+      expectNoCrossing([jog.points, t.spine, ...t.segments.map((s) => s.points)], (i) =>
+        i === 0 || i === 1 ? 'x' : i,
+      )
+    })
+
+    it('le grand contenu compte une marche en première case d’une rangée', () => {
+      const t = planTimeline(makeLargeBoard().experiences, 2026, 0)
+      const firstCols = t.jogs.filter((j) => (j.year - t.firstYear) % 8 === 0)
+      expect(firstCols.length).toBeGreaterThan(0)
+    })
+
+    it('trois voies : la voie du milieu bombe vers −Z, sans couper ses voisines', () => {
+      const wave = (slug: string, start: number, end: number | null) =>
+        exp({ slug, startYear: start, endYear: end })
+      const t = planTimeline(
+        [
+          wave('a0', 2018, 2020),
+          wave('a1', 2018, 2020),
+          wave('a2', 2018, 2020),
+          wave('b0', 2021, null),
+          wave('b1', 2021, null),
+          wave('b2', 2021, null),
+        ],
+        2026,
+        0,
+      )
+      expect(t.jogs.map((j) => j.lane).sort()).toEqual([0, 1, 2])
+      const middle = t.jogs.find((j) => j.lane === 1)!
+      expectWalk(t, middle)
+      expect(Math.min(...middle.points.map((p) => p[1]))).toBeCloseTo(LANE_PITCH / 2, 9)
+      // Deux marches à la même frontière, sur des voies voisines : elles ne se croisent pas.
+      expectNoCrossing(
+        [...t.jogs.map((j) => j.points), t.spine, ...t.segments.map((s) => s.points)],
+        (i) => (i < t.jogs.length + 1 ? 'x' : i),
+      )
+    })
+
+    it('deux marches à la même frontière, voies voisines : ni croisement ni écart de milieu', () => {
+      const t = planTimeline(
+        [
+          exp({ slug: 'a0', startYear: 2018, endYear: 2020 }),
+          exp({ slug: 'a1', startYear: 2018, endYear: 2020 }),
+          exp({ slug: 'b0', startYear: 2021 }),
+          exp({ slug: 'b1', startYear: 2021 }),
+        ],
+        2026,
+        0,
+      )
+      expect(t.jogs).toHaveLength(2)
+      expect(t.jogs[0]!.at[0]).toBeCloseTo(t.jogs[1]!.at[0], 9)
+      t.jogs.forEach((j) => expectWalk(t, j))
+      expectNoCrossing(t.jogs.map((j) => j.points))
     })
   })
 

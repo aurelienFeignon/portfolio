@@ -283,7 +283,7 @@ bien moins nombreux) :
 
 - `makeRealSizeBoard` : bus de famille, 48/48, 2/2, **5 ponts** (épinglé, `plan.test.ts`) ;
   ≈ 16–28 ms à chaud. Avec un projet de plus (`realPlusOne`, `traces.test.ts`) : 51/51, 3/3.
-- `makeLargeBoard` (80 compétences, 20 projets, 20 ans) : 80/80, 20/20, **170 ponts** en `level`
+- `makeLargeBoard` (80 compétences, 20 projets, 20 ans) : 80/80, 20/20, **146 ponts** en `level`
   (épinglé, `plan.test.ts`) ; ≈ 0,8–1 s à chaud.
 - **Capacité du mode direct** (banc `fan` de `traces.test.ts` : une seule zone, à l'ouest, de puces
   de taille `uniform`, un seul processeur, aucun rattachement au bus) : 9 puces passent en direct,
