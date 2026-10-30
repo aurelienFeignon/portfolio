@@ -1,29 +1,17 @@
 /**
  * Les petits composants de la carte mère : résistances et condensateurs semés
  * sur les cellules que ni les puces, ni les processeurs, ni les pistes n'ont
- * prises. Ils ne portent aucun sens — ils font la carte — mais leur nombre se
- * compte ici, pas dans P8-15 : c'est le budget que la scène instanciera.
+ * prises. Ils ne portent aucun sens — ils font la carte. Leur budget par
+ * palier est `BOARD_DENSITY` (`layout.ts`), que la scène lit aussi.
  *
  * Repère : celui de `grid.ts` (X vers la droite, Z vers le visiteur).
  *
  * Module pur : ni `Date`, ni `Math.random` (la graine est un paramètre), ni
  * Three.js.
  */
-import type { DensityTier } from '../layout.ts'
 import { seededRandom } from '../seeded-random.ts'
 import type { Cell, RoutingGrid } from './grid.ts'
 import { GRID, type Rect, rectOf, rectsOverlap, type Vec2 } from './rect.ts'
-
-/**
- * Le budget par palier : petits composants semés, impulsions animées sur les
- * pistes. `lite` ne sème rien ; la composition (zones, processeurs, routes) ne
- * change jamais d'un palier à l'autre, seulement ces deux nombres.
- */
-export const BOARD_DENSITY: Readonly<Record<DensityTier, { passives: number; pulses: number }>> = {
-  full: { passives: 120, pulses: 48 },
-  reduced: { passives: 70, pulses: 32 },
-  lite: { passives: 0, pulses: 16 },
-}
 
 export interface Passive {
   readonly kind: 'resistor' | 'capacitor'

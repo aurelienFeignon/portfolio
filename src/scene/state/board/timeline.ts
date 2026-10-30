@@ -22,9 +22,6 @@ export const YEARS_PER_ROW = 8
 export const LANE_PITCH = 0.9
 /** Écart en Z entre la dernière voie d'une rangée et la voie 0 de la suivante. */
 export const ROW_GAP = 1.4
-/** Nombre de fils d'une voie (consommé par le rendu). */
-export const BUS_WIRES = 8
-
 export interface BusSegment {
   readonly experience: string
   readonly lane: number

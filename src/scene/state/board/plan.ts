@@ -12,10 +12,10 @@
  * Module pur : ni `Date` (l'année courante est un paramètre), ni
  * `Math.random` (la graine est fixe), ni Three.js.
  */
-import type { DensityTier } from '../layout.ts'
+import { BOARD_DENSITY, type DensityTier } from '../layout.ts'
 import { boardBounds, timelineOriginZ } from './bounds.ts'
 import { type BoardContent, bySlug } from './content.ts'
-import { BOARD_DENSITY, type Passive, scatterPassives } from './passives.ts'
+import { type Passive, scatterPassives } from './passives.ts'
 import { type District, planDistrict } from './processors.ts'
 import type { Rect } from './rect.ts'
 import { planTimeline, type Timeline } from './timeline.ts'

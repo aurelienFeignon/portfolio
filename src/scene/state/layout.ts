@@ -21,8 +21,8 @@ export type Vec3 = readonly [number, number, number]
 /**
  * La palette NEXUS — la même que les tokens de `globals.css`.
  *
- * ⚠️ `amber` et `teal` sont les teintes de la carte mère : leurs tokens dans
- * `globals.css` et la vérification de contraste viennent avec P8-15 / P8-08.
+ * `amber` et `teal` sont les teintes de la carte mère (P8-15d) ; le jugement de
+ * contraste sur la scène finale reste celui de P8-08.
  */
 export const PALETTE = {
   background: '#080D18',
@@ -202,3 +202,24 @@ export const DENSITY: Readonly<Record<DensityTier, Density>> = {
   reduced: { particles: 1000, shells: 2 },
   lite: { particles: 500, shells: 1 },
 }
+
+/* ---------------------------------------------------------- carte mère */
+
+/**
+ * Le budget de la carte mère par palier : petits composants semés, impulsions
+ * animées sur les pistes. `lite` ne sème rien ; la composition (zones,
+ * processeurs, routes) ne change jamais d'un palier à l'autre, seulement ces
+ * deux nombres.
+ *
+ * ⭐ Ici et non dans `board/` : le plan s'en sert pour semer, la scène pour
+ * prendre les N premiers petits composants du plan versionné — et la scène
+ * n'importe aucune valeur de `board/` (`carte-mere.md` §12.4).
+ */
+export const BOARD_DENSITY: Readonly<Record<DensityTier, { passives: number; pulses: number }>> = {
+  full: { passives: 120, pulses: 48 },
+  reduced: { passives: 70, pulses: 32 },
+  lite: { passives: 0, pulses: 16 },
+}
+
+/** Nombre de fils d'une voie du bus principal (§4 : « huit pistes parallèles »). */
+export const BUS_WIRES = 8
