@@ -43,7 +43,7 @@ import { type BoardContent, bySlug, compareSlugs, yearOf } from './content.ts'
 import { type Bridge, type Cell, type Footprint, octile, RoutingGrid, simplify } from './grid.ts'
 import { choosePrimary, type District, type Processor } from './processors.ts'
 import { EPSILON, GRID, inflate, type Rect, rectOf, type Vec2 } from './rect.ts'
-import { type Timeline, yearPoint } from './timeline.ts'
+import { LANE_PITCH, type Timeline, yearPoint } from './timeline.ts'
 import type { Zone } from './zones.ts'
 
 export type RoutingMode = 'direct' | 'family-bus'
@@ -286,6 +286,7 @@ function routeBusLinks(
       const cx = x + shift(lane) + k * GRID
       if (Math.abs(cx - x) > halfCell) continue
       if (cx <= board.minX || cx >= board.maxX) continue
+      if (underJog(timeline, cx, z)) continue
       const [col, row] = grid.cellOf([cx, z])
       if (shaftFree(grid, col, top, row, net))
         shafts.set(
@@ -319,6 +320,22 @@ function routeBusLinks(
     })
   }
   return { laid, failed }
+}
+
+/**
+ * Vrai si un puits à l'abscisse `x`, descendant de la bande jusqu'à la ligne
+ * `z`, traverserait la marche à 45° d'un changement d'employeur
+ * (`timeline.jogs`) : la marche s'étend de `LANE_PITCH / 2` de part et d'autre
+ * de son milieu en X, et sa plus petite cote Z est strictement au-dessus de `z`.
+ * Une marche qui bombe vers +Z, ou d'une rangée plus basse, ne gêne pas ce puits.
+ * Un puits tangent à son extrémité (sur la ligne de la voie) ne la coupe pas.
+ */
+function underJog(timeline: Timeline, x: number, z: number): boolean {
+  return timeline.jogs.some(
+    (jog) =>
+      Math.abs(x - jog.at[0]) < LANE_PITCH / 2 + GRID / 2 &&
+      Math.min(...jog.points.map((p) => p[1])) < z - EPSILON,
+  )
 }
 
 /**

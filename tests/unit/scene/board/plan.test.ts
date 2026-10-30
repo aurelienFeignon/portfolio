@@ -151,6 +151,6 @@ describe('planBoard', () => {
     expect(plan.passives.length).toBeLessThanOrEqual(BOARD_DENSITY.full.passives)
     // Épinglé : le chiffre que cite `carte-mere.md` §11 (bancs, pas contenu réel).
     expect(plan.traces.mode).toBe('family-bus')
-    expect(plan.traces.vias).toHaveLength(170)
+    expect(plan.traces.vias).toHaveLength(146)
   })
 })

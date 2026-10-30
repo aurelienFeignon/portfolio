@@ -741,3 +741,73 @@ describe('planTraces — replis', () => {
     expect(plan.traces.routes.map((r) => r.kind).sort()).toEqual(['bus-link', 'link'])
   })
 })
+
+describe('planTraces — marches du bus et prises', () => {
+  /** Aucune marche (`timeline.jogs`) ne croise une piste, prises du bus comprises. */
+  function expectJogsClear(plan: ReturnType<typeof planFrom>): void {
+    const jogs = plan.timeline.jogs.map((j) => j.points)
+    const routes = plan.traces.routes.map((r) => r.points)
+    expectNoCrossing([...jogs, ...routes], (i) => (i < jogs.length ? 'jog' : 'route'))
+  }
+
+  /** Une prise tombe dans l'année d'un changement d'employeur, à plusieurs voies de distance. */
+  function employerChange(): BoardContent {
+    return makeBoardContent({
+      experiences: [
+        makeBoardExperience({ slug: 'exp-a', startYear: 2018, endYear: 2020 }),
+        makeBoardExperience({ slug: 'exp-c', startYear: 2019, endYear: 2024 }),
+        makeBoardExperience({ slug: 'exp-b', startYear: 2021, endYear: null }),
+      ],
+      projects: [
+        makeBoardProject({
+          slug: 'proj-a',
+          startedAt: '2020-03',
+          technologies: ['skill-1'],
+          experience: 'exp-a',
+        }),
+        makeBoardProject({
+          slug: 'proj-b',
+          startedAt: '2021-03',
+          technologies: ['skill-3'],
+          experience: 'exp-b',
+        }),
+        makeBoardProject({
+          slug: 'proj-c',
+          startedAt: '2021-09',
+          technologies: ['skill-5'],
+          experience: 'exp-c',
+        }),
+      ],
+    })
+  }
+
+  it(
+    'le contenu réel et le contenu réel + 1 : aucune marche ne croise une piste',
+    {
+      timeout: 30_000,
+    },
+    () => {
+      expectJogsClear(planFrom(makeRealSizeBoard()))
+      expectJogsClear(planFrom(realPlusOne()))
+    },
+  )
+
+  it('grand contenu : aucune marche ne croise une piste', { timeout: 30_000 }, () => {
+    const plan = planFrom(makeLargeBoard())
+    expect(plan.timeline.jogs.length).toBeGreaterThan(0)
+    expectJogsClear(plan)
+  })
+
+  it(
+    'une prise dans l’année d’un changement d’employeur évite la marche',
+    {
+      timeout: 30_000,
+    },
+    () => {
+      const plan = planFrom(employerChange())
+      expect(plan.timeline.jogs.length).toBeGreaterThan(0)
+      expectComplete(plan)
+      expectJogsClear(plan)
+    },
+  )
+})
