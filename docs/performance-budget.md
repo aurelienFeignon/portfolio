@@ -250,6 +250,13 @@ compte des composants `drei` de la §4.3 n'est toujours gardé par rien de budg�
 
 ---
 
+### 4.4 Le chunk 3D de la carte mère — 2026-10-30 (P8-15i)
+
+Mesuré par `make bundle` : le chunk 3D (deux chunks porteurs) pèse **249,0 Ko** gzip, sous la cible
+de 300 Ko ; le socle partagé **128,7 Ko** et le JS propre à chaque route **14,4 Ko** tiennent leurs
+seuils. Les appels de dessin et le poids du plan sont en [`carte-mere.md`](./carte-mere.md) §12.5 ;
+la mesure GPU réelle reste à faire par l'utilisateur (même section).
+
 ## 5. Budget des assets 3D
 
 | Élément | Cible | Seuil bloquant |
