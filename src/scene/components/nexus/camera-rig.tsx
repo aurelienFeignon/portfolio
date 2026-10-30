@@ -22,11 +22,12 @@
  */
 import { useFrame, useThree } from '@react-three/fiber'
 import { useEffect, useLayoutEffect, useRef } from 'react'
-import { PerspectiveCamera } from 'three'
+import { Fog, PerspectiveCamera } from 'three'
 
 import { getCameraTarget } from '@/scene/state/camera-target'
 import {
   dragOrbit,
+  fogRange,
   framingFor,
   ORBIT_REST,
   type OrbitAngles,
@@ -158,6 +159,7 @@ export function CameraRig({
       wasMoving: wasMoving.current,
       animated,
       aspect: framing.aspect,
+      heightFraction: framing.heightFraction,
     })
     shown.current = image.shown
     orbitNow.current = image.orbit
@@ -167,6 +169,13 @@ export function CameraRig({
     camera.position.set(...image.position)
     camera.lookAt(...image.shown.target)
     camera.fov = image.fov
+    // ⭐ Le brouillard suit la distance de cadrage, recul compris (`fogRange`).
+    const { scene } = get()
+    if (scene.fog instanceof Fog) {
+      const range = fogRange(image.distance)
+      scene.fog.near = range.near
+      scene.fog.far = range.far
+    }
     if (framing.offsetX === 0 && framing.offsetY === 0) camera.clearViewOffset()
     else
       camera.setViewOffset(

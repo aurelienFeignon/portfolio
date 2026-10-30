@@ -22,9 +22,15 @@ import {
   rigFrame,
   transitionProgress,
   ORBIT_REST,
+  fogRange,
+  type Rect as ScreenRect,
 } from '@/scene/state/camera-motion'
-import { fovForAspect } from '@/scene/state/framing'
-import { CAMERAS, ORBIT_LIMITS, PARALLAX, type Vec3 } from '@/scene/state/layout'
+import { FOV_MAX_DEG, fovForAspect } from '@/scene/state/framing'
+import { buildBoardFile } from '@/scene/state/board/file'
+import { viewRects } from '@/scene/state/board/cameras'
+import type { Rect as BoardRect } from '@/scene/state/board/rect'
+import { makeLargeBoard, makeRealSizeBoard } from '../../fixtures/builders/board'
+import { CAMERAS, ORBIT_LIMITS, PARALLAX, type Vec3, type ViewId } from '@/scene/state/layout'
 
 const distance = (a: readonly number[], b: readonly number[]) =>
   Math.hypot((a[0] ?? 0) - (b[0] ?? 0), (a[1] ?? 0) - (b[1] ?? 0), (a[2] ?? 0) - (b[2] ?? 0))
@@ -105,7 +111,12 @@ describe('l’orbite', () => {
 
 describe('le cadrage dans la zone libre', () => {
   it('sans panneau, ne décale rien', () => {
-    expect(framingFor(null, 1600, 900)).toEqual({ offsetX: 0, offsetY: 0, aspect: 1600 / 900 })
+    expect(framingFor(null, 1600, 900)).toEqual({
+      offsetX: 0,
+      offsetY: 0,
+      aspect: 1600 / 900,
+      heightFraction: 1,
+    })
   })
 
   it('centre la scène dans la zone à droite du panneau', () => {
@@ -122,11 +133,20 @@ describe('le cadrage dans la zone libre', () => {
     expect(cadrage.offsetY).toBe(422 - 220)
   })
 
+  it('⛔ le format se mesure contre la hauteur du CANVAS : le champ vertical couvre tout le canvas', () => {
+    // `setViewOffset` ne fait que déplacer le point principal : la zone libre voit, en largeur,
+    // `free.width / height` du champ — jamais `free.width / free.height`.
+    const cadrage = framingFor({ x: 0, y: 70, width: 390, height: 300 }, 390, 844)
+    expect(cadrage.aspect).toBeCloseTo(390 / 844)
+    expect(cadrage.heightFraction).toBeCloseTo(300 / 844)
+  })
+
   it('une zone vide est traitée comme une absence de panneau', () => {
     expect(framingFor({ x: 0, y: 0, width: 0, height: 0 }, 100, 0)).toEqual({
       offsetX: 0,
       offsetY: 0,
       aspect: 1,
+      heightFraction: 1,
     })
   })
 })
@@ -348,5 +368,142 @@ describe('une image du rig', () => {
     const coupe = image({ elapsedMs: 0, animated: false })
     expect(coupe.transitioning).toBe(false)
     expectArrivee(coupe.shown)
+  })
+})
+
+/* ------------------------------------------------- la carte dans la zone libre */
+
+/**
+ * Projette un point du sol en pixels du canvas, comme `PerspectiveCamera` avec
+ * `setViewOffset(W, H, offsetX, offsetY, W, H)` : le champ vertical couvre tout le canvas, le
+ * point principal est déplacé de l'opposé du décalage.
+ */
+function projectToPx(
+  point: Vec3,
+  camera: { position: Vec3; target: Vec3; fov: number },
+  W: number,
+  H: number,
+  offsetX: number,
+  offsetY: number,
+): [number, number] {
+  const sub = (a: Vec3, b: Vec3): Vec3 => [a[0] - b[0], a[1] - b[1], a[2] - b[2]]
+  const dot = (a: Vec3, b: Vec3) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2]
+  const norm = (a: Vec3): Vec3 => {
+    const l = Math.hypot(...a)
+    return [a[0] / l, a[1] / l, a[2] / l]
+  }
+  const f = norm(sub(camera.target, camera.position))
+  const right = norm([-f[2], 0, f[0]])
+  const up: Vec3 = [
+    right[1] * f[2] - right[2] * f[1],
+    right[2] * f[0] - right[0] * f[2],
+    right[0] * f[1] - right[1] * f[0],
+  ]
+  const p = sub(point, camera.position)
+  const z = dot(p, f)
+  const tanV = Math.tan((camera.fov * Math.PI) / 360)
+  const x = W / 2 + (dot(p, right) / z / tanV) * (H / 2) - offsetX
+  const y = H / 2 - (dot(p, up) / z / tanV) * (H / 2) - offsetY
+  return [x, y]
+}
+
+describe.each([
+  ['taille réelle', makeRealSizeBoard],
+  ['grand banc', makeLargeBoard],
+])('la carte dans la zone libre, 1440 × 900 — %s', (_name, make) => {
+  const file = buildBoardFile(make(), { locale: 'fr', year: 2026, chipSizing: 'uniform' })
+  const rects = viewRects(file.plan)
+  const W = 1440
+  const H = 900
+  // La zone que le panneau de lecture et l'en-tête laissent : format ≈ 1,04.
+  const free: ScreenRect = { x: 584, y: 72, width: 840, height: 808 }
+
+  it.each(['accueil', 'experiences', 'projets', 'competences'] as const)(
+    '%s : chaque coin de son rectangle se projette DANS la zone libre',
+    (view: ViewId) => {
+      const goal = poseOf(file.cameras[view])
+      const framing = framingFor(free, W, H)
+      const image = rigFrame({
+        from: goal,
+        goal,
+        elapsedMs: 5000,
+        orbitNow: ORBIT_REST,
+        drag: ORBIT_REST,
+        parallax: ORBIT_REST,
+        limits: ORBIT_LIMITS,
+        deltaS: 1 / 60,
+        wasMoving: false,
+        animated: false,
+        aspect: framing.aspect,
+        heightFraction: framing.heightFraction,
+      })
+      expect(image.fov).toBeLessThanOrEqual(FOV_MAX_DEG + 1e-9)
+      const r: BoardRect = rects[view]
+      for (const [x, z] of [
+        [r.minX, r.minZ],
+        [r.maxX, r.minZ],
+        [r.minX, r.maxZ],
+        [r.maxX, r.maxZ],
+      ] as const) {
+        const [px, py] = projectToPx(
+          [x, 0, z],
+          { position: image.position, target: image.shown.target, fov: image.fov },
+          W,
+          H,
+          framing.offsetX,
+          framing.offsetY,
+        )
+        expect(px).toBeGreaterThanOrEqual(free.x)
+        expect(px).toBeLessThanOrEqual(free.x + free.width)
+        expect(py).toBeGreaterThanOrEqual(free.y)
+        expect(py).toBeLessThanOrEqual(free.y + free.height)
+      }
+    },
+  )
+})
+
+describe('le recul quand le champ bute sur son plafond', () => {
+  const goal = poseOf(CAMERAS.accueil)
+  const at = (aspect: number) =>
+    rigFrame({
+      from: goal,
+      goal,
+      elapsedMs: 5000,
+      orbitNow: ORBIT_REST,
+      drag: ORBIT_REST,
+      parallax: ORBIT_REST,
+      limits: ORBIT_LIMITS,
+      deltaS: 1 / 60,
+      wasMoving: false,
+      animated: false,
+      aspect,
+    })
+
+  it('sous le plafond : la distance ne change pas', () => {
+    expect(at(1.6).distance).toBeCloseTo(distance(goal.position, goal.target))
+  })
+
+  it('au plafond : le champ s’arrête à 50°, la caméra recule de tan(voulu/2) / tan(50°/2)', () => {
+    const image = at(0.9)
+    const wanted = fovForAspect(goal.fov, 0.9, Infinity)
+    expect(image.fov).toBeCloseTo(FOV_MAX_DEG)
+    const k = Math.tan((wanted * Math.PI) / 360) / Math.tan((FOV_MAX_DEG * Math.PI) / 360)
+    expect(image.distance).toBeCloseTo(distance(goal.position, goal.target) * k)
+    expect(distance(image.position, image.shown.target)).toBeCloseTo(image.distance)
+  })
+
+  it('la pose interpolée reste celle du cadrage : le recul ne se cumule pas d’image en image', () => {
+    expect(at(0.9).shown.position).toEqual(goal.position)
+  })
+})
+
+describe('le brouillard suit la distance de cadrage', () => {
+  it('commence au-delà de la cible et finit loin derrière, proportionnellement', () => {
+    const near = fogRange(30)
+    const far = fogRange(60)
+    expect(near.near).toBeGreaterThan(30)
+    expect(near.far).toBeGreaterThan(near.near)
+    expect(far.near).toBeCloseTo(near.near * 2)
+    expect(far.far).toBeCloseTo(near.far * 2)
   })
 })
