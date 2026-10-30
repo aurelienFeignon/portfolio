@@ -13,10 +13,12 @@
 import type { Metadata } from 'next'
 import type { ReactNode } from 'react'
 
-import { LOCALES } from '@/i18n/locales'
+import { contentRepository } from '@/content/repository'
+import { LOCALES, type Locale } from '@/i18n/locales'
 import { getMessages } from '@/i18n/messages'
 import { SECTIONS } from '@/routing/sections'
-import { SceneMount, type UniverseLabel } from '@/scene/components/scene-mount'
+import { SceneMount } from '@/scene/components/scene-mount'
+import type { BoardLabels } from '@/scene/state/board-render/labels'
 import { getSiteUrl } from '@/seo/site-url'
 import { SiteFooter } from '@/ui/site-footer'
 
@@ -81,6 +83,33 @@ export async function generateMetadata({ params }: LocaleParams): Promise<Metada
   }
 }
 
+/**
+ * Les noms que la carte affiche en étiquettes HTML (P8-15g, `carte-mere.md` §6) : sections et
+ * familles depuis le dictionnaire, employeurs, projets et compétences depuis le contenu de la
+ * locale. ⭐ Lus ICI, côté serveur : la scène n'importe ni dictionnaire ni contenu, et le plan de
+ * carte ne porte que des slugs.
+ */
+async function boardLabels(locale: Locale): Promise<BoardLabels> {
+  const messages = getMessages(locale)
+  const [skills, experiences, projects] = await Promise.all([
+    contentRepository.getAllSkills(locale),
+    contentRepository.getAllExperiences(locale),
+    contentRepository.getAllProjects(locale),
+  ])
+  return {
+    sections: Object.fromEntries(
+      SECTIONS.map((section) => [
+        section,
+        { name: messages.sections[section].name, tagline: messages.sections[section].tagline },
+      ]),
+    ) as BoardLabels['sections'],
+    families: messages.skills.categories,
+    experiences: Object.fromEntries(experiences.map((e) => [e.slug, e.company])),
+    projects: Object.fromEntries(projects.map((p) => [p.slug, p.title])),
+    skills: Object.fromEntries(skills.map((s) => [s.slug, s.name])),
+  }
+}
+
 export default async function LocaleLayout({
   children,
   params,
@@ -110,21 +139,9 @@ export default async function LocaleLayout({
         {/* La scène NEXUS (P5-04, D11). Placée en DERNIER : `aria-hidden`, sans
             rien de focusable, montée après `idle` — jamais dans le chemin
             critique du LCP (ADR-0003). Au palier `none`, elle ne charge rien.
-            Les noms des univers lui sont DONNÉS : la scène n'importe aucun
+            Les noms de la carte lui sont DONNÉS : la scène n'importe aucun
             dictionnaire, ce qui alourdirait le JS de première visite. */}
-        <SceneMount
-          labels={
-            Object.fromEntries(
-              SECTIONS.map((section) => [
-                section,
-                {
-                  name: messages.sections[section].name,
-                  tagline: messages.sections[section].tagline,
-                },
-              ]),
-            ) as Record<(typeof SECTIONS)[number], UniverseLabel>
-          }
-        />
+        <SceneMount labels={await boardLabels(locale)} />
       </body>
     </html>
   )

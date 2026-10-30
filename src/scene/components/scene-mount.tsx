@@ -29,7 +29,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 
 import { resetFocusToDocumentStart } from '@/routing/focus-reset'
 import { displayedLocale, homePath, localeFromPathname, parsePagePath } from '@/routing/paths'
-import { SECTIONS, type Section } from '@/routing/sections'
+import { SECTIONS } from '@/routing/sections'
 
 import { readCapability } from '@/scene/capability/adapter'
 import {
@@ -41,13 +41,19 @@ import {
 } from '@/scene/capability/mount-state'
 import { resolveCapability, shouldMountScene } from '@/scene/capability/resolve'
 import { tierMark } from '@/scene/capability/tier-mark'
+import {
+  type BoardLabelKind,
+  type BoardLabels,
+  boardLabelId,
+  targetLabelId,
+} from '@/scene/state/board-render/labels'
 import { type BoardTarget, hrefOf, sectionOf } from '@/scene/state/board-render/targets'
 import type { Rect } from '@/scene/state/camera-motion'
 import { shouldShowDiagnostics } from '@/scene/state/debug-flag'
 import { resolveSceneState } from '@/scene/state/scene-state'
 import type { SceneReadings } from '@/scene/state/diagnostics'
 
-import type { LabelAnchors } from './nexus/label-projector'
+import type { LabelElements } from './board/label-projector'
 import { SceneBoundary } from './scene-boundary'
 import styles from './scene-mount.module.css'
 
@@ -147,17 +153,24 @@ function lienInterne(event: MouseEvent): string | null {
   return parsePagePath(url.pathname) === null ? null : url.pathname
 }
 
-/** L'étiquette d'un univers : son nom, et une accroche qui dit ce qu'on y trouve. */
-export interface UniverseLabel {
-  readonly name: string
-  readonly tagline: string
+/**
+ * L'identifiant d'une étiquette, lu sur son élément : `data-board-label`, ou la section de
+ * `data-section` pour les trois étiquettes de section.
+ */
+function idDeLEtiquette(element: HTMLElement): string {
+  return element.dataset['boardLabel'] ?? boardLabelId('section', element.dataset['section'] ?? '')
 }
 
-export function SceneMount({
-  labels,
-}: {
-  readonly labels: Readonly<Record<Section, UniverseLabel>>
-}) {
+/** Les noms permanents d'une vue de section : `[genre, slug → nom]`, dans l'ordre du DOM. */
+const PERMANENTES = (
+  labels: BoardLabels,
+): readonly (readonly [BoardLabelKind, Readonly<Record<string, string>>])[] => [
+  ['family', labels.families],
+  ['experience', labels.experiences],
+  ['project', labels.projects],
+]
+
+export function SceneMount({ labels }: { readonly labels: BoardLabels }) {
   const [etat, setEtat] = useState<SceneMountState>(SCENE_WAITING)
   const [diagnostics, setDiagnostics] = useState(false)
   const [releves, setReleves] = useState<SceneReadings | null>(null)
@@ -166,8 +179,17 @@ export function SceneMount({
   const [survolAt, setSurvolAt] = useState<{ cible: BoardTarget; chemin: string } | null>(null)
   const [libre, setLibre] = useState<Rect | null>(null)
   const [zoneDesEtiquettes, setZoneDesEtiquettes] = useState<Rect | null>(null)
-  // Les étiquettes, que la scène place à chaque image (`LabelProjector`).
-  const ancres = useRef<LabelAnchors>({})
+  // Les étiquettes, par identifiant, que la scène place à chaque image (`LabelProjector`).
+  const ancres = useRef<LabelElements>(new Map())
+  // ⭐ Une seule fonction, stable : l'élément dit lui-même son identifiant (`idDeLEtiquette`).
+  const enregistrer = useCallback((element: HTMLElement | null) => {
+    if (element === null) return undefined
+    const id = idDeLEtiquette(element)
+    ancres.current.set(id, element)
+    return () => {
+      if (ancres.current.get(id) === element) ancres.current.delete(id)
+    }
+  }, [])
 
   /*
    * ⭐ **La route est la seule source de vérité** (ADR-0002) : l'état de scène
@@ -196,6 +218,11 @@ export function SceneMount({
   )
   // La section qu'avive la cible survolée : son étiquette s'allume.
   const sectionSurvolee = survol === null ? null : sectionOf(survol)
+  // L'étiquette qui nomme la cible survolée : elle s'allume, et passe devant (`labelsForView`).
+  const etiquetteSurvolee = survol === null ? null : targetLabelId(survol)
+  // Une puce survolée se nomme : son étiquette n'existe que le temps du survol.
+  const competenceSurvolee =
+    survol?.kind === 'chip' && labels.skills[survol.slug] !== undefined ? survol.slug : null
   // Le pointeur de lien seulement sur ce qui mène quelque part (une année n'allume que).
   const cliquable = survol !== null && hrefOf(survol, displayedLocale(chemin)) !== null
   // Une fiche se lit sans scène : elle reste montée, cachée, et ne calcule rien.
@@ -357,7 +384,7 @@ export function SceneMount({
             free={libre}
             visible={visible}
             hovered={survol}
-            labelAnchors={ancres}
+            labelElements={ancres}
             labelZone={zoneDesEtiquettes}
             onHover={survoler}
             onSelect={choisir}
@@ -367,14 +394,15 @@ export function SceneMount({
         </SceneBoundary>
       </div>
       {/*
-       * ⭐ Les étiquettes des univers, HORS de `data-scene-root` : la racine de
-       * scène ne contient aucun texte (ADR-0003, banc E2E). Elles doublent des
-       * liens qui existent déjà dans la navigation — d'où `aria-hidden`. Leur
-       * position est écrite par la scène ; jusqu'à la première image, elles
-       * restent invisibles (`data-visible` absent).
-       * ⛔ Cachées sur une fiche, jamais démontées : remontées au retour, elles
-       * repartaient sans position et attendaient une image que `demand` ne
-       * rend pas forcément — la scène revenait sans ses étiquettes.
+       * ⭐ Les étiquettes de la carte, HORS de `data-scene-root` : la racine de scène ne contient
+       * aucun texte (ADR-0003, banc E2E). Elles doublent des noms que le panneau et la navigation
+       * portent déjà — d'où `aria-hidden`. Toutes sont rendues, invisibles : la scène décide
+       * lesquelles montrer selon la vue (`labelsForView`) et les collisions (`placeLabels`), et
+       * écrit leur position ; jusqu'à la première image, `data-visible` est absent.
+       * ⛔ Cachées sur une fiche, jamais démontées : remontées au retour, elles repartaient sans
+       * position et attendaient une image que `demand` ne rend pas forcément.
+       * ⭐ Les trois sections gardent `[data-section]` (E2E-16, E2E-18) ; les autres portent
+       * `data-board-label`.
        */}
       <div
         aria-hidden="true"
@@ -383,28 +411,51 @@ export function SceneMount({
       >
         {SECTIONS.map((section) => {
           /*
-           * ⭐ En gros plan, seule l'étiquette de l'univers cadré reste : les
-           * autres univers passent au premier plan ou au bord du champ, et
-           * leurs étiquettes se posaient sur celui qu'on regarde. Éclipsée, une
-           * étiquette ne s'allume pas non plus au survol.
+           * ⭐ La vue d'une section nomme ce qu'elle cadre, et non plus les sections : leurs étiquettes
+           * s'éclipsent. Éclipsée, une étiquette ne s'allume pas non plus au survol.
            */
-          const eclipsee = scene.focus !== 'overview' && scene.focus !== section
+          const eclipsee = scene.focus !== 'overview'
           return (
             <p
               key={section}
-              ref={(element) => {
-                ancres.current[section] = element
-              }}
+              ref={enregistrer}
               data-section={section}
-              data-active={!eclipsee && (sectionSurvolee === section || scene.focus === section)}
+              data-active={!eclipsee && sectionSurvolee === section}
               data-eclipsed={eclipsee}
               className={styles.etiquette}
             >
-              <span className={styles.nom}>{labels[section].name}</span>
-              <span className={styles.accroche}>{labels[section].tagline}</span>
+              <span className={styles.nom}>{labels.sections[section].name}</span>
+              <span className={styles.accroche}>{labels.sections[section].tagline}</span>
             </p>
           )
         })}
+        {PERMANENTES(labels).flatMap(([genre, noms]) =>
+          Object.entries(noms).map(([cle, nom]) => {
+            const id = boardLabelId(genre, cle)
+            return (
+              <p
+                key={id}
+                ref={enregistrer}
+                data-board-label={id}
+                data-active={etiquetteSurvolee === id}
+                className={`${styles.etiquette} ${styles.repere}`}
+              >
+                <span className={styles.nom}>{nom}</span>
+              </p>
+            )
+          }),
+        )}
+        {competenceSurvolee === null ? null : (
+          <p
+            key={boardLabelId('skill', competenceSurvolee)}
+            ref={enregistrer}
+            data-board-label={boardLabelId('skill', competenceSurvolee)}
+            data-active
+            className={`${styles.etiquette} ${styles.repere}`}
+          >
+            <span className={styles.nom}>{labels.skills[competenceSurvolee]}</span>
+          </p>
+        )}
       </div>
       {/*
        * ⛔ Le panneau est HORS de `data-scene-root`, et ce n'est pas un détail de
