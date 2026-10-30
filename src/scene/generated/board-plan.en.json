@@ -1,0 +1,1836 @@
+{
+  "version": 1,
+  "locale": "en",
+  "year": 2026,
+  "chipSizing": "uniform",
+  "plan": {
+    "bounds": { "minX": -16.65, "minZ": -12, "maxX": 15.15, "maxZ": 7 },
+    "district": {
+      "processors": [
+        {
+          "slug": "augure",
+          "primary": true,
+          "ref": "U1",
+          "center": [0, 0],
+          "size": 3.2,
+          "height": 0.5,
+          "labelAnchor": [0, -1.9000000000000001]
+        },
+        {
+          "slug": "portfolio",
+          "primary": false,
+          "ref": "U2",
+          "center": [-3.8, 0],
+          "size": 1.8,
+          "height": 0.35,
+          "labelAnchor": [-3.8, -1.2]
+        },
+        {
+          "slug": "askor",
+          "primary": false,
+          "ref": "U3",
+          "center": [3.8, 0],
+          "size": 1.8,
+          "height": 0.35,
+          "labelAnchor": [3.8, -1.2]
+        }
+      ],
+      "bounds": { "minX": -5.7, "minZ": -2.6, "maxX": 5.7, "maxZ": 2.6 }
+    },
+    "zones": [
+      {
+        "family": "framework",
+        "tone": "violet",
+        "bounds": { "minX": -12.9, "maxX": -7.7, "minZ": -4.700000000000001, "maxZ": 2.6 },
+        "chips": [
+          {
+            "slug": "api-platform",
+            "family": "framework",
+            "ref": "IC1",
+            "center": [-12.05, -3.8500000000000005],
+            "size": 0.9,
+            "height": 0.2,
+            "tone": "violet"
+          },
+          {
+            "slug": "highcharts",
+            "family": "framework",
+            "ref": "IC2",
+            "center": [-10.650000000000002, -3.8500000000000005],
+            "size": 0.9,
+            "height": 0.2,
+            "tone": "violet"
+          },
+          {
+            "slug": "mercure",
+            "family": "framework",
+            "ref": "IC3",
+            "center": [-9.250000000000002, -3.8500000000000005],
+            "size": 0.9,
+            "height": 0.2,
+            "tone": "violet"
+          },
+          {
+            "slug": "nextjs",
+            "family": "framework",
+            "ref": "IC4",
+            "center": [-12.05, -2.450000000000001],
+            "size": 0.9,
+            "height": 0.2,
+            "tone": "violet"
+          },
+          {
+            "slug": "nodejs",
+            "family": "framework",
+            "ref": "IC5",
+            "center": [-10.650000000000002, -2.450000000000001],
+            "size": 0.9,
+            "height": 0.2,
+            "tone": "violet"
+          },
+          {
+            "slug": "prisma",
+            "family": "framework",
+            "ref": "IC6",
+            "center": [-9.250000000000002, -2.450000000000001],
+            "size": 0.9,
+            "height": 0.2,
+            "tone": "violet"
+          },
+          {
+            "slug": "pydantic",
+            "family": "framework",
+            "ref": "IC7",
+            "center": [-12.05, -1.0500000000000014],
+            "size": 0.9,
+            "height": 0.2,
+            "tone": "violet"
+          },
+          {
+            "slug": "react",
+            "family": "framework",
+            "ref": "IC8",
+            "center": [-10.650000000000002, -1.0500000000000014],
+            "size": 0.9,
+            "height": 0.2,
+            "tone": "violet"
+          },
+          {
+            "slug": "react-flow",
+            "family": "framework",
+            "ref": "IC9",
+            "center": [-9.250000000000002, -1.0500000000000014],
+            "size": 0.9,
+            "height": 0.2,
+            "tone": "violet"
+          },
+          {
+            "slug": "symfony",
+            "family": "framework",
+            "ref": "IC10",
+            "center": [-12.05, 0.3499999999999986],
+            "size": 0.9,
+            "height": 0.2,
+            "tone": "violet"
+          },
+          {
+            "slug": "tensorflow",
+            "family": "framework",
+            "ref": "IC11",
+            "center": [-10.650000000000002, 0.3499999999999986],
+            "size": 0.9,
+            "height": 0.2,
+            "tone": "violet"
+          },
+          {
+            "slug": "xgboost",
+            "family": "framework",
+            "ref": "IC12",
+            "center": [-9.250000000000002, 0.3499999999999986],
+            "size": 0.9,
+            "height": 0.2,
+            "tone": "violet"
+          },
+          {
+            "slug": "zustand",
+            "family": "framework",
+            "ref": "IC13",
+            "center": [-12.05, 1.749999999999999],
+            "size": 0.9,
+            "height": 0.2,
+            "tone": "violet"
+          }
+        ],
+        "exit": [-7.7, -1.0500000000000005],
+        "labelAnchor": [-10.3, -5.000000000000001]
+      },
+      {
+        "family": "infrastructure",
+        "tone": "amber",
+        "bounds": { "minX": 7.7, "maxX": 12.9, "minZ": -3.3000000000000003, "maxZ": 2.6 },
+        "chips": [
+          {
+            "slug": "cloudflare-tunnel",
+            "family": "infrastructure",
+            "ref": "IC14",
+            "center": [8.549999999999999, -2.45],
+            "size": 0.9,
+            "height": 0.2,
+            "tone": "amber"
+          },
+          {
+            "slug": "cuda",
+            "family": "infrastructure",
+            "ref": "IC15",
+            "center": [9.95, -2.45],
+            "size": 0.9,
+            "height": 0.2,
+            "tone": "amber"
+          },
+          {
+            "slug": "docker",
+            "family": "infrastructure",
+            "ref": "IC16",
+            "center": [11.35, -2.45],
+            "size": 0.9,
+            "height": 0.2,
+            "tone": "amber"
+          },
+          {
+            "slug": "minio",
+            "family": "infrastructure",
+            "ref": "IC17",
+            "center": [8.549999999999999, -1.0500000000000005],
+            "size": 0.9,
+            "height": 0.2,
+            "tone": "amber"
+          },
+          {
+            "slug": "mysql",
+            "family": "infrastructure",
+            "ref": "IC18",
+            "center": [9.95, -1.0500000000000005],
+            "size": 0.9,
+            "height": 0.2,
+            "tone": "amber"
+          },
+          {
+            "slug": "nvidia-triton",
+            "family": "infrastructure",
+            "ref": "IC19",
+            "center": [11.35, -1.0500000000000005],
+            "size": 0.9,
+            "height": 0.2,
+            "tone": "amber"
+          },
+          {
+            "slug": "postgresql",
+            "family": "infrastructure",
+            "ref": "IC20",
+            "center": [8.549999999999999, 0.3499999999999995],
+            "size": 0.9,
+            "height": 0.2,
+            "tone": "amber"
+          },
+          {
+            "slug": "rabbitmq",
+            "family": "infrastructure",
+            "ref": "IC21",
+            "center": [9.95, 0.3499999999999995],
+            "size": 0.9,
+            "height": 0.2,
+            "tone": "amber"
+          },
+          {
+            "slug": "redis",
+            "family": "infrastructure",
+            "ref": "IC22",
+            "center": [11.35, 0.3499999999999995],
+            "size": 0.9,
+            "height": 0.2,
+            "tone": "amber"
+          },
+          {
+            "slug": "timescaledb",
+            "family": "infrastructure",
+            "ref": "IC23",
+            "center": [8.549999999999999, 1.7499999999999993],
+            "size": 0.9,
+            "height": 0.2,
+            "tone": "amber"
+          },
+          {
+            "slug": "traefik",
+            "family": "infrastructure",
+            "ref": "IC24",
+            "center": [9.95, 1.7499999999999993],
+            "size": 0.9,
+            "height": 0.2,
+            "tone": "amber"
+          }
+        ],
+        "exit": [7.7, -0.3500000000000001],
+        "labelAnchor": [10.3, -3.6]
+      },
+      {
+        "family": "practice",
+        "tone": "teal",
+        "bounds": { "minX": -2.6, "maxX": 2.6, "minZ": -10.5, "maxZ": -4.6 },
+        "chips": [
+          {
+            "slug": "automated-testing",
+            "family": "practice",
+            "ref": "IC25",
+            "center": [-1.7500000000000002, -9.65],
+            "size": 0.9,
+            "height": 0.2,
+            "tone": "teal"
+          },
+          {
+            "slug": "autonomous-agents",
+            "family": "practice",
+            "ref": "IC26",
+            "center": [-0.35000000000000026, -9.65],
+            "size": 0.9,
+            "height": 0.2,
+            "tone": "teal"
+          },
+          {
+            "slug": "distributed-reliability",
+            "family": "practice",
+            "ref": "IC27",
+            "center": [1.0499999999999996, -9.65],
+            "size": 0.9,
+            "height": 0.2,
+            "tone": "teal"
+          },
+          {
+            "slug": "documented-architecture",
+            "family": "practice",
+            "ref": "IC28",
+            "center": [-1.7500000000000002, -8.25],
+            "size": 0.9,
+            "height": 0.2,
+            "tone": "teal"
+          },
+          {
+            "slug": "event-driven-architecture",
+            "family": "practice",
+            "ref": "IC29",
+            "center": [-0.35000000000000026, -8.25],
+            "size": 0.9,
+            "height": 0.2,
+            "tone": "teal"
+          },
+          {
+            "slug": "llm-integration",
+            "family": "practice",
+            "ref": "IC30",
+            "center": [1.0499999999999996, -8.25],
+            "size": 0.9,
+            "height": 0.2,
+            "tone": "teal"
+          },
+          {
+            "slug": "microservices",
+            "family": "practice",
+            "ref": "IC31",
+            "center": [-1.7500000000000002, -6.8500000000000005],
+            "size": 0.9,
+            "height": 0.2,
+            "tone": "teal"
+          },
+          {
+            "slug": "prompt-engineering",
+            "family": "practice",
+            "ref": "IC32",
+            "center": [-0.35000000000000026, -6.8500000000000005],
+            "size": 0.9,
+            "height": 0.2,
+            "tone": "teal"
+          },
+          {
+            "slug": "structured-outputs",
+            "family": "practice",
+            "ref": "IC33",
+            "center": [1.0499999999999996, -6.8500000000000005],
+            "size": 0.9,
+            "height": 0.2,
+            "tone": "teal"
+          },
+          {
+            "slug": "time-series",
+            "family": "practice",
+            "ref": "IC34",
+            "center": [-1.7500000000000002, -5.45],
+            "size": 0.9,
+            "height": 0.2,
+            "tone": "teal"
+          },
+          {
+            "slug": "tool-calling",
+            "family": "practice",
+            "ref": "IC35",
+            "center": [-0.35000000000000026, -5.45],
+            "size": 0.9,
+            "height": 0.2,
+            "tone": "teal"
+          }
+        ],
+        "exit": [0, -4.6],
+        "labelAnchor": [0, -10.8]
+      },
+      {
+        "family": "tooling",
+        "tone": "sky",
+        "bounds": { "minX": -15.15, "maxX": -9.95, "minZ": -8.55, "maxZ": -6.85 },
+        "chips": [
+          {
+            "slug": "claude-code",
+            "family": "tooling",
+            "ref": "IC36",
+            "center": [-14.3, -7.7],
+            "size": 0.9,
+            "height": 0.2,
+            "tone": "sky"
+          },
+          {
+            "slug": "github-actions",
+            "family": "tooling",
+            "ref": "IC37",
+            "center": [-12.900000000000002, -7.7],
+            "size": 0.9,
+            "height": 0.2,
+            "tone": "sky"
+          },
+          {
+            "slug": "grafana",
+            "family": "tooling",
+            "ref": "IC38",
+            "center": [-11.500000000000002, -7.7],
+            "size": 0.9,
+            "height": 0.2,
+            "tone": "sky"
+          }
+        ],
+        "exit": [-12.55, -6.85],
+        "labelAnchor": [-12.55, -8.850000000000001]
+      },
+      {
+        "family": "language",
+        "tone": "cyan",
+        "bounds": { "minX": 8.45, "maxX": 13.65, "minZ": -7.05, "maxZ": -5.35 },
+        "chips": [
+          {
+            "slug": "python",
+            "family": "language",
+            "ref": "IC39",
+            "center": [9.299999999999999, -6.199999999999999],
+            "size": 0.9,
+            "height": 0.2,
+            "tone": "cyan"
+          },
+          {
+            "slug": "typescript",
+            "family": "language",
+            "ref": "IC40",
+            "center": [10.7, -6.199999999999999],
+            "size": 0.9,
+            "height": 0.2,
+            "tone": "cyan"
+          }
+        ],
+        "exit": [11.05, -5.35],
+        "labelAnchor": [11.05, -7.35]
+      }
+    ],
+    "timeline": {
+      "firstYear": 2021,
+      "lastYear": 2026,
+      "step": 3.3333333333333335,
+      "rows": 1,
+      "lanes": 2,
+      "originZ": 4.6,
+      "segments": [
+        {
+          "experience": "askor",
+          "lane": 0,
+          "tone": "cyan",
+          "startYear": 2021,
+          "endYear": 2026,
+          "ongoing": true,
+          "points": [
+            [-10, 4.6],
+            [10, 4.6]
+          ],
+          "labelAnchor": [-1.666666666666666, 4.6]
+        },
+        {
+          "experience": "augure",
+          "lane": 1,
+          "tone": "violet",
+          "startYear": 2025,
+          "endYear": 2026,
+          "ongoing": true,
+          "points": [
+            [3.333333333333334, 4.6],
+            [4.2333333333333325, 5.5],
+            [10, 5.5]
+          ],
+          "labelAnchor": [5, 5.5]
+        }
+      ],
+      "idleYears": [],
+      "jogs": [],
+      "milestones": [
+        { "year": 2021, "at": [-8.333333333333334, 4.6] },
+        { "year": 2022, "at": [-5, 4.6] },
+        { "year": 2023, "at": [-1.666666666666666, 4.6] },
+        { "year": 2024, "at": [1.6666666666666679, 4.6] },
+        { "year": 2025, "at": [5, 4.6] },
+        { "year": 2026, "at": [8.333333333333336, 4.6] }
+      ],
+      "spine": [
+        [-10, 4.6],
+        [10, 4.6]
+      ],
+      "bounds": { "minX": -10, "maxX": 10, "minZ": 4.6, "maxZ": 5.5 }
+    },
+    "traces": {
+      "mode": "family-bus",
+      "links": [
+        { "skill": "automated-testing", "project": "augure" },
+        { "skill": "autonomous-agents", "project": "augure" },
+        { "skill": "cloudflare-tunnel", "project": "augure" },
+        { "skill": "cuda", "project": "augure" },
+        { "skill": "distributed-reliability", "project": "augure" },
+        { "skill": "docker", "project": "augure" },
+        { "skill": "documented-architecture", "project": "augure" },
+        { "skill": "event-driven-architecture", "project": "augure" },
+        { "skill": "github-actions", "project": "augure" },
+        { "skill": "grafana", "project": "augure" },
+        { "skill": "llm-integration", "project": "augure" },
+        { "skill": "microservices", "project": "augure" },
+        { "skill": "minio", "project": "augure" },
+        { "skill": "nodejs", "project": "augure" },
+        { "skill": "nvidia-triton", "project": "augure" },
+        { "skill": "postgresql", "project": "augure" },
+        { "skill": "prisma", "project": "augure" },
+        { "skill": "pydantic", "project": "augure" },
+        { "skill": "python", "project": "augure" },
+        { "skill": "rabbitmq", "project": "augure" },
+        { "skill": "react", "project": "augure" },
+        { "skill": "react-flow", "project": "augure" },
+        { "skill": "redis", "project": "augure" },
+        { "skill": "structured-outputs", "project": "augure" },
+        { "skill": "tensorflow", "project": "augure" },
+        { "skill": "time-series", "project": "augure" },
+        { "skill": "timescaledb", "project": "augure" },
+        { "skill": "tool-calling", "project": "augure" },
+        { "skill": "traefik", "project": "augure" },
+        { "skill": "typescript", "project": "augure" },
+        { "skill": "xgboost", "project": "augure" },
+        { "skill": "api-platform", "project": "askor" },
+        { "skill": "highcharts", "project": "askor" },
+        { "skill": "mercure", "project": "askor" },
+        { "skill": "microservices", "project": "askor" },
+        { "skill": "mysql", "project": "askor" },
+        { "skill": "python", "project": "askor" },
+        { "skill": "react", "project": "askor" },
+        { "skill": "react-flow", "project": "askor" },
+        { "skill": "symfony", "project": "askor" },
+        { "skill": "zustand", "project": "askor" },
+        { "skill": "automated-testing", "project": "portfolio" },
+        { "skill": "docker", "project": "portfolio" },
+        { "skill": "documented-architecture", "project": "portfolio" },
+        { "skill": "github-actions", "project": "portfolio" },
+        { "skill": "nextjs", "project": "portfolio" },
+        { "skill": "react", "project": "portfolio" },
+        { "skill": "typescript", "project": "portfolio" }
+      ],
+      "busLinks": [
+        { "project": "augure", "experience": "augure", "year": 2025 },
+        { "project": "askor", "experience": "askor", "year": 2021 }
+      ],
+      "routes": [
+        {
+          "net": "experience:augure",
+          "kind": "bus-link",
+          "links": [],
+          "busLink": { "project": "augure", "experience": "augure", "year": 2025 },
+          "points": [
+            [1.6, 1.375],
+            [1.7250000000000014, 1.375],
+            [4.475000000000001, 4.125],
+            [4.475000000000001, 5.5]
+          ]
+        },
+        {
+          "net": "experience:askor",
+          "kind": "bus-link",
+          "links": [],
+          "busLink": { "project": "askor", "experience": "askor", "year": 2021 },
+          "points": [
+            [2.9, -0.875],
+            [2.7250000000000014, -0.875],
+            [1.7250000000000014, -1.875],
+            [-1.7749999999999986, -1.875],
+            [-2.2749999999999986, -1.375],
+            [-2.2749999999999986, 0.875],
+            [-5.524999999999999, 4.125],
+            [-7.024999999999999, 4.125],
+            [-7.024999999999999, 4.6]
+          ]
+        },
+        {
+          "net": "zone:practice",
+          "kind": "link",
+          "links": [
+            { "skill": "automated-testing", "project": "augure" },
+            { "skill": "automated-testing", "project": "portfolio" }
+          ],
+          "points": [
+            [-1.5249999999999986, -9.200000000000001],
+            [-1.5249999999999986, -9.125],
+            [-1.0249999999999986, -8.625],
+            [-1.0249999999999986, -4.875],
+            [-0.7749999999999986, -4.625],
+            [-0.02499999999999858, -4.625]
+          ]
+        },
+        {
+          "net": "zone:practice",
+          "kind": "link",
+          "links": [{ "skill": "autonomous-agents", "project": "augure" }],
+          "points": [
+            [-0.02499999999999858, -9.200000000000001],
+            [-0.02499999999999858, -9.125],
+            [0.22500000000000142, -8.875],
+            [0.22500000000000142, -4.875],
+            [-0.02499999999999858, -4.625]
+          ]
+        },
+        {
+          "net": "zone:practice",
+          "kind": "link",
+          "links": [{ "skill": "distributed-reliability", "project": "augure" }],
+          "points": [
+            [0.7250000000000014, -9.200000000000001],
+            [0.7250000000000014, -9.125],
+            [0.22500000000000142, -8.625],
+            [0.22500000000000142, -4.875],
+            [-0.02499999999999858, -4.625]
+          ]
+        },
+        {
+          "net": "zone:practice",
+          "kind": "link",
+          "links": [
+            { "skill": "documented-architecture", "project": "augure" },
+            { "skill": "documented-architecture", "project": "portfolio" }
+          ],
+          "points": [
+            [-1.5249999999999986, -7.8],
+            [-1.5249999999999986, -7.625],
+            [-1.0249999999999986, -7.125],
+            [-1.0249999999999986, -4.875],
+            [-0.7749999999999986, -4.625],
+            [-0.02499999999999858, -4.625]
+          ]
+        },
+        {
+          "net": "zone:practice",
+          "kind": "link",
+          "links": [{ "skill": "event-driven-architecture", "project": "augure" }],
+          "points": [
+            [-0.02499999999999858, -7.8],
+            [-0.02499999999999858, -7.625],
+            [0.22500000000000142, -7.375],
+            [0.22500000000000142, -4.875],
+            [-0.02499999999999858, -4.625]
+          ]
+        },
+        {
+          "net": "zone:practice",
+          "kind": "link",
+          "links": [{ "skill": "llm-integration", "project": "augure" }],
+          "points": [
+            [0.7250000000000014, -7.8],
+            [0.7250000000000014, -7.625],
+            [0.22500000000000142, -7.125],
+            [0.22500000000000142, -4.875],
+            [-0.02499999999999858, -4.625]
+          ]
+        },
+        {
+          "net": "zone:practice",
+          "kind": "link",
+          "links": [
+            { "skill": "microservices", "project": "augure" },
+            { "skill": "microservices", "project": "askor" }
+          ],
+          "points": [
+            [-1.5249999999999986, -6.4],
+            [-1.5249999999999986, -6.375],
+            [-1.0249999999999986, -5.875],
+            [-1.0249999999999986, -4.875],
+            [-0.7749999999999986, -4.625],
+            [-0.02499999999999858, -4.625]
+          ]
+        },
+        {
+          "net": "zone:practice",
+          "kind": "link",
+          "links": [{ "skill": "structured-outputs", "project": "augure" }],
+          "points": [
+            [0.7250000000000014, -6.4],
+            [0.7250000000000014, -5.375],
+            [-0.02499999999999858, -4.625]
+          ]
+        },
+        {
+          "net": "zone:practice",
+          "kind": "link",
+          "links": [{ "skill": "time-series", "project": "augure" }],
+          "points": [
+            [-1.3000000000000003, -5.125],
+            [-1.2749999999999986, -5.125],
+            [-0.7749999999999986, -4.625],
+            [-0.02499999999999858, -4.625]
+          ]
+        },
+        {
+          "net": "zone:practice",
+          "kind": "link",
+          "links": [{ "skill": "tool-calling", "project": "augure" }],
+          "points": [
+            [-0.02499999999999858, -5],
+            [-0.02499999999999858, -4.625]
+          ]
+        },
+        {
+          "net": "zone:practice",
+          "kind": "trunk",
+          "links": [
+            { "skill": "automated-testing", "project": "augure" },
+            { "skill": "autonomous-agents", "project": "augure" },
+            { "skill": "distributed-reliability", "project": "augure" },
+            { "skill": "documented-architecture", "project": "augure" },
+            { "skill": "event-driven-architecture", "project": "augure" },
+            { "skill": "llm-integration", "project": "augure" },
+            { "skill": "microservices", "project": "augure" },
+            { "skill": "structured-outputs", "project": "augure" },
+            { "skill": "time-series", "project": "augure" },
+            { "skill": "tool-calling", "project": "augure" },
+            { "skill": "microservices", "project": "askor" },
+            { "skill": "automated-testing", "project": "portfolio" },
+            { "skill": "documented-architecture", "project": "portfolio" }
+          ],
+          "points": [
+            [-0.02499999999999858, -4.625],
+            [-0.02499999999999858, -2.875]
+          ]
+        },
+        {
+          "net": "zone:practice",
+          "kind": "link",
+          "links": [
+            { "skill": "automated-testing", "project": "augure" },
+            { "skill": "autonomous-agents", "project": "augure" },
+            { "skill": "distributed-reliability", "project": "augure" },
+            { "skill": "documented-architecture", "project": "augure" },
+            { "skill": "event-driven-architecture", "project": "augure" },
+            { "skill": "llm-integration", "project": "augure" },
+            { "skill": "microservices", "project": "augure" },
+            { "skill": "structured-outputs", "project": "augure" },
+            { "skill": "time-series", "project": "augure" },
+            { "skill": "tool-calling", "project": "augure" }
+          ],
+          "points": [
+            [-0.02499999999999858, -2.875],
+            [-0.02499999999999858, -1.6]
+          ]
+        },
+        {
+          "net": "zone:practice",
+          "kind": "link",
+          "links": [
+            { "skill": "automated-testing", "project": "portfolio" },
+            { "skill": "documented-architecture", "project": "portfolio" }
+          ],
+          "points": [
+            [-0.02499999999999858, -2.875],
+            [-1.2749999999999986, -2.875],
+            [-3.0249999999999986, -1.125],
+            [-3.0249999999999986, -0.9]
+          ]
+        },
+        {
+          "net": "zone:practice",
+          "kind": "link",
+          "links": [{ "skill": "microservices", "project": "askor" }],
+          "points": [
+            [-0.02499999999999858, -2.875],
+            [1.2250000000000014, -2.875],
+            [2.9750000000000014, -1.125],
+            [2.9750000000000014, -0.9]
+          ]
+        },
+        {
+          "net": "zone:infrastructure",
+          "kind": "link",
+          "links": [{ "skill": "cloudflare-tunnel", "project": "augure" }],
+          "points": [
+            [8.225000000000001, -2],
+            [8.225000000000001, -1.875],
+            [7.725000000000001, -1.375],
+            [7.725000000000001, -0.375]
+          ]
+        },
+        {
+          "net": "zone:infrastructure",
+          "kind": "link",
+          "links": [{ "skill": "cuda", "project": "augure" }],
+          "points": [
+            [9.5, -2.125],
+            [9.475000000000001, -2.125],
+            [8.975000000000001, -1.625],
+            [7.975000000000001, -1.625],
+            [7.725000000000001, -1.375],
+            [7.725000000000001, -0.375]
+          ]
+        },
+        {
+          "net": "zone:infrastructure",
+          "kind": "link",
+          "links": [
+            { "skill": "docker", "project": "augure" },
+            { "skill": "docker", "project": "portfolio" }
+          ],
+          "points": [
+            [10.9, -2.125],
+            [10.725000000000001, -2.125],
+            [10.225000000000001, -1.625],
+            [7.975000000000001, -1.625],
+            [7.725000000000001, -1.375],
+            [7.725000000000001, -0.375]
+          ]
+        },
+        {
+          "net": "zone:infrastructure",
+          "kind": "link",
+          "links": [{ "skill": "minio", "project": "augure" }],
+          "points": [
+            [8.1, -0.625],
+            [7.975000000000001, -0.625],
+            [7.725000000000001, -0.375]
+          ]
+        },
+        {
+          "net": "zone:infrastructure",
+          "kind": "link",
+          "links": [{ "skill": "mysql", "project": "askor" }],
+          "points": [
+            [9.5, -0.625],
+            [9.475000000000001, -0.625],
+            [9.225000000000001, -0.375],
+            [7.725000000000001, -0.375]
+          ]
+        },
+        {
+          "net": "zone:infrastructure",
+          "kind": "link",
+          "links": [{ "skill": "nvidia-triton", "project": "augure" }],
+          "points": [
+            [10.9, -0.625],
+            [10.725000000000001, -0.625],
+            [10.475000000000001, -0.375],
+            [7.725000000000001, -0.375]
+          ]
+        },
+        {
+          "net": "zone:infrastructure",
+          "kind": "link",
+          "links": [{ "skill": "postgresql", "project": "augure" }],
+          "points": [
+            [8.225000000000001, -0.10000000000000053],
+            [8.225000000000001, -0.125],
+            [7.975000000000001, -0.375],
+            [7.725000000000001, -0.375]
+          ]
+        },
+        {
+          "net": "zone:infrastructure",
+          "kind": "link",
+          "links": [{ "skill": "rabbitmq", "project": "augure" }],
+          "points": [
+            [9.5, 0.125],
+            [9.475000000000001, 0.125],
+            [8.975000000000001, -0.375],
+            [7.725000000000001, -0.375]
+          ]
+        },
+        {
+          "net": "zone:infrastructure",
+          "kind": "link",
+          "links": [{ "skill": "redis", "project": "augure" }],
+          "points": [
+            [10.9, 0.125],
+            [10.725000000000001, 0.125],
+            [10.225000000000001, -0.375],
+            [7.725000000000001, -0.375]
+          ]
+        },
+        {
+          "net": "zone:infrastructure",
+          "kind": "link",
+          "links": [{ "skill": "timescaledb", "project": "augure" }],
+          "points": [
+            [8.225000000000001, 1.2999999999999994],
+            [8.225000000000001, 1.125],
+            [7.725000000000001, 0.625],
+            [7.725000000000001, -0.375]
+          ]
+        },
+        {
+          "net": "zone:infrastructure",
+          "kind": "link",
+          "links": [{ "skill": "traefik", "project": "augure" }],
+          "points": [
+            [9.725000000000001, 1.2999999999999994],
+            [9.725000000000001, 1.125],
+            [9.225000000000001, 0.625],
+            [9.225000000000001, -0.125],
+            [8.975000000000001, -0.375],
+            [7.725000000000001, -0.375]
+          ]
+        },
+        {
+          "net": "zone:infrastructure",
+          "kind": "trunk",
+          "links": [
+            { "skill": "cloudflare-tunnel", "project": "augure" },
+            { "skill": "cuda", "project": "augure" },
+            { "skill": "docker", "project": "augure" },
+            { "skill": "minio", "project": "augure" },
+            { "skill": "nvidia-triton", "project": "augure" },
+            { "skill": "postgresql", "project": "augure" },
+            { "skill": "rabbitmq", "project": "augure" },
+            { "skill": "redis", "project": "augure" },
+            { "skill": "timescaledb", "project": "augure" },
+            { "skill": "traefik", "project": "augure" },
+            { "skill": "mysql", "project": "askor" },
+            { "skill": "docker", "project": "portfolio" }
+          ],
+          "points": [
+            [7.725000000000001, -0.375],
+            [5.975000000000001, -0.375]
+          ]
+        },
+        {
+          "net": "zone:infrastructure",
+          "kind": "link",
+          "links": [{ "skill": "mysql", "project": "askor" }],
+          "points": [
+            [5.975000000000001, -0.375],
+            [4.7, -0.375]
+          ]
+        },
+        {
+          "net": "zone:infrastructure",
+          "kind": "link",
+          "links": [
+            { "skill": "cloudflare-tunnel", "project": "augure" },
+            { "skill": "cuda", "project": "augure" },
+            { "skill": "docker", "project": "augure" },
+            { "skill": "minio", "project": "augure" },
+            { "skill": "nvidia-triton", "project": "augure" },
+            { "skill": "postgresql", "project": "augure" },
+            { "skill": "rabbitmq", "project": "augure" },
+            { "skill": "redis", "project": "augure" },
+            { "skill": "timescaledb", "project": "augure" },
+            { "skill": "traefik", "project": "augure" }
+          ],
+          "points": [
+            [5.975000000000001, -0.375],
+            [5.975000000000001, 0.125],
+            [4.725000000000001, 1.375],
+            [2.2250000000000014, 1.375],
+            [1.7250000000000014, 0.875],
+            [1.6, 0.875]
+          ]
+        },
+        {
+          "net": "zone:infrastructure",
+          "kind": "link",
+          "links": [{ "skill": "docker", "project": "portfolio" }],
+          "points": [
+            [7.725000000000001, -0.375],
+            [7.725000000000001, -4.125],
+            [8.725000000000001, -5.125],
+            [8.725000000000001, -5.625],
+            [4.225000000000001, -10.125],
+            [-3.0249999999999986, -10.125],
+            [-5.524999999999999, -7.625],
+            [-5.524999999999999, -6.875],
+            [-5.024999999999999, -6.875],
+            [-5.024999999999999, -2.375],
+            [-3.7749999999999986, -1.125],
+            [-3.7749999999999986, -0.9]
+          ]
+        },
+        {
+          "net": "zone:tooling",
+          "kind": "link",
+          "links": [
+            { "skill": "github-actions", "project": "augure" },
+            { "skill": "github-actions", "project": "portfolio" }
+          ],
+          "points": [
+            [-12.524999999999999, -7.25],
+            [-12.524999999999999, -6.875]
+          ]
+        },
+        {
+          "net": "zone:tooling",
+          "kind": "link",
+          "links": [{ "skill": "grafana", "project": "augure" }],
+          "points": [
+            [-11.950000000000001, -7.375],
+            [-12.024999999999999, -7.375],
+            [-12.524999999999999, -6.875]
+          ]
+        },
+        {
+          "net": "zone:tooling",
+          "kind": "trunk",
+          "links": [
+            { "skill": "github-actions", "project": "augure" },
+            { "skill": "grafana", "project": "augure" },
+            { "skill": "github-actions", "project": "portfolio" }
+          ],
+          "points": [
+            [-12.524999999999999, -6.875],
+            [-10.024999999999999, -6.875],
+            [-6.024999999999999, -2.875]
+          ]
+        },
+        {
+          "net": "zone:tooling",
+          "kind": "link",
+          "links": [{ "skill": "github-actions", "project": "portfolio" }],
+          "points": [
+            [-6.024999999999999, -2.875],
+            [-4.274999999999999, -1.125],
+            [-4.274999999999999, -0.9]
+          ]
+        },
+        {
+          "net": "zone:tooling",
+          "kind": "link",
+          "links": [
+            { "skill": "github-actions", "project": "augure" },
+            { "skill": "grafana", "project": "augure" }
+          ],
+          "points": [
+            [-7.524999999999999, -4.375],
+            [-5.274999999999999, -6.625],
+            [-5.274999999999999, -7.375],
+            [-5.024999999999999, -7.625],
+            [-0.5249999999999986, -3.125],
+            [-0.5249999999999986, -1.6]
+          ]
+        },
+        {
+          "net": "zone:framework",
+          "kind": "link",
+          "links": [{ "skill": "api-platform", "project": "askor" }],
+          "points": [
+            [-11.600000000000001, -3.625],
+            [-11.524999999999999, -3.625],
+            [-11.024999999999999, -3.125],
+            [-8.774999999999999, -3.125],
+            [-7.774999999999999, -2.125],
+            [-7.774999999999999, -1.125]
+          ]
+        },
+        {
+          "net": "zone:framework",
+          "kind": "link",
+          "links": [{ "skill": "highcharts", "project": "askor" }],
+          "points": [
+            [-10.200000000000003, -3.625],
+            [-10.024999999999999, -3.625],
+            [-9.524999999999999, -3.125],
+            [-8.774999999999999, -3.125],
+            [-7.774999999999999, -2.125],
+            [-7.774999999999999, -1.125]
+          ]
+        },
+        {
+          "net": "zone:framework",
+          "kind": "link",
+          "links": [{ "skill": "mercure", "project": "askor" }],
+          "points": [
+            [-9.024999999999999, -3.4000000000000004],
+            [-9.024999999999999, -3.375],
+            [-7.774999999999999, -2.125],
+            [-7.774999999999999, -1.125]
+          ]
+        },
+        {
+          "net": "zone:framework",
+          "kind": "link",
+          "links": [{ "skill": "nextjs", "project": "portfolio" }],
+          "points": [
+            [-11.600000000000001, -2.125],
+            [-11.524999999999999, -2.125],
+            [-11.024999999999999, -1.625],
+            [-8.274999999999999, -1.625],
+            [-7.774999999999999, -1.125]
+          ]
+        },
+        {
+          "net": "zone:framework",
+          "kind": "link",
+          "links": [{ "skill": "nodejs", "project": "augure" }],
+          "points": [
+            [-10.200000000000003, -2.125],
+            [-10.024999999999999, -2.125],
+            [-9.524999999999999, -1.625],
+            [-8.274999999999999, -1.625],
+            [-7.774999999999999, -1.125]
+          ]
+        },
+        {
+          "net": "zone:framework",
+          "kind": "link",
+          "links": [{ "skill": "prisma", "project": "augure" }],
+          "points": [
+            [-8.800000000000002, -2.125],
+            [-8.774999999999999, -2.125],
+            [-7.774999999999999, -1.125]
+          ]
+        },
+        {
+          "net": "zone:framework",
+          "kind": "link",
+          "links": [{ "skill": "pydantic", "project": "augure" }],
+          "points": [
+            [-11.600000000000001, -1.375],
+            [-11.524999999999999, -1.375],
+            [-11.274999999999999, -1.625],
+            [-8.274999999999999, -1.625],
+            [-7.774999999999999, -1.125]
+          ]
+        },
+        {
+          "net": "zone:framework",
+          "kind": "link",
+          "links": [
+            { "skill": "react", "project": "augure" },
+            { "skill": "react", "project": "askor" },
+            { "skill": "react", "project": "portfolio" }
+          ],
+          "points": [
+            [-10.200000000000003, -1.375],
+            [-10.024999999999999, -1.375],
+            [-9.774999999999999, -1.625],
+            [-8.274999999999999, -1.625],
+            [-7.774999999999999, -1.125]
+          ]
+        },
+        {
+          "net": "zone:framework",
+          "kind": "link",
+          "links": [
+            { "skill": "react-flow", "project": "augure" },
+            { "skill": "react-flow", "project": "askor" }
+          ],
+          "points": [
+            [-8.800000000000002, -1.125],
+            [-7.774999999999999, -1.125]
+          ]
+        },
+        {
+          "net": "zone:framework",
+          "kind": "link",
+          "links": [{ "skill": "symfony", "project": "askor" }],
+          "points": [
+            [-11.600000000000001, 0.125],
+            [-11.524999999999999, 0.125],
+            [-11.024999999999999, -0.375],
+            [-8.524999999999999, -0.375],
+            [-7.774999999999999, -1.125]
+          ]
+        },
+        {
+          "net": "zone:framework",
+          "kind": "link",
+          "links": [{ "skill": "tensorflow", "project": "augure" }],
+          "points": [
+            [-10.200000000000003, 0.125],
+            [-10.024999999999999, 0.125],
+            [-9.524999999999999, -0.375],
+            [-8.524999999999999, -0.375],
+            [-7.774999999999999, -1.125]
+          ]
+        },
+        {
+          "net": "zone:framework",
+          "kind": "link",
+          "links": [{ "skill": "xgboost", "project": "augure" }],
+          "points": [
+            [-9.024999999999999, -0.10000000000000142],
+            [-9.024999999999999, -0.125],
+            [-8.024999999999999, -1.125],
+            [-7.774999999999999, -1.125]
+          ]
+        },
+        {
+          "net": "zone:framework",
+          "kind": "link",
+          "links": [{ "skill": "zustand", "project": "askor" }],
+          "points": [
+            [-11.600000000000001, 1.375],
+            [-9.274999999999999, 1.375],
+            [-7.774999999999999, -0.125],
+            [-7.774999999999999, -1.125]
+          ]
+        },
+        {
+          "net": "zone:framework",
+          "kind": "trunk",
+          "links": [
+            { "skill": "nodejs", "project": "augure" },
+            { "skill": "prisma", "project": "augure" },
+            { "skill": "pydantic", "project": "augure" },
+            { "skill": "react", "project": "augure" },
+            { "skill": "react-flow", "project": "augure" },
+            { "skill": "tensorflow", "project": "augure" },
+            { "skill": "xgboost", "project": "augure" },
+            { "skill": "api-platform", "project": "askor" },
+            { "skill": "highcharts", "project": "askor" },
+            { "skill": "mercure", "project": "askor" },
+            { "skill": "react", "project": "askor" },
+            { "skill": "react-flow", "project": "askor" },
+            { "skill": "symfony", "project": "askor" },
+            { "skill": "zustand", "project": "askor" },
+            { "skill": "nextjs", "project": "portfolio" },
+            { "skill": "react", "project": "portfolio" }
+          ],
+          "points": [
+            [-7.774999999999999, -1.125],
+            [-6.024999999999999, -1.125]
+          ]
+        },
+        {
+          "net": "zone:framework",
+          "kind": "link",
+          "links": [
+            { "skill": "nextjs", "project": "portfolio" },
+            { "skill": "react", "project": "portfolio" }
+          ],
+          "points": [
+            [-6.024999999999999, -1.125],
+            [-5.774999999999999, -0.875],
+            [-4.7, -0.875]
+          ]
+        },
+        {
+          "net": "zone:framework",
+          "kind": "link",
+          "links": [
+            { "skill": "nodejs", "project": "augure" },
+            { "skill": "prisma", "project": "augure" },
+            { "skill": "pydantic", "project": "augure" },
+            { "skill": "react", "project": "augure" },
+            { "skill": "react-flow", "project": "augure" },
+            { "skill": "tensorflow", "project": "augure" },
+            { "skill": "xgboost", "project": "augure" }
+          ],
+          "points": [
+            [-7.774999999999999, -1.125],
+            [-7.774999999999999, -4.125],
+            [-10.274999999999999, -6.625],
+            [-10.274999999999999, -7.125],
+            [-5.024999999999999, -7.125],
+            [-1.0249999999999986, -3.125],
+            [-1.0249999999999986, -1.6]
+          ]
+        },
+        {
+          "net": "zone:framework",
+          "kind": "link",
+          "links": [
+            { "skill": "api-platform", "project": "askor" },
+            { "skill": "highcharts", "project": "askor" },
+            { "skill": "mercure", "project": "askor" },
+            { "skill": "react", "project": "askor" },
+            { "skill": "react-flow", "project": "askor" },
+            { "skill": "symfony", "project": "askor" },
+            { "skill": "zustand", "project": "askor" }
+          ],
+          "points": [
+            [-7.774999999999999, -1.125],
+            [-7.774999999999999, -3.875],
+            [-10.524999999999999, -6.625],
+            [-10.524999999999999, -7.125],
+            [-7.024999999999999, -10.625],
+            [1.4750000000000014, -10.625],
+            [1.7250000000000014, -10.375],
+            [1.7250000000000014, -2.875],
+            [3.4750000000000014, -1.125],
+            [3.4750000000000014, -0.9]
+          ]
+        },
+        {
+          "net": "zone:language",
+          "kind": "link",
+          "links": [
+            { "skill": "python", "project": "augure" },
+            { "skill": "python", "project": "askor" }
+          ],
+          "points": [
+            [9.749999999999998, -5.875],
+            [9.975000000000001, -5.875],
+            [10.475000000000001, -5.375],
+            [10.975000000000001, -5.375]
+          ]
+        },
+        {
+          "net": "zone:language",
+          "kind": "link",
+          "links": [
+            { "skill": "typescript", "project": "augure" },
+            { "skill": "typescript", "project": "portfolio" }
+          ],
+          "points": [
+            [10.975000000000001, -5.749999999999999],
+            [10.975000000000001, -5.375]
+          ]
+        },
+        {
+          "net": "zone:language",
+          "kind": "trunk",
+          "links": [
+            { "skill": "python", "project": "augure" },
+            { "skill": "typescript", "project": "augure" },
+            { "skill": "python", "project": "askor" },
+            { "skill": "typescript", "project": "portfolio" }
+          ],
+          "points": [
+            [10.975000000000001, -5.375],
+            [8.475000000000001, -5.375],
+            [5.975000000000001, -2.875]
+          ]
+        },
+        {
+          "net": "zone:language",
+          "kind": "link",
+          "links": [{ "skill": "python", "project": "askor" }],
+          "points": [
+            [5.975000000000001, -2.875],
+            [4.225000000000001, -1.125],
+            [4.225000000000001, -0.9]
+          ]
+        },
+        {
+          "net": "zone:language",
+          "kind": "link",
+          "links": [
+            { "skill": "python", "project": "augure" },
+            { "skill": "typescript", "project": "augure" }
+          ],
+          "points": [
+            [5.975000000000001, -2.875],
+            [5.725000000000001, -3.125],
+            [0.9750000000000014, -3.125],
+            [0.9750000000000014, -1.6]
+          ]
+        },
+        {
+          "net": "zone:language",
+          "kind": "link",
+          "links": [{ "skill": "typescript", "project": "portfolio" }],
+          "points": [
+            [7.475000000000001, -4.375],
+            [1.9750000000000014, -9.875],
+            [1.9750000000000014, -10.625],
+            [1.4750000000000014, -11.125],
+            [-7.024999999999999, -11.125],
+            [-10.774999999999999, -7.375],
+            [-10.774999999999999, -6.375],
+            [-8.024999999999999, -3.625],
+            [-7.524999999999999, -3.625],
+            [-5.024999999999999, -1.125],
+            [-5.024999999999999, -0.625],
+            [-4.774999999999999, -0.375],
+            [-4.7, -0.375]
+          ]
+        }
+      ],
+      "vias": [
+        {
+          "at": [-0.02499999999999858, -1.875],
+          "net": "zone:practice",
+          "crosses": "experience:askor"
+        },
+        {
+          "at": [8.725000000000001, -5.375],
+          "net": "zone:infrastructure",
+          "crosses": "zone:language"
+        },
+        {
+          "at": [-5.524999999999999, -7.125],
+          "net": "zone:infrastructure",
+          "crosses": "zone:framework"
+        },
+        {
+          "at": [-5.274999999999999, -6.875],
+          "net": "zone:infrastructure",
+          "crosses": "zone:tooling"
+        },
+        { "at": [-5.274999999999999, -7.125], "net": "zone:tooling", "crosses": "zone:framework" },
+        { "at": [-0.5249999999999986, -2.875], "net": "zone:tooling", "crosses": "zone:practice" },
+        {
+          "at": [-0.5249999999999986, -1.875],
+          "net": "zone:tooling",
+          "crosses": "experience:askor"
+        },
+        { "at": [-10.274999999999999, -6.875], "net": "zone:framework", "crosses": "zone:tooling" },
+        {
+          "at": [-1.0249999999999986, -2.875],
+          "net": "zone:framework",
+          "crosses": "zone:practice"
+        },
+        {
+          "at": [-1.0249999999999986, -1.875],
+          "net": "zone:framework",
+          "crosses": "experience:askor"
+        },
+        { "at": [-10.524999999999999, -6.875], "net": "zone:framework", "crosses": "zone:tooling" },
+        {
+          "at": [1.7250000000000014, -10.125],
+          "net": "zone:framework",
+          "crosses": "zone:infrastructure"
+        },
+        { "at": [1.7250000000000014, -3.125], "net": "zone:framework", "crosses": "zone:language" },
+        { "at": [0.9750000000000014, -2.875], "net": "zone:language", "crosses": "zone:practice" },
+        {
+          "at": [0.9750000000000014, -1.875],
+          "net": "zone:language",
+          "crosses": "experience:askor"
+        },
+        {
+          "at": [1.9750000000000014, -10.125],
+          "net": "zone:language",
+          "crosses": "zone:infrastructure"
+        },
+        { "at": [-10.774999999999999, -6.875], "net": "zone:language", "crosses": "zone:tooling" },
+        { "at": [-7.774999999999999, -3.625], "net": "zone:language", "crosses": "zone:framework" },
+        { "at": [-5.024999999999999, -0.875], "net": "zone:language", "crosses": "zone:framework" }
+      ],
+      "unrouted": [],
+      "unroutedBusLinks": []
+    },
+    "passives": [
+      {
+        "kind": "capacitor",
+        "ref": "C1",
+        "center": [12.350000000000001, -6.625],
+        "rotated": false
+      },
+      { "kind": "capacitor", "ref": "C2", "center": [-13.524999999999999, 0.25], "rotated": true },
+      { "kind": "capacitor", "ref": "C3", "center": [3.9750000000000014, 2.5], "rotated": true },
+      {
+        "kind": "capacitor",
+        "ref": "C4",
+        "center": [-9.899999999999999, -10.875],
+        "rotated": false
+      },
+      {
+        "kind": "resistor",
+        "ref": "R1",
+        "center": [-15.149999999999999, -8.875],
+        "rotated": false
+      },
+      {
+        "kind": "resistor",
+        "ref": "R2",
+        "center": [-3.3999999999999986, -3.125],
+        "rotated": false
+      },
+      { "kind": "resistor", "ref": "R3", "center": [5.475000000000001, 3.75], "rotated": true },
+      { "kind": "resistor", "ref": "R4", "center": [9.600000000000001, 6.625], "rotated": false },
+      {
+        "kind": "capacitor",
+        "ref": "C5",
+        "center": [-7.149999999999999, -1.625],
+        "rotated": false
+      },
+      {
+        "kind": "resistor",
+        "ref": "R5",
+        "center": [-10.899999999999999, -9.375],
+        "rotated": false
+      },
+      { "kind": "resistor", "ref": "R6", "center": [10.725000000000001, -8.5], "rotated": true },
+      { "kind": "capacitor", "ref": "C6", "center": [12.475000000000001, 2.5], "rotated": true },
+      {
+        "kind": "capacitor",
+        "ref": "C7",
+        "center": [-13.399999999999999, -6.375],
+        "rotated": false
+      },
+      { "kind": "resistor", "ref": "R7", "center": [-15.774999999999999, -7.75], "rotated": true },
+      { "kind": "resistor", "ref": "R8", "center": [8.975000000000001, -8.5], "rotated": true },
+      { "kind": "resistor", "ref": "R9", "center": [-15.399999999999999, 2.875], "rotated": false },
+      { "kind": "resistor", "ref": "R10", "center": [-15.274999999999999, -1.25], "rotated": true },
+      {
+        "kind": "capacitor",
+        "ref": "C8",
+        "center": [-2.1499999999999986, 2.375],
+        "rotated": false
+      },
+      { "kind": "resistor", "ref": "R11", "center": [-8.399999999999999, 2.375], "rotated": false },
+      { "kind": "capacitor", "ref": "C9", "center": [14.850000000000001, 0.625], "rotated": false },
+      { "kind": "resistor", "ref": "R12", "center": [13.600000000000001, 2.625], "rotated": false },
+      { "kind": "resistor", "ref": "R13", "center": [-14.274999999999999, 4.75], "rotated": true },
+      {
+        "kind": "capacitor",
+        "ref": "C10",
+        "center": [-7.399999999999999, 1.125],
+        "rotated": false
+      },
+      { "kind": "resistor", "ref": "R14", "center": [6.975000000000001, -6.5], "rotated": true },
+      {
+        "kind": "resistor",
+        "ref": "R15",
+        "center": [-12.399999999999999, 2.875],
+        "rotated": false
+      },
+      { "kind": "resistor", "ref": "R16", "center": [12.975000000000001, -8.75], "rotated": true },
+      { "kind": "resistor", "ref": "R17", "center": [10.975000000000001, -9.75], "rotated": true },
+      { "kind": "resistor", "ref": "R18", "center": [-2.7749999999999986, 3.5], "rotated": true },
+      {
+        "kind": "capacitor",
+        "ref": "C11",
+        "center": [11.350000000000001, -4.875],
+        "rotated": false
+      },
+      { "kind": "resistor", "ref": "R19", "center": [-8.024999999999999, -5.75], "rotated": true },
+      { "kind": "capacitor", "ref": "C12", "center": [9.725000000000001, -10], "rotated": true },
+      { "kind": "resistor", "ref": "R20", "center": [-13.774999999999999, -5], "rotated": true },
+      {
+        "kind": "resistor",
+        "ref": "R21",
+        "center": [12.600000000000001, -4.375],
+        "rotated": false
+      },
+      { "kind": "resistor", "ref": "R22", "center": [3.2250000000000014, -7.75], "rotated": true },
+      { "kind": "resistor", "ref": "R23", "center": [-8.149999999999999, 1.375], "rotated": false },
+      { "kind": "resistor", "ref": "R24", "center": [14.725000000000001, 6.25], "rotated": true },
+      { "kind": "capacitor", "ref": "C13", "center": [-3.2749999999999986, 2.75], "rotated": true },
+      {
+        "kind": "resistor",
+        "ref": "R25",
+        "center": [-0.8999999999999986, 2.125],
+        "rotated": false
+      },
+      { "kind": "capacitor", "ref": "C14", "center": [5.225000000000001, -4], "rotated": true },
+      {
+        "kind": "capacitor",
+        "ref": "C15",
+        "center": [-14.774999999999999, -5.25],
+        "rotated": true
+      },
+      { "kind": "resistor", "ref": "R26", "center": [-7.899999999999999, 3.625], "rotated": false },
+      {
+        "kind": "resistor",
+        "ref": "R27",
+        "center": [-6.649999999999999, -10.125],
+        "rotated": false
+      },
+      {
+        "kind": "capacitor",
+        "ref": "C16",
+        "center": [11.600000000000001, 5.875],
+        "rotated": false
+      },
+      { "kind": "capacitor", "ref": "C17", "center": [12.225000000000001, 5.5], "rotated": true },
+      { "kind": "resistor", "ref": "R28", "center": [14.225000000000001, -5.75], "rotated": true },
+      { "kind": "resistor", "ref": "R29", "center": [-0.2749999999999986, 3.25], "rotated": true },
+      {
+        "kind": "capacitor",
+        "ref": "C18",
+        "center": [-11.024999999999999, -8.75],
+        "rotated": true
+      },
+      {
+        "kind": "capacitor",
+        "ref": "C19",
+        "center": [3.8500000000000014, -6.125],
+        "rotated": false
+      },
+      { "kind": "resistor", "ref": "R30", "center": [3.9750000000000014, -9], "rotated": true },
+      { "kind": "capacitor", "ref": "C20", "center": [14.975000000000001, -6.5], "rotated": true },
+      { "kind": "resistor", "ref": "R31", "center": [14.600000000000001, 2.125], "rotated": false },
+      { "kind": "resistor", "ref": "R32", "center": [10.975000000000001, -11.5], "rotated": true },
+      { "kind": "resistor", "ref": "R33", "center": [8.975000000000001, -10], "rotated": true },
+      {
+        "kind": "resistor",
+        "ref": "R34",
+        "center": [-10.524999999999999, -11.25],
+        "rotated": true
+      },
+      {
+        "kind": "capacitor",
+        "ref": "C21",
+        "center": [12.350000000000001, -1.625],
+        "rotated": false
+      },
+      {
+        "kind": "capacitor",
+        "ref": "C22",
+        "center": [-7.899999999999999, -8.375],
+        "rotated": false
+      },
+      {
+        "kind": "capacitor",
+        "ref": "C23",
+        "center": [0.8500000000000014, 2.125],
+        "rotated": false
+      },
+      { "kind": "resistor", "ref": "R35", "center": [12.975000000000001, 1.75], "rotated": true },
+      { "kind": "resistor", "ref": "R36", "center": [-13.774999999999999, 1.75], "rotated": true },
+      {
+        "kind": "capacitor",
+        "ref": "C24",
+        "center": [11.600000000000001, -6.125],
+        "rotated": false
+      },
+      {
+        "kind": "resistor",
+        "ref": "R37",
+        "center": [-12.899999999999999, -9.375],
+        "rotated": false
+      },
+      { "kind": "resistor", "ref": "R38", "center": [8.100000000000001, 3.875], "rotated": false },
+      {
+        "kind": "capacitor",
+        "ref": "C25",
+        "center": [-10.149999999999999, -9.875],
+        "rotated": false
+      },
+      { "kind": "capacitor", "ref": "C26", "center": [-10.024999999999999, 3.75], "rotated": true },
+      { "kind": "resistor", "ref": "R39", "center": [-5.899999999999999, 1.875], "rotated": false },
+      { "kind": "capacitor", "ref": "C27", "center": [-16.025, -4.25], "rotated": true },
+      { "kind": "resistor", "ref": "R40", "center": [8.975000000000001, 6.25], "rotated": true },
+      { "kind": "capacitor", "ref": "C28", "center": [-6.024999999999999, 6.25], "rotated": true },
+      {
+        "kind": "capacitor",
+        "ref": "C29",
+        "center": [2.8500000000000014, 3.625],
+        "rotated": false
+      },
+      {
+        "kind": "capacitor",
+        "ref": "C30",
+        "center": [13.850000000000001, -8.125],
+        "rotated": false
+      },
+      {
+        "kind": "resistor",
+        "ref": "R41",
+        "center": [-14.899999999999999, -0.125],
+        "rotated": false
+      },
+      { "kind": "resistor", "ref": "R42", "center": [1.6000000000000014, 6.375], "rotated": false },
+      {
+        "kind": "resistor",
+        "ref": "R43",
+        "center": [-7.649999999999999, -7.875],
+        "rotated": false
+      },
+      { "kind": "resistor", "ref": "R44", "center": [-7.524999999999999, -9], "rotated": true },
+      {
+        "kind": "resistor",
+        "ref": "R45",
+        "center": [-0.8999999999999986, 6.625],
+        "rotated": false
+      },
+      { "kind": "capacitor", "ref": "C31", "center": [3.9750000000000014, -2.25], "rotated": true },
+      { "kind": "resistor", "ref": "R46", "center": [-6.899999999999999, 0.375], "rotated": false },
+      { "kind": "resistor", "ref": "R47", "center": [-9.024999999999999, -10], "rotated": true },
+      { "kind": "capacitor", "ref": "C32", "center": [7.350000000000001, 1.625], "rotated": false },
+      {
+        "kind": "resistor",
+        "ref": "R48",
+        "center": [-15.899999999999999, -0.125],
+        "rotated": false
+      },
+      { "kind": "resistor", "ref": "R49", "center": [14.725000000000001, -1.5], "rotated": true },
+      {
+        "kind": "capacitor",
+        "ref": "C33",
+        "center": [-3.2749999999999986, -7.25],
+        "rotated": true
+      },
+      { "kind": "resistor", "ref": "R50", "center": [-14.524999999999999, -6.5], "rotated": true },
+      { "kind": "resistor", "ref": "R51", "center": [7.725000000000001, 3.25], "rotated": true },
+      { "kind": "resistor", "ref": "R52", "center": [-6.274999999999999, -6.5], "rotated": true },
+      {
+        "kind": "capacitor",
+        "ref": "C34",
+        "center": [-14.524999999999999, -4.25],
+        "rotated": true
+      },
+      {
+        "kind": "resistor",
+        "ref": "R53",
+        "center": [-13.649999999999999, -3.625],
+        "rotated": false
+      },
+      {
+        "kind": "capacitor",
+        "ref": "C35",
+        "center": [12.100000000000001, 1.125],
+        "rotated": false
+      },
+      {
+        "kind": "resistor",
+        "ref": "R54",
+        "center": [12.600000000000001, -2.375],
+        "rotated": false
+      },
+      { "kind": "resistor", "ref": "R55", "center": [12.475000000000001, -3.5], "rotated": true },
+      { "kind": "capacitor", "ref": "C36", "center": [6.225000000000001, -11.5], "rotated": true },
+      {
+        "kind": "capacitor",
+        "ref": "C37",
+        "center": [-13.149999999999999, -10.875],
+        "rotated": false
+      },
+      { "kind": "capacitor", "ref": "C38", "center": [-4.274999999999999, 1.75], "rotated": true },
+      { "kind": "capacitor", "ref": "C39", "center": [13.725000000000001, -6.5], "rotated": true },
+      { "kind": "resistor", "ref": "R56", "center": [13.975000000000001, 1.5], "rotated": true },
+      {
+        "kind": "resistor",
+        "ref": "R57",
+        "center": [-12.149999999999999, 5.875],
+        "rotated": false
+      },
+      { "kind": "capacitor", "ref": "C40", "center": [2.2250000000000014, 0.5], "rotated": true },
+      { "kind": "capacitor", "ref": "C41", "center": [6.600000000000001, 0.125], "rotated": false },
+      {
+        "kind": "capacitor",
+        "ref": "C42",
+        "center": [-7.899999999999999, 6.375],
+        "rotated": false
+      },
+      {
+        "kind": "capacitor",
+        "ref": "C43",
+        "center": [-13.649999999999999, -2.875],
+        "rotated": false
+      },
+      {
+        "kind": "resistor",
+        "ref": "R58",
+        "center": [-4.399999999999999, -4.625],
+        "rotated": false
+      },
+      { "kind": "capacitor", "ref": "C44", "center": [0.4750000000000014, 3.25], "rotated": true },
+      {
+        "kind": "capacitor",
+        "ref": "C45",
+        "center": [-6.149999999999999, 0.125],
+        "rotated": false
+      },
+      {
+        "kind": "resistor",
+        "ref": "R59",
+        "center": [14.350000000000001, -6.875],
+        "rotated": false
+      },
+      {
+        "kind": "resistor",
+        "ref": "R60",
+        "center": [-11.149999999999999, -10.875],
+        "rotated": false
+      },
+      { "kind": "capacitor", "ref": "C46", "center": [-9.274999999999999, 2], "rotated": true },
+      {
+        "kind": "capacitor",
+        "ref": "C47",
+        "center": [13.850000000000001, 4.875],
+        "rotated": false
+      },
+      {
+        "kind": "capacitor",
+        "ref": "C48",
+        "center": [-7.399999999999999, 2.625],
+        "rotated": false
+      },
+      { "kind": "resistor", "ref": "R61", "center": [-6.524999999999999, 1], "rotated": true },
+      { "kind": "resistor", "ref": "R62", "center": [-7.274999999999999, -5.75], "rotated": true },
+      {
+        "kind": "capacitor",
+        "ref": "C49",
+        "center": [10.600000000000001, 3.625],
+        "rotated": false
+      },
+      { "kind": "resistor", "ref": "R63", "center": [14.225000000000001, 2.75], "rotated": true },
+      {
+        "kind": "capacitor",
+        "ref": "C50",
+        "center": [-15.649999999999999, 2.375],
+        "rotated": false
+      },
+      { "kind": "resistor", "ref": "R64", "center": [13.475000000000001, -1.5], "rotated": true },
+      {
+        "kind": "capacitor",
+        "ref": "C51",
+        "center": [-14.149999999999999, 2.625],
+        "rotated": false
+      },
+      {
+        "kind": "capacitor",
+        "ref": "C52",
+        "center": [14.350000000000001, -4.375],
+        "rotated": false
+      },
+      { "kind": "resistor", "ref": "R65", "center": [-8.524999999999999, 3], "rotated": true },
+      { "kind": "resistor", "ref": "R66", "center": [6.475000000000001, -9.75], "rotated": true },
+      { "kind": "capacitor", "ref": "C53", "center": [5.975000000000001, -6.75], "rotated": true },
+      { "kind": "resistor", "ref": "R67", "center": [13.100000000000001, -0.625], "rotated": false }
+    ],
+    "pulses": 48
+  },
+  "cameras": {
+    "accueil": {
+      "position": [-0.7499999999999991, 28.874368552251063, 15.542707964036186],
+      "target": [-0.7499999999999991, 0, -2.5],
+      "fov": 40
+    },
+    "experiences": {
+      "position": [0, 15.304705144600577, 14.61344118486991],
+      "target": [0, 0, 5.05],
+      "fov": 40,
+      "focusNodeId": "experiences"
+    },
+    "projets": {
+      "position": [0, 9.934818144736036, 6.207963375438233],
+      "target": [0, 0, 0],
+      "fov": 40,
+      "focusNodeId": "projects"
+    },
+    "competences": {
+      "position": [-0.75, 25.088967823448, 11.727327063911918],
+      "target": [-0.75, 0, -3.95],
+      "fov": 40,
+      "focusNodeId": "skills"
+    }
+  }
+}
