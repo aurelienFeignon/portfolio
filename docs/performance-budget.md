@@ -99,7 +99,7 @@ Mesures en **transfert gzip/brotli**, telles que rapportées par l'analyse de bu
 | JS d'une page de contenu (hors partagé) | ≤ 25 Ko | **40 Ko** | Phase 4 |
 | **JS total avant interactivité du contenu** | ≤ 120 Ko | **160 Ko** | Phase 4 |
 | ~~Chunk 3D (three + R3F + drei, différé)~~ | ~~≤ 220 Ko~~ | ~~320 Ko~~ | **révisé, voir §4.3** |
-| Chunk 3D (three + R3F + drei, différé) | ≤ **260 Ko** | **320 Ko** | Phase 5 |
+| ~~Chunk 3D (three + R3F + drei, différé)~~ | ~~≤ 260 Ko~~ | ~~320 Ko~~ | **historique, Phase 5 (2026-08)** — remplacé par la ligne Phase 8 ci-dessous |
 | ~~Chunk 3D après direction artistique~~ | ~~≤ 260 Ko~~ | ~~350 Ko~~ | **révisé, voir §4.3** |
 | Chunk 3D après direction artistique | ≤ **300 Ko** | **350 Ko** | Phase 8 |
 
@@ -250,12 +250,20 @@ compte des composants `drei` de la §4.3 n'est toujours gardé par rien de budg�
 
 ---
 
-### 4.4 Le chunk 3D de la carte mère — 2026-10-30 (P8-15i)
+### 4.5 Le chunk 3D de la carte mère — 2026-10-30 (P8-15i)
 
-Mesuré par `make bundle` : le chunk 3D (deux chunks porteurs) pèse **249,0 Ko** gzip, sous la cible
-de 300 Ko ; le socle partagé **128,7 Ko** et le JS propre à chaque route **14,4 Ko** tiennent leurs
-seuils. Les appels de dessin et le poids du plan sont en [`carte-mere.md`](./carte-mere.md) §12.5 ;
-la mesure GPU réelle reste à faire par l'utilisateur (même section).
+Seul endroit des chiffres courants du site (les autres documents y renvoient). Mesuré par
+`make bundle`, `gzip -9` :
+
+| Relevé | Valeur | Seuil |
+|---|---|---|
+| **Chunk 3D différé** (deux chunks du moteur, hors chemin critique) | **249,0 Ko** | cible 300 · bloquant 350 (Phase 8, §4.1) |
+| Socle partagé | **128,7 Ko** | cible 136 · bloquant 146 |
+| JS propre à chaque route | **14,4 Ko** | cible 25 · bloquant 40 |
+
+Le plan de la carte (un JSON par locale) est un chunk différé **à part**, que ces 249,0 Ko ne
+comptent pas ; son poids et les appels de dessin sont en [`carte-mere.md`](./carte-mere.md) §12.5,
+où la mesure GPU réelle reste aussi à faire par l'utilisateur.
 
 ## 5. Budget des assets 3D
 

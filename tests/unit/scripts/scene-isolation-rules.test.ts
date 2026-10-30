@@ -20,6 +20,12 @@ describe('motifs de l’isolation de la carte mère', () => {
     expect(sourcesModulePlanPur(sources)).toEqual([sources[1]])
   })
 
+  it('lit la forme réelle des chemins Turbopack (`board-render/` -> `board/`)', () => {
+    const reel = 'turbopack:///[project]/src/scene/state/board-render/geometry.ts'
+    expect(sourcesModulePlanPur([reel])).toEqual([])
+    expect(sourcesModulePlanPur([reel.replace('/board-render/', '/board/')])).toHaveLength(1)
+  })
+
   it('ne voit rien dans un chunk sans carte', () => {
     expect(sourcesPlanGenere([sources[3]!])).toEqual([])
     expect(sourcesModulePlanPur([sources[3]!])).toEqual([])
