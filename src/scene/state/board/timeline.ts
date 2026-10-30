@@ -40,7 +40,14 @@ export interface BusSegment {
 export interface BusJog {
   readonly lane: number
   readonly year: number
+  /** Le milieu de la marche : sur la ligne de la voie, à la frontière des deux années. */
   readonly at: Vec2
+  /**
+   * La marche dessinée : la voie quitte sa ligne à 45° d'un demi-pas de voie
+   * (`LANE_PITCH / 2`) vers l'extérieur de la rangée, puis y revient à 45°.
+   * Premier et dernier points sont sur la ligne de la voie.
+   */
+  readonly points: readonly Vec2[]
 }
 
 export interface Timeline {
@@ -91,6 +98,51 @@ function xInRow(row: number, local: number, step: number): number {
 function zInRow(originZ: number, lanes: number, row: number, offset: number): number {
   const base = originZ + row * rowPitch(lanes)
   return row % 2 === 0 ? base + offset : base + (lanes - 1) * LANE_PITCH - offset
+}
+
+/**
+ * La marche à 45° d'un changement d'employeur sur la voie `lane`, au passage
+ * de l'année `year` (premier poste du nouvel employeur).
+ *
+ * Triangle octilinéaire **centré sur la frontière** entre l'année précédente et
+ * `year`, de hauteur `LANE_PITCH / 2` : deux segments à 45°, donc `LANE_PITCH / 2`
+ * de longueur en X de chaque côté.
+ *
+ * ⭐ « Vers l'extérieur de la rangée » : le côté de la ligne de la voie qui
+ * **s'éloigne des autres voies de la rangée**, pour ne jamais couper une voisine.
+ * On le lit sur le Z réel (l'ordre des voies s'inverse d'une rangée à l'autre,
+ * voir `zInRow`) : une voie sous le milieu de la rangée (en Z) bombe vers −Z,
+ * une voie au-dessus vers +Z. Une voie au milieu exact — dont la rangée à voie
+ * unique — bombe vers −Z (à l'opposé du bord du bus qui fait face au visiteur).
+ *
+ * ⭐ Si la frontière tombe sur un lacet (première case d'une rangée), la marche
+ * ne peut pas la chevaucher : elle est placée au **début de la case suivante**,
+ * la frontière en son premier point.
+ */
+function jogPoints(
+  year: number,
+  lane: number,
+  firstYear: number,
+  step: number,
+  lanes: number,
+  originZ: number,
+): { at: Vec2; points: Vec2[] } {
+  const { row, col } = cellOf(year - firstYear)
+  const z = zInRow(originZ, lanes, row, lane * LANE_PITCH)
+  const mid = zInRow(originZ, lanes, row, ((lanes - 1) * LANE_PITCH) / 2)
+  const bulge = z > mid + EPSILON ? LANE_PITCH / 2 : -LANE_PITCH / 2
+  const dir = row % 2 === 0 ? 1 : -1
+  const boundary = xInRow(row, col, step)
+  const half = LANE_PITCH / 2
+  const apexX = col === 0 ? boundary + dir * half : boundary
+  return {
+    at: [apexX, z],
+    points: [
+      [apexX - dir * half, z],
+      [apexX, z + bulge],
+      [apexX + dir * half, z],
+    ],
+  }
 }
 
 /** Le centre de la cellule d'indice `index`, sur la ligne de la voie `lane`. */
@@ -315,7 +367,12 @@ export function planTimeline(
       points: buildPath(span.s, span.e, profiles.get(p)!, step, lanes, originZ),
       labelAnchor: yearPos(mid, lane),
     })
-    if (occupied.has(lane)) jogs.push({ lane, year: e.startYear, at: yearPos(e.startYear, lane) })
+    if (occupied.has(lane))
+      jogs.push({
+        lane,
+        year: e.startYear,
+        ...jogPoints(e.startYear, lane, firstYear, step, lanes, originZ),
+      })
     occupied.add(lane)
   })
 
