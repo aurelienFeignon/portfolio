@@ -167,42 +167,6 @@ export function parallaxFor(pointerX: number, pointerY: number, limits: OrbitAng
   return clampOrbit(pointerX * limits.yawDeg, pointerY * limits.pitchDeg, limits)
 }
 
-/** La marge, en pixels, entre l'accroche d'une étiquette et le bas de sa zone. */
-const LABEL_MARGIN_BOTTOM_PX = 16
-
-/**
- * Où poser l'étiquette d'un univers, à partir de la projection de son ancre
- * (coordonnées normalisées de l'appareil, celles de `Vector3.project`).
- *
- * ⛔ **Visible seulement dans sa zone** (`zone` : hors du panneau de lecture et
- * de l'en-tête, mesurée par `SceneMount`) et devant la caméra (`z` dans
- * `[-1, 1]`) — jamais posée sur le contenu.
- *
- * ⭐ Le dégagement se mesure depuis l'ACCROCHE — le milieu du bord bas de
- * l'étiquette — avec la taille RENDUE de l'étiquette (`label`) : la demi-largeur
- * sur les côtés, toute la hauteur au-dessus. Une taille supposée se trompait
- * dans les deux sens — une accroche longue débordait, une étiquette réduite au
- * nom (mobile) se cachait sans raison.
- */
-export function labelPlacement(
-  ndc: Vec3,
-  width: number,
-  height: number,
-  zone: Rect,
-  label: { readonly width: number; readonly height: number },
-): { readonly x: number; readonly y: number; readonly visible: boolean } {
-  const x = ((ndc[0] + 1) / 2) * width
-  const y = ((1 - ndc[1]) / 2) * height
-  const visible =
-    ndc[2] > -1 &&
-    ndc[2] < 1 &&
-    x >= zone.x + label.width / 2 &&
-    x <= zone.x + zone.width - label.width / 2 &&
-    y >= zone.y + label.height &&
-    y <= zone.y + zone.height - LABEL_MARGIN_BOTTOM_PX
-  return { x, y, visible }
-}
-
 /* ------------------------------------------------------------ une image du rig */
 
 /** Degrés d'orbite par pixel glissé : lacet à l'horizontale, tangage à la verticale. */

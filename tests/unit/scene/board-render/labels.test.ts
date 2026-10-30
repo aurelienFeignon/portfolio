@@ -10,11 +10,14 @@ import { buildBoardFile } from '@/scene/state/board/file'
 import {
   HOVERED_PRIORITY,
   LABEL_GAP_PX,
+  LABEL_HYSTERESIS_PX,
+  LABEL_MARGIN_BOTTOM_PX,
   LABEL_LIFT,
   boardLabelId,
   labelsForView,
   placeLabels,
   targetLabelId,
+  toScreen,
 } from '@/scene/state/board-render/labels'
 
 const real = buildBoardFile(makeRealSizeBoard(), {
@@ -45,24 +48,73 @@ describe('labelsForView — la vue d’ensemble', () => {
     expect(ids(labels)).toEqual(['section:experiences', 'section:projects', 'section:skills'])
   })
 
-  it('pose chaque section au centre de ce que cadre sa vue, levée au-dessus de la plaque', () => {
-    const at = (section: string) => labels.find((l) => l.id === `section:${section}`)!.anchor
-    const d = plan.district.bounds
-    expect(at('projects')).toEqual([(d.minX + d.maxX) / 2, LABEL_LIFT, (d.minZ + d.maxZ) / 2])
-    const t = plan.timeline.bounds
-    expect(at('experiences')).toEqual([(t.minX + t.maxX) / 2, LABEL_LIFT, (t.minZ + t.maxZ) / 2])
-    const minX = Math.min(...plan.zones.map((z) => z.bounds.minX))
-    const maxX = Math.max(...plan.zones.map((z) => z.bounds.maxX))
-    const minZ = Math.min(...plan.zones.map((z) => z.bounds.minZ))
-    const maxZ = Math.max(...plan.zones.map((z) => z.bounds.maxZ))
-    expect(at('skills')).toEqual([(minX + maxX) / 2, LABEL_LIFT, (minZ + maxZ) / 2])
+  /*
+   * La hauteur d'une étiquette de section, en unités de la carte, à la vue d'ensemble : ~56 px
+   * rendus (nom + accroche) pour une carte de ~32 unités affichée sur ~700 px (≈ 0,045 unité par
+   * pixel), soit ≈ 2,5 unités à l'écran — et ≈ 3 unités de profondeur sur une plaque vue à 58°.
+   * On exige une étiquette et demie : 4,5. (L'ancien placement, centres des boîtes cadrées, posait
+   * Compétences à ~4 unités de Projets — empilées sur U1 à l'écran.)
+   */
+  const LABEL_HEIGHT_WORLD = 4.5
+  const at = (section: string) => labels.find((l) => l.id === `section:${section}`)!.anchor
+
+  it('⭐ trois ancres distinctes : plus d’une étiquette et demie entre chaque paire', () => {
+    const anchors = ['projects', 'experiences', 'skills'].map(at)
+    for (const [i, a] of anchors.entries()) {
+      for (const b of anchors.slice(i + 1)) {
+        expect(Math.hypot(a[0] - b[0], a[2] - b[2])).toBeGreaterThan(LABEL_HEIGHT_WORLD)
+      }
+    }
   })
 
-  it('sans zone de compétences, l’étiquette des compétences retombe sur le quartier', () => {
-    const empty = { ...real, plan: { ...plan, zones: [] } }
-    const at = labelsForView(empty, 'overview', null).find((l) => l.id === 'section:skills')!
+  it('Projets au-dessus du processeur principal ; les deux autres hors du quartier', () => {
+    const primary = plan.district.processors.find((p) => p.primary)!
+    expect(at('projects')).toEqual([primary.labelAnchor[0], LABEL_LIFT, primary.labelAnchor[1]])
     const d = plan.district.bounds
-    expect(at.anchor).toEqual([(d.minX + d.maxX) / 2, LABEL_LIFT, (d.minZ + d.maxZ) / 2])
+    const inDistrict = ([x, , z]: readonly number[]) =>
+      x! >= d.minX && x! <= d.maxX && z! >= d.minZ && z! <= d.maxZ
+    expect(inDistrict(at('experiences'))).toBe(false)
+    expect(inDistrict(at('skills'))).toBe(false)
+  })
+
+  it('Expériences au centre de la frise ; Compétences à l’ancre de la plus grande zone', () => {
+    const t = plan.timeline.bounds
+    expect(at('experiences')).toEqual([(t.minX + t.maxX) / 2, LABEL_LIFT, (t.minZ + t.maxZ) / 2])
+    const area = (r: { minX: number; maxX: number; minZ: number; maxZ: number }) =>
+      (r.maxX - r.minX) * (r.maxZ - r.minZ)
+    const largest = plan.zones.reduce((m, z) => (area(z.bounds) > area(m.bounds) ? z : m))
+    expect(at('skills')).toEqual([largest.labelAnchor[0], LABEL_LIFT, largest.labelAnchor[1]])
+  })
+
+  it('à aire égale, la zone retenue est la première famille par identifiant', () => {
+    const [z0, z1] = small.plan.zones
+    const same = { ...z0!.bounds }
+    const zones = [
+      { ...z1!, bounds: same },
+      { ...z0!, bounds: same },
+    ]
+    const first = [z0!, z1!].sort((a, b) => (a.family < b.family ? -1 : 1))[0]!
+    const tied = { ...small, plan: { ...small.plan, zones } }
+    const skills = labelsForView(tied, 'overview', null).find((l) => l.id === 'section:skills')!
+    expect(skills.anchor).toEqual([first.labelAnchor[0], LABEL_LIFT, first.labelAnchor[1]])
+  })
+
+  it('sans zone ni processeur, Compétences et Projets retombent sur le centre du quartier', () => {
+    const district = { ...plan.district, processors: [] }
+    const empty = { ...real, plan: { ...plan, zones: [], district } }
+    const d = plan.district.bounds
+    const centre = [(d.minX + d.maxX) / 2, LABEL_LIFT, (d.minZ + d.maxZ) / 2]
+    const out = labelsForView(empty, 'overview', null)
+    expect(out.find((l) => l.id === 'section:skills')!.anchor).toEqual(centre)
+    expect(out.find((l) => l.id === 'section:projects')!.anchor).toEqual(centre)
+  })
+
+  it('sans processeur principal, Projets prend le premier processeur', () => {
+    const processors = plan.district.processors.map((p) => ({ ...p, primary: false }))
+    const file = { ...real, plan: { ...plan, district: { ...plan.district, processors } } }
+    const first = processors[0]!
+    const projects = labelsForView(file, 'overview', null).find((l) => l.id === 'section:projects')!
+    expect(projects.anchor).toEqual([first.labelAnchor[0], LABEL_LIFT, first.labelAnchor[1]])
   })
 })
 
@@ -149,7 +201,7 @@ describe('labelsForView — l’élément survolé, partout', () => {
 
 describe('placeLabels — les collisions (Review Focus 5)', () => {
   const zone = { x: 0, y: 0, width: 1600, height: 900 }
-  // (x, y) : le milieu du bord BAS de l'étiquette, comme `labelPlacement`.
+  // (x, y) : le milieu du bord BAS de l'étiquette.
   const label = (id: string, x: number, y: number, priority = 10, width = 200, height = 40) => ({
     id,
     x,
@@ -225,20 +277,104 @@ describe('placeLabels — les collisions (Review Focus 5)', () => {
     expect(overlapping(candidates, visible)).toBeNull()
   })
 
-  it('⛔ une étiquette qui sort de la zone se cache, et ne cache personne', () => {
+  it('⛔ ancre hors de la zone : l’étiquette se cache, et ne cache personne', () => {
     const libre = { x: 600, y: 64, width: 1000, height: 836 }
     const visible = placeLabels(
-      [label('dehors', 640, 400, 50), label('dedans', 760, 400, 10), label('haut', 1000, 80, 10)],
+      [label('dehors', 560, 400, 50), label('dedans', 760, 400, 10), label('haut', 1000, 40, 10)],
       libre,
     )
-    // « dehors » mord le panneau (640 − 100 < 600) ; « haut » passe sous l'en-tête (80 − 40 < 64).
+    // « dehors » : ancre sous le panneau (560 < 600) ; « haut » : ancre sous l'en-tête (40 < 64).
     expect([...visible]).toEqual(['dedans'])
+  })
+
+  it('⭐ ancre dans la zone, boîte qui déborde : ramenée dans la zone, visible', () => {
+    const libre = { x: 600, y: 64, width: 1000, height: 836 }
+    const bord = label('bord', 640, 80, 10)
+    const fond = label('fond', 1590, 890, 10)
+    const visible = placeLabels([bord, fond], libre)
+    expect([...visible].sort()).toEqual(['bord', 'fond'])
+    // Boîte de 200 × 40 : le milieu à 100 px du bord gauche, le bas 40 px sous le haut de la zone.
+    expect([bord.x, bord.y]).toEqual([700, 104])
+    // À droite et en bas : la marge basse de la zone est tenue.
+    expect([fond.x, fond.y]).toEqual([1500, 900 - LABEL_MARGIN_BOTTOM_PX])
+  })
+
+  it('une boîte plus grande que la zone se cache', () => {
+    const etroite = { x: 0, y: 0, width: 150, height: 900 }
+    expect(placeLabels([label('large', 75, 400)], etroite).size).toBe(0)
+  })
+
+  it('ramenée dans la zone, une étiquette entre en collision à sa position RAMENÉE', () => {
+    const libre = { x: 600, y: 64, width: 1000, height: 836 }
+    // « a » ramenée à x = 700 recouvre « b », posée là.
+    const visible = placeLabels([label('a', 610, 400, 20), label('b', 720, 400, 10)], libre)
+    expect([...visible]).toEqual(['a'])
   })
 
   it('deux étiquettes gardent un écart d’au moins LABEL_GAP_PX entre elles', () => {
     const at = (x: number) => placeLabels([label('a', 300, 400), label('b', x, 400)], zone)
     expect(at(500 + LABEL_GAP_PX).size).toBe(2)
     expect(at(500 + LABEL_GAP_PX - 1).size).toBe(1)
+  })
+})
+
+describe('placeLabels — l’hystérésis', () => {
+  const zone = { x: 0, y: 0, width: 1600, height: 900 }
+  const label = (id: string, x: number, y = 400) => ({
+    id,
+    x,
+    y,
+    width: 200,
+    height: 40,
+    priority: 10,
+  })
+  // « a » couvre [200, 400] ; « b » à 2 px : plus près que l'écart, sans recouvrement.
+  const pair = () => [label('a', 300), label('b', 502)]
+
+  it('une nouvelle venue trop proche se cache', () => {
+    expect([...placeLabels(pair(), zone)]).toEqual(['a'])
+  })
+
+  it('⭐ déjà visible, elle reste tant que le jeu n’est pas dépassé', () => {
+    expect([...placeLabels(pair(), zone, new Set(['a', 'b']))].sort()).toEqual(['a', 'b'])
+  })
+
+  it('⛔ mais jamais en recouvrement réel, même déjà visible', () => {
+    const visible = placeLabels([label('a', 300), label('b', 499)], zone, new Set(['a', 'b']))
+    expect([...visible]).toEqual(['a'])
+  })
+
+  it('⭐ une ancre déjà visible tolère LABEL_HYSTERESIS_PX hors de la zone', () => {
+    const libre = { x: 600, y: 0, width: 1000, height: 900 }
+    const juste = 600 - LABEL_HYSTERESIS_PX
+    expect(placeLabels([label('a', juste)], libre).size).toBe(0)
+    expect(placeLabels([label('a', juste)], libre, new Set(['a'])).size).toBe(1)
+    expect(placeLabels([label('a', juste - 1)], libre, new Set(['a'])).size).toBe(0)
+  })
+
+  it('remplit l’ensemble fourni, vidé d’abord', () => {
+    const into = new Set(['vieux'])
+    const out = placeLabels([label('a', 300)], zone, undefined, into)
+    expect(out).toBe(into)
+    expect([...into]).toEqual(['a'])
+  })
+})
+
+describe('toScreen', () => {
+  const c = () => ({ id: 'a', x: 0, y: 0, width: 10, height: 10, priority: 0 })
+
+  it('convertit la projection en pixels : le centre au centre, le coin haut gauche à 0', () => {
+    const centre = c()
+    expect(toScreen(centre, 0, 0, 0.5, 1600, 900)).toBe(true)
+    expect([centre.x, centre.y]).toEqual([800, 450])
+    const coin = c()
+    toScreen(coin, -1, 1, 0.5, 1600, 900)
+    expect([coin.x, coin.y]).toEqual([0, 0])
+  })
+
+  it('⛔ cache une ancre derrière la caméra, ou au-delà du plan lointain', () => {
+    expect(toScreen(c(), 0, 0, 1.2, 1600, 900)).toBe(false)
+    expect(toScreen(c(), 0, 0, -1.2, 1600, 900)).toBe(false)
   })
 })
 
