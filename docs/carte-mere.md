@@ -406,4 +406,29 @@ NEXUS**.
 - **Ce que P8-15 retire avec NEXUS** : les bancs, parcours et repères qui nomment NEXUS sont
   réécrits sur la carte, ou retirés s'ils n'ont plus d'objet — jamais affaiblis pour verdir.
   La mesure `Avant / Après / Gain` (§9) fait partie de P8-15.
+
+### 12.5 Mesuré à la livraison (P8-15i, 2026-10-30)
+
+Dans le conteneur, `make bundle` après `pnpm build`, sans bridage ; les budgets en ko et le chunk 3D
+sont dans [`performance-budget.md`](./performance-budget.md) §4.4.
+
+- **Plan versionné** : `board-plan.<locale>.json`, **62,3 Ko** brut, **5,6 Ko** gzip par locale ; la
+  scène n'en charge qu'une, par import dynamique, dans un chunk à part du chunk 3D.
+- **Appels de dessin** (`drawCallBudget`, épinglé par `geometry.test.ts`, contenu réel) : **19** au
+  palier `full`, **16** au palier `lite` — sous la cible de 60 (§9) **par construction**, d'où la
+  clôture de P8-10. Ils comptent la géométrie ; les passes d'ombre s'y ajoutent dans `renderer.info`.
+- **Ponts** (`Traces.vias`) : **16** sur le contenu réel en `level` (§11), 146 sur le grand banc.
+- **Garde d'isolation** (`scripts/check-scene-isolation.mts`) : le plan engendré n'est dans aucun
+  chunk de première visite, aucune **valeur** de `scene/state/board/` n'est dans aucun chunk, et le
+  témoin trouve le JSON dans deux chunks. Vu rouge par mutation (valeur importée depuis
+  `scene-canvas.tsx` ; JSON importé depuis `scene-mount.tsx`).
+
+⚠️ **À mesurer par l'utilisateur, sur matériel réel** (aucun chiffre inventé ici) : appels toutes
+passes et triangles, et `Avant / Après / Gain`. Procédure :
+1. `make board` puis `make up`, **fenêtre privée** (aucune extension), Chrome sur le GPU réel,
+   `http://localhost:3000/fr?debug=scene` ; attendre la première image.
+2. Lire dans le panneau « appels de dessin (toutes passes) » et « triangles », pour chacune des
+   quatre vues (Accueil, Projets, Expériences, Compétences), noter le maximum.
+3. `make perf-baseline` (l'utilisateur seul, hors conteneur d'agent) donne `Avant / Après / Gain`
+   contre la baseline NEXUS de §9 ; coller le tableau ici, avec la date et le GPU.
 - Le lot de contenu (§6) est livré (#84) : fiches Augure et Askor, dates fournies par l'utilisateur.

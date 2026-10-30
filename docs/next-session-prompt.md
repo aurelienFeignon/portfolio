@@ -54,8 +54,8 @@ et §12.
 arbitrage **D13** ; l'écart de LCP mobile introduit par #58 s'est révélé un artefact de Lantern
 (**P11-11**, `performance-budget.md` §6.5).
 **Phase 8** : ⭐⭐ **D14 (2026-10-29) — la carte mère remplace la composition NEXUS** :
-[`carte-mere.md`](./carte-mere.md), trois plans (P8-13 contenu, livré par #84 ; P8-14 plan de carte, livré sur la branche `design/p8-14-plan-de-carte` ; P8-15).
-NEXUS reste en production tant que P8-15 n'est pas livrée.
+[`carte-mere.md`](./carte-mere.md), trois plans (P8-13 contenu, livré par #84 ; P8-14 plan de carte, livré par #85 ; P8-15 rendu).
+NEXUS reste en production tant que P8-15 n'est pas fusionnée.
 ⭐⭐ **NEXUS EST EN PRODUCTION depuis le 2026-10-23 (#58, `854d1fe`)** — D11 : le bureau 3D est
 remplacé par un noyau numérique et trois univers, avec navigation hybride et `ReadingPanel` en verre
 lumineux. **Lis `docs/nexus-prototype.md` avant toute chose** : décisions, architecture de la scène,
@@ -184,9 +184,9 @@ URL, tout le reste rend toujours 302.
 
 | Relevé | Valeur | Seuil |
 |---|---|---|
-| JS propre à chaque route | **11,0 Ko** — le seul JavaScript applicatif du site | cible 25 · bloquant 40 |
-| Socle partagé | **127,1 Ko** | cible 136 · bloquant 146 |
-| **Chunk 3D différé** | **234,5 Ko** — somme des **deux** chunks porteurs, hors du chemin critique | cible 260 · bloquant 320 |
+| JS propre à chaque route | **14,4 Ko** — le seul JavaScript applicatif du site | cible 25 · bloquant 40 |
+| Socle partagé | **128,7 Ko** | cible 136 · bloquant 146 |
+| **Chunk 3D différé** | **249,0 Ko** (2026-10-30, P8-15i) — somme des **deux** chunks porteurs, hors du chemin critique | cible 260 · bloquant 320 |
 | Image de production | **281 Mo** | cible 250 · bloquant 400 |
 | Tests | **1130** verts (2026-10-30, P8-14) ; couverture de `src/scene/state` remesurée le 2026-10-30 (P8-14) : instructions, fonctions et lignes **100 %**, branches **98,68 %** (`board/` : **100 %** sur les quatre axes, depuis le comparateur unique `compareSlugs`) — la seule branche non prise est `layout.ts:135`, le côté `placer(-1)` de `closeUp`, qu'aucun des trois univers ne prend (inatteignable sans changer leurs positions, depuis #58). Le chiffre global du dépôt n'a pas été relevé | ≥ 80 % |
 | E2E | **153** verts sur 5 profils | — |
@@ -317,15 +317,14 @@ ci.yml --limit 1`).
 Les précédentes sont fusionnées et déployées : #80 (Phase 7), #81 (P8-12), #82 (`workflow_dispatch`),
 #83 (P11-11), #84 (P8-13).
 
-⭐⭐ **P8-14 est livrée sur la branche `design/p8-14-plan-de-carte`** : le module pur
-`src/scene/state/board/` (plan de carte, mesures en [`carte-mere.md`](./carte-mere.md) §11).
-**La suite immédiate : le plan 3/3, P8-15** (rendu et interactions), à écrire avec
-superpowers:writing-plans. Décisions qu'il doit poser : **D2** (taille des puces, `ChipSizing`),
-l'affichage des **ponts** (`Traces.vias`), l'**affinité** des emplacements de processeurs, **où
-calculer `planBoard`** (worker ou build : sur le contenu réel c'est une tâche longue, le fil
-principal est exclu), et le **décrochement d'employeur** à dessiner — tout est dans la liste
-« Reporté à P8-15 » et les mesures du contenu réel de §11 (chiffres une seule fois, là-bas). ⚠️ Le module applique son propre repli sans supposer le gate joué (aucun principal → le plus
-récent au centre).
+⭐⭐ **P8-15 est IN_PROGRESS sur `feat/p8-15-carte-mere`** : la carte mère est montée à la place de
+NEXUS (tâches 1 à 9 faites, mesures en [`carte-mere.md`](./carte-mere.md) §12.5). **Mission : attendre
+la vérification en localhost de l'utilisateur** (`make board`, `make up`, les quatre vues, survol,
+clic, mobile si possible), traiter ses retours, puis la chaîne /code-review → /security-review →
+/simplify, puis la PR (la fusion se demande toujours). Reste à décider avec lui : **D2** (puces de
+taille égale tant qu'elle est ouverte), l'arbitrage de l'animation au palier `lite`, le rendu des
+**ponts** (vias), et le vide de cadrage de la vue Expériences (~18 %). Mesure GPU réelle et
+`Avant / Après / Gain` : à lui, procédure en §12.5.
 
 ✅ **Phase 6 close le 2026-10-27** : P6-07 et P6-10 (`phase-6-log.md` §11), P6-11 et P6-12 (§12).
 ⛔ P6-11 a trouvé un défaut **en production** : `setFrameloop` remet l'horloge de R3F à zéro, et une
@@ -389,13 +388,13 @@ autour de la page entière). Firefox headless ne monte pas la scène : non couve
    nomme les trois), référence privée de sa neutralisation (`scene:tier:full`), et copie cachée du
    panneau (vue par le seul texte — d'où la seconde lecture). ⚠️ Il **attend** l'égalité : une duplication passagère
    pendant la transition n'y rougit pas — E2E-17 (P7-06) relève, lui, chaque image du mouvement.
-3. **P8-10** — alléger le premier rendu (72 draw calls sur ordinateur, cible 60 ; 14 programmes), à
-   prioriser si P8-11 montre un problème.
+3. **P8-10** — alléger le premier rendu : la cible de 60 appels est tenue par construction par la
+   carte mère (`carte-mere.md` §12.5) ; les 14 programmes restent à relever si P8-11 montre un problème.
 4. **La carte mère (D14, 2026-10-29)** remplace la composition NEXUS — conception
    [`carte-mere.md`](./carte-mere.md), trois plans : **P8-13** contenu
    (`plans/2026-10-29-carte-mere-1-contenu.md`, livré par #84), **P8-14** module pur du plan de carte
-   (livré sur sa branche),
-   **P8-15** rendu et interactions. **P8-05, P8-08** se refont et se jugent sur la carte.
+   (livré, #85),
+   **P8-15** rendu et interactions (en cours). **P8-05, P8-08** se refont et se jugent sur la carte.
 5. ✅ **Le temps des shaders — P8-12, livrée le 2026-10-29** : `ambientFrame`
    (`src/scene/state/ambient-motion.ts`, pur) accumule le temps de scène au lieu de lire
    `state.clock`, borne chaque image à `IMAGE_MAX_S` — un onglet masqué faisait aussi sauter les
@@ -689,7 +688,7 @@ Python, Node.js, React, Next.js, PostgreSQL, Docker, microservices, architecture
 intégration de modèles de langage.*
 ⛔⛔ **D2 conditionne maintenant la carte mère** : `carte-mere.md` §4 fait croître la taille des
 puces avec `level` — ce qui **publierait visuellement** les niveaux que les deux gardes retiennent.
-À trancher avant P8-15 : relire les niveaux (D2), ou des puces de taille égale tant qu'ils ne le
+À trancher avant la fusion de P8-15 : relire les niveaux (D2), ou des puces de taille égale tant qu'ils ne le
 sont pas. Relevé le 2026-10-29 en mettant ce prompt à jour.
 
 **D6 🟠 — Rendre le paquet GHCR public ?** *(action manuelle, je n'ai pas les droits)* → *GitHub →

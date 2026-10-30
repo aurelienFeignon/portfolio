@@ -46,7 +46,7 @@ Posées à l'ouverture de la session, en vue de P2-11.
 | # | Question | Réponse |
 |---|---|---|
 | **D1** | Fusionner la PR #10 ? | **Non**, pas maintenant. La Phase 3 est développée sur `feat/phase-3-i18n`, branchée **sur** `feat/phase-2-content-layer` pour ne pas en diverger. |
-| **D2** | `company` et `role` d'Augure et d'Askor | **En attente.** Le CV les titre par leur produit, jamais par un employeur ni un intitulé de poste. Les expériences ne peuvent pas être rédigées sans : je n'invente pas d'employeur. |
+| **D2** | `company` et `role` d'Augure et d'Askor | **En attente.** Le CV les titre par leur produit, jamais par un employeur ni un intitulé de poste. Les expériences ne peuvent pas être rédigées sans : je n'invente pas d'employeur. ⛔ **Rappel (2026-10-30)** : toujours ouverte ; la carte mère (P8-15) tient des puces de taille égale (`uniform`) tant qu'elle l'est (`carte-mere.md` §12.1). |
 | **D3** | Augure et Askor : expériences, projets, ou les deux ? | **Expériences uniquement.** `content/*/projects/` accueille ce portfolio et ce qui mérite d'être montré pour lui-même. Une seule source de vérité (ADR-0001). |
 | **D4** | Niveau 1–5 des ~40 technologies | **Défaut appliqué** : je proposerai un classement d'après leur place dans les expériences, à corriger. |
 | **D5** | Publier les chiffres du CV (48 services, 151 modèles, 214 migrations, 27 outils) | **Oui.** Ce sont eux qui rendent une réalisation crédible. |
