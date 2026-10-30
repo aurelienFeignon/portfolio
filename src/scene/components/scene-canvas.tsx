@@ -4,8 +4,8 @@
  * Le `<canvas>` React Three Fiber — **le seul endroit du site qui touche Three.js**.
  *
  * Il porte la carte mère (D14, P8-15) : le plan de carte de la locale, dessiné
- * par `BoardScene`, et le rig de caméra qui suit la route. Ni texte, ni information : les étiquettes des
- * univers sont du HTML rendu **hors** du canvas, par `SceneMount` (ADR-0003) — la
+ * par `BoardScene`, et le rig de caméra qui suit la route. Ni texte, ni information : les étiquettes de
+ * la carte sont du HTML rendu **hors** du canvas, par `SceneMount` (ADR-0003) — la
  * scène ne fait que leur donner leur position (`LabelProjector`).
  *
  * ⛔ `drei` s'importe composant par composant, jamais en entier (ADR-0016) — et
@@ -24,9 +24,9 @@ import { PALETTE } from '@/scene/state/layout'
 import type { SceneState } from '@/scene/state/scene-state'
 
 import { BoardScene } from './board/board-scene'
+import { type LabelElements, LabelProjector } from './board/label-projector'
 import { useBoardFile } from './board/use-board-file'
 import { CameraRig } from './nexus/camera-rig'
-import { type LabelAnchors, LabelProjector } from './nexus/label-projector'
 import { ShaderWarmup } from './nexus/shader-warmup'
 
 export default function SceneCanvas({
@@ -36,7 +36,7 @@ export default function SceneCanvas({
   free,
   visible,
   hovered,
-  labelAnchors,
+  labelElements,
   labelZone,
   onHover,
   onSelect,
@@ -53,8 +53,8 @@ export default function SceneCanvas({
   readonly visible: boolean
   /** La cible survolée de la carte (P8-15f), que `SceneMount` rattache à la route. */
   readonly hovered: BoardTarget | null
-  /** Les étiquettes HTML des univers, que la scène place à chaque image. */
-  readonly labelAnchors: RefObject<LabelAnchors>
+  /** Les étiquettes HTML de la carte, par identifiant, que la scène place à chaque image. */
+  readonly labelElements: RefObject<LabelElements>
   /** Où les étiquettes peuvent se poser : hors du panneau, sous l'en-tête. */
   readonly labelZone: Rect | null
   readonly onHover: (target: BoardTarget | null) => void
@@ -150,7 +150,13 @@ export default function SceneCanvas({
             animated={animated}
             orbit={tier !== 'lite'}
           />
-          <LabelProjector anchors={labelAnchors} zone={labelZone} />
+          <LabelProjector
+            file={plan}
+            focus={state.focus}
+            hovered={hovered}
+            elements={labelElements}
+            zone={labelZone}
+          />
           <BoardScene
             file={plan}
             tier={tier}

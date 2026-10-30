@@ -47,7 +47,7 @@
 }
 
 /*
- * Les étiquettes des univers : du HTML sur sa propre surface, jamais un texte
+ * Les étiquettes de la carte : du HTML sur sa propre surface, jamais un texte
  * posé sur le WebGL (ADR-0004). La scène écrit leur position à chaque image ;
  * elles ne reçoivent pas le pointeur, qui passe à l'univers en dessous.
  *
@@ -99,6 +99,29 @@
   --tone: var(--color-sky);
 }
 
+/*
+ * Les repères d'une vue de section (familles, employeurs, projets) et l'élément survolé : la même
+ * vitre, plus discrète — un nom sur une ligne, sans accroche, plusieurs à l'écran à la fois.
+ */
+.repere {
+  padding: 0.125rem var(--space-2);
+  border-radius: var(--radius-sm);
+}
+
+.repere .nom {
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+}
+
+.etiquette[data-board-label^='family:'],
+.etiquette[data-board-label^='skill:'] {
+  --tone: var(--color-sky);
+}
+
+.etiquette[data-board-label^='project:'] {
+  --tone: var(--color-violet);
+}
+
 .etiquette[data-visible='true'] {
   opacity: 0.9;
 }
@@ -107,7 +130,7 @@
   opacity: 0;
 }
 
-/* L'univers survolé ou cadré : son étiquette s'allume. */
+/* La section ou l'élément survolé : son étiquette s'allume. */
 .etiquette[data-visible='true'][data-active='true'] {
   opacity: 1;
   border-color: var(--tone);
