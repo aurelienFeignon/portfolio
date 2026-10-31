@@ -52,7 +52,7 @@ services:
     # reste treize fois sous ce que la fuite avait atteint.
     #
     # ⚠️ **Ce que le plafond fait, et ce qu'il ne fait pas.** Il ne corrige pas la
-    # fuite — la cause n'est pas instruite. Il la rend **datée et bruyante** : à
+    # fuite (cause racine : voir « Mesuré le 2026-10-31 » plus bas). Il la rend **datée et bruyante** : à
     # 1,7 Go/jour depuis ~1 Gio, elle atteint 4 Gio en environ deux jours de
     # marche continue, et le conteneur est alors tué. ⛔ Un `OOMKilled` se lit
     # comme « Next a planté ». Deux cas, et une seule commande ne les couvre pas :
@@ -70,6 +70,21 @@ services:
     # l'étage `dev` porte `CMD ["pnpm", "dev"]`, donc ce conteneur sert un serveur
     # de développement tant qu'il vit, même quand personne ne développe.
     # `make up` à la demande, `make down` après.
+    #
+    # ⭐ **Mesuré le 2026-10-31** (à rejouer avant de citer ailleurs) :
+    #   - la fuite est propre à `next dev` : l'image de production (`node
+    #     server.js`) est restée plate sur 17 000 requêtes sur `/` (93 → 111 Mo,
+    #     `arrayBuffers` 0) ;
+    #   - en dev, ce ne sont pas les objets JS : tas plafonné à 512 Mo, 2 000
+    #     rendus passent. Après ramasse-miettes forcé, `next-server` garde ~200 Mo
+    #     de tas mais ~1,9 Go d'`arrayBuffers` — des tampons RETENUS, ~100 Ko par
+    #     requête ;
+    #   - le moteur est le `healthcheck` de ce service (`interval` ci-dessous) :
+    #     reproduit, conteneur `OOMKilled` après ~7 500 rendus.
+    # ⛔ NON établi : QUI retient ces tampons. Un instantané du tas pris sur le
+    # conteneur chargé l'a fait tomber : le prendre tôt, à ~1 Go.
+    # Remède d'attente, NON appliqué (à décider) : ralentir ce `healthcheck` de
+    # dev à 30 s (~290 Mo/jour).
     mem_limit: 4g
     memswap_limit: 4g
     ports:
