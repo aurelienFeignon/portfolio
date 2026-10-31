@@ -193,8 +193,8 @@ export function dragOrbit(
 const ORBIT_EASE_PER_S = 5
 
 /**
- * La durée qu'une image fait avancer — temps de transition comme rattrapage de
- * l'orbite.
+ * La durée qu'une image fait avancer le rattrapage de l'orbite (et le mouvement
+ * ambiant). Le temps de transition a sa propre borne, `TRANSITION_IMAGE_MAX_S`.
  *
  * ⛔ **Au réveil, une image courte.** En `frameloop='demand'`, la première image
  * après un repos porte une durée égale à TOUT ce repos : l'orbite sautait à sa
@@ -213,6 +213,23 @@ export function boundedStepS(deltaS: number): number {
 
 export function frameStepS(deltaS: number, wasMoving: boolean): number {
   return wasMoving ? boundedStepS(deltaS) : REVEIL_S
+}
+
+/**
+ * La borne d'une image pour le temps de TRANSITION, plus large que `IMAGE_MAX_S`.
+ *
+ * ⛔⛔ **Bornée à `IMAGE_MAX_S`, une transition se comptait en images, pas en
+ * secondes** : 1,6 s demandaient seize images, quelle que soit leur durée. Mesuré
+ * en CI le 2026-10-31 (rendu WebGL logiciel, ~300 ms par image) : chaque transition
+ * durait ~5 s réelles, et E2E-17 dépassait son budget. Un appareil faible vivait la
+ * même chose. ⭐ Jusqu'à une demi-seconde, une image compte pour sa durée réelle :
+ * la transition dure 1,6 s (`carte-mere.md` §3). Au-delà, c'est un arrêt (onglet
+ * masqué, compilation), qui ne fait avancer que de la borne.
+ */
+export const TRANSITION_IMAGE_MAX_S = 0.5
+
+export function transitionStepS(deltaS: number, wasMoving: boolean): number {
+  return wasMoving ? Math.min(deltaS, TRANSITION_IMAGE_MAX_S) : REVEIL_S
 }
 
 /**
@@ -290,7 +307,7 @@ export function rigFrame(input: {
   readonly heightFraction?: number
 }): RigFrame {
   const step = frameStepS(input.deltaS, input.wasMoving)
-  const elapsedMs = input.elapsedMs + step * 1000
+  const elapsedMs = input.elapsedMs + transitionStepS(input.deltaS, input.wasMoving) * 1000
   const t = easeInOutCubic(transitionProgress(elapsedMs, transitionMs(!input.animated)))
   const shown = interpolatePose(input.from, input.goal, t)
   // La consigne est la somme du glisser et de la parallaxe, bornée ensemble.
