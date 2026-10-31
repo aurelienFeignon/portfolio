@@ -754,7 +754,7 @@ officielle n'atteint 250 Mo.
   intact, et le site en ligne n'est pas concerné.
 
   ⛔ **Ce qui RESTE ouvert, et qu'une borne ne règle pas :**
-  1. ✅ **Instruit le 2026-10-31, cause racine pas encore nommée.** Mesures (à rejouer avant de les
+  1. ⚠️ **Mesurée le 2026-10-31 — cause racine ET remède encore ouverts.** Mesures (à rejouer avant de les
      citer ailleurs) :
      - **La fuite est propre à `next dev`.** L'image de production (`main`, `node server.js`) a reçu
        17 000 requêtes sur `/` — six jours de son `HEALTHCHECK` — en restant **plate** (93 → 111 Mo,
