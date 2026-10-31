@@ -47,7 +47,7 @@ S'y ajoute CT-10 : la logique de caméra doit être **testable sans WebGL**.
 | Ce qui est interpolé | position, cible et `fov`, linéairement sur la valeur adoucie | `interpolatePose` |
 | Interruption | la nouvelle transition part de `shown` : la pose **interpolée** de l'image précédente, avant l'orbite et la correction de format. L'orbite, elle, décroît séparément vers zéro : c'est cette indépendance qui évite le saut. La remise à zéro se fait dans un `useLayoutEffect`, avant toute image (P6-12) | `camera-rig.tsx` |
 | Mouvement réduit | `transitionMs(true) = 0`, et `transitionProgress` rend **1** sur une durée nulle : une coupe | `camera-motion.ts` |
-| Horloge | un temps **accumulé image par image**, remis à zéro au changement d'état, jamais l'horloge de R3F (révisé le 2026-10-27, voir plus bas) | `rigFrame` |
+| Horloge | un temps **accumulé image par image**, remis à zéro au changement d'état, jamais l'horloge de R3F (révisé le 2026-10-27, voir plus bas). Chaque pas d'image est borné par `TRANSITION_IMAGE_MAX_S` (0,5 s) pour le temps de transition : une durée annoncée en secondes ne se compte pas en images (défaut trouvé le 2026-10-31 par E2E-17 en CI, WebGL logiciel ~300 ms/image) ; la durée reste celle de `carte-mere.md` §3 | `rigFrame` |
 
 ⭐ **La durée est née du ressenti.** La première valeur, 0,7 s, a été abandonnée au prototype : un
 déplacement de 13 unités autour du noyau lu en 0,7 s se perçoit comme un saut, pas comme un

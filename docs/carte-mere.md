@@ -435,3 +435,13 @@ passes et triangles, et `Avant / Après / Gain`. Procédure :
    quatre vues (Accueil, Projets, Expériences, Compétences), noter le maximum.
 3. `make perf-baseline` (l'utilisateur seul, hors conteneur d'agent) donne `Avant / Après / Gain`
    contre la baseline NEXUS de §9 ; coller le tableau ici, avec la date et le GPU.
+
+### 12.6 Reliquats ouverts (après #86)
+
+À poser à l'utilisateur, non à trancher :
+
+- le vide d'environ 18 % sous la vue Expériences ;
+- l'aspect des ponts (effectifs : tableau de §11) ;
+- l'affinité des emplacements de processeurs, différée depuis §11 ;
+- les impulsions immobiles au palier `lite` (règle d'image fixe, ADR-0003, choisie pendant l'exécution, à confirmer) ;
+- la mesure GPU réelle (procédure : §12.5).

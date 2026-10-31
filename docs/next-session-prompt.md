@@ -63,8 +63,7 @@ P8-15 génération et rendu (#86, 2026-10-31). ⭐⭐ **La carte mère est en pr
 fait échouer la commande, donc le build), et la scène ne fait que le dessiner. NEXUS est retiré.
 ⚠️ **Ce qui suit sur NEXUS est historique** (en production du 2026-10-23 au 2026-10-31, #58, `854d1fe`) — D11 : le bureau 3D est
 remplacé par un noyau numérique et trois univers, avec navigation hybride et `ReadingPanel` en verre
-lumineux. **Lis `docs/nexus-prototype.md` avant toute chose** : décisions, architecture de la scène,
-et surtout §6, l'enquête de performance. Les Phases 7 à 9 sont réorientées dans la roadmap.
+lumineux. Pour l'historique, `docs/nexus-prototype.md` §6 (enquête de performance). Les Phases 7 à 9 sont réorientées dans la roadmap.
 **Tout ce qui suit est fusionné sur `main` et déployé**, les cinq jobs verts à chaque fois —
 publication GHCR et déploiement VPS compris.
 
@@ -319,14 +318,7 @@ prototype, validation visuelle avec l'utilisateur, fusion et déploiement (#58),
 déploiement de `main` (`gh run list --branch main --workflow ci.yml --limit 1`).
 Les précédentes sont fusionnées et déployées : #84 (P8-13), #85 (P8-14), #86 (P8-15).
 
-✅ **P8-15 livrée le 2026-10-31 (#86)** : la carte mère est en production, vérifiée en localhost
-par l'utilisateur. ⛔ Un défaut a été trouvé par la porte de la PR, et il vaut d'être retenu :
-**le temps de transition se comptait en IMAGES** (borne `IMAGE_MAX_S` de 0,1 s par image) — en CI,
-rendu WebGL logiciel à ~300 ms par image, chaque transition durait ~5 s et E2E-17 dépassait ses
-30 s. Il a désormais sa borne, `TRANSITION_IMAGE_MAX_S` = 0,5 s (`camera-motion.ts`) : une
-transition dure 1,6 s réelles, un arrêt ne fait avancer que de la borne.
-⭐ *Une durée annoncée en secondes ne se compte pas en images* — un appareil faible vivait le même
-défaut que la CI.
+✅ P8-15 livrée le 2026-10-31 (#86), vérifiée en localhost. Défaut retenu : le temps de transition se comptait en images → ADR-0012 (révision du 2026-10-31).
 
 ⭐⭐ **La suite, dans l'ordre recommandé :**
 1. **Mesure GPU réelle par l'utilisateur** (`carte-mere.md` §12.5 : `?debug=scene`, appels toutes
@@ -336,10 +328,7 @@ défaut que la CI.
    (impulsion ou diode derrière), et les teintes ambre et sarcelle ajoutées (jetons déjà dans
    `globals.css`).
 3. **P8-05 — éclairage et ambiance** de la carte, sur retour visuel de l'utilisateur.
-4. **Reliquats de P8-15**, à poser à l'utilisateur et non à trancher : le vide d'environ 18 % sous
-   la vue Expériences ; l'aspect des **ponts** (16 sur le contenu réel) ; l'**affinité des
-   emplacements** de processeurs, qui en réduirait le nombre ; les impulsions **immobiles au palier
-   `lite`** (règle d'image fixe d'ADR-0003, choisie pendant l'exécution).
+4. **Reliquats de P8-15** : `carte-mere.md` §12.6 — à poser à l'utilisateur et non à trancher.
 
 En parallèle, indépendant de la 3D : la **Phase 10** (envoi du CV), à commencer par P10-11.
 
@@ -407,11 +396,7 @@ autour de la page entière). Firefox headless ne monte pas la scène : non couve
    pendant la transition n'y rougit pas — E2E-17 (P7-06) relève, lui, chaque image du mouvement.
 3. **P8-10** — alléger le premier rendu : la cible de 60 appels est tenue par construction par la
    carte mère (`carte-mere.md` §12.5) ; les 14 programmes restent à relever si P8-11 montre un problème.
-4. **La carte mère (D14, 2026-10-29)** remplace la composition NEXUS — conception
-   [`carte-mere.md`](./carte-mere.md), trois plans : **P8-13** contenu
-   (`plans/2026-10-29-carte-mere-1-contenu.md`, livré par #84), **P8-14** module pur du plan de carte
-   (livré, #85),
-   **P8-15** génération et rendu (livré, #86). **P8-05, P8-08** se refont et se jugent sur la carte.
+4. **La carte mère (D14)** : livrée (roadmap P8-13 à P8-15) ; P8-05 et P8-08 se refont et se jugent sur la carte.
 5. ✅ **Le temps des shaders — P8-12, livrée le 2026-10-29** : `ambientFrame`
    (`src/scene/state/ambient-motion.ts`, pur) accumule le temps de scène au lieu de lire
    `state.clock`, borne chaque image à `IMAGE_MAX_S` — un onglet masqué faisait aussi sauter les
@@ -703,11 +688,7 @@ contrat de `SkillGroup`, qui ne porte que `{ slug, name }`, et un parcours sur l
 → *Dis-moi seulement ceux qui te paraissent faux. Dix compétences sont `featured` : TypeScript,
 Python, Node.js, React, Next.js, PostgreSQL, Docker, microservices, architecture événementielle,
 intégration de modèles de langage.*
-⛔⛔ **D2 conditionne maintenant la carte mère** : `carte-mere.md` §4 fait croître la taille des
-puces avec `level` — ce qui **publierait visuellement** les niveaux que les deux gardes retiennent.
-✅ Arbitré le 2026-10-30 : **puces de taille égale** tant que D2 est ouverte (`chipSizing: 'uniform'`,
-`carte-mere.md` §12.1). Le jour où tu relis les niveaux, c'est un paramètre du générateur à changer
-(`scripts/generate-board-plan.mts`), puis `make board` — pas du code de scène.
+✅ Arbitré le 2026-10-30 pour la carte mère : voir `carte-mere.md` §12.1 (puces de taille égale tant que D2 est ouverte, paramètre du générateur) et `phase-0-questions.md` (D2).
 
 **D6 🟠 — Rendre le paquet GHCR public ?** *(action manuelle, je n'ai pas les droits)* → *GitHub →
 Packages → portfolio → Change visibility → Public. Puis sur le VPS : `docker logout ghcr.io && rm
@@ -754,23 +735,7 @@ officielle n'atteint 250 Mo.
   intact, et le site en ligne n'est pas concerné.
 
   ⛔ **Ce qui RESTE ouvert, et qu'une borne ne règle pas :**
-  1. ⚠️ **Mesurée le 2026-10-31 — cause racine ET remède encore ouverts.** Mesures (à rejouer avant de les
-     citer ailleurs) :
-     - **La fuite est propre à `next dev`.** L'image de production (`main`, `node server.js`) a reçu
-       17 000 requêtes sur `/` — six jours de son `HEALTHCHECK` — en restant **plate** (93 → 111 Mo,
-       `arrayBuffers` 0). Le site en ligne n'est pas concerné.
-     - **En dev, ce ne sont pas les objets JS** : avec le tas V8 plafonné à 512 Mo, 2 000 rendus
-       passent sans échec. Après ramasse-miettes forcé (inspecteur), le tas pèse ~200 Mo mais
-       **`arrayBuffers` ~1,9 Go** dans `next-server` (Turbopack y tourne) : des tampons RETENUS,
-       ~100 Ko par requête.
-     - ⭐ **Le moteur est le `healthcheck` du service `web`** : il appelle `/` toutes les **5 s**
-       (17 280 requêtes par jour × ~100 Ko ≈ les 1,7 Go/jour relevés en septembre). Reproduit :
-       conteneur tué (`OOMKilled`) après ~7 500 rendus.
-     - ⛔ **Non établi** : QUI retient ces tampons. Un instantané du tas pris sur le conteneur chargé
-       l'a fait tomber (l'instantané double la mémoire) : le reprendre tôt, à ~1 Go. La piste la plus
-       probable est un défaut de Next/Turbopack à signaler en amont.
-     - Remède d'attente, non appliqué (à décider) : passer ce `healthcheck` de dev de 5 s à 30 s,
-       soit ~290 Mo/jour, sous la borne de 4 Go.
+  1. ⚠️ Mesurée le 2026-10-31, cause racine et remède encore ouverts : voir le commentaire du service `web` de `docker-compose.yml`. À décider : ralentir le `healthcheck` de dev, ou chercher qui retient les tampons (piste Next/Turbopack, à signaler en amont).
   2. **Ne pas le faire tourner en permanence** — `make up` à la demande, `make down` après. C'est une
      habitude à prendre, pas un correctif à écrire : l'étage `dev` porte `CMD ["pnpm", "dev"]`, donc
      le conteneur sert un serveur de développement tant qu'il vit, même quand personne ne développe.
