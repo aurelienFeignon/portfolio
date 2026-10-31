@@ -17,12 +17,12 @@ import { TONES, type Tone } from '../layout.ts'
 /** Longueur du bus en X, quel que soit le nombre d'années. */
 export const BUS_LENGTH = 20
 /** Au-delà de ce nombre d'années, le bus fait un lacet. */
-export const YEARS_PER_ROW = 8
+const YEARS_PER_ROW = 8
 /** Écart en Z entre deux voies parallèles. */
 export const LANE_PITCH = 0.9
 /** Écart en Z entre la dernière voie d'une rangée et la voie 0 de la suivante. */
 export const ROW_GAP = 1.4
-export interface BusSegment {
+interface BusSegment {
   readonly experience: string
   readonly lane: number
   readonly tone: Tone

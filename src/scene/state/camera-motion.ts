@@ -6,7 +6,7 @@
  * l'interruption, les bornes de l'orbite, le décentrage du cadrage — est ici, où
  * un banc l'éprouve sans navigateur.
  */
-import { DEG, FOV_MAX_DEG, fovForAspect } from './framing.ts'
+import { fitFov } from './framing.ts'
 import { type CameraSpec, transitionMs, type Vec3 } from './layout.ts'
 
 /** Une pose de caméra : ce que l'interpolation fait varier. */
@@ -242,7 +242,7 @@ export function approachOrbit(
 const ORBIT_SETTLED_DEG = 0.01
 
 /** Ce que le rig applique à la caméra pour une image. */
-export interface RigFrame {
+interface RigFrame {
   /** La pose interpolée, avant orbite : la prochaine transition repart d'ELLE. */
   readonly shown: Pose
   /** La position, orbite comprise ; la caméra vise `shown.target`. */
@@ -302,17 +302,12 @@ export function rigFrame(input: {
   const orbit = approachOrbit(input.orbitNow, consigne, step, input.animated)
   const transitioning = t < 1
   /*
-   * Le champ que le cadrage demande dans la zone libre : assez large (format) ET
-   * assez haut (part de la hauteur). Au-delà du plafond (`FOV_MAX_DEG`, contre
-   * l'œil de poisson), la caméra RECULE de ce qui manque : le rapport des
-   * tangentes rend la même emprise. ⭐ Le recul s'applique à l'image, jamais à
-   * `shown` : la prochaine transition repart du cadrage, pas d'un recul cumulé.
+   * Le champ que le cadrage demande dans la zone libre, plafonné, et le recul qui
+   * rend ce que le plafond retire (`fitFov`). ⭐ Le recul s'applique à l'image,
+   * jamais à `shown` : la prochaine transition repart du cadrage, pas d'un recul
+   * cumulé.
    */
-  const half = (deg: number): number => Math.tan((deg * DEG) / 2)
-  const tall = 2 * Math.atan(half(shown.fov) / (input.heightFraction ?? 1))
-  const wanted = Math.max(fovForAspect(shown.fov, input.aspect, Infinity), tall / DEG)
-  const fov = Math.min(wanted, Math.max(FOV_MAX_DEG, shown.fov))
-  const k = half(wanted) / half(fov)
+  const { fov, k } = fitFov(shown.fov, input.aspect, input.heightFraction)
   const [px, py, pz] = shown.position
   const [tx, ty, tz] = shown.target
   const backed: Vec3 = [tx + (px - tx) * k, ty + (py - ty) * k, tz + (pz - tz) * k]

@@ -43,12 +43,7 @@ const outDir = values.out ?? defaultDir
 
 async function build(locale: Locale): Promise<{ file: BoardFile; ms: number }> {
   const started = performance.now()
-  const [skills, experiences, projects] = await Promise.all([
-    contentRepository.getAllSkills(locale),
-    contentRepository.getAllExperiences(locale),
-    contentRepository.getAllProjects(locale),
-  ])
-  const file = buildBoardFile(toBoardContent({ skills, experiences, projects }), {
+  const file = buildBoardFile(toBoardContent(await contentRepository.getAllForBoard(locale)), {
     locale,
     year,
     chipSizing: 'uniform',

@@ -32,7 +32,7 @@ export interface AmbientState {
   readonly highlight: Readonly<Record<Section, number>>
 }
 
-export interface AmbientFrame {
+interface AmbientFrame {
   readonly state: AmbientState
   /** Le temps que voient les shaders : accumulé, ou figé sous `reduced-motion`. */
   readonly shaderTimeS: number

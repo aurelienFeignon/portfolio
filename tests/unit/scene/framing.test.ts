@@ -11,6 +11,7 @@ import { describe, expect, it } from 'vitest'
 import {
   FOV_MAX_DEG,
   REFERENCE_ASPECT,
+  fitFov,
   fovForAspect,
   horizontalFovDeg,
 } from '@/scene/state/framing'
@@ -71,5 +72,39 @@ describe('correction du champ selon le format', () => {
     // Le dossier note que ce cadrage n'a que 10 % de marge verticale et prescrit
     // 38° sous 16:9. La règle générale doit passer par là, à peu près.
     expect(fovForAspect(34, 4 / 3)).toBeGreaterThan(38)
+  })
+})
+
+describe('fitFov — le champ requis, plafonné, et le recul qui rend le reste', () => {
+  const half = (deg: number) => Math.tan((deg * Math.PI) / 360)
+
+  it('en 16:9 sur toute la hauteur : le cadrage tel quel, sans recul', () => {
+    expect(fitFov(ACCUEIL, REFERENCE_ASPECT)).toEqual({ fov: ACCUEIL, k: 1 })
+  })
+
+  it('le cas « largeur » est `fovForAspect`', () => {
+    for (const aspect of [21 / 9, REFERENCE_ASPECT, 4 / 3, 1, 0.462]) {
+      expect(fitFov(ACCUEIL, aspect).fov).toBe(fovForAspect(ACCUEIL, aspect))
+    }
+  })
+
+  it('une zone moins haute que le canvas demande un champ plus haut', () => {
+    const { fov, k } = fitFov(30, REFERENCE_ASPECT, 0.8)
+    expect(half(fov)).toBeCloseTo(half(30) / 0.8)
+    expect(k).toBe(1)
+  })
+
+  it('au-delà du plafond : le champ s’arrête au plafond et la caméra recule de ce qui manque', () => {
+    const { fov, k } = fitFov(ACCUEIL, REFERENCE_ASPECT, 0.3)
+    expect(fov).toBe(FOV_MAX_DEG)
+    // L'emprise est rendue : tan(champ plafonné / 2) × k = tan(champ requis / 2).
+    expect(half(fov) * k).toBeCloseTo(half(ACCUEIL) / 0.3)
+  })
+
+  it('le plus exigeant des deux, largeur ou hauteur, l’emporte', () => {
+    const large = fitFov(30, 1, 0.9, Infinity).fov
+    expect(large).toBe(fovForAspect(30, 1, Infinity))
+    const haut = fitFov(30, 2, 0.5, Infinity).fov
+    expect(half(haut)).toBeCloseTo(half(30) / 0.5)
   })
 })

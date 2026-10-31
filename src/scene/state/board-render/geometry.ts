@@ -15,10 +15,11 @@
  * seulement ses types, effacés à la compilation (`carte-mere.md` §12.4).
  */
 import type { BoardPlan } from '../board/plan.ts'
-import type { Vec2 } from '../board/rect.ts'
+import type { Vec2 } from '../plane.ts'
 import type { BusJog, Timeline } from '../board/timeline.ts'
 import type { Route } from '../board/traces.ts'
 import { BOARD_DENSITY, BUS_WIRES, type DensityTier, PALETTE, type Tone, TONES } from '../layout.ts'
+import { dedupe, edgeLength, POINT_TOLERANCE, pointSegmentDistance, samePoint } from './polyline.ts'
 
 /* ------------------------------------------------------------------ rubans */
 
@@ -38,7 +39,7 @@ export const traceWidth = (route: Route): number => TRACE_WIDTHS[route.kind]
 
 /** Écart entre deux fils voisins du bus, et largeur d'un fil (halo compris). */
 export const BUS_WIRE_PITCH = 0.07
-export const BUS_WIRE_WIDTH = 0.06
+const BUS_WIRE_WIDTH = 0.06
 
 /**
  * Plafond du biseau, en demi-largeurs : un demi-tour presque complet donnerait une pointe sans
@@ -46,6 +47,9 @@ export const BUS_WIRE_WIDTH = 0.06
  * entrées dégénérées.
  */
 const MITER_LIMIT = 4
+
+/** En deçà de cette longueur, la somme des deux normales d'un coude est nulle : un demi-tour. */
+const U_TURN = 1e-6
 
 export interface Ribbons {
   /** `x, y, z` par sommet, `y = 0`. Deux sommets par point : gauche puis droite. */
@@ -57,12 +61,12 @@ export interface Ribbons {
   readonly across: Float32Array
 }
 
-export interface TraceRibbons extends Ribbons {
+interface TraceRibbons extends Ribbons {
   /** Indice de la route dans `plan.traces.routes`, par sommet : l'état de survol (P8-15f). */
   readonly routeIndex: Float32Array
 }
 
-export interface BusRibbons extends Ribbons {
+interface BusRibbons extends Ribbons {
   /** Indice du tronçon dans `timeline.segments`, par sommet ; `−1` pour une voie éteinte. */
   readonly segmentIndex: Float32Array
   /** `1` sur une année sans poste (`idleYears`), `0` ailleurs. */
@@ -89,7 +93,7 @@ class RibbonWriter {
     const miters = miterNormals(points)
     let distance = 0
     points.forEach((p, i) => {
-      if (i > 0) distance += Math.hypot(p[0] - points[i - 1]![0], p[1] - points[i - 1]![1])
+      if (i > 0) distance += edgeLength(points[i - 1]!, p)
       const [mx, mz] = miters[i]!
       const cx = p[0] + mx * offset
       const cz = p[1] + mz * offset
@@ -112,16 +116,6 @@ class RibbonWriter {
       across: new Float32Array(this.across),
     }
   }
-}
-
-const samePoint = (a: Vec2, b: Vec2): boolean =>
-  Math.abs(a[0] - b[0]) < 1e-6 && Math.abs(a[1] - b[1]) < 1e-6
-
-/** La polyligne sans ses points répétés consécutifs. */
-function dedupe(points: readonly Vec2[]): Vec2[] {
-  const out: Vec2[] = []
-  for (const p of points) if (out.length === 0 || !samePoint(out.at(-1)!, p)) out.push(p)
-  return out
 }
 
 /** La normale gauche (`(−dz, dx)`) unitaire du tronçon `a → b`. */
@@ -147,7 +141,7 @@ function miterNormals(points: readonly Vec2[]): Vec2[] {
     const sx = before[0] + after[0]
     const sz = before[1] + after[1]
     const length = Math.hypot(sx, sz)
-    if (length < 1e-6) return before
+    if (length < U_TURN) return before
     const mx = sx / length
     const mz = sz / length
     const scale = Math.min(1 / (mx * before[0] + mz * before[1]), MITER_LIMIT)
@@ -175,16 +169,9 @@ export function traceRibbons(
   return { ...writer.ribbons(), routeIndex: new Float32Array(routeIndex) }
 }
 
-/** Vrai si `p` est sur le segment `[a, b]`, extrémités comprises. */
-function onSegment(p: Vec2, a: Vec2, b: Vec2): boolean {
-  const abx = b[0] - a[0]
-  const abz = b[1] - a[1]
-  const apx = p[0] - a[0]
-  const apz = p[1] - a[1]
-  if (Math.abs(abx * apz - abz * apx) > 1e-6) return false
-  const dot = abx * apx + abz * apz
-  return dot >= -1e-6 && dot <= abx * abx + abz * abz + 1e-6
-}
+/** Vrai si `p` est sur le segment `[a, b]`, extrémités comprises (à `POINT_TOLERANCE` près). */
+const onSegment = (p: Vec2, a: Vec2, b: Vec2): boolean =>
+  pointSegmentDistance(p[0], p[1], a, b) <= POINT_TOLERANCE
 
 /**
  * Le tracé d'un tronçon du bus, la marche à 45° d'un changement d'employeur **dessinée** (§11,
@@ -232,7 +219,11 @@ function idlePieces(timeline: Timeline): Vec2[][] {
     const milestone = timeline.milestones.find((m) => m.year === year)
     if (!milestone) continue
     const [x, z] = milestone.at
-    if (current !== null && current.year === year - 1 && Math.abs(current.z - z) < 1e-6) {
+    if (
+      current !== null &&
+      current.year === year - 1 &&
+      Math.abs(current.z - z) < POINT_TOLERANCE
+    ) {
       current = { minX: Math.min(current.minX, x), maxX: Math.max(current.maxX, x), z, year }
     } else {
       flush()
@@ -284,20 +275,27 @@ export function busRibbons(timeline: Timeline): BusRibbons {
 export function yearSides(timeline: Timeline): readonly (1 | -1)[] {
   let row = 0
   return timeline.milestones.map((m, i) => {
-    if (i > 0 && Math.abs(m.at[1] - timeline.milestones[i - 1]!.at[1]) > 1e-6) row += 1
+    if (i > 0 && Math.abs(m.at[1] - timeline.milestones[i - 1]!.at[1]) > POINT_TOLERANCE) row += 1
     return row % 2 === 0 ? -1 : 1
   })
 }
 
 /* ------------------------------------------------------------------ teintes */
 
+/** `#RRGGBB` → ses trois octets sRGB, de 0 à 255 : la seule lecture d'une teinte de `PALETTE`. */
+export function hexToRgb(hex: string): readonly [number, number, number] {
+  const n = Number.parseInt(hex.slice(1), 16)
+  return [(n >> 16) & 255, (n >> 8) & 255, n & 255]
+}
+
 /** `#RRGGBB` (sRGB) → composantes **linéaires**, l'espace de travail des couleurs de three. */
 export function hexToLinear(hex: string): readonly [number, number, number] {
-  const channel = (offset: number): number => {
-    const c = Number.parseInt(hex.slice(offset, offset + 2), 16) / 255
+  const linear = (byte: number): number => {
+    const c = byte / 255
     return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4
   }
-  return [channel(1), channel(3), channel(5)]
+  const [r, g, b] = hexToRgb(hex)
+  return [linear(r), linear(g), linear(b)]
 }
 
 /**
@@ -344,7 +342,12 @@ export const SHAPES = [
 ] as const
 export type Shape = (typeof SHAPES)[number]
 
-export interface InstanceSet {
+const SHAPE_SET: ReadonlySet<string> = new Set(SHAPES)
+
+/** Vrai si `name` (le nom d'un maillage) est une forme instanciée. */
+export const isShape = (name: string): name is Shape => SHAPE_SET.has(name)
+
+interface InstanceSet {
   readonly count: number
   /** 16 flottants par instance, en colonnes — l'ordre de `Matrix4.elements`. */
   readonly matrices: Float32Array
@@ -452,7 +455,7 @@ function directionAt(plan: BoardPlan, net: string, at: Vec2): Vec2 {
       const a = route.points[i]!
       const b = route.points[i + 1]!
       if (!samePoint(a, b) && onSegment(at, a, b)) {
-        const length = Math.hypot(b[0] - a[0], b[1] - a[1])
+        const length = edgeLength(a, b)
         return [(b[0] - a[0]) / length, (b[1] - a[1]) / length]
       }
     }

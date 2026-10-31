@@ -25,13 +25,6 @@ export interface BoardFile {
   readonly cameras: Readonly<Record<ViewId, CameraSpec>>
 }
 
-/** Une liaison que le routeur n'a pas su tracer — ce qui fait échouer `make board`. */
-export interface BoardLoss {
-  readonly kind: 'link' | 'bus-link'
-  readonly from: string
-  readonly to: string
-}
-
 const VIEWS: readonly ViewId[] = ['accueil', 'experiences', 'projets', 'competences']
 
 const isObject = (value: unknown): value is Record<string, unknown> =>

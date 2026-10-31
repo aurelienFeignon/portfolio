@@ -10,6 +10,7 @@ import { instances, withJog } from '@/scene/state/board-render/geometry'
 import type { Vec2 } from '@/scene/state/board/rect'
 import {
   instanceLevels,
+  isLitShape,
   LEVEL,
   LIT_SHAPES,
   PICKABLE_MESHES,
@@ -249,6 +250,13 @@ describe('PICKABLE_MESHES', () => {
 
   it('les lueurs restent atténuées avec leur objet', () => {
     expect(LIT_SHAPES).toContain('glows')
+  })
+
+  it('isLitShape reconnaît exactement LIT_SHAPES', () => {
+    expect(isLitShape('glows')).toBe(true)
+    expect(isLitShape('chips')).toBe(true)
+    expect(isLitShape('vias')).toBe(false)
+    expect(isLitShape('pads')).toBe(false)
   })
 })
 

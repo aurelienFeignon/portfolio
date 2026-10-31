@@ -91,11 +91,7 @@ export async function generateMetadata({ params }: LocaleParams): Promise<Metada
  */
 async function boardLabels(locale: Locale): Promise<BoardLabels> {
   const messages = getMessages(locale)
-  const [skills, experiences, projects] = await Promise.all([
-    contentRepository.getAllSkills(locale),
-    contentRepository.getAllExperiences(locale),
-    contentRepository.getAllProjects(locale),
-  ])
+  const { skills, experiences, projects } = await contentRepository.getAllForBoard(locale)
   return {
     sections: Object.fromEntries(
       SECTIONS.map((section) => [

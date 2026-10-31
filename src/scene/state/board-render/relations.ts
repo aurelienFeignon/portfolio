@@ -17,12 +17,11 @@
  */
 import { BUS_WIRES } from '../layout.ts'
 import type { BoardPlan } from '../board/plan.ts'
-import type { Vec2 } from '../board/rect.ts'
+import type { Vec2 } from '../plane.ts'
 import type { BoardFile } from './file-format.ts'
 import { BUS_WIRE_PITCH, type Shape, withJog } from './geometry.ts'
+import { pointSegmentDistance } from './polyline.ts'
 import type { BoardTarget } from './targets.ts'
-
-export type { BoardTarget } from './targets.ts'
 
 /** Ce qu'une cible allume ; tout le reste s'atténue. */
 export interface Relations {
@@ -200,15 +199,10 @@ const YEAR_REACH = 0.3
 /** Distance du point (x, z) à la polyligne `points`. */
 function distanceToPath(points: readonly Vec2[], x: number, z: number): number {
   let best = Infinity
+  // Un sommet répété (marche) donne une arête nulle : `pointSegmentDistance` rend alors la
+  // distance au sommet, sans division par zéro.
   for (let i = 1; i < points.length; i++) {
-    const [ax, az] = points[i - 1]!
-    const [bx, bz] = points[i]!
-    const dx = bx - ax
-    const dz = bz - az
-    const length2 = dx * dx + dz * dz
-    // Un sommet répété (marche) donne une arête nulle : `t` vaut alors 0, sans division par zéro.
-    const t = Math.max(0, Math.min(1, ((x - ax) * dx + (z - az) * dz) / Math.max(length2, 1e-12)))
-    best = Math.min(best, Math.hypot(x - (ax + t * dx), z - (az + t * dz)))
+    best = Math.min(best, pointSegmentDistance(x, z, points[i - 1]!, points[i]!))
   }
   return best
 }
@@ -249,6 +243,11 @@ export const LIT_SHAPES: readonly LitShape[] = [
   'milestones',
   'glows',
 ]
+
+const LIT_SHAPE_SET: ReadonlySet<string> = new Set(LIT_SHAPES)
+
+/** Vrai si les instances de `shape` portent un niveau. */
+export const isLitShape = (shape: Shape): shape is LitShape => LIT_SHAPE_SET.has(shape)
 
 /** Le niveau de chaque instance des formes désignables ; tout au neutre sans `relations`. */
 export function instanceLevels(

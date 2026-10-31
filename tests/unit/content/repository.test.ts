@@ -36,6 +36,14 @@ describe('lecture par type', () => {
     expect(skills.map((skill) => skill.slug)).toEqual(['typescript', 'postgresql'])
   })
 
+  it('rend d’un seul appel ce que lit la carte mère, dans l’ordre des lectures par type', async () => {
+    const board = await repository().getAllForBoard('fr')
+
+    expect(board.skills.map((skill) => skill.slug)).toEqual(['typescript', 'postgresql'])
+    expect(board.experiences.map((experience) => experience.company)).toEqual(['Evea'])
+    expect(board.projects.map((project) => project.slug)).toEqual(['portfolio', 'augure'])
+  })
+
   it('rend une liste vide là où la locale n’a pas ce type de contenu', async () => {
     await expect(repository().getAllExperiences('en')).resolves.toEqual([])
   })

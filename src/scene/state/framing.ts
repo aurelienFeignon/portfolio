@@ -43,24 +43,47 @@ export function horizontalFovDeg(verticalFovDeg: number, aspect: number): number
 }
 
 /**
- * Le champ vertical à employer pour ce format.
+ * Le champ vertical qui fait tenir un cadrage dans une zone de format `aspect` (largeur sur
+ * hauteur du canvas) et de hauteur `heightFraction` (part de la hauteur du canvas) — **la** règle
+ * du recadrage, que `fovForAspect` et le rig (`rigFrame`) appliquent tous deux :
+ *
+ * 1. le champ **requis** : assez large pour garder le champ horizontal du 16:9, assez haut pour
+ *    garder le champ vertical dans la part de hauteur laissée libre ;
+ * 2. plafonné à `maxDeg` (contre l'œil de poisson) ;
+ * 3. ce que le plafond retire, la caméra le rend en **reculant** de `k` (≥ 1) : le rapport des
+ *    tangentes rend la même emprise. `k = 1` sous le plafond.
  *
  * ⭐ **Elle n'agit que dans un sens.** Sur un écran plus large que 16:9, le champ
  * horizontal est déjà supérieur à celui pour lequel la scène est cadrée :
  * resserrer le `fov` vertical pour « compenser » retirerait de la hauteur — donc
  * le plateau et le mur — sans que rien ne le demande.
  */
+export function fitFov(
+  baseFov: number,
+  aspect: number,
+  heightFraction = 1,
+  maxDeg: number = FOV_MAX_DEG,
+): { readonly fov: number; readonly k: number } {
+  const half = (deg: number): number => Math.tan((deg * DEG) / 2)
+  const wide =
+    aspect >= REFERENCE_ASPECT
+      ? baseFov
+      : (2 * Math.atan(half(baseFov) * (REFERENCE_ASPECT / aspect))) / DEG
+  // Toute la hauteur : le champ vertical est celui du cadrage, sans aller-retour trigonométrique.
+  const tall =
+    heightFraction === 1 ? baseFov : (2 * Math.atan(half(baseFov) / heightFraction)) / DEG
+  const wanted = Math.max(wide, tall)
+  // ⭐ Le plafond ne peut pas RABAISSER un cadrage déjà plus ouvert que lui : une
+  // règle qui n'existe que pour élargir ne doit jamais resserrer.
+  const fov = Math.min(wanted, Math.max(maxDeg, baseFov))
+  return { fov, k: half(wanted) / half(fov) }
+}
+
+/** Le champ vertical à employer pour ce format, sur toute la hauteur : le cas « largeur » de `fitFov`. */
 export function fovForAspect(
   fovAt16by9: number,
   aspect: number,
   maxDeg: number = FOV_MAX_DEG,
 ): number {
-  if (aspect >= REFERENCE_ASPECT) return fovAt16by9
-
-  const elargi =
-    (2 * Math.atan(Math.tan((fovAt16by9 * DEG) / 2) * (REFERENCE_ASPECT / aspect))) / DEG
-
-  // ⭐ Le plafond ne peut pas RABAISSER un cadrage déjà plus ouvert que lui : une
-  // règle qui n'existe que pour élargir ne doit jamais resserrer.
-  return Math.min(elargi, Math.max(maxDeg, fovAt16by9))
+  return fitFov(fovAt16by9, aspect, 1, maxDeg).fov
 }

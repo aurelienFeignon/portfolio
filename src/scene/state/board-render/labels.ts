@@ -11,8 +11,9 @@
  * ce que le layout serveur lui donne (`BoardLabels`). Aucun texte de contenu n'est peint (§9,
  * ADR-0004).
  *
- * ⛔ N'importe que des TYPES : `SceneMount` (chemin de première visite) lit `boardLabelId` et
- * `BoardLabels`, et ne doit tirer ni `layout.ts` ni `board/` (`scene-state-stays-off-layout`).
+ * ⛔ N'importe que des TYPES, plus le module neutre `plane.ts` (qui n'importe rien) : `SceneMount`
+ * (chemin de première visite) lit `boardLabelId` et `BoardLabels`, et ne doit tirer ni
+ * `layout.ts` ni `board/` (`scene-state-stays-off-layout`).
  *
  * Module pur : ni Three.js, ni `Date`, ni `Math.random`.
  */
@@ -20,7 +21,7 @@ import type { Section } from '../../../routing/sections.ts'
 import type { Rect as ScreenRect } from '../camera-motion.ts'
 import type { Vec3 } from '../layout.ts'
 import type { SkillFamily } from '../board/content.ts'
-import type { Rect } from '../board/rect.ts'
+import { type Rect, rectCenter } from '../plane.ts'
 import type { SceneFocus } from '../scene-state.ts'
 import type { BoardFile } from './file-format.ts'
 import type { BoardTarget } from './targets.ts'
@@ -57,7 +58,7 @@ export const HOVERED_PRIORITY = 100
 const BASE_PRIORITY = 10
 
 const lift = (x: number, z: number): Vec3 => [x, LABEL_LIFT, z]
-const centerOf = (r: Rect): Vec3 => lift((r.minX + r.maxX) / 2, (r.minZ + r.maxZ) / 2)
+const centerOf = (r: Rect): Vec3 => lift(...rectCenter(r))
 
 const area = (r: Rect): number => (r.maxX - r.minX) * (r.maxZ - r.minZ)
 
@@ -230,7 +231,7 @@ export function toScreen(
  * la zone : `false`, l'étiquette se cache.
  * ⭐ La seule règle de zone des étiquettes : rien d'autre ne la vérifie.
  */
-export function fitToZone(c: PlacedCandidate, zone: ScreenRect, slack = 0): boolean {
+function fitToZone(c: PlacedCandidate, zone: ScreenRect, slack = 0): boolean {
   const minX = zone.x + c.width / 2
   const maxX = zone.x + zone.width - c.width / 2
   const minY = zone.y + c.height
