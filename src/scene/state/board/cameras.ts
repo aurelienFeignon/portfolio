@@ -7,7 +7,7 @@
  * visiteur. La caméra se tient **devant** (+Z) et au-dessus, et vise le centre
  * du rectangle.
  *
- * ⭐ Le `fov` rendu est celui du 16:9 ; `fovForAspect` et `setViewOffset`
+ * ⭐ Le `fov` rendu est celui du 16:9 ; `fitFov` et `setViewOffset`
  * restent au rendu (P6-04), inchangés. Même forme que `CAMERAS`, pour que
  * `getCameraTarget` puisse basculer sans changer de type.
  *
@@ -17,7 +17,8 @@ import type { Section } from '../../../routing/sections.ts'
 import { DEG, REFERENCE_ASPECT } from '../framing.ts'
 import type { CameraSpec, ViewId } from '../layout.ts'
 import type { BoardPlan } from './plan.ts'
-import { type Rect, rectCenter, rectUnion } from './rect.ts'
+import { rectUnion } from './rect.ts'
+import { type Rect, rectCenter } from '../plane.ts'
 
 /** Champ vertical, en degrés, pour un rapport 16:9. */
 export const BOARD_FOV = 40

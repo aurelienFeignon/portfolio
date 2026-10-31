@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import type { Vec2 } from '@/scene/state/board/rect'
+import type { Vec2 } from '@/scene/state/plane'
 import {
   expectNoCrossing,
   expectNoReversal,

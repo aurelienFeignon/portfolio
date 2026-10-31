@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import { type Cell, GRID, RoutingGrid, simplify } from '@/scene/state/board/grid'
-import { EPSILON as EPS, type Rect, type Vec2 } from '@/scene/state/board/rect'
+import { type Cell, RoutingGrid, simplify } from '@/scene/state/board/grid'
+import { GRID } from '@/scene/state/plane'
+import { EPSILON as EPS, type Rect, type Vec2 } from '@/scene/state/plane'
 import { expectNoCrossing, expectOctilinear } from './geometry-asserts'
 
 /** Une grille de `cols × rows` cellules, coin à l'origine. */

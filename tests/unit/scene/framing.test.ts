@@ -8,27 +8,21 @@
  */
 import { describe, expect, it } from 'vitest'
 
-import {
-  FOV_MAX_DEG,
-  REFERENCE_ASPECT,
-  fitFov,
-  fovForAspect,
-  horizontalFovDeg,
-} from '@/scene/state/framing'
+import { FOV_MAX_DEG, REFERENCE_ASPECT, fitFov, horizontalFovDeg } from '@/scene/state/framing'
 
 /** Le cadrage d'accueil, celui dont la perte se voit le plus. */
 const ACCUEIL = 36
 
 describe('correction du champ selon le format', () => {
   it('ne touche à rien en 16:9, le format pour lequel les cadrages sont calculés', () => {
-    expect(fovForAspect(ACCUEIL, REFERENCE_ASPECT)).toBe(ACCUEIL)
+    expect(fitFov(ACCUEIL, REFERENCE_ASPECT).fov).toBe(ACCUEIL)
   })
 
   it('⛔ ne RÉDUIT jamais le champ sur un écran plus large que 16:9', () => {
     // Un ultra-large voit déjà plus que la référence horizontalement. Resserrer le
     // `fov` vertical pour « compenser » lui retirerait de la hauteur — donc le
     // plateau et le mur — sans que rien ne le demande.
-    expect(fovForAspect(ACCUEIL, 21 / 9)).toBe(ACCUEIL)
+    expect(fitFov(ACCUEIL, 21 / 9).fov).toBe(ACCUEIL)
   })
 
   it('préserve le champ HORIZONTAL quand l’écran se resserre', () => {
@@ -36,7 +30,7 @@ describe('correction du champ selon le format', () => {
     // ce qu'il valait en 16:9. Affirmer une valeur de `fov` vertical n'aurait
     // gardé que le symptôme.
     const attendu = horizontalFovDeg(ACCUEIL, REFERENCE_ASPECT)
-    const corrige = fovForAspect(ACCUEIL, 4 / 3)
+    const corrige = fitFov(ACCUEIL, 4 / 3).fov
 
     expect(horizontalFovDeg(corrige, 4 / 3)).toBeCloseTo(attendu, 6)
     expect(corrige).toBeGreaterThan(ACCUEIL)
@@ -49,7 +43,7 @@ describe('correction du champ selon le format', () => {
     // les cadrages excluent volontairement.
     const portrait = 390 / 844
 
-    expect(fovForAspect(ACCUEIL, portrait)).toBe(FOV_MAX_DEG)
+    expect(fitFov(ACCUEIL, portrait).fov).toBe(FOV_MAX_DEG)
   })
 
   it('⛔ le plafond ne RABAISSE pas un cadrage déjà plus large que lui', () => {
@@ -57,12 +51,12 @@ describe('correction du champ selon le format', () => {
     // censée n'élargir que sous 16:9.
     const tresOuvert = FOV_MAX_DEG + 10
 
-    expect(fovForAspect(tresOuvert, REFERENCE_ASPECT)).toBe(tresOuvert)
-    expect(fovForAspect(tresOuvert, 0.5)).toBe(tresOuvert)
+    expect(fitFov(tresOuvert, REFERENCE_ASPECT).fov).toBe(tresOuvert)
+    expect(fitFov(tresOuvert, 0.5).fov).toBe(tresOuvert)
   })
 
   it('reste continue : un écart minime de format ne fait pas sauter le cadrage', () => {
-    const juste = fovForAspect(ACCUEIL, REFERENCE_ASPECT - 0.001)
+    const juste = fitFov(ACCUEIL, REFERENCE_ASPECT - 0.001).fov
 
     expect(juste).toBeGreaterThan(ACCUEIL)
     expect(juste).toBeLessThan(ACCUEIL + 0.1)
@@ -71,7 +65,7 @@ describe('correction du champ selon le format', () => {
   it('vaut pour le cadrage le plus tendu, celui d’Expériences', () => {
     // Le dossier note que ce cadrage n'a que 10 % de marge verticale et prescrit
     // 38° sous 16:9. La règle générale doit passer par là, à peu près.
-    expect(fovForAspect(34, 4 / 3)).toBeGreaterThan(38)
+    expect(fitFov(34, 4 / 3).fov).toBeGreaterThan(38)
   })
 })
 
@@ -80,12 +74,6 @@ describe('fitFov — le champ requis, plafonné, et le recul qui rend le reste',
 
   it('en 16:9 sur toute la hauteur : le cadrage tel quel, sans recul', () => {
     expect(fitFov(ACCUEIL, REFERENCE_ASPECT)).toEqual({ fov: ACCUEIL, k: 1 })
-  })
-
-  it('le cas « largeur » est `fovForAspect`', () => {
-    for (const aspect of [21 / 9, REFERENCE_ASPECT, 4 / 3, 1, 0.462]) {
-      expect(fitFov(ACCUEIL, aspect).fov).toBe(fovForAspect(ACCUEIL, aspect))
-    }
   })
 
   it('une zone moins haute que le canvas demande un champ plus haut', () => {
@@ -103,7 +91,7 @@ describe('fitFov — le champ requis, plafonné, et le recul qui rend le reste',
 
   it('le plus exigeant des deux, largeur ou hauteur, l’emporte', () => {
     const large = fitFov(30, 1, 0.9, Infinity).fov
-    expect(large).toBe(fovForAspect(30, 1, Infinity))
+    expect(large).toBe(fitFov(30, 1, 1, Infinity).fov)
     const haut = fitFov(30, 2, 0.5, Infinity).fov
     expect(half(haut)).toBeCloseTo(half(30) / 0.5)
   })

@@ -42,7 +42,7 @@
 import { type BoardContent, bySlug, compareSlugs, yearOf } from './content.ts'
 import { type Bridge, type Cell, type Footprint, octile, RoutingGrid, simplify } from './grid.ts'
 import { choosePrimary, type District, type Processor } from './processors.ts'
-import { EPSILON, GRID, inflate, type Rect, rectOf, type Vec2 } from './rect.ts'
+import { EPSILON, GRID, inflate, type Rect, rectOf, type Vec2 } from '../plane.ts'
 import { LANE_PITCH, type Timeline, yearPoint } from './timeline.ts'
 import type { Zone } from './zones.ts'
 

@@ -26,9 +26,7 @@
  *
  * Module pur : ni `Date`, ni `Math.random`, ni Three.js.
  */
-import { EPSILON, GRID, inflate, type Rect, type Vec2 } from './rect.ts'
-
-export { GRID } from './rect.ts'
+import { EPSILON, GRID, inflate, type Rect, type Vec2 } from '../plane.ts'
 
 export type Cell = readonly [col: number, row: number]
 

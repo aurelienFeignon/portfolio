@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { GRID, RoutingGrid } from '@/scene/state/board/grid'
+import { RoutingGrid } from '@/scene/state/board/grid'
+import { GRID } from '@/scene/state/plane'
 import { BOARD_DENSITY } from '@/scene/state/layout'
 import { scatterPassives } from '@/scene/state/board/passives'
-import { type Rect, rectOf, rectsOverlap, type Vec2 } from '@/scene/state/board/rect'
+import { rectsOverlap } from '@/scene/state/board/rect'
+import { type Rect, rectOf, type Vec2 } from '@/scene/state/plane'
 
 const board: Rect = { minX: -5, minZ: -5, maxX: 5, maxZ: 5 }
 const SEED = 7

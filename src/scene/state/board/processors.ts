@@ -10,15 +10,8 @@
  * gate de contenu : zéro, un ou plusieurs projets `primary` sont tous admis.
  */
 import { type BoardProject, bySlug, compareAtCommonPrecision } from './content.ts'
-import {
-  EMPTY_RECT,
-  inflate,
-  LABEL_MARGIN,
-  type Rect,
-  rectOf,
-  rectUnion,
-  type Vec2,
-} from './rect.ts'
+import { EMPTY_RECT, LABEL_MARGIN, rectUnion } from './rect.ts'
+import { inflate, type Rect, rectOf, type Vec2 } from '../plane.ts'
 
 /** Côté du processeur principal (carré). */
 export const PRIMARY_SIZE = 3.2

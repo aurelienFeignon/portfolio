@@ -1,13 +1,15 @@
 import { describe, expect, it } from 'vitest'
 import { makeBoardContent, makeRealSizeBoard } from '../../../fixtures/builders/board'
 import { buildBoardFile } from '@/scene/state/board/file'
+import { pointSegmentDistance } from '@/scene/state/board-render/polyline'
 import {
+  makePath,
   PULSE_SPEED,
   pulseFrame,
   pulsePaths,
   type PulsePath,
 } from '@/scene/state/board-render/pulses'
-import type { Vec2 } from '@/scene/state/board/rect'
+import type { Vec2 } from '@/scene/state/plane'
 
 const real = buildBoardFile(makeRealSizeBoard(), {
   locale: 'fr',
@@ -20,27 +22,12 @@ const small = buildBoardFile(makeBoardContent(), {
   chipSizing: 'uniform',
 })
 
-const line = (points: Vec2[], kind: 'bus' | 'link' = 'link'): PulsePath => ({
-  kind,
-  points,
-  length: points
-    .slice(1)
-    .reduce((s, p, i) => s + Math.hypot(p[0] - points[i]![0], p[1] - points[i]![1]), 0),
-})
+/** Un chemin construit comme en production (points fusionnés, longueur calculée). */
+const line = (points: Vec2[], kind: 'bus' | 'link' = 'link'): PulsePath => makePath(kind, points)!
 
 /** Distance d'un point à une polyligne. */
-function distanceTo(path: PulsePath, x: number, z: number): number {
-  let best = Infinity
-  for (let i = 1; i < path.points.length; i++) {
-    const [ax, az] = path.points[i - 1]!
-    const [bx, bz] = path.points[i]!
-    const dx = bx - ax
-    const dz = bz - az
-    const t = Math.max(0, Math.min(1, ((x - ax) * dx + (z - az) * dz) / (dx * dx + dz * dz)))
-    best = Math.min(best, Math.hypot(x - (ax + t * dx), z - (az + t * dz)))
-  }
-  return best
-}
+const distanceTo = (path: PulsePath, x: number, z: number): number =>
+  Math.min(...path.points.slice(1).map((b, i) => pointSegmentDistance(x, z, path.points[i]!, b)))
 
 describe('pulsePaths', () => {
   for (const [name, file] of [
@@ -229,14 +216,15 @@ describe('pulseFrame', () => {
   })
 
   it('une arête de longueur nulle dans un chemin fourni ne rend pas NaN', () => {
-    const solo = [
-      line([
-        [0, 0],
-        [0, 0],
-        [6, 0],
-        [6, 0],
-      ]),
+    // Le seul chemin écrit à la main : `makePath` fusionne les points répétés, donc seule une
+    // construction directe porte des arêtes nulles — elle couvre la garde de `pulseFrame`.
+    const points: Vec2[] = [
+      [0, 0],
+      [0, 0],
+      [6, 0],
+      [6, 0],
     ]
+    const solo: PulsePath[] = [{ kind: 'link', points, length: 6 }]
     for (const t of [0, 0.4, 2.1]) {
       for (const v of pulseFrame(solo, 5, t)) expect(Number.isFinite(v)).toBe(true)
     }

@@ -32,7 +32,7 @@ export interface PulsePath {
  * `0 / 0`), et sa longueur. `null` pour un chemin de longueur nulle, qui rendrait `Infinity` ou
  * `NaN`.
  */
-function makePath(kind: PulsePath['kind'], raw: readonly Vec2[]): PulsePath | null {
+export function makePath(kind: PulsePath['kind'], raw: readonly Vec2[]): PulsePath | null {
   const points = dedupe(raw)
   const length = polylineLength(points)
   return points.length > 1 && length > 0 ? { kind, points, length } : null
@@ -62,13 +62,13 @@ export function pulsePaths(file: BoardFile): readonly PulsePath[] {
     Math.min(...district.processors.map((p) => distanceToBox(point, p.center, p.size)))
   const paths = [makePath('bus', timeline.spine)]
   for (const route of traces.routes) {
-    const points = dedupe(route.points)
-    if (points.length < 2) continue
+    const path = makePath('link', route.points)
+    if (path === null) continue
+    const { points } = path
     paths.push(
-      makePath(
-        'link',
-        toProcessor(points[0]!) < toProcessor(points.at(-1)!) ? points.reverse() : points,
-      ),
+      toProcessor(points[0]!) < toProcessor(points.at(-1)!)
+        ? { ...path, points: points.toReversed() }
+        : path,
     )
   }
   return paths.filter((path): path is PulsePath => path !== null)

@@ -5,14 +5,8 @@ import { describe, expect, it } from 'vitest'
 
 import { skillFrontmatterSchema } from '@/content/schemas/skill'
 import { compareSlugs, SKILL_FAMILIES, toBoardContent, yearOf } from '@/scene/state/board/content'
-import {
-  inflate,
-  type Rect,
-  rectCenter,
-  rectOf,
-  rectsOverlap,
-  rectUnion,
-} from '@/scene/state/board/rect'
+import { rectsOverlap, rectUnion } from '@/scene/state/board/rect'
+import { inflate, type Rect, rectCenter, rectOf } from '@/scene/state/plane'
 import { PALETTE, TONES } from '@/scene/state/layout'
 import {
   makeBoardContent,

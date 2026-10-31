@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { SKILL_FAMILIES } from '@/scene/state/board/content'
 import { planDistrict } from '@/scene/state/board/processors'
-import { type Rect, rectsOverlap } from '@/scene/state/board/rect'
+import { rectsOverlap } from '@/scene/state/board/rect'
+import { type Rect } from '@/scene/state/plane'
 import {
   CHIP_GAP,
   chipDimensions,

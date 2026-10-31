@@ -7,7 +7,7 @@ import {
 import { buildBoardFile } from '@/scene/state/board/file'
 import type { BusJog, Timeline } from '@/scene/state/board/timeline'
 import type { Route } from '@/scene/state/board/traces'
-import type { Vec2 } from '@/scene/state/board/rect'
+import type { Vec2 } from '@/scene/state/plane'
 import {
   boardMeshes,
   busRibbons,

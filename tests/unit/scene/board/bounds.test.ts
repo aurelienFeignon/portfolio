@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { BOARD_MARGIN, boardBounds, timelineOriginZ } from '@/scene/state/board/bounds'
-import type { Rect } from '@/scene/state/board/rect'
+import type { Rect } from '@/scene/state/plane'
 import type { Zone } from '@/scene/state/board/zones'
 
 const rect = (minX: number, minZ: number, maxX: number, maxZ: number): Rect => ({

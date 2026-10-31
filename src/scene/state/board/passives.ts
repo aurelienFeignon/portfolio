@@ -11,7 +11,8 @@
  */
 import { seededRandom } from '../seeded-random.ts'
 import type { Cell, RoutingGrid } from './grid.ts'
-import { GRID, type Rect, rectOf, rectsOverlap, type Vec2 } from './rect.ts'
+import { rectsOverlap } from './rect.ts'
+import { GRID, type Rect, rectOf, type Vec2 } from '../plane.ts'
 
 export interface Passive {
   readonly kind: 'resistor' | 'capacitor'

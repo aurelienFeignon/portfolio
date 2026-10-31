@@ -24,10 +24,10 @@ import {
   fogRange,
   type Rect as ScreenRect,
 } from '@/scene/state/camera-motion'
-import { FOV_MAX_DEG, fovForAspect } from '@/scene/state/framing'
+import { FOV_MAX_DEG, fitFov } from '@/scene/state/framing'
 import { buildBoardFile } from '@/scene/state/board/file'
 import { viewRects } from '@/scene/state/board/cameras'
-import type { Rect as BoardRect } from '@/scene/state/board/rect'
+import type { Rect as BoardRect } from '@/scene/state/plane'
 import { makeLargeBoard, makeRealSizeBoard } from '../../fixtures/builders/board'
 import { ORBIT_LIMITS, PARALLAX, type Vec3, type ViewId } from '@/scene/state/layout'
 
@@ -289,8 +289,8 @@ describe('une image du rig', () => {
     const etroit = image({ from: { ...de, fov: 30 }, goal: { ...vers, fov: 50 }, aspect: 1.6 })
     expect(etroit.shown.fov).toBeGreaterThan(35)
     expect(etroit.shown.fov).toBeLessThan(45)
-    expect(etroit.fov).toBeCloseTo(fovForAspect(etroit.shown.fov, 1.6))
-    expect(etroit.fov).not.toBeCloseTo(fovForAspect(50, 1.6))
+    expect(etroit.fov).toBeCloseTo(fitFov(etroit.shown.fov, 1.6).fov)
+    expect(etroit.fov).not.toBeCloseTo(fitFov(50, 1.6).fov)
   })
 
   it('⭐ demande une image tant qu’une transition est en cours (exigence 3)', () => {
@@ -446,7 +446,7 @@ describe('le recul quand le champ bute sur son plafond', () => {
 
   it('au plafond : le champ s’arrête à 50°, la caméra recule de tan(voulu/2) / tan(50°/2)', () => {
     const image = at(0.9)
-    const wanted = fovForAspect(goal.fov, 0.9, Infinity)
+    const wanted = fitFov(goal.fov, 0.9, 1, Infinity).fov
     expect(image.fov).toBeCloseTo(FOV_MAX_DEG)
     const k = Math.tan((wanted * Math.PI) / 360) / Math.tan((FOV_MAX_DEG * Math.PI) / 360)
     expect(image.distance).toBeCloseTo(distance(goal.position, goal.target) * k)
