@@ -19,6 +19,7 @@ import {
   poseOf,
   REVEIL_S,
   rigFrame,
+  TRANSITION_IMAGE_MAX_S,
   transitionProgress,
   ORBIT_REST,
   fogRange,
@@ -29,7 +30,7 @@ import { buildBoardFile } from '@/scene/state/board/file'
 import { viewRects } from '@/scene/state/board/cameras'
 import type { Rect as BoardRect } from '@/scene/state/plane'
 import { makeLargeBoard, makeRealSizeBoard } from '../../fixtures/builders/board'
-import { ORBIT_LIMITS, PARALLAX, type Vec3, type ViewId } from '@/scene/state/layout'
+import { ORBIT_LIMITS, PARALLAX, transitionMs, type Vec3, type ViewId } from '@/scene/state/layout'
 
 /**
  * Les cadrages d'un plan de carte réel (P8-15h) : ceux que le rig reçoit en
@@ -272,6 +273,24 @@ describe('une image du rig', () => {
       aspect: 16 / 9,
       ...patch,
     })
+
+  it('⭐ à 300 ms par image, la transition dure 1,6 s RÉELLES, pas seize images', () => {
+    // Mesuré en CI (rendu WebGL logiciel, 2026-10-31) : ~300 ms par image. Comptée
+    // en images bornées à `IMAGE_MAX_S`, une transition y durait ~5 s.
+    let elapsedMs = 0
+    let images = 0
+    while (elapsedMs < transitionMs(false)) {
+      elapsedMs = image({ elapsedMs, deltaS: 0.3 }).elapsedMs
+      images += 1
+    }
+    expect(images).toBeLessThanOrEqual(Math.ceil(transitionMs(false) / 300))
+  })
+
+  it('⛔ une image figée de 5 s ne fait avancer la transition que de la borne', () => {
+    const avant = 200
+    const apres = image({ elapsedMs: avant, deltaS: 5 }).elapsedMs
+    expect(apres - avant).toBeCloseTo(TRANSITION_IMAGE_MAX_S * 1000, 9)
+  })
 
   /** La pose d'arrivée, position et fov. */
   const expectArrivee = (pose: { position: Vec3; fov?: number }) => {
