@@ -80,9 +80,9 @@ export default function SceneCanvas({
   const ambient = animated && tier !== 'lite'
   /*
    * Le plan de carte de la locale (P8-15c), qui porte les cadrages précalculés.
-   * ⭐ Le canvas est créé SANS l'attendre — contexte WebGL et compilation des
-   * shaders avancent pendant le chargement — mais il ne rend aucune image avant
-   * son arrivée.
+   * ⭐ Le canvas est créé SANS l'attendre — seul le contexte WebGL prend de
+   * l'avance —, mais il ne rend aucune image avant son arrivée : `ShaderWarmup`
+   * n'est monté qu'avec le plan.
    */
   const plan = useBoardFile(locale)
   // Aucune image avant que les shaders soient compilés (`ShaderWarmup`).

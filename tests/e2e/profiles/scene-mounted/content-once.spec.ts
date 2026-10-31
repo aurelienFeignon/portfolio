@@ -22,7 +22,8 @@ import { expect, test } from '../../support/test'
  *
  * ⚠️ **Deux exclusions, nommées :**
  * - **les étiquettes de la carte** (`data-scene-labels`), du texte seulement : elles
- *   répètent le nom de la section, que porte aussi le `h1`. Ce sont des doublons de
+ *   répètent des noms que le contenu porte déjà (section, projets, employeurs, familles et
+ *   compétences). Ce sont des doublons de
  *   la navigation, `aria-hidden` à dessein (`scene-mount.tsx`) — l'arbre, lui, les
  *   lit, et c'est ce qui y garde leur `aria-hidden`.
  * - **l'annonceur de route de Next**, des deux : après une navigation client, il dit
