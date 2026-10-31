@@ -8,7 +8,8 @@
  * Module pur : ni `Date`, ni `Math.random`, ni Three.js.
  */
 import { SKILL_FAMILIES, type BoardSkill, compareSlugs, type SkillFamily } from './content.ts'
-import { EPSILON, GRID, LABEL_MARGIN, type Rect, rectsOverlap, type Vec2 } from './rect.ts'
+import { LABEL_MARGIN, rectsOverlap } from './rect.ts'
+import { EPSILON, GRID, type Rect, type Vec2 } from '../plane.ts'
 import { type Tone, TONES } from '../layout.ts'
 
 /** Largeur (X) d'une zone, remplissage compris. */

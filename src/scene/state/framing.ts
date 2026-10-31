@@ -45,7 +45,7 @@ export function horizontalFovDeg(verticalFovDeg: number, aspect: number): number
 /**
  * Le champ vertical qui fait tenir un cadrage dans une zone de format `aspect` (largeur sur
  * hauteur du canvas) et de hauteur `heightFraction` (part de la hauteur du canvas) — **la** règle
- * du recadrage, que `fovForAspect` et le rig (`rigFrame`) appliquent tous deux :
+ * du recadrage, que le rig (`rigFrame`) applique :
  *
  * 1. le champ **requis** : assez large pour garder le champ horizontal du 16:9, assez haut pour
  *    garder le champ vertical dans la part de hauteur laissée libre ;
@@ -77,13 +77,4 @@ export function fitFov(
   // règle qui n'existe que pour élargir ne doit jamais resserrer.
   const fov = Math.min(wanted, Math.max(maxDeg, baseFov))
   return { fov, k: half(wanted) / half(fov) }
-}
-
-/** Le champ vertical à employer pour ce format, sur toute la hauteur : le cas « largeur » de `fitFov`. */
-export function fovForAspect(
-  fovAt16by9: number,
-  aspect: number,
-  maxDeg: number = FOV_MAX_DEG,
-): number {
-  return fitFov(fovAt16by9, aspect, 1, maxDeg).fov
 }

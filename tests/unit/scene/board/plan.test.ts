@@ -2,8 +2,9 @@ import { describe, expect, it } from 'vitest'
 import { makeLargeBoard, makeRealSizeBoard } from '../../../fixtures/builders/board'
 import { BOARD_DENSITY } from '@/scene/state/layout'
 import { BOARD_SEED, type BoardOptions, planBoard } from '@/scene/state/board/plan'
-import { GRID } from '@/scene/state/board/grid'
-import { inflate, type Rect, rectOf, rectsOverlap, type Vec2 } from '@/scene/state/board/rect'
+import { GRID } from '@/scene/state/plane'
+import { rectsOverlap } from '@/scene/state/board/rect'
+import { inflate, type Rect, rectOf, type Vec2 } from '@/scene/state/plane'
 import { rectContains } from './geometry-asserts'
 
 const options: BoardOptions = { currentYear: 2026, chipSizing: 'level', tier: 'full' }

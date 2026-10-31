@@ -3,13 +3,10 @@
  * module travaille donc en 2D : `[x, z]`, X vers la droite, Z vers le visiteur.
  *
  * Les primitives que la scène partage (`Vec2`, `Rect`, `rectOf`, `inflate`, `rectCenter`,
- * `EPSILON`, `GRID`) vivent dans le module neutre `../plane.ts` et sont réexportées ici : les
- * appelants de `board/` n'ont pas à changer d'import.
+ * `EPSILON`, `GRID`) vivent dans le module neutre `../plane.ts` ; ne restent ici que celles
+ * propres au plan de la carte.
  */
 import { type Rect, rectOf } from '../plane.ts'
-
-export { EPSILON, GRID, inflate, rectCenter, rectOf } from '../plane.ts'
-export type { Rect, Vec2 } from '../plane.ts'
 
 /** Écart entre le bord arrière d'un boîtier ou d'une zone et son ancre d'étiquette. */
 export const LABEL_MARGIN = 0.3

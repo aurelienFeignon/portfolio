@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import { boardBounds, timelineOriginZ } from '@/scene/state/board/bounds'
 import type { BoardContent } from '@/scene/state/board/content'
-import { GRID } from '@/scene/state/board/grid'
+import { GRID } from '@/scene/state/plane'
 import { planDistrict } from '@/scene/state/board/processors'
-import { EPSILON as EPS, type Rect, rectOf, type Vec2 } from '@/scene/state/board/rect'
+import { EPSILON as EPS, type Rect, rectOf, type Vec2 } from '@/scene/state/plane'
 import { LANE_PITCH, planTimeline, yearPoint } from '@/scene/state/board/timeline'
 import {
   type Link,

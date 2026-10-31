@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { makeLargeBoard, makeRealSizeBoard } from '../../../fixtures/builders/board'
 import { buildBoardFile } from '@/scene/state/board/file'
-import { inflate, rectsOverlap } from '@/scene/state/board/rect'
+import { rectsOverlap } from '@/scene/state/board/rect'
+import { inflate } from '@/scene/state/plane'
 import {
   BOARD_REFERENCE,
   canvasMapping,

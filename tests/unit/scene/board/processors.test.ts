@@ -7,7 +7,8 @@ import {
   SECONDARY_SIZE,
   SLOT_PITCH,
 } from '@/scene/state/board/processors'
-import { rectOf, rectsOverlap } from '@/scene/state/board/rect'
+import { rectsOverlap } from '@/scene/state/board/rect'
+import { rectOf } from '@/scene/state/plane'
 import { makeBoardProject } from '../../../fixtures/builders/board'
 
 function projects(n: number) {

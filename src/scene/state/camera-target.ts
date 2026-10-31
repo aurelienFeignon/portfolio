@@ -41,7 +41,7 @@ const VIEW_FOR_FOCUS: Readonly<Record<SceneFocus, ViewId>> = {
  * des fiches, et une fiche s'affiche sur l'écran de sa section (Phase 7).
  *
  * ⚠️ **Le `fov` rendu est celui de 16:9.** La correction de format
- * (`fovForAspect`, P5-06) s'applique au moment du rendu, sur la valeur
+ * (`fitFov`, P5-06) s'applique au moment du rendu, sur la valeur
  * **interpolée** — c'est P6-04. L'appliquer ici la ferait jouer avant
  * l'interpolation, donc sur les deux bornes seulement.
  */

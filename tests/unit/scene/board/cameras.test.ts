@@ -13,7 +13,8 @@ import {
   viewRects,
 } from '@/scene/state/board/cameras'
 import { type BoardPlan, planBoard } from '@/scene/state/board/plan'
-import { type Rect, rectUnion } from '@/scene/state/board/rect'
+import { rectUnion } from '@/scene/state/board/rect'
+import { type Rect } from '@/scene/state/plane'
 import { REFERENCE_ASPECT } from '@/scene/state/framing'
 import type { CameraSpec, Vec3, ViewId } from '@/scene/state/layout'
 

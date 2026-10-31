@@ -7,7 +7,7 @@ import {
 import { entityPath, sectionPath } from '@/routing/paths'
 import { buildBoardFile } from '@/scene/state/board/file'
 import { instances, withJog } from '@/scene/state/board-render/geometry'
-import type { Vec2 } from '@/scene/state/board/rect'
+import type { Vec2 } from '@/scene/state/plane'
 import {
   instanceLevels,
   isLitShape,

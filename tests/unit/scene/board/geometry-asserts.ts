@@ -3,7 +3,7 @@
  */
 import { expect } from 'vitest'
 
-import { EPSILON as EPS, type Rect, type Vec2 } from '@/scene/state/board/rect'
+import { EPSILON as EPS, type Rect, type Vec2 } from '@/scene/state/plane'
 
 /**
  * Le point `p` est-il dans `rect` ? `margin` élargit le rectangle de chaque

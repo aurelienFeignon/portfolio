@@ -122,7 +122,7 @@ class RibbonWriter {
 function leftNormal(a: Vec2, b: Vec2): Vec2 {
   const dx = b[0] - a[0]
   const dz = b[1] - a[1]
-  const length = Math.hypot(dx, dz)
+  const length = edgeLength(a, b)
   return [-dz / length, dx / length]
 }
 
