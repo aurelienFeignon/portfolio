@@ -44,7 +44,7 @@ export interface SceneReadings {
   readonly longTasks: LongTaskSummary | null
 }
 
-export interface LongTaskSummary {
+interface LongTaskSummary {
   readonly count: number
   /** La plus longue, en ms. */
   readonly longestMs: number
@@ -89,7 +89,7 @@ export function shouldSample(previousMs: number | null, nowMs: number): boolean 
   return previousMs === null || nowMs - previousMs >= SAMPLE_INTERVAL_MS
 }
 
-export interface DiagnosticLine {
+interface DiagnosticLine {
   readonly label: string
   readonly value: string
 }

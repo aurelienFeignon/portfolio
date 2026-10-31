@@ -50,6 +50,18 @@ export interface ContentRepository {
   ): Promise<readonly { readonly category: SkillCategory; readonly skills: readonly Skill[] }[]>
 
   /**
+   * Tout ce dont la carte mère a besoin (P8-15) : compétences, expériences et projets de la
+   * locale, dans l'ordre de cette couche. ⭐ Un seul appel pour ses deux lecteurs — le générateur
+   * du plan (`make board`) et les étiquettes du layout — : ils ne peuvent pas lire deux contenus
+   * différents.
+   */
+  getAllForBoard(locale: Locale): Promise<{
+    readonly skills: readonly Skill[]
+    readonly experiences: readonly Experience[]
+    readonly projects: readonly Project[]
+  }>
+
+  /**
    * Slug de compétence → libellé affichable.
    *
    * Les `technologies` d'un projet ou d'une expérience sont des **slugs** — c'est
@@ -137,6 +149,14 @@ export function createContentRepository(loader: ContentLoader): ContentRepositor
     getSkillBySlug: (locale, slug) => bySlug(skills(locale), slug),
     getFeaturedSkills: async (locale) => (await skills(locale)).filter((skill) => skill.featured),
     getSkillsByCategory: async (locale) => groupByCategory(await skills(locale)),
+    async getAllForBoard(locale) {
+      const [allSkills, allExperiences, allProjects] = await Promise.all([
+        skills(locale),
+        experiences(locale),
+        projects(locale),
+      ])
+      return { skills: allSkills, experiences: allExperiences, projects: allProjects }
+    },
     async getTechnologyLabels(locale, referencedBy) {
       const names = new Map((await skills(locale)).map((skill) => [skill.slug, skill.name]))
 

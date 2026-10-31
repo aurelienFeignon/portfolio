@@ -46,14 +46,14 @@ import { EPSILON, GRID, inflate, type Rect, rectOf, type Vec2 } from './rect.ts'
 import { LANE_PITCH, type Timeline, yearPoint } from './timeline.ts'
 import type { Zone } from './zones.ts'
 
-export type RoutingMode = 'direct' | 'family-bus'
+type RoutingMode = 'direct' | 'family-bus'
 
 export interface Link {
   readonly skill: string
   readonly project: string
 }
 
-export interface BusLink {
+interface BusLink {
   readonly project: string
   readonly experience: string
   readonly year: number
@@ -71,7 +71,7 @@ export interface Route {
 }
 
 /** Un pont : en `at`, la piste du réseau `net` enjambe celle du réseau `crosses`. */
-export interface Via {
+interface Via {
   readonly at: Vec2
   readonly net: string
   readonly crosses: string

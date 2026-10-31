@@ -12,8 +12,9 @@
  *
  * Module pur : ni Three.js, ni `Date`, ni `Math.random`.
  */
-import type { Vec2 } from '../board/rect.ts'
+import type { Vec2 } from '../plane.ts'
 import type { BoardFile } from './file-format.ts'
+import { dedupe, edgeLength, polylineLength } from './polyline.ts'
 
 /** Vitesse d'une impulsion, en unités de scène par seconde (identique sur tous les chemins). */
 export const PULSE_SPEED = 2.2
@@ -25,19 +26,17 @@ export interface PulsePath {
   readonly length: number
 }
 
-const polylineLength = (points: readonly Vec2[]): number => {
-  let sum = 0
-  for (let i = 1; i < points.length; i++) {
-    sum += Math.hypot(points[i]![0] - points[i - 1]![0], points[i]![1] - points[i - 1]![1])
-  }
-  return sum
+/**
+ * Le seul constructeur d'un chemin : la polyligne sans ses points répétés (`dedupe`, la même
+ * fusion que les rubans — l'impulsion court sur le tracé dessiné ; un point répété rendrait
+ * `0 / 0`), et sa longueur. `null` pour un chemin de longueur nulle, qui rendrait `Infinity` ou
+ * `NaN`.
+ */
+function makePath(kind: PulsePath['kind'], raw: readonly Vec2[]): PulsePath | null {
+  const points = dedupe(raw)
+  const length = polylineLength(points)
+  return points.length > 1 && length > 0 ? { kind, points, length } : null
 }
-
-/** La polyligne sans ses arêtes de longueur nulle (un point répété rendrait `0 / 0`). */
-const withoutZeroEdges = (points: readonly Vec2[]): readonly Vec2[] =>
-  points.filter(
-    (point, i) => i === 0 || point[0] !== points[i - 1]![0] || point[1] !== points[i - 1]![1],
-  )
 
 /** Distance d'un point au rectangle carré d'un processeur (0 s'il le touche ou y est). */
 const distanceToBox = (point: Vec2, center: Vec2, size: number): number => {
@@ -61,21 +60,18 @@ export function pulsePaths(file: BoardFile): readonly PulsePath[] {
   const { timeline, traces, district } = file.plan
   const toProcessor = (point: Vec2): number =>
     Math.min(...district.processors.map((p) => distanceToBox(point, p.center, p.size)))
-  const paths: PulsePath[] = []
-  const add = (kind: PulsePath['kind'], points: readonly Vec2[]) => {
-    const length = polylineLength(points)
-    if (points.length > 1 && length > 0) paths.push({ kind, points, length })
-  }
-  add('bus', withoutZeroEdges(timeline.spine))
+  const paths = [makePath('bus', timeline.spine)]
   for (const route of traces.routes) {
-    const points = withoutZeroEdges(route.points)
+    const points = dedupe(route.points)
     if (points.length < 2) continue
-    add(
-      'link',
-      toProcessor(points[0]!) < toProcessor(points.at(-1)!) ? [...points].reverse() : points,
+    paths.push(
+      makePath(
+        'link',
+        toProcessor(points[0]!) < toProcessor(points.at(-1)!) ? points.reverse() : points,
+      ),
     )
   }
-  return paths
+  return paths.filter((path): path is PulsePath => path !== null)
 }
 
 /** Où se trouve chaque impulsion : son chemin, et sa phase (0 à 1) à l'instant 0. */
@@ -145,8 +141,9 @@ export function pulseFrame(
       const az = points[k - 1]![1]
       const bx = points[k]![0]
       const bz = points[k]![1]
-      const segment = Math.hypot(bx - ax, bz - az)
-      // ⛔ Une arête nulle (chemin construit ailleurs que par `pulsePaths`) ne se divise pas.
+      const segment = edgeLength(points[k - 1]!, points[k]!)
+      // ⛔ Une arête nulle ne se divise pas. `makePath` n'en rend aucune, mais `PulsePath` est
+      // un type ouvert : un chemin écrit à la main (les bancs) peut en porter.
       if (segment > 0 && remaining <= segment) {
         const t = remaining / segment
         x = ax + (bx - ax) * t

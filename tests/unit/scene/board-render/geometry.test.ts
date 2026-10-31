@@ -15,6 +15,7 @@ import {
   FIXED_MESHES,
   hexToLinear,
   instances,
+  isShape,
   MAX_DRAW_CALLS,
   routeTones,
   SHAPES,
@@ -565,5 +566,12 @@ describe('drawCallBudget', () => {
     expect(drawCallBudget(full)).toBe(FIXED_MESHES.length + nonEmpty)
     const lite = instances(real.plan, 'lite')
     expect(drawCallBudget(lite)).toBeLessThan(drawCallBudget(full))
+  })
+})
+
+describe('isShape', () => {
+  it('reconnaît le nom d’une forme instanciée, et rien d’autre', () => {
+    for (const shape of SHAPES) expect(isShape(shape)).toBe(true)
+    for (const name of [...FIXED_MESHES, '', 'chip']) expect(isShape(name)).toBe(false)
   })
 })

@@ -8,8 +8,8 @@
  *   **valeur** n'en doit atterrir dans un chunk, ni de première visite ni 3D. Les types y sont
  *   effacés, donc invisibles ici, comme il se doit. `board-render/` n'est PAS `board/`.
  */
-export const PLAN_GENERE = /(^|\/)src\/scene\/generated\//
-export const MODULE_PLAN_PUR = /(^|\/)src\/scene\/state\/board\//
+const PLAN_GENERE = /(^|\/)src\/scene\/generated\//
+const MODULE_PLAN_PUR = /(^|\/)src\/scene\/state\/board\//
 
 /** Les sources d'une map qui sont le plan versionné (JSON de la carte). */
 export const sourcesPlanGenere = (sources: readonly string[]): string[] =>

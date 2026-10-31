@@ -7,13 +7,13 @@
  *
  * Module pur : ni `Date` (l'année est un paramètre), ni `Math.random`, ni Three.js.
  */
-import { BOARD_FILE_VERSION, type BoardFile, type BoardLoss } from '../board-render/file-format.ts'
+import { BOARD_FILE_VERSION, type BoardFile } from '../board-render/file-format.ts'
 import { boardCameras } from './cameras.ts'
 import type { BoardContent } from './content.ts'
 import { planBoard } from './plan.ts'
 import type { ChipSizing } from './zones.ts'
 
-export interface BuildOptions {
+interface BuildOptions {
   readonly locale: string
   readonly year: number
   readonly chipSizing: ChipSizing
@@ -34,6 +34,13 @@ export function buildBoardFile(content: BoardContent, options: BuildOptions): Bo
     plan,
     cameras: boardCameras(plan),
   }
+}
+
+/** Une liaison que le routeur n'a pas su tracer — ce qui fait échouer `make board`. */
+interface BoardLoss {
+  readonly kind: 'link' | 'bus-link'
+  readonly from: string
+  readonly to: string
 }
 
 /** Les liaisons que le routeur a perdues : compétence → projet, puis projet → expérience (bus). */

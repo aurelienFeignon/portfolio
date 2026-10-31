@@ -53,7 +53,8 @@ export function sectionOf(target: BoardTarget): Section {
       return 'skills'
     case 'processor':
       return 'projects'
-    default:
+    case 'year':
+    case 'segment':
       return 'experiences'
   }
 }

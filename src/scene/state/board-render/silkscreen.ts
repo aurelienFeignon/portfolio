@@ -16,7 +16,7 @@
  */
 import type { BoardFile } from './file-format.ts'
 import type { BoardPlan } from '../board/plan.ts'
-import type { Rect, Vec2 } from '../board/rect.ts'
+import { GRID, inflate, type Rect, rectContains, rectOf, type Vec2 } from '../plane.ts'
 import type { Tone } from '../layout.ts'
 import { seededRandom } from '../seeded-random.ts'
 import { yearSides } from './geometry.ts'
@@ -24,7 +24,7 @@ import { yearSides } from './geometry.ts'
 /** La référence de la carte, gravée dans un coin : sans langue, comme un numéro de pièce. */
 export const BOARD_REFERENCE = 'MB-01'
 
-export interface SilkscreenItem {
+interface SilkscreenItem {
   readonly text: string
   /** Centre du texte, dans le plan de la carte. */
   readonly at: Vec2
@@ -93,38 +93,27 @@ export function silkscreenItems(
   return items
 }
 
-export interface SilkscreenFrame {
+interface SilkscreenFrame {
   readonly kind: 'board' | 'zone' | 'processor' | 'chip'
   readonly rect: Rect
   /** La teinte d'une zone : son cadre se lit comme sa famille. */
   readonly tone?: Tone
 }
 
-const grow = (r: Rect, by: number): Rect => ({
-  minX: r.minX - by,
-  minZ: r.minZ - by,
-  maxX: r.maxX + by,
-  maxZ: r.maxZ + by,
-})
-
-const square = (center: Vec2, size: number): Rect => ({
-  minX: center[0] - size / 2,
-  minZ: center[1] - size / 2,
-  maxX: center[0] + size / 2,
-  maxZ: center[1] + size / 2,
-})
-
 /** Les cadres : liseré de la carte, zones (à leur teinte), empreintes des processeurs et des puces. */
 export function silkscreenFrames(plan: BoardPlan): readonly SilkscreenFrame[] {
   return [
-    { kind: 'board', rect: grow(plan.bounds, -0.3) },
+    { kind: 'board', rect: inflate(plan.bounds, -0.3) },
     ...plan.zones.map((z) => ({ kind: 'zone' as const, rect: z.bounds, tone: z.tone })),
     ...plan.district.processors.map((p) => ({
       kind: 'processor' as const,
-      rect: grow(square(p.center, p.size), 0.32),
+      rect: inflate(rectOf(p.center, p.size, p.size), 0.32),
     })),
     ...plan.zones.flatMap((z) =>
-      z.chips.map((c) => ({ kind: 'chip' as const, rect: grow(square(c.center, c.size), 0.15) })),
+      z.chips.map((c) => ({
+        kind: 'chip' as const,
+        rect: inflate(rectOf(c.center, c.size, c.size), 0.15),
+      })),
     ),
   ]
 }
@@ -141,12 +130,8 @@ const DIRECTIONS: readonly Vec2[] = [
   [-1, -1],
 ]
 
-/** Pas de la grille des pistes fines, et marge gardée autour de ce qui est occupé. */
-const FINE_STEP = 0.25
+/** Marge gardée autour de ce qui est occupé ; les pistes fines suivent la grille (`GRID`). */
 const FINE_CLEARANCE = 0.3
-
-const inside = (r: Rect, [x, z]: Vec2): boolean =>
-  x >= r.minX && x <= r.maxX && z >= r.minZ && z <= r.maxZ
 
 /**
  * Les pistes fines de fond : au plus `count` courtes marches octilinéaires (deux à quatre
@@ -158,11 +143,11 @@ export function fineTraces(plan: BoardPlan, count: number, seed: number): readon
   if (count <= 0) return []
   const random = seededRandom(seed)
   const busy = [...plan.zones.map((z) => z.bounds), plan.district.bounds, plan.timeline.bounds].map(
-    (r) => grow(r, FINE_CLEARANCE),
+    (r) => inflate(r, FINE_CLEARANCE),
   )
-  const board = grow(plan.bounds, -0.5)
-  const free = (p: Vec2): boolean => inside(board, p) && !busy.some((r) => inside(r, p))
-  const snap = (v: number): number => Math.round(v / FINE_STEP) * FINE_STEP
+  const board = inflate(plan.bounds, -0.5)
+  const free = (p: Vec2): boolean => rectContains(board, p) && !busy.some((r) => rectContains(r, p))
+  const snap = (v: number): number => Math.round(v / GRID) * GRID
   const out: Vec2[][] = []
   for (let attempt = 0; attempt < count * 8 && out.length < count; attempt++) {
     const start: Vec2 = [
@@ -179,7 +164,7 @@ export function fineTraces(plan: BoardPlan, count: number, seed: number): readon
       let end: Vec2 | null = null
       // Chaque pas est vérifié : un tracé ne traverse jamais ce qu'il contourne.
       for (let s = 1; s <= steps; s++) {
-        const p: Vec2 = [from[0] + dx * s * FINE_STEP, from[1] + dz * s * FINE_STEP]
+        const p: Vec2 = [from[0] + dx * s * GRID, from[1] + dz * s * GRID]
         if (!free(p)) break
         end = p
       }
@@ -191,7 +176,7 @@ export function fineTraces(plan: BoardPlan, count: number, seed: number): readon
   return out
 }
 
-export interface CanvasMapping {
+interface CanvasMapping {
   readonly width: number
   readonly height: number
   /** Pixels par unité de scène. */
