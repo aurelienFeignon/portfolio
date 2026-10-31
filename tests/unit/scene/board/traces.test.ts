@@ -4,13 +4,14 @@ import type { BoardContent } from '@/scene/state/board/content'
 import { GRID } from '@/scene/state/board/grid'
 import { planDistrict } from '@/scene/state/board/processors'
 import { EPSILON as EPS, type Rect, rectOf, type Vec2 } from '@/scene/state/board/rect'
-import { planTimeline, yearPoint } from '@/scene/state/board/timeline'
+import { LANE_PITCH, planTimeline, yearPoint } from '@/scene/state/board/timeline'
 import {
   type Link,
   listLinks,
   planTraces,
   planTracesWithGrid,
   type Route,
+  underJog,
 } from '@/scene/state/board/traces'
 import { planZones } from '@/scene/state/board/zones'
 import {
@@ -810,4 +811,43 @@ describe('planTraces — marches du bus et prises', () => {
       expectJogsClear(plan)
     },
   )
+})
+
+describe('underJog — quelles marches un puits traverse', () => {
+  const h = LANE_PITCH / 2
+  /** Une marche sur la ligne `z0`, bombant de `bulge` (±h), de milieu x = 0. */
+  const jog = (z0: number, bulge: number) => ({
+    lane: 0,
+    year: 2020,
+    at: [0, z0] as Vec2,
+    points: [
+      [-h, z0],
+      [0, z0 + bulge],
+      [h, z0],
+    ] as Vec2[],
+  })
+  const top = -10
+  const shaft = (x: number, z: number): Vec2[] => [
+    [x, top],
+    [x, z],
+  ]
+
+  it('une marche d’une voie plus haute bloque, même bombée vers +Z : le puits la croiserait', () => {
+    const upper = jog(0, +h)
+    expect(underJog({ jogs: [upper] }, h / 2, LANE_PITCH)).toBe(true)
+    // La raison : ses jambes sont en travers de la colonne.
+    expect(() => expectNoCrossing([upper.points, shaft(h / 2, LANE_PITCH)])).toThrow(/se croisent/)
+  })
+
+  it('la marche de la voie visée : bloque vers −Z, pas vers +Z (sous la fin du puits)', () => {
+    expect(underJog({ jogs: [jog(0, -h)] }, 0, 0)).toBe(true)
+    expect(underJog({ jogs: [jog(0, +h)] }, 0, 0)).toBe(false)
+    expectNoCrossing([jog(0, +h).points, shaft(h / 2, 0)])
+  })
+
+  it('une marche d’une rangée plus basse, ou hors de l’emprise en X, ne gêne pas', () => {
+    expect(underJog({ jogs: [jog(20, -h)] }, 0, LANE_PITCH)).toBe(false)
+    expect(underJog({ jogs: [jog(0, +h)] }, h + GRID / 2, LANE_PITCH)).toBe(false)
+    expect(underJog({ jogs: [jog(0, +h)] }, h + GRID / 2 - 1e-6, LANE_PITCH)).toBe(true)
+  })
 })

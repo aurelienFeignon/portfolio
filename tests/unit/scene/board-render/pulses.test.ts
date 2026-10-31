@@ -91,6 +91,31 @@ describe('pulsePaths', () => {
     expect(pulsePaths(file)).toEqual([])
   })
 
+  it('un bus de longueur nulle ne donne aucun chemin (sinon Infinity/NaN pour tout le bus)', () => {
+    const file = structuredClone(small)
+    const p: Vec2 = [2, 3]
+    ;(file.plan.timeline as { spine: unknown }).spine = [p, p, p]
+    expect(pulsePaths(file).filter((q) => q.kind === 'bus')).toEqual([])
+    for (const q of pulsePaths(file)) expect(q.length).toBeGreaterThan(0)
+  })
+
+  it('un point répété dans une piste donne des positions finies', () => {
+    const file = structuredClone(small)
+    const proc = file.plan.district.processors[0]!
+    const far: Vec2 = [proc.center[0] + 40, proc.center[1]]
+    const mid: Vec2 = [proc.center[0] + 20, proc.center[1]]
+    const near: Vec2 = [proc.center[0] + proc.size / 2, proc.center[1]]
+    ;(file.plan.timeline as { spine: unknown }).spine = []
+    ;(file.plan.traces as { routes: unknown }).routes = [
+      { net: 'a', kind: 'link', links: [], points: [far, far, mid, mid, near] },
+    ]
+    const paths = pulsePaths(file)
+    expect(paths[0]!.points).toEqual([far, mid, near])
+    for (const t of [0, 1.3, 7.9]) {
+      for (const v of pulseFrame(paths, 7, t)) expect(Number.isFinite(v)).toBe(true)
+    }
+  })
+
   it('renverse une piste dont le début touche le processeur', () => {
     const file = structuredClone(small)
     const proc = file.plan.district.processors[0]!
@@ -200,6 +225,20 @@ describe('pulseFrame', () => {
           distanceTo(paths[1]!, out[i * 2]!, out[i * 2 + 1]!),
         ),
       ).toBeLessThan(1e-4)
+    }
+  })
+
+  it('une arête de longueur nulle dans un chemin fourni ne rend pas NaN', () => {
+    const solo = [
+      line([
+        [0, 0],
+        [0, 0],
+        [6, 0],
+        [6, 0],
+      ]),
+    ]
+    for (const t of [0, 0.4, 2.1]) {
+      for (const v of pulseFrame(solo, 5, t)) expect(Number.isFinite(v)).toBe(true)
     }
   })
 

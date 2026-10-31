@@ -107,26 +107,25 @@ export function resolveSceneState(pathname: string): SceneState {
 }
 
 /**
- * L'autre sens du flux — P6-03, et **le seul** que la scène ait le droit
- * d'emprunter (ADR-0002).
+ * L'inverse **de section** de `resolveSceneState` — P6-03 : l'URL d'un cadrage
+ * (`overview` ou une section).
  *
  * ```text
- * clic sur un écran ──▶ getRouteForScreen(focus, locale) ──▶ router.push(url)
- *                                                                  │
- *                              (la route change) ──▶ resolveSceneState ──▶ caméra
+ * getRouteForScreen(focus, locale) ──▶ url ──▶ resolveSceneState(url) ──▶ { focus, detail: null }
  * ```
  *
- * ⛔ **La scène ne bouge pas ici.** Une interaction ne touche ni la caméra ni un
- * état local : elle demande une URL, et c'est le changement de route qui fait
- * suivre le cadrage. C'est ce qui rend le bouton précédent et le partage d'URL
- * corrects *par construction* plutôt que par correctif (R-03).
+ * ⭐ Elle tient l'aller-retour de `testing-strategy.md` §4.3 : pour tout
+ * `SceneFocus`, `resolveSceneState(getRouteForScreen(focus))` rend ce focus.
+ *
+ * ⛔ **Les clics de la scène ne passent PAS par elle** (amendement du 2026-10-31
+ * de l'ADR-0002) : sur la carte mère, un clic vise une **entité** et passe par
+ * `hrefOf` (`board-render/targets.ts`), qui rend le chemin de la fiche. Le sens
+ * du flux, lui, est inchangé : une interaction demande une URL, jamais un
+ * cadrage, et c'est le changement de route qui fait suivre la caméra (R-03).
  *
  * ⭐⭐ **Elle prend un `SceneFocus`, donc `overview` avec les trois écrans** —
  * arbitrage tranché le 2026-08-26 (`phase-6-log.md` §8). La vue d'ensemble **est
- * une destination** : le bureau, c'est l'accueil, et « revenir au bureau » (Échap,
- * clic hors écran — P6-05) est une navigation comme une autre. La restreindre aux
- * trois écrans aurait obligé P6-05 à appeler `homePath` à côté, c'est-à-dire à
- * ouvrir une **seconde** porte dans le sens que cet ADR n'en veut qu'une.
+ * une destination** : l'accueil.
  *
  * ⭐ Pas de `switch` exhaustif ici, et c'est délibéré : `overview` est le seul cas
  * particulier, **tout le reste est une section par construction**. Un `switch`

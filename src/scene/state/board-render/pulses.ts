@@ -33,6 +33,12 @@ const polylineLength = (points: readonly Vec2[]): number => {
   return sum
 }
 
+/** La polyligne sans ses arêtes de longueur nulle (un point répété rendrait `0 / 0`). */
+const withoutZeroEdges = (points: readonly Vec2[]): readonly Vec2[] =>
+  points.filter(
+    (point, i) => i === 0 || point[0] !== points[i - 1]![0] || point[1] !== points[i - 1]![1],
+  )
+
 /** Distance d'un point au rectangle carré d'un processeur (0 s'il le touche ou y est). */
 const distanceToBox = (point: Vec2, center: Vec2, size: number): number => {
   const half = size / 2
@@ -48,24 +54,26 @@ const distanceToBox = (point: Vec2, center: Vec2, size: number): number => {
  * proche d'un processeur est la dernière. Le sens se décide **sur la géométrie, jamais sur
  * `route.kind`** : si le premier point est plus près d'un processeur que le dernier, la route est
  * renversée, et la lumière va donc toujours **du côté éloigné vers le processeur** (du bus vers le
- * processeur pour une prise au bus ou une liaison). Les routes sans point exploitable sont
- * ignorées.
+ * processeur pour une prise au bus ou une liaison). Les points répétés sont fusionnés, et tout
+ * chemin de longueur nulle — le bus compris — est ignoré : il rendrait `Infinity` ou `NaN`.
  */
 export function pulsePaths(file: BoardFile): readonly PulsePath[] {
   const { timeline, traces, district } = file.plan
   const toProcessor = (point: Vec2): number =>
     Math.min(...district.processors.map((p) => distanceToBox(point, p.center, p.size)))
   const paths: PulsePath[] = []
-  const spine = timeline.spine
-  if (spine.length > 1) paths.push({ kind: 'bus', points: spine, length: polylineLength(spine) })
-  for (const route of traces.routes) {
-    if (route.points.length < 2) continue
-    const points =
-      toProcessor(route.points[0]!) < toProcessor(route.points.at(-1)!)
-        ? [...route.points].reverse()
-        : route.points
+  const add = (kind: PulsePath['kind'], points: readonly Vec2[]) => {
     const length = polylineLength(points)
-    if (length > 0) paths.push({ kind: 'link', points, length })
+    if (points.length > 1 && length > 0) paths.push({ kind, points, length })
+  }
+  add('bus', withoutZeroEdges(timeline.spine))
+  for (const route of traces.routes) {
+    const points = withoutZeroEdges(route.points)
+    if (points.length < 2) continue
+    add(
+      'link',
+      toProcessor(points[0]!) < toProcessor(points.at(-1)!) ? [...points].reverse() : points,
+    )
   }
   return paths
 }
@@ -129,16 +137,18 @@ export function pulseFrame(
     const unit = (((slots.phase[i]! + (timeS * PULSE_SPEED) / path.length) % 1) + 1) % 1
     let remaining = unit * path.length
     const points = path.points
-    let x = points[0]![0]
-    let z = points[0]![1]
+    // Au-delà de la dernière arête (arrondi flottant) : le dernier point.
+    let x = points.at(-1)![0]
+    let z = points.at(-1)![1]
     for (let k = 1; k < points.length; k++) {
       const ax = points[k - 1]![0]
       const az = points[k - 1]![1]
       const bx = points[k]![0]
       const bz = points[k]![1]
       const segment = Math.hypot(bx - ax, bz - az)
-      if (remaining <= segment || k === points.length - 1) {
-        const t = Math.min(remaining / segment, 1)
+      // ⛔ Une arête nulle (chemin construit ailleurs que par `pulsePaths`) ne se divise pas.
+      if (segment > 0 && remaining <= segment) {
+        const t = remaining / segment
         x = ax + (bx - ax) * t
         z = az + (bz - az) * t
         break
