@@ -413,9 +413,9 @@ NEXUS**.
 Dans le conteneur, `make bundle` après `pnpm build`, sans bridage ; les budgets en ko et le chunk 3D
 sont dans [`performance-budget.md`](./performance-budget.md) §4.5.
 
-- **Plan versionné** : `board-plan.<locale>.json`, **62,3 Ko** brut, **5,6 Ko** gzip par locale ; la
-  scène n'en charge qu'une, par import dynamique. Chaque JSON est **son propre chunk différé**
-  (≈ 5,2 Ko gzip, un par locale), distinct des deux chunks du moteur 3D : le chiffre du chunk 3D de
+- **Plan versionné** : `board-plan.<locale>.json`, **62,3 Ko** brut, **5,6 Ko** pour le fichier seul passé
+  à `gzip -9` ; la scène n'en charge qu'une, par import dynamique. Chaque JSON est **son propre chunk
+  différé** (≈ 5,2 Ko gzip tel que `make bundle` le mesure, un par locale — c'est le poids servi), distinct des deux chunks du moteur 3D : le chiffre du chunk 3D de
   `performance-budget.md` §4.5 **ne les compte pas**.
 - **Appels de dessin** (`drawCallBudget`, épinglé par `geometry.test.ts`, contenu réel) : **19** au
   palier `full`, **16** au palier `lite` — sous la cible de 60 (§9) **par construction**, d'où la

@@ -245,7 +245,7 @@ dans le code minifié (faux négatif jusque sur le chunk qui est fait de `three`
 **ne se déduit pas** de celui de son `.js` (Turbopack les nomme séparément).
 
 ⚠️ **Ce qu’il ne fait pas, écrit noir sur blanc** : il juge une **présence**, jamais une quantité. Le
-poids du chunk différé — cible 260 Ko, seuil 320 — reste mesuré à la main à chaque tâche, et le
+poids du chunk différé — cible 300 Ko, seuil 350, voir §4.5 — reste mesuré à la main à chaque tâche, et le
 compte des composants `drei` de la §4.3 n'est toujours gardé par rien de budgétaire.
 
 ---
