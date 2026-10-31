@@ -329,7 +329,8 @@ NEXUS**.
 
 - `make board` lit le contenu (le dépôt de contenu, comme `generate-route-manifest.mts`), applique
   `toBoardContent` puis `planBoard`, et **écrit un fichier engendré, versionné** dans
-  `src/scene/state/board/` (nom au choix du constructeur). Décision de l'utilisateur : la carte est
+  `src/scene/generated/board-plan.<locale>.json` (P8-15b) — jamais sous `state/board/`, que la garde
+  d'isolation (`scripts/scene-isolation-rules.mts`, `MODULE_PLAN_PUR`) bannit de tout chunk. Décision de l'utilisateur : la carte est
   produite **par une commande**, pas recodée.
 - La commande **affiche un résumé** : puces, processeurs, années de la frise, liaisons routées et
   perdues, liaisons au bus routées et perdues, ponts, mode de routage, temps de calcul. Une liaison
@@ -419,7 +420,7 @@ sont dans [`performance-budget.md`](./performance-budget.md) §4.5.
   `performance-budget.md` §4.5 **ne les compte pas**.
 - **Appels de dessin** (`drawCallBudget`, épinglé par `geometry.test.ts`, contenu réel) : **19** au
   palier `full`, **16** au palier `lite` — sous la cible de 60 (§9) **par construction**, d'où la
-  clôture de P8-10. Ils comptent la géométrie ; les passes d'ombre s'y ajoutent dans `renderer.info`.
+  clôture de P8-10. Ils comptent la géométrie ; la scène ne projette aucune ombre.
 - **Ponts** (`Traces.vias`) : **16** sur le contenu réel en `level` (§11), 146 sur le grand banc.
 - **Garde d'isolation** (`scripts/check-scene-isolation.mts`) : le plan engendré n'est dans aucun
   chunk de première visite, aucune **valeur** de `scene/state/board/` n'est dans aucun chunk, et le

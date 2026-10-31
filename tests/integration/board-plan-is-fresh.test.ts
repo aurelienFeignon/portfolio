@@ -18,10 +18,11 @@ import { promisify } from 'node:util'
 
 import { describe, expect, it } from 'vitest'
 
+import { LOCALES } from '../../src/i18n/locales'
+
 const run = promisify(execFile)
 const GENERATOR = join(process.cwd(), 'scripts', 'generate-board-plan.mts')
 const COMMITTED = join(process.cwd(), 'src', 'scene', 'generated')
-const LOCALES = ['fr', 'en'] as const
 
 describe('plans de carte', () => {
   it(
@@ -40,6 +41,21 @@ describe('plans de carte', () => {
       for (const [index, locale] of LOCALES.entries()) {
         const generated = await readFile(join(out, `board-plan.${locale}.json`), 'utf8')
         expect(generated, `régénérez : make board (${locale})`).toBe(committed[index])
+      }
+    },
+  )
+
+  it(
+    'se génèrent encore l’an prochain (alerte un an à l’avance : aucune liaison ne se perd au 1er janvier)',
+    { timeout: 60_000 },
+    async () => {
+      const out = await mkdtemp(join(tmpdir(), 'board-plan-next-'))
+      const year = new Date().getFullYear() + 1
+      try {
+        await run('node', [GENERATOR, '--year', String(year), '--out', out])
+      } catch (error) {
+        const { stderr, stdout } = error as { stderr?: string; stdout?: string }
+        expect.fail(`le générateur échoue pour ${year} :\n${stderr ?? ''}${stdout ?? ''}`)
       }
     },
   )

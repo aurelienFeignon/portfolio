@@ -75,6 +75,14 @@ langue.
 ⭐⭐⭐ *Une propriété écrite sur une valeur d'**absorption** ne garde rien tant qu'on n'assère pas sur
 ce qui la distingue d'elle-même.*
 
+## Amendement du 2026-10-31 (D14 / P8-15) — les clics sur la carte passent par `hrefOf`
+
+Sur la carte mère, un clic vise une **entité** (fiche de projet, fiche d'expérience, page des
+compétences) : il passe par `hrefOf` (`board-render/targets`), qui rend le chemin de l'entité.
+`getRouteForScreen` n'est pas retirée : elle reste l'inverse *de section* de `resolveSceneState`, et
+c'est ce qui garde l'aller-retour de `testing-strategy.md` §4.3. Le sens du flux est inchangé : la
+navigation produit une URL, la scène la lit.
+
 ## Alternatives considérées
 
 | Alternative | Pourquoi écartée |
