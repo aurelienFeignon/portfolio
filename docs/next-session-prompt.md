@@ -33,7 +33,10 @@ Lis, dans cet ordre, et ne me demande pas de te les résumer :
                                  tranchés, et ce que chaque tâche refuse d'affirmer.
 12. docs/phase-5-log.md       ← journal de la Phase 5, CLOSE. §10 porte le bilan et le seul relevé
                                  comparatif de Core Web Vitals du projet.
-12bis. docs/nexus-prototype.md ← ⭐⭐⭐ NEXUS, la scène en production : décisions, scène, mesures (§6).
+12bis. docs/carte-mere.md     ← ⭐⭐⭐ LA CARTE MÈRE, la scène en production : conception (D14), génération
+                                 par `make board` (§12), mesures (§11, §12.5).
+12ter. docs/nexus-prototype.md ← NEXUS, la scène retirée le 2026-10-31 : historique, mais §6 (l'enquête
+                                 de performance) reste la meilleure lecture sur la mesure de la scène.
 13. docs/phase-6-log.md       ← ⭐⭐ journal de la phase EN COURS. §3 porte les arbitrages
                                  d'ouverture, §5 l'ordre de travail et ses deux écarts assumés.
 14. deploy/README.md          ← exploitation réelle du serveur : déploiement, rollback, journaux,
@@ -54,12 +57,13 @@ et §12.
 arbitrage **D13** ; l'écart de LCP mobile introduit par #58 s'est révélé un artefact de Lantern
 (**P11-11**, `performance-budget.md` §6.5).
 **Phase 8** : ⭐⭐ **D14 (2026-10-29) — la carte mère remplace la composition NEXUS** :
-[`carte-mere.md`](./carte-mere.md), trois plans (P8-13 contenu, livré par #84 ; P8-14 plan de carte, livré par #85 ; P8-15 rendu).
-NEXUS reste en production tant que P8-15 n'est pas fusionnée.
-⭐⭐ **NEXUS EST EN PRODUCTION depuis le 2026-10-23 (#58, `854d1fe`)** — D11 : le bureau 3D est
+[`carte-mere.md`](./carte-mere.md), trois plans, **tous livrés** : P8-13 contenu (#84), P8-14 plan de carte (#85),
+P8-15 génération et rendu (#86, 2026-10-31). ⭐⭐ **La carte mère est en production depuis le 2026-10-31** :
+`make board` régénère `src/scene/generated/board-plan.<locale>.json` depuis les MDX (une liaison perdue
+fait échouer la commande, donc le build), et la scène ne fait que le dessiner. NEXUS est retiré.
+⚠️ **Ce qui suit sur NEXUS est historique** (en production du 2026-10-23 au 2026-10-31, #58, `854d1fe`) — D11 : le bureau 3D est
 remplacé par un noyau numérique et trois univers, avec navigation hybride et `ReadingPanel` en verre
-lumineux. **Lis `docs/nexus-prototype.md` avant toute chose** : décisions, architecture de la scène,
-et surtout §6, l'enquête de performance. Les Phases 7 à 9 sont réorientées dans la roadmap.
+lumineux. Pour l'historique, `docs/nexus-prototype.md` §6 (enquête de performance). Les Phases 7 à 9 sont réorientées dans la roadmap.
 **Tout ce qui suit est fusionné sur `main` et déployé**, les cinq jobs verts à chaque fois —
 publication GHCR et déploiement VPS compris.
 
@@ -186,7 +190,7 @@ URL, tout le reste rend toujours 302.
 |---|---|---|
 | Chunk 3D, socle partagé, JS par route | chiffres courants en **un seul endroit** : [`performance-budget.md`](./performance-budget.md) §4.5 | — |
 | Image de production | **281 Mo** | cible 250 · bloquant 400 |
-| Tests | **1130** verts (2026-10-30, P8-14) ; couverture de `src/scene/state` remesurée le 2026-10-30 (P8-14) : instructions, fonctions et lignes **100 %**, branches **98,68 %** (`board/` : **100 %** sur les quatre axes, depuis le comparateur unique `compareSlugs`) — la seule branche non prise est `layout.ts:135`, le côté `placer(-1)` de `closeUp`, qu'aucun des trois univers ne prend (inatteignable sans changer leurs positions, depuis #58). Le chiffre global du dépôt n'a pas été relevé | ≥ 80 % |
+| Tests | **1337** verts (2026-10-31, P8-15) ; couverture de `src/scene/state` : **100 %** sur les quatre axes (2026-10-31, après le retrait de NEXUS et de `closeUp`). Le chiffre global du dépôt n'a pas été relevé | ≥ 80 % |
 | E2E | **153** verts sur 5 profils | — |
 | **Ce que le GPU rend** | ⚠️ dernier relevé = **NEXUS, 2026-08-25** (52 draw calls · 8 182 triangles, passe d'ombre incluse) ; **à remesurer par l'utilisateur sur la carte mère** (`carte-mere.md` §12.5) | ≤ 60 / ≤ 150 000 |
 
@@ -310,20 +314,23 @@ référence (#57), `ReadingPanel`, P6-04, décisions NEXUS (D11 et amendements d
 prototype, validation visuelle avec l'utilisateur, fusion et déploiement (#58), roadmap reprise.
 
 ⛔ **Avant toute chose, vérifie la fusion de cette mise à jour du prompt** (branche
-`design/p8-14-plan-de-carte`, PR à ouvrir ou fusionner) : `gh pr list --state all --head
-design/p8-14-plan-de-carte`, puis le déploiement de `main` (`gh run list --branch main --workflow
-ci.yml --limit 1`).
-Les précédentes sont fusionnées et déployées : #80 (Phase 7), #81 (P8-12), #82 (`workflow_dispatch`),
-#83 (P11-11), #84 (P8-13).
+`docs/prompt-apres-p8-15`) : `gh pr list --state all --head docs/prompt-apres-p8-15`, puis le
+déploiement de `main` (`gh run list --branch main --workflow ci.yml --limit 1`).
+Les précédentes sont fusionnées et déployées : #84 (P8-13), #85 (P8-14), #86 (P8-15).
 
-⭐⭐ **P8-15 est IN_PROGRESS sur `feat/p8-15-carte-mere`** : la carte mère est montée à la place de
-NEXUS (tâches 1 à 9 faites, mesures en [`carte-mere.md`](./carte-mere.md) §12.5). **Mission : attendre
-la vérification en localhost de l'utilisateur** (`make board`, `make up`, les quatre vues, survol,
-clic, mobile si possible), traiter ses retours, puis la chaîne /code-review → /security-review →
-/simplify, puis la PR (la fusion se demande toujours). Reste à décider avec lui : **D2** (puces de
-taille égale tant qu'elle est ouverte), l'arbitrage de l'animation au palier `lite`, le rendu des
-**ponts** (vias), et le vide de cadrage de la vue Expériences (~18 %). Mesure GPU réelle et
-`Avant / Après / Gain` : à lui, procédure en §12.5.
+✅ P8-15 livrée le 2026-10-31 (#86), vérifiée en localhost. Défaut retenu : le temps de transition se comptait en images → ADR-0012 (révision du 2026-10-31).
+
+⭐⭐ **La suite, dans l'ordre recommandé :**
+1. **Mesure GPU réelle par l'utilisateur** (`carte-mere.md` §12.5 : `?debug=scene`, appels toutes
+   passes et triangles sur les quatre vues, puis `make perf-baseline` pour `Avant / Après / Gain`) —
+   c'est elle qui dit si P8-11 et P8-10 ont encore un objet.
+2. **P8-08 — contrastes**, à juger sur la carte : étiquettes HTML sur la scène dans le pire cas
+   (impulsion ou diode derrière), et les teintes ambre et sarcelle ajoutées (jetons déjà dans
+   `globals.css`).
+3. **P8-05 — éclairage et ambiance** de la carte, sur retour visuel de l'utilisateur.
+4. **Reliquats de P8-15** : `carte-mere.md` §12.6 — à poser à l'utilisateur et non à trancher.
+
+En parallèle, indépendant de la 3D : la **Phase 10** (envoi du CV), à commencer par P10-11.
 
 ✅ **Phase 6 close le 2026-10-27** : P6-07 et P6-10 (`phase-6-log.md` §11), P6-11 et P6-12 (§12).
 ⛔ P6-11 a trouvé un défaut **en production** : `setFrameloop` remet l'horloge de R3F à zéro, et une
@@ -389,11 +396,7 @@ autour de la page entière). Firefox headless ne monte pas la scène : non couve
    pendant la transition n'y rougit pas — E2E-17 (P7-06) relève, lui, chaque image du mouvement.
 3. **P8-10** — alléger le premier rendu : la cible de 60 appels est tenue par construction par la
    carte mère (`carte-mere.md` §12.5) ; les 14 programmes restent à relever si P8-11 montre un problème.
-4. **La carte mère (D14, 2026-10-29)** remplace la composition NEXUS — conception
-   [`carte-mere.md`](./carte-mere.md), trois plans : **P8-13** contenu
-   (`plans/2026-10-29-carte-mere-1-contenu.md`, livré par #84), **P8-14** module pur du plan de carte
-   (livré, #85),
-   **P8-15** rendu et interactions (en cours). **P8-05, P8-08** se refont et se jugent sur la carte.
+4. **La carte mère (D14)** : livrée (roadmap P8-13 à P8-15) ; P8-05 et P8-08 se refont et se jugent sur la carte.
 5. ✅ **Le temps des shaders — P8-12, livrée le 2026-10-29** : `ambientFrame`
    (`src/scene/state/ambient-motion.ts`, pur) accumule le temps de scène au lieu de lire
    `state.clock`, borne chaque image à `IMAGE_MAX_S` — un onglet masqué faisait aussi sauter les
@@ -685,10 +688,7 @@ contrat de `SkillGroup`, qui ne porte que `{ slug, name }`, et un parcours sur l
 → *Dis-moi seulement ceux qui te paraissent faux. Dix compétences sont `featured` : TypeScript,
 Python, Node.js, React, Next.js, PostgreSQL, Docker, microservices, architecture événementielle,
 intégration de modèles de langage.*
-⛔⛔ **D2 conditionne maintenant la carte mère** : `carte-mere.md` §4 fait croître la taille des
-puces avec `level` — ce qui **publierait visuellement** les niveaux que les deux gardes retiennent.
-À trancher avant la fusion de P8-15 : relire les niveaux (D2), ou des puces de taille égale tant qu'ils ne le
-sont pas. Relevé le 2026-10-29 en mettant ce prompt à jour.
+✅ Arbitré le 2026-10-30 pour la carte mère : voir `carte-mere.md` §12.1 (puces de taille égale tant que D2 est ouverte, paramètre du générateur) et `phase-0-questions.md` (D2).
 
 **D6 🟠 — Rendre le paquet GHCR public ?** *(action manuelle, je n'ai pas les droits)* → *GitHub →
 Packages → portfolio → Change visibility → Public. Puis sur le VPS : `docker logout ghcr.io && rm
@@ -735,7 +735,7 @@ officielle n'atteint 250 Mo.
   intact, et le site en ligne n'est pas concerné.
 
   ⛔ **Ce qui RESTE ouvert, et qu'une borne ne règle pas :**
-  1. **Pourquoi `pnpm dev` fuit n'est pas instruit.** La borne contient la conséquence, pas la cause.
+  1. ⚠️ Mesurée le 2026-10-31, cause racine et remède encore ouverts : voir le commentaire du service `web` de `docker-compose.yml`. À décider : ralentir le `healthcheck` de dev, ou chercher qui retient les tampons (piste Next/Turbopack, à signaler en amont).
   2. **Ne pas le faire tourner en permanence** — `make up` à la demande, `make down` après. C'est une
      habitude à prendre, pas un correctif à écrire : l'étage `dev` porte `CMD ["pnpm", "dev"]`, donc
      le conteneur sert un serveur de développement tant qu'il vit, même quand personne ne développe.
