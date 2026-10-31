@@ -166,6 +166,16 @@ export function glowMaterial(): ShaderMaterial & { uniforms: BoardUniforms } {
   return material as ShaderMaterial & { uniforms: BoardUniforms }
 }
 
+/** Un condensé court du texte (FNV-1a, 32 bits), en base 36. */
+function digest(text: string): string {
+  let hash = 0x811c9dc5
+  for (let i = 0; i < text.length; i++) {
+    hash ^= text.charCodeAt(i)
+    hash = Math.imul(hash, 0x01000193)
+  }
+  return (hash >>> 0).toString(36)
+}
+
 /**
  * Retouche un `MeshStandardMaterial` (`onBeforeCompile`) pour qu'il connaisse, au fragment, la
  * position **locale** du sommet dans la boîte unité (`vLocal`) et la taille de l'instance
@@ -177,7 +187,6 @@ export function glowMaterial(): ShaderMaterial & { uniforms: BoardUniforms } {
  * `diffuseColor` et `totalEmissiveRadiance`.
  */
 function withLocalFrame(
-  name: string,
   material: MeshStandardMaterial,
   uniforms: Record<string, IUniform>,
   surface: string,
@@ -187,11 +196,14 @@ function withLocalFrame(
     .map(([name, u]) => `uniform ${u.value instanceof Color ? 'vec3' : 'float'} ${name};`)
     .join('\n')
   /*
-   * ⛔⛔ Une clé de programme PAR APPELANT : par défaut, three range les programmes sous
+   * ⛔⛔ Une clé de programme PAR RETOUCHE : par défaut, three range les programmes sous
    * `onBeforeCompile.toString()` — le même texte pour toutes les retouches de cette fonction.
    * Sans cette clé, les condensateurs étaient rendus avec le programme des capots.
+   * ⭐ Tirée de ce qui varie (le code injecté, la teinte d'instance), jamais d'un nom écrit à
+   * la main : un nouvel appelant ne peut pas reprendre la clé d'un autre par mégarde.
    */
-  material.customProgramCacheKey = () => `board:${name}`
+  const key = `board:${digest(`${options.keepInstanceColor}\n${declarations}\n${surface}`)}`
+  material.customProgramCacheKey = () => key
   material.onBeforeCompile = (shader) => {
     Object.assign(shader.uniforms, uniforms)
     shader.vertexShader = shader.vertexShader
@@ -233,7 +245,6 @@ export function chipBodyMaterial(): MeshStandardMaterial & { userData: { rim: IU
   const rim: IUniform<number> = { value: 1 }
   material.userData['rim'] = rim
   withLocalFrame(
-    'chip',
     material,
     { uRim: rim },
     /* glsl */ `${LOCAL_FRAME}
@@ -255,7 +266,6 @@ export function lidMaterial(): MeshStandardMaterial & { userData: { glow: IUnifo
   const glow: IUniform<number> = { value: 1 }
   material.userData['glow'] = glow
   withLocalFrame(
-    'lid',
     material,
     { uGlow: glow, uGlowColor: { value: new Color('#8973F5') } },
     /* glsl */ `${LOCAL_FRAME}
@@ -280,7 +290,6 @@ export function lidMaterial(): MeshStandardMaterial & { userData: { glow: IUnifo
 export function capacitorMaterial(): MeshStandardMaterial {
   const material = new MeshStandardMaterial({ color: '#1F2A44', roughness: 0.4, metalness: 0.3 })
   withLocalFrame(
-    'capacitor',
     material,
     {},
     /* glsl */ `${LOCAL_FRAME}

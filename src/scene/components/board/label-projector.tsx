@@ -11,12 +11,15 @@
  *
  * ⭐ Écrit directement dans le DOM, jamais par un état React : un `setState` à chaque image
  * re-rendrait le montage entier soixante fois par seconde.
- * ⭐ Les tailles se mesurent une fois — à chaque changement de la liste, du canvas ou des
- * polices —, pas à chaque image : `offsetWidth` force une mise en page.
+ * ⭐ Les tailles se mesurent une fois — pour une étiquette nouvelle (ou dont l'élément ou le
+ * texte a changé), à chaque changement du canvas ou des polices —, pas à chaque image :
+ * `offsetWidth` force une mise en page.
+ * ⭐ Et rien n'est refait quand rien n'a bougé : caméra, canvas, zone et liste identiques à la
+ * dernière projection, l'image ne relit ni n'écrit rien (`placeLabels` y est un point fixe).
  */
 import { useFrame, useThree } from '@react-three/fiber'
 import { type RefObject, useEffect, useMemo, useRef } from 'react'
-import { type Camera, Vector3 } from 'three'
+import { type Camera, Matrix4, Vector3 } from 'three'
 
 import type { BoardFile } from '@/scene/state/board-render/file-format'
 import {
@@ -40,6 +43,9 @@ interface Slot {
   /** La taille rendue ; `-1` tant qu'elle n'est pas mesurée. */
   width: number
   height: number
+  /** L'élément et le texte mesurés : une liste nouvelle ne remesure que ce qui en diffère. */
+  element: HTMLElement | null
+  text: string | null
   /** La dernière position écrite, pour ne refaire la chaîne `transform` que si elle bouge. */
   writtenX: number
   writtenY: number
@@ -56,6 +62,17 @@ interface Memo {
   current: Set<string>
   width: number
   height: number
+  /** Ce que la dernière projection a lu ; tout identique, l'image n'a rien à refaire. */
+  readonly last: {
+    camera: Camera | null
+    readonly world: Matrix4
+    readonly projection: Matrix4
+    zone: Rect | null
+    /** Le nombre d'éléments enregistrés : une étiquette montée après la liste se projette. */
+    elements: number
+    /** Faux pour forcer la prochaine projection (tailles oubliées par les polices). */
+    valid: boolean
+  }
 }
 
 const slotOf = (label: BoardLabel): Slot => ({
@@ -63,13 +80,70 @@ const slotOf = (label: BoardLabel): Slot => ({
   candidate: { id: label.id, x: 0, y: 0, width: 0, height: 0, priority: label.priority },
   width: -1,
   height: -1,
+  element: null,
+  text: null,
   writtenX: Number.NaN,
   writtenY: Number.NaN,
 })
 
-/** Oublie les tailles mesurées : la prochaine image les relira. */
+/**
+ * La case de `label` pour une liste nouvelle : celle de la liste d'avant, taille comprise, si
+ * l'étiquette y était avec le même élément et le même texte ; une case neuve (à mesurer) sinon.
+ * ⭐ La position écrite, elle, est oubliée : la case reprend sa place à la première image.
+ */
+function slotFor(label: BoardLabel, before: Slot | undefined, elements: LabelElements): Slot {
+  const slot = slotOf(label)
+  const element = elements.get(label.id)
+  if (
+    before !== undefined &&
+    before.width >= 0 &&
+    element !== undefined &&
+    element === before.element &&
+    element.textContent === before.text
+  ) {
+    slot.width = before.width
+    slot.height = before.height
+    slot.element = before.element
+    slot.text = before.text
+  }
+  return slot
+}
+
+/** Oublie les tailles mesurées : la prochaine projection les relira. */
 function forgetSizes(memo: Memo): void {
   for (const slot of memo.slots.values()) slot.width = -1
+}
+
+/** Vrai si rien de ce que lit la projection n'a changé depuis la dernière ; sinon, le retient. */
+function unchanged(
+  memo: Memo,
+  labels: readonly BoardLabel[],
+  elements: LabelElements,
+  camera: Camera,
+  width: number,
+  height: number,
+  zone: Rect,
+): boolean {
+  const { last } = memo
+  const same =
+    last.valid &&
+    memo.labels === labels &&
+    memo.width === width &&
+    memo.height === height &&
+    last.zone === zone &&
+    last.elements === elements.size &&
+    last.camera === camera &&
+    last.world.equals(camera.matrixWorld) &&
+    last.projection.equals(camera.projectionMatrix)
+  if (!same) {
+    last.valid = true
+    last.camera = camera
+    last.world.copy(camera.matrixWorld)
+    last.projection.copy(camera.projectionMatrix)
+    last.zone = zone
+    last.elements = elements.size
+  }
+  return same
 }
 
 /**
@@ -88,19 +162,24 @@ function project(
   zone: Rect,
   point: Vector3,
 ): void {
+  // ⛔ Le rig vient de déplacer la caméra : sans cette ligne, la projection lirait la pose de
+  // l'image PRÉCÉDENTE — un retard d'une image, visible en transition.
+  camera.updateMatrixWorld()
+  if (unchanged(memo, labels, elements, camera, width, height, zone)) return
   if (memo.labels !== labels) {
-    // Une autre liste (vue, survol, locale) : des textes peut-être autres, donc à remesurer.
+    // Une autre liste (vue, survol) : seules les étiquettes nouvelles, ou dont l'élément ou le
+    // texte a changé, sont à remesurer.
     memo.labels = labels
-    memo.slots = new Map(labels.map((label) => [label.id, slotOf(label)]))
+    const before = memo.slots
+    memo.slots = new Map(
+      labels.map((label) => [label.id, slotFor(label, before.get(label.id), elements)]),
+    )
   }
   if (memo.width !== width || memo.height !== height) {
     memo.width = width
     memo.height = height
     forgetSizes(memo)
   }
-  // ⛔ Le rig vient de déplacer la caméra : sans cette ligne, la projection lirait la pose de
-  // l'image PRÉCÉDENTE — un retard d'une image, visible en transition.
-  camera.updateMatrixWorld()
   /*
    * ⭐ Toutes les LECTURES de taille d'abord, toutes les écritures ensuite : entrelacées, chaque
    * `offsetWidth` forcerait le navigateur à recalculer la mise en page que l'écriture précédente
@@ -114,6 +193,8 @@ function project(
     if (slot.width < 0) {
       slot.width = element.offsetWidth
       slot.height = element.offsetHeight
+      slot.element = element
+      slot.text = element.textContent
     }
     const c = slot.candidate
     c.width = slot.width
@@ -172,6 +253,14 @@ export function LabelProjector({
     current: new Set(),
     width: 0,
     height: 0,
+    last: {
+      camera: null,
+      world: new Matrix4(),
+      projection: new Matrix4(),
+      zone: null,
+      elements: 0,
+      valid: false,
+    },
   })
   const invalidate = useThree((state) => state.invalidate)
   // La liste ne change qu'avec la vue, le survol ou le plan — pas à chaque image.
@@ -188,6 +277,8 @@ export function LabelProjector({
     const remeasure = () => {
       if (!alive) return
       forgetSizes(memo.current)
+      // Rien d'autre n'a bougé : sans cela, la prochaine image se croirait à jour.
+      memo.current.last.valid = false
       invalidate()
     }
     void fonts.ready.then(remeasure)

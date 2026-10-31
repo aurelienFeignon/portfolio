@@ -47,7 +47,7 @@ import { BOARD_DENSITY, type DensityTier, PALETTE } from '@/scene/state/layout'
 import { type PulsePath, pulseFrame, pulsePaths } from '@/scene/state/board-render/pulses'
 import {
   instanceLevels,
-  LIT_SHAPES,
+  isLitShape,
   type LitShape,
   litSegments,
   PICKABLE_MESHES,
@@ -132,7 +132,7 @@ function pulseMesh(
 }
 
 /** Ce que la scène transmet à chaque image. */
-export interface BoardFrame {
+interface BoardFrame {
   readonly time: number
   /** Mise en valeur de chaque section, de 0 à 1 (`ambientFrame`) : focus de la route ou survol. */
   readonly highlight: {
@@ -334,12 +334,12 @@ export function buildBoard(file: BoardFile, tier: DensityTier, anisotropy: numbe
       const shape = name as Shape
       const geometry = unitGeometry(shape)
       geometries.push(geometry)
-      const lit = (LIT_SHAPES as readonly string[]).includes(shape)
+      const lit = isLitShape(shape)
       const mesh = instancedMesh(geometry, materials.byShape[shape], sets[shape], lit)
       meshes.push(mesh)
       if (lit && mesh.instanceColor !== null) {
         const base = (mesh.instanceColor.array as Float32Array).slice()
-        litMeshes.push({ shape: shape as LitShape, mesh, base })
+        litMeshes.push({ shape, mesh, base })
       }
       object = mesh
     }
