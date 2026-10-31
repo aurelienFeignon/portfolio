@@ -325,12 +325,19 @@ function routeBusLinks(
 /**
  * Vrai si un puits à l'abscisse `x`, descendant de la bande jusqu'à la ligne
  * `z`, traverserait la marche à 45° d'un changement d'employeur
- * (`timeline.jogs`) : la marche s'étend de `LANE_PITCH / 2` de part et d'autre
- * de son milieu en X, et sa plus petite cote Z est strictement au-dessus de `z`.
- * Une marche qui bombe vers +Z, ou d'une rangée plus basse, ne gêne pas ce puits.
- * Un puits tangent à son extrémité (sur la ligne de la voie) ne la coupe pas.
+ * (`timeline.jogs`). Le puits couvre en Z tout l'intervalle de la bande à `z` :
+ * il coupe donc toute marche dont l'emprise en X le touche (`LANE_PITCH / 2` de
+ * part et d'autre du milieu, plus la demi-cellule du puits) et dont la plus
+ * petite cote Z est strictement au-dessus de `z`.
+ *
+ * ⛔ Une marche d'une voie **plus haute** bloque, qu'elle bombe vers −Z ou vers
+ * +Z : ses deux jambes sont en travers de la colonne, et le puits les croiserait
+ * (épinglé par `traces.test.ts`, « une marche d'une voie plus haute bloque »).
+ * Ne gênent pas : la marche de la voie visée qui bombe vers +Z (elle est
+ * au-dessous de la fin du puits, qui la touche au mieux sur la ligne), et toute
+ * marche d'une rangée plus basse.
  */
-function underJog(timeline: Timeline, x: number, z: number): boolean {
+export function underJog(timeline: Pick<Timeline, 'jogs'>, x: number, z: number): boolean {
   return timeline.jogs.some(
     (jog) =>
       Math.abs(x - jog.at[0]) < LANE_PITCH / 2 + GRID / 2 &&

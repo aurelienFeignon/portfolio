@@ -11,7 +11,7 @@
  * janvier. La comparaison est octet à octet.
  */
 import { execFile } from 'node:child_process'
-import { mkdtemp, readFile } from 'node:fs/promises'
+import { mkdtemp, readFile, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { promisify } from 'node:util'
@@ -36,11 +36,15 @@ describe('plans de carte', () => {
       expect(new Set(years).size, 'les deux locales portent la même année').toBe(1)
 
       const out = await mkdtemp(join(tmpdir(), 'board-plan-'))
-      await run('node', [GENERATOR, '--year', String(years[0]), '--out', out])
-
-      for (const [index, locale] of LOCALES.entries()) {
-        const generated = await readFile(join(out, `board-plan.${locale}.json`), 'utf8')
-        expect(generated, `régénérez : make board (${locale})`).toBe(committed[index])
+      try {
+        await run('node', [GENERATOR, '--year', String(years[0]), '--out', out])
+        for (const [index, locale] of LOCALES.entries()) {
+          const generated = await readFile(join(out, `board-plan.${locale}.json`), 'utf8')
+          expect(generated, `régénérez : make board (${locale})`).toBe(committed[index])
+        }
+      } finally {
+        // ⛔ `/tmp` est en mémoire sur l'hôte : un répertoire laissé à chaque passe s'y accumule.
+        await rm(out, { recursive: true, force: true })
       }
     },
   )
@@ -56,6 +60,8 @@ describe('plans de carte', () => {
       } catch (error) {
         const { stderr, stdout } = error as { stderr?: string; stdout?: string }
         expect.fail(`le générateur échoue pour ${year} :\n${stderr ?? ''}${stdout ?? ''}`)
+      } finally {
+        await rm(out, { recursive: true, force: true })
       }
     },
   )

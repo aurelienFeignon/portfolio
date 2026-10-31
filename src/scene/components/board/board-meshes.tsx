@@ -7,10 +7,11 @@
  *
  * ⭐ Les objets sont construits hors de React, comme l'étaient ceux de NEXUS (D11) : une
  * fonction rend `{ root, update, dispose }` — React monte `root`, avance les uniformes à chaque
- * image, et **rend la mémoire du GPU** au démontage : géométries, matériaux, texture.
+ * image, et **rend la mémoire du GPU** au démontage : géométries, matériaux, texture. Une
+ * construction, un `dispose`, dans le même effet (`useBoard`).
  */
 import { type ThreeElements, useThree } from '@react-three/fiber'
-import { useEffect, useMemo } from 'react'
+import { useEffect, useState } from 'react'
 import {
   AdditiveBlending,
   BoxGeometry,
@@ -110,11 +111,16 @@ function pulseMesh(
   // Les instances bougent à chaque image : la sphère englobante initiale ne vaut rien.
   mesh.frustumCulled = false
   const scratch = new Float32Array(count * 2)
+  // À temps figé (`prefers-reduced-motion`, onglet en pause), rien ne bouge : ni calcul, ni
+  // tampon renvoyé au GPU.
+  let placedAt = Number.NaN
   return {
     mesh,
     geometry,
     material,
     place(t) {
+      if (t === placedAt) return
+      placedAt = t
       pulseFrame(paths, count, t, scratch)
       for (let i = 0; i < count; i++) {
         matrices[i * 16 + 12] = scratch[i * 2]!
@@ -398,14 +404,35 @@ export function buildBoard(file: BoardFile, tier: DensityTier, anisotropy: numbe
   }
 }
 
-/** Monte la carte construite ; la reconstruit si le plan, le palier ou l'anisotropie changent. */
-export function useBoard(file: BoardFile, tier: DensityTier): BuiltBoard {
+/**
+ * La carte construite pour ce plan, ce palier et cette anisotropie ; `null` tant qu'elle ne l'est
+ * pas (le premier rendu, puis le temps d'un rendu à chaque changement).
+ *
+ * ⛔⛔ Construite **dans l'effet** qui la rend, jamais dans un `useMemo` : sous StrictMode (dev),
+ * React appelle la fabrique d'un `useMemo` deux fois et jette le second résultat sans démontage
+ * — une carte entière jamais rendue, sérigraphie comprise — puis joue un démontage simulé qui
+ * rendait la mémoire de la carte restée montée. Ici chaque construction a exactement un `dispose`,
+ * dans le nettoyage du même effet.
+ *
+ * La carte rendue est aussi **masquée** : entre ce nettoyage et le rendu qui la remplace, une
+ * image peut encore passer, et un objet visible serait renvoyé au GPU après son `dispose` — pour
+ * de bon, cette fois.
+ */
+export function useBoard(file: BoardFile, tier: DensityTier): BuiltBoard | null {
   const anisotropy = useThree((state) => state.gl.capabilities.getMaxAnisotropy())
-  const built = useMemo(
-    () => buildBoard(file, tier, Math.min(8, anisotropy)),
-    [file, tier, anisotropy],
-  )
-  useEffect(() => () => built.dispose(), [built])
+  const [built, setBuilt] = useState<BuiltBoard | null>(null)
+  useEffect(() => {
+    const board = buildBoard(file, tier, Math.min(8, anisotropy))
+    // La carte EST la ressource externe que l'effet synchronise : la construire ailleurs (rendu,
+    // `useMemo`) défait l'appariement construction / `dispose` décrit plus haut.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setBuilt(board)
+    return () => {
+      board.root.visible = false
+      board.dispose()
+      setBuilt((current) => (current === board ? null : current))
+    }
+  }, [file, tier, anisotropy])
   return built
 }
 

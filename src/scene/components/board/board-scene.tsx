@@ -21,6 +21,7 @@ import type { Locale } from '@/i18n/locales'
 import { type AmbientState, ambientFrame } from '@/scene/state/ambient-motion'
 import type { BoardFile } from '@/scene/state/board-render/file-format'
 import { SHAPES, type Shape } from '@/scene/state/board-render/geometry'
+import { offerHover } from '@/scene/state/board-render/hover-gate'
 import { relationsOf, targetAtPoint, targetOfInstance } from '@/scene/state/board-render/relations'
 import {
   type BoardTarget,
@@ -33,7 +34,7 @@ import {
 import { type DensityTier, PALETTE } from '@/scene/state/layout'
 import type { SceneFocus } from '@/scene/state/scene-state'
 
-import { BoardMeshes, useBoard } from './board-meshes'
+import { BoardMeshes, type BuiltBoard, useBoard } from './board-meshes'
 
 /** La cible sous le pointeur : l'instance touchée, sinon le bus sous le point de la plaque. */
 function pick(file: BoardFile, event: ThreeEvent<PointerEvent | MouseEvent>): BoardTarget | null {
@@ -45,16 +46,7 @@ function pick(file: BoardFile, event: ThreeEvent<PointerEvent | MouseEvent>): Bo
   )
 }
 
-export function BoardScene({
-  file,
-  tier,
-  animated,
-  locale,
-  hovered,
-  focus,
-  onHover,
-  onSelect,
-}: {
+interface BoardSceneProps {
   readonly file: BoardFile
   readonly tier: DensityTier
   readonly animated: boolean
@@ -66,8 +58,24 @@ export function BoardScene({
   readonly onHover: (target: BoardTarget | null) => void
   /** Le clic qui navigue : un chemin du site, à pousser dans le routeur. */
   readonly onSelect: (href: string) => void
-}) {
-  const built = useBoard(file, tier)
+}
+
+/** La carte n'existe qu'une fois construite (`useBoard`) : rien n'est dessiné avant. */
+export function BoardScene(props: BoardSceneProps) {
+  const built = useBoard(props.file, props.tier)
+  return built === null ? null : <BuiltBoardScene {...props} built={built} />
+}
+
+function BuiltBoardScene({
+  built,
+  file,
+  animated,
+  locale,
+  hovered,
+  focus,
+  onHover,
+  onSelect,
+}: BoardSceneProps & { readonly built: BuiltBoard }) {
   const invalidate = useThree((state) => state.invalidate)
 
   // L'état de survol, écrit dans les attributs à chaque changement de cible — pas à chaque image.
@@ -84,8 +92,14 @@ export function BoardScene({
   const hoveredSection = hovered === null ? null : sectionOf(hovered)
   // Le type du dernier appui : un `click` ne le porte pas partout (Safari).
   const pointerType = useRef('mouse')
+  // ⛔ Filtré sur la dernière valeur ENVOYÉE, pas sur la prop (`hover-gate.ts`) : une sortie puis
+  // un mouvement dans le même événement laisseraient sinon le survol éteint sous le pointeur.
+  const lastSent = useRef(targetKey(hovered))
+  useEffect(() => {
+    lastSent.current = targetKey(hovered)
+  }, [hovered])
   const hover = (target: BoardTarget | null) => {
-    if (targetKey(target) !== targetKey(hovered)) onHover(target)
+    if (offerHover(lastSent, target)) onHover(target)
   }
 
   // ⛔ Accumulé ici, jamais lu sur `state.clock` (`ambient-motion.ts`).

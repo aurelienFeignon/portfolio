@@ -257,9 +257,8 @@ export function instanceLevels(
 ): Readonly<Record<LitShape, Float32Array>> {
   const level = (lit: boolean): number =>
     relations === null ? LEVEL.neutral : lit ? LEVEL.lit : LEVEL.dim
-  const chips = plan.zones
-    .flatMap((z) => z.chips)
-    .map((c) => level(relations?.chips.has(c.slug) ?? false))
+  // ⭐ La liste même que lit `targetOfInstance` : l'ordre des instances n'a qu'une source.
+  const chips = picking(plan).chips.map((slug) => level(relations?.chips.has(slug) ?? false))
   const processors = plan.district.processors.map((p) =>
     level(relations?.processors.has(p.slug) ?? false),
   )
