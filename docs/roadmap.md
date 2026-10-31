@@ -56,7 +56,7 @@ silencieusement.
 | 5 | Fondation Three.js | **DONE** *(2026-08-25)* — 10/10, P5-10 close le 2026-10-23 avec #58 | Scène primitive : le bureau réel, éclairé, budget tenu, isolation gardée |
 | 6 | Navigation spatiale | **CLOSE** *(2026-08-26 → 2026-10-27)* — 12/12 |  Route ↔ scène, testé sans WebGL |
 | 7 | Interfaces de lecture *(réorientée par D11)* | **CLOSE** *(2026-10-23 → 2026-10-29)* — 6 livrées, P7-01/02 abandonnées ; critère CWV tenu par arbitrage D13 (`performance-budget.md` §6.4), écart de LCP mobile instruit par P11-11 : absent sous un bridage réel | Contenu dans un panneau HTML non projeté, instance unique |
-| 8 | Direction artistique NEXUS *(réorientée par D11, puis par D14 : la carte mère)* | **IN_PROGRESS** — prototype NEXUS (P8-09) retiré, **carte mère en production depuis le 2026-10-31** (P8-13 #84, P8-14 #85, P8-15 #86) ; restent P8-05, P8-08, P8-11 | Scène crédible, budgets mesurés à chaque ajout |
+| 8 | Direction artistique NEXUS *(réorientée par D11, puis par D14 : la carte mère)* | **IN_PROGRESS** — prototype NEXUS (P8-09) retiré, **carte mère en production depuis le 2026-10-31** (P8-13 #84, P8-14 #85, P8-15 #86) ; restent P8-05, P8-08, P8-10 (à confirmer par la mesure GPU), P8-11 | Scène crédible, budgets mesurés à chaque ajout |
 | 9 | Interactions secondaires | TODO — **objets à réévaluer** (D11 : plus de bureau) | CV, GitHub, LinkedIn, contact, à propos |
 | 10 | Envoi du CV | TODO | Server Action + fournisseur abstrait + anti-abus |
 | 11 | Performance | TODO | Audit Avant/Après/Gain, budgets en CI |
