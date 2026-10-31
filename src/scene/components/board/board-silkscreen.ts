@@ -9,13 +9,14 @@
 import { CanvasTexture, LinearMipmapLinearFilter, SRGBColorSpace } from 'three'
 
 import type { BoardFile } from '@/scene/state/board-render/file-format'
+import { hexToRgb } from '@/scene/state/board-render/geometry'
 import {
   canvasMapping,
   fineTraces,
   silkscreenFrames,
   silkscreenItems,
 } from '@/scene/state/board-render/silkscreen'
-import type { Rect, Vec2 } from '@/scene/state/board/rect'
+import type { Rect, Vec2 } from '@/scene/state/plane'
 import { type DensityTier, PALETTE } from '@/scene/state/layout'
 
 /** Résolution par palier, en pixels par unité de scène : un téléphone n'a pas la mémoire d'un poste. */
@@ -33,8 +34,8 @@ const COPPER_PAD = 'rgba(201, 162, 87, 0.30)'
 
 /** Une couleur `#RRGGBB` avec une opacité. */
 const withAlpha = (hex: string, alpha: number): string => {
-  const n = Number.parseInt(hex.slice(1), 16)
-  return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${alpha})`
+  const [r, g, b] = hexToRgb(hex)
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`
 }
 
 export function paintSilkscreen(
@@ -159,5 +160,16 @@ export function paintSilkscreen(
   texture.colorSpace = SRGBColorSpace
   texture.anisotropy = anisotropy
   texture.minFilter = LinearMipmapLinearFilter
+  /*
+   * ⭐ Une fois envoyée au GPU, la texture n'a plus besoin de son image : le canvas est ramené à
+   * 0 × 0, ce qui rend son tampon de pixels — jusqu'à 4096² × 4 octets ≈ 64 Mo au palier `full`.
+   * Sûr parce que rien ne la renvoie : elle ne change plus (aucun `needsUpdate` après celui de la
+   * construction), une carte disposée est masquée avant son `dispose` et jamais redessinée
+   * (`useBoard`), et une perte de contexte fait tomber la scène plutôt que de la restaurer.
+   */
+  texture.onUpdate = () => {
+    canvas.width = 0
+    canvas.height = 0
+  }
   return texture
 }

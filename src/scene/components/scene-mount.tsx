@@ -177,8 +177,11 @@ export function SceneMount({ labels }: { readonly labels: BoardLabels }) {
   // Le survol est rattaché au chemin où il a eu lieu : il ne survit pas à une navigation.
   // ⭐ Review Focus 4 : une cible restée allumée ne survit pas à un changement de route.
   const [survolAt, setSurvolAt] = useState<{ cible: BoardTarget; chemin: string } | null>(null)
-  const [libre, setLibre] = useState<Rect | null>(null)
-  const [zoneDesEtiquettes, setZoneDesEtiquettes] = useState<Rect | null>(null)
+  // La zone libre et celle des étiquettes, qui en découle : mesurées ensemble, posées ensemble.
+  const [zones, setZones] = useState<{
+    readonly libre: Rect | null
+    readonly etiquettes: Rect
+  } | null>(null)
   // Les étiquettes, par identifiant, que la scène place à chaque image (`LabelProjector`).
   const ancres = useRef<LabelElements>(new Map())
   // ⭐ Une seule fonction, stable : l'élément dit lui-même son identifiant (`idDeLEtiquette`).
@@ -199,7 +202,11 @@ export function SceneMount({ labels }: { readonly labels: BoardLabels }) {
   const chemin = usePathname()
   const routeur = useRouter()
   const scene = resolveSceneState(chemin)
+  // `null` hors d'un chemin localisé : Échap n'a alors nulle part où ramener.
   const locale = localeFromPathname(chemin)
+  // La locale de l'URL, avec le repli de la locale par défaut, que ce layout localisé n'atteint
+  // jamais en pratique : celle des `href` de la carte et du plan qu'elle charge.
+  const localeAffichee = displayedLocale(chemin)
   const monte = etat.phase === 'mounted'
   /*
    * ⛔⛔ Le survol est EFFACÉ au premier rendu d'un autre chemin, pas seulement masqué. Masqué,
@@ -224,16 +231,17 @@ export function SceneMount({ labels }: { readonly labels: BoardLabels }) {
   const competenceSurvolee =
     survol?.kind === 'chip' && labels.skills[survol.slug] !== undefined ? survol.slug : null
   // Le pointeur de lien seulement sur ce qui mène quelque part (une année n'allume que).
-  const cliquable = survol !== null && hrefOf(survol, displayedLocale(chemin)) !== null
+  const cliquable = survol !== null && hrefOf(survol, localeAffichee) !== null
   // Une fiche se lit sans scène : elle reste montée, cachée, et ne calcule rien.
   const visible = scene.detail === null
 
   /*
-   * Un clic dans la carte : un chemin du site, poussé comme le ferait un lien. ⛔ Vers la page
-   * affichée (une puce depuis les compétences), le chemin ne change pas et rien ne repart du
-   * début : on le fait ici, comme l'intercepteur des liens.
+   * Une navigation client, pour un clic dans la carte comme pour un lien du DOM intercepté.
+   * ⛔ Vers la page affichée (une puce depuis les compétences, un lien vers soi), le chemin ne
+   * change pas et l'effet de remise du focus ne voit rien — là où, sans scène, le même clic
+   * recharge la page : rien ne repartirait du début. On le fait donc ici.
    */
-  const choisir = useCallback(
+  const naviguer = useCallback(
     (href: string) => {
       if (href === window.location.pathname) resetFocusToDocumentStart(document)
       routeur.push(href)
@@ -288,9 +296,8 @@ export function SceneMount({ labels }: { readonly labels: BoardLabels }) {
   useEffect(() => {
     if (!monte) return
     const mesurer = () => {
-      const zone = zoneLibre()
-      setLibre(zone)
-      setZoneDesEtiquettes(zoneEtiquettes(zone))
+      const libre = zoneLibre()
+      setZones({ libre, etiquettes: zoneEtiquettes(libre) })
     }
     const image = requestAnimationFrame(mesurer)
     window.addEventListener('resize', mesurer)
@@ -320,14 +327,11 @@ export function SceneMount({ labels }: { readonly labels: BoardLabels }) {
       const cible = lienInterne(event)
       if (cible === null) return
       event.preventDefault()
-      // ⛔ Vers la page affichée, le chemin ne change pas et l'effet ci-dessus ne
-      // voit rien — là où, sans scène, le même clic recharge la page.
-      if (cible === window.location.pathname) resetFocusToDocumentStart(document)
-      routeur.push(cible)
+      naviguer(cible)
     }
     document.addEventListener('click', intercepter)
     return () => document.removeEventListener('click', intercepter)
-  }, [monte, routeur])
+  }, [monte, naviguer])
 
   // Échap ramène à la vue d'ensemble — une navigation comme une autre.
   useEffect(() => {
@@ -375,19 +379,15 @@ export function SceneMount({ labels }: { readonly labels: BoardLabels }) {
         <SceneBoundary onFailure={abandonner}>
           <SceneCanvas
             capability={etat.capability}
-            /*
-             * La locale de l'URL — `localeFromPathname`, avec le repli de la locale
-             * par défaut, que ce layout localisé n'atteint jamais en pratique.
-             */
-            locale={displayedLocale(chemin)}
+            locale={localeAffichee}
             state={scene}
-            free={libre}
+            free={zones?.libre ?? null}
             visible={visible}
             hovered={survol}
             labelElements={ancres}
-            labelZone={zoneDesEtiquettes}
+            labelZone={zones?.etiquettes ?? null}
             onHover={survoler}
-            onSelect={choisir}
+            onSelect={naviguer}
             onContextLost={surPerteDeContexte}
             {...(diagnostics ? { onReadings: setReleves } : {})}
           />

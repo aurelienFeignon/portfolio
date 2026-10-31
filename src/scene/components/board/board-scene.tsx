@@ -20,7 +20,7 @@ import { useEffect, useMemo, useRef } from 'react'
 import type { Locale } from '@/i18n/locales'
 import { type AmbientState, ambientFrame } from '@/scene/state/ambient-motion'
 import type { BoardFile } from '@/scene/state/board-render/file-format'
-import { SHAPES, type Shape } from '@/scene/state/board-render/geometry'
+import { isShape } from '@/scene/state/board-render/geometry'
 import { offerHover } from '@/scene/state/board-render/hover-gate'
 import { relationsOf, targetAtPoint, targetOfInstance } from '@/scene/state/board-render/relations'
 import {
@@ -36,12 +36,30 @@ import type { SceneFocus } from '@/scene/state/scene-state'
 
 import { BoardMeshes, type BuiltBoard, useBoard } from './board-meshes'
 
+/**
+ * `onHover`, appelé seulement quand la cible change. ⛔ Filtré sur la dernière valeur ENVOYÉE,
+ * pas sur la prop (`hover-gate.ts`) : une sortie puis un mouvement dans le même événement
+ * laisseraient sinon le survol éteint sous le pointeur. La boîte se réaligne sur la prop quand
+ * celle-ci change d'ailleurs (une route qui efface le survol).
+ */
+function useHoverGate(
+  hovered: BoardTarget | null,
+  onHover: (target: BoardTarget | null) => void,
+): (target: BoardTarget | null) => void {
+  const lastSent = useRef(targetKey(hovered))
+  useEffect(() => {
+    lastSent.current = targetKey(hovered)
+  }, [hovered])
+  return (target) => {
+    if (offerHover(lastSent, target)) onHover(target)
+  }
+}
+
 /** La cible sous le pointeur : l'instance touchée, sinon le bus sous le point de la plaque. */
 function pick(file: BoardFile, event: ThreeEvent<PointerEvent | MouseEvent>): BoardTarget | null {
   const name = event.object.name
-  const shape = (SHAPES as readonly string[]).includes(name) ? (name as Shape) : null
   return (
-    (shape === null ? null : targetOfInstance(file.plan, shape, event.instanceId)) ??
+    (isShape(name) ? targetOfInstance(file.plan, name, event.instanceId) : null) ??
     targetAtPoint(file.plan, event.point.x, event.point.z)
   )
 }
@@ -92,15 +110,7 @@ function BuiltBoardScene({
   const hoveredSection = hovered === null ? null : sectionOf(hovered)
   // Le type du dernier appui : un `click` ne le porte pas partout (Safari).
   const pointerType = useRef('mouse')
-  // ⛔ Filtré sur la dernière valeur ENVOYÉE, pas sur la prop (`hover-gate.ts`) : une sortie puis
-  // un mouvement dans le même événement laisseraient sinon le survol éteint sous le pointeur.
-  const lastSent = useRef(targetKey(hovered))
-  useEffect(() => {
-    lastSent.current = targetKey(hovered)
-  }, [hovered])
-  const hover = (target: BoardTarget | null) => {
-    if (offerHover(lastSent, target)) onHover(target)
-  }
+  const hover = useHoverGate(hovered, onHover)
 
   // ⛔ Accumulé ici, jamais lu sur `state.clock` (`ambient-motion.ts`).
   const ambience = useRef<AmbientState>({

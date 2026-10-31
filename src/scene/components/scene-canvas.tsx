@@ -12,7 +12,7 @@
  * la carte n'en importe aucun.
  */
 import { Canvas } from '@react-three/fiber'
-import { type ComponentType, type RefObject, useCallback, useEffect, useState } from 'react'
+import { type ComponentType, type RefObject, useCallback, useState } from 'react'
 import { ACESFilmicToneMapping, SRGBColorSpace } from 'three'
 
 import type { Locale } from '@/i18n/locales'
@@ -28,6 +28,7 @@ import { type LabelElements, LabelProjector } from './board/label-projector'
 import { useBoardFile } from './board/use-board-file'
 import { CameraRig } from './camera-rig'
 import { ShaderWarmup } from './shader-warmup'
+import { useLazyImport } from './use-lazy-import'
 
 export default function SceneCanvas({
   capability,
@@ -180,41 +181,13 @@ export default function SceneCanvas({
 
 type SondeComposant = ComponentType<{ readonly onReadings: (readings: SceneReadings) => void }>
 
+const chargerSonde = (): Promise<SondeComposant> =>
+  import('./scene-diagnostics').then((module) => module.DiagnosticsProbe)
+
 /**
  * La sonde de diagnostic, chargée **à la demande** (P5-08) : sans `?debug=scene`,
  * l'import n'est jamais résolu et un visiteur ordinaire n'en paie pas un octet.
- *
- * ⛔⛔ **Un `import()` résolu dans un effet, jamais `next/dynamic`.** La sonde se
- * rend DANS le `<Canvas>`, donc par le réconciliateur de R3F, pas par celui de
- * React DOM. Depuis Next 16.4, un composant `next/dynamic` s'y résout par `use()`
- * et ce réconciliateur le refuse (React #438) : la scène tombait, perdait son
- * contexte WebGL, et le panneau attendait des relevés qui ne venaient jamais
- * (#63). Un composant ordinaire, posé une fois chargé, ne demande rien au
- * réconciliateur.
+ * Elle se rend DANS le `<Canvas>` : d'où `useLazyImport`, et non `next/dynamic`.
  */
-function useSonde(active: boolean): SondeComposant | null {
-  const [sonde, setSonde] = useState<SondeComposant | null>(null)
-  useEffect(() => {
-    if (!active) return
-    let vivant = true
-    import('./scene-diagnostics').then(
-      (module) => {
-        // Un composant dans un état se pose par une fonction : sinon React l'appellerait.
-        if (vivant) setSonde(() => module.DiagnosticsProbe)
-      },
-      // ⭐ Un chunk introuvable (déploiement entre deux visites) remonte à
-      // `SceneBoundary` — l'erreur levée dans un updater l'est au rendu —, comme
-      // le faisait `next/dynamic` : jamais un panneau qui attend en silence.
-      (erreur: unknown) => {
-        if (vivant)
-          setSonde(() => {
-            throw erreur
-          })
-      },
-    )
-    return () => {
-      vivant = false
-    }
-  }, [active])
-  return sonde
-}
+const useSonde = (active: boolean): SondeComposant | null =>
+  useLazyImport(active ? chargerSonde : null, active)

@@ -8,6 +8,7 @@
 | `scene-boundary.tsx` | La frontière d'erreur : `chunk` (Turbopack `ChunkLoadError`, ou `StaleBoardFileError`) ou `render`, sans rien afficher |
 | `scene-canvas.tsx` | Le `Canvas`, le chargement du plan de la locale, la perte de contexte WebGL |
 | `camera-rig.tsx` | Applique `camera-motion.ts` image par image : transition, orbite, parallaxe, cadrage dans la zone libre |
+| `use-lazy-import.ts` | `useLazyImport` : un module chargé dans un effet, jamais par `next/dynamic` (React #438 dans le `<Canvas>`), son erreur relancée au rendu pour `SceneBoundary` — le plan de carte et la sonde de diagnostic |
 | `shader-warmup.tsx` | La compilation des shaders avant la première image (`compileAsync`) |
 | `scene-diagnostics.tsx` | Le panneau `?debug=scene` |
 | `board/` | La carte mère (P8-15) : plan chargé (`use-board-file`), maillages, matériaux, sérigraphie, étiquettes projetées |
