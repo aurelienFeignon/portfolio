@@ -496,9 +496,9 @@ les liaisons d'un coup.
 
 ✅ **Relevé après #95, même machine, fenêtre privée sans extensions : 0 tâche longue, TBT 0 ms**, et
 la première image à 495 ms (762 ms après #94, qui attendait déjà la compilation). La tâche de montage
-(122 ms au profil) passe elle aussi sous le seuil de 50 ms : ce profil-là avait été pris **avec**
-des extensions (≈ 900 ms de leurs scripts au chargement, tas JS 96 Mo contre 25), qui chargeaient
-le fil principal. ⭐ **Toujours mesurer en fenêtre privée** : le panneau ne compte que les tâches
+(122 ms au profil) passe elle aussi sous le seuil de 50 ms. ⚠️ Cause non isolée : ce profil-là
+avait été pris **avec** des extensions (≈ 900 ms de leurs scripts au chargement, tas JS 96 Mo contre
+25), et #95 coupe aussi `checkShaderErrors` ; les deux changent entre les relevés. ⭐ **Toujours mesurer en fenêtre privée** : le panneau ne compte que les tâches
 postérieures à la marque de palier, mais des extensions ralentissent aussi ce qui suit.
 Restent à relever : les trois autres vues, et `make perf-baseline`.
 
