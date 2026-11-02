@@ -34,6 +34,7 @@ import {
 import { type DensityTier, PALETTE } from '@/scene/state/layout'
 import type { SceneFocus } from '@/scene/state/scene-state'
 
+import { ShaderWarmup } from '../shader-warmup'
 import { BoardMeshes, type BuiltBoard, useBoard } from './board-meshes'
 
 /**
@@ -76,6 +77,8 @@ interface BoardSceneProps {
   readonly onHover: (target: BoardTarget | null) => void
   /** Le clic qui navigue : un chemin du site, à pousser dans le routeur. */
   readonly onSelect: (href: string) => void
+  /** Les shaders de la carte compilés ou non (`ShaderWarmup`) : la scène ne rend qu'une fois prête. */
+  readonly onShadersReadyChange: (ready: boolean) => void
 }
 
 /** La carte n'existe qu'une fois construite (`useBoard`) : rien n'est dessiné avant. */
@@ -93,6 +96,7 @@ function BuiltBoardScene({
   focus,
   onHover,
   onSelect,
+  onShadersReadyChange,
 }: BoardSceneProps & { readonly built: BuiltBoard }) {
   const invalidate = useThree((state) => state.invalidate)
 
@@ -180,6 +184,12 @@ function BuiltBoardScene({
         // Un toucher à côté de la carte éteint ce que le premier toucher avait allumé.
         onPointerMissed={() => hover(null)}
       />
+      {/*
+       * ⛔⛔ ICI, et non à côté de `BoardScene` : dans le même rendu que la carte et ses lumières,
+       * qui entrent dans la clé des programmes (pourquoi : `shader-warmup.tsx`). ⭐ La clé : une
+       * carte reconstruite (palier, plan) le remonte, donc la recompile avant toute image.
+       */}
+      <ShaderWarmup key={built.root.uuid} onReadyChange={onShadersReadyChange} />
     </>
   )
 }

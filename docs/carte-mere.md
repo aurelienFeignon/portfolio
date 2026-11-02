@@ -463,6 +463,24 @@ passes et triangles, et `Avant / Après / Gain`. Procédure :
 3. `make perf-baseline` (l'utilisateur seul, hors conteneur d'agent) donne `Avant / Après / Gain`
    contre la baseline NEXUS de §9 ; coller le tableau ici, avec la date et le GPU.
 
+**Relevé de l'utilisateur, 2026-11-02** — production (`aurelienfeignon.com/fr?debug=scene`),
+RTX 5050 Laptop (ANGLE D3D11), compilation parallèle offerte, vue **Accueil** seule :
+
+| appels | triangles | géométries | textures | programmes | 1re image | tâches longues | TBT |
+|---|---|---|---|---|---|---|---|
+| 19 | 28 658 | 19 | 2 | 11 | 319 ms | 2 (max 185 ms) | 185 ms |
+
+Les appels tombent sur `drawCallBudget` (19). ⛔ **La tâche de 185 ms était un défaut, pas un coût**
+: `ShaderWarmup` était monté à côté de `BoardScene`, or la carte n'entre au graphe qu'au rendu qui
+suit sa construction (`useBoard`, un `setState` dans un effet). `compileAsync` compilait donc une
+scène sans carte ni lumières, et la première image liait les 11 programmes en synchrone. Mesuré sur
+le build de production : **0 programme lié sur 11** avant `data-ready`, 11 sur 11 après déplacement
+de `ShaderWarmup` dans `BoardScene`. Témoin : `scene-shader-warmup.spec.ts`, vu rouge sur l'ancien
+code. ⚠️ Le banc n'offre pas `KHR_parallel_shader_compile` : le **gain** se relit sur le matériel
+réel, après déploiement, en refaisant ce relevé. L'autre tâche longue est la construction de la
+carte (`buildBoard`, ≈ 78 ms en rendu logiciel, sérigraphie comprise). Restent à relever : les trois
+autres vues, et `make perf-baseline`.
+
 ### 12.6 Reliquats ouverts (après #86)
 
 À poser à l'utilisateur, non à trancher :

@@ -12,7 +12,7 @@
  * la carte n'en importe aucun.
  */
 import { Canvas } from '@react-three/fiber'
-import { type ComponentType, type RefObject, useCallback, useState } from 'react'
+import { type ComponentType, type RefObject, useState } from 'react'
 import { ACESFilmicToneMapping, SRGBColorSpace } from 'three'
 
 import type { Locale } from '@/i18n/locales'
@@ -27,7 +27,6 @@ import { BoardScene } from './board/board-scene'
 import { type LabelElements, LabelProjector } from './board/label-projector'
 import { useBoardFile } from './board/use-board-file'
 import { CameraRig } from './camera-rig'
-import { ShaderWarmup } from './shader-warmup'
 import { useLazyImport } from './use-lazy-import'
 
 export default function SceneCanvas({
@@ -83,12 +82,13 @@ export default function SceneCanvas({
    * Le plan de carte de la locale (P8-15c), qui porte les cadrages précalculés.
    * ⭐ Le canvas est créé SANS l'attendre — seul le contexte WebGL prend de
    * l'avance —, mais il ne rend aucune image avant son arrivée : `ShaderWarmup`
-   * n'est monté qu'avec le plan.
+   * n'est monté qu'avec la carte construite, dans `BoardScene`.
    */
   const plan = useBoardFile(locale)
   // Aucune image avant que les shaders soient compilés (`ShaderWarmup`).
   const [shadersPrets, setShadersPrets] = useState(false)
-  const quandPret = useCallback(() => setShadersPrets(true), [])
+  // `plan !== null` couvre le seul rendu où le plan a disparu (changement de langue) et où le
+  // démontage de `ShaderWarmup` n'a pas encore rendu `shadersPrets` à `false`.
   const pret = shadersPrets && plan !== null
 
   return (
@@ -140,8 +140,7 @@ export default function SceneCanvas({
          * lit la pose que le rig vient de poser, et `useFrame` les appelle dans
          * l'ordre où ils se sont abonnés.
          * ⭐ La carte et la compilation de ses shaders viennent avec le plan :
-         * `ShaderWarmup` se place APRÈS la carte, pour que ses effets trouvent les
-         * maillages déjà dans le graphe à compiler.
+         * `BoardScene` monte `ShaderWarmup` une fois la carte construite et posée.
          */
         <>
           <CameraRig
@@ -167,8 +166,8 @@ export default function SceneCanvas({
             focus={state.focus}
             onHover={onHover}
             onSelect={onSelect}
+            onShadersReadyChange={setShadersPrets}
           />
-          <ShaderWarmup onReady={quandPret} />
         </>
       )}
       {/* La sonde vient d'un état posé UNE fois (`useSonde`) : son identité ne

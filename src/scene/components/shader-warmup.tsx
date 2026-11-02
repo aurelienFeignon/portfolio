@@ -20,13 +20,31 @@
  * l'extension, et la compilation y reste synchrone (`nexus-prototype.md` §6.3).
  * Le gain sur un appareil réel n'est pas encore vérifié.
  *
- * Ce composant se place APRÈS la scène dans l'arbre : ses effets s'exécutent
- * après ceux des objets, qui sont donc déjà dans le graphe à compiler.
+ * Ce composant se monte dans le MÊME rendu que les objets à compiler : React
+ * les ajoute au graphe avant d'exécuter les effets, quelle que soit leur place
+ * parmi les enfants. ⛔ Être après eux dans l'arbre ne suffit pas quand ils
+ * naissent d'un `setState` posé dans un effet — ils n'entrent au graphe qu'au
+ * rendu suivant, et `compileAsync` compile une scène vide. Mesuré le 2026-11-02
+ * sur le build de production : 0 programme lié sur 11 avant la première image,
+ * soit une tâche longue de 185 ms sur une RTX 5050 (`carte-mere.md` §12.5) ;
+ * d'où son placement dans `BoardScene`. Témoin : `scene-shader-warmup.spec.ts`.
  */
 import { useThree } from '@react-three/fiber'
 import { useEffect } from 'react'
 
-export function ShaderWarmup({ onReady }: { readonly onReady: () => void }) {
+/**
+ * `onReadyChange(true)` une fois la compilation finie, `onReadyChange(false)` au démontage : la
+ * scène qui le remonte (un plan de l'autre langue, une carte reconstruite) ne rend rien avant
+ * d'avoir compilé à nouveau — sans quoi ses programmes, rendus par le `dispose` de l'ancienne
+ * carte, seraient liés en synchrone à la première image.
+ * ⛔ `onReadyChange` doit être STABLE (un `setState`) : une fonction neuve à chaque rendu
+ * relancerait la compilation, et repasserait la scène à « pas prête », à chaque rendu.
+ */
+export function ShaderWarmup({
+  onReadyChange,
+}: {
+  readonly onReadyChange: (ready: boolean) => void
+}) {
   const get = useThree((state) => state.get)
 
   useEffect(() => {
@@ -35,12 +53,13 @@ export function ShaderWarmup({ onReady }: { readonly onReady: () => void }) {
     gl.compileAsync(scene, camera)
       .catch(() => undefined)
       .then(() => {
-        if (!annule) onReady()
+        if (!annule) onReadyChange(true)
       })
     return () => {
       annule = true
+      onReadyChange(false)
     }
-  }, [get, onReady])
+  }, [get, onReadyChange])
 
   return null
 }
