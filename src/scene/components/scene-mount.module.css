@@ -78,7 +78,9 @@
   padding: var(--space-1) var(--space-3);
   /* Ancrée par le milieu de son bord bas : elle se pose au-dessus de son ancre. */
   translate: -50% -100%;
-  background: rgb(8 13 24 / 0.8);
+  /* P8-08 : la valeur du verre du panneau, jugée sur le blanc (`carte-mere.md` §9).
+     Garde, qui lit cette ligne : `scene-labels-keep-their-contrast.test.ts`. */
+  background: color-mix(in srgb, var(--color-background) 88%, transparent);
   border: 1px solid color-mix(in srgb, var(--tone) 45%, transparent);
   border-radius: var(--radius-md);
   box-shadow: 0 0 1.25rem -0.5rem var(--tone);

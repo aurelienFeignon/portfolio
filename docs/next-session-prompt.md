@@ -190,7 +190,7 @@ URL, tout le reste rend toujours 302.
 |---|---|---|
 | Chunk 3D, socle partagé, JS par route | chiffres courants en **un seul endroit** : [`performance-budget.md`](./performance-budget.md) §4.5 | — |
 | Image de production | **281 Mo** | cible 250 · bloquant 400 |
-| Tests | **1337** verts (2026-10-31, P8-15) ; couverture de `src/scene/state` : **100 %** sur les quatre axes (2026-10-31, après le retrait de NEXUS et de `closeUp`). Le chiffre global du dépôt n'a pas été relevé | ≥ 80 % |
+| Tests | **1346** verts (2026-11-02, P8-08) ; couverture de `src/scene/state` : **100 %** sur les quatre axes (2026-10-31, après le retrait de NEXUS et de `closeUp`). Le chiffre global du dépôt n'a pas été relevé | ≥ 80 % |
 | E2E | **153** verts sur 5 profils | — |
 | **Ce que le GPU rend** | ⚠️ dernier relevé = **NEXUS, 2026-08-25** (52 draw calls · 8 182 triangles, passe d'ombre incluse) ; **à remesurer par l'utilisateur sur la carte mère** (`carte-mere.md` §12.5) | ≤ 60 / ≤ 150 000 |
 
@@ -324,9 +324,9 @@ Les précédentes sont fusionnées et déployées : #84 (P8-13), #85 (P8-14), #8
 1. **Mesure GPU réelle par l'utilisateur** (`carte-mere.md` §12.5 : `?debug=scene`, appels toutes
    passes et triangles sur les quatre vues, puis `make perf-baseline` pour `Avant / Après / Gain`) —
    c'est elle qui dit si P8-11 et P8-10 ont encore un objet.
-2. **P8-08 — contrastes**, à juger sur la carte : étiquettes HTML sur la scène dans le pire cas
-   (impulsion ou diode derrière), et les teintes ambre et sarcelle ajoutées (jetons déjà dans
-   `globals.css`).
+2. ✅ **P8-08 — contrastes, DONE le 2026-11-02** (`carte-mere.md` §9) : pire cas borné sur le
+   **blanc** (mélange additif), donc indépendant de P8-05 ; l'accroche tombait à 3,9:1 → vitre des
+   étiquettes à 88 % ; garde `scene-labels-keep-their-contrast.test.ts`.
 3. **P8-05 — éclairage et ambiance** de la carte, sur retour visuel de l'utilisateur.
 4. **Reliquats de P8-15** : `carte-mere.md` §12.6 — à poser à l'utilisateur et non à trancher.
 
