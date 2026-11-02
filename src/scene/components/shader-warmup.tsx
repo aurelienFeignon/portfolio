@@ -28,9 +28,21 @@
  * sur le build de production : 0 programme lié sur 11 avant la première image,
  * soit une tâche longue de 185 ms sur une RTX 5050 (`carte-mere.md` §12.5) ;
  * d'où son placement dans `BoardScene`. Témoin : `scene-shader-warmup.spec.ts`.
+ *
+ * ⛔⛔ **Lier ne suffit pas** — mesuré le même jour sur la même machine, une fois
+ * le placement corrigé : la première image restait une tâche de 130 ms, dont 85 %
+ * dans `onFirstUse` de three (journaux, statut de liaison, uniforms, attributs :
+ * une cinquantaine d'appels GL synchrones vers le processus GPU), que three ne
+ * fait qu'au premier dessin de chaque programme, donc pour les 11 dans la même
+ * image. ⭐ On les provoque ici (`getUniforms`), **un programme par tâche** :
+ * chacun coûte quelques millisecondes, aucun ne fait plus de tâche longue.
+ * Sans l'extension (le banc), c'est là que la liaison se paie, étalée de même.
  */
 import { useThree } from '@react-three/fiber'
 import { useEffect } from 'react'
+
+/** Rend la main au navigateur : la suite part dans une tâche à elle. */
+const tacheSuivante = () => new Promise((fin) => setTimeout(fin, 0))
 
 /**
  * `onReadyChange(true)` une fois la compilation finie, `onReadyChange(false)` au démontage : la
@@ -52,7 +64,12 @@ export function ShaderWarmup({
     const { gl, scene, camera } = get()
     gl.compileAsync(scene, camera)
       .catch(() => undefined)
-      .then(() => {
+      .then(async () => {
+        for (const programme of gl.info.programs ?? []) {
+          await tacheSuivante()
+          if (annule) return
+          programme.getUniforms()
+        }
         if (!annule) onReadyChange(true)
       })
     return () => {
