@@ -20,8 +20,12 @@
  * l'extension, et la compilation y reste synchrone (`nexus-prototype.md` §6.3).
  * Le gain sur un appareil réel n'est pas encore vérifié.
  *
- * Ce composant se place APRÈS la scène dans l'arbre : ses effets s'exécutent
- * après ceux des objets, qui sont donc déjà dans le graphe à compiler.
+ * Ce composant se place APRÈS les objets à compiler, dans le MÊME rendu
+ * qu'eux : ses effets s'exécutent après leur ajout au graphe. ⛔ Être après
+ * eux dans l'arbre ne suffit pas quand ils naissent d'un `setState` posé dans un
+ * effet — ils n'entrent au graphe qu'au rendu suivant, et `compileAsync`
+ * compile une scène vide (mesuré le 2026-11-02 : 0 programme lié sur 11 avant
+ * la première image, d'où son placement dans `BoardScene`).
  */
 import { useThree } from '@react-three/fiber'
 import { useEffect } from 'react'

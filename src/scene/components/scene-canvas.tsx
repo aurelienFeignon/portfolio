@@ -27,7 +27,6 @@ import { BoardScene } from './board/board-scene'
 import { type LabelElements, LabelProjector } from './board/label-projector'
 import { useBoardFile } from './board/use-board-file'
 import { CameraRig } from './camera-rig'
-import { ShaderWarmup } from './shader-warmup'
 import { useLazyImport } from './use-lazy-import'
 
 export default function SceneCanvas({
@@ -140,8 +139,7 @@ export default function SceneCanvas({
          * lit la pose que le rig vient de poser, et `useFrame` les appelle dans
          * l'ordre où ils se sont abonnés.
          * ⭐ La carte et la compilation de ses shaders viennent avec le plan :
-         * `ShaderWarmup` se place APRÈS la carte, pour que ses effets trouvent les
-         * maillages déjà dans le graphe à compiler.
+         * `BoardScene` monte `ShaderWarmup` une fois la carte construite et posée.
          */
         <>
           <CameraRig
@@ -167,8 +165,8 @@ export default function SceneCanvas({
             focus={state.focus}
             onHover={onHover}
             onSelect={onSelect}
+            onShadersReady={quandPret}
           />
-          <ShaderWarmup onReady={quandPret} />
         </>
       )}
       {/* La sonde vient d'un état posé UNE fois (`useSonde`) : son identité ne

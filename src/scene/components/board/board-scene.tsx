@@ -34,6 +34,7 @@ import {
 import { type DensityTier, PALETTE } from '@/scene/state/layout'
 import type { SceneFocus } from '@/scene/state/scene-state'
 
+import { ShaderWarmup } from '../shader-warmup'
 import { BoardMeshes, type BuiltBoard, useBoard } from './board-meshes'
 
 /**
@@ -76,6 +77,8 @@ interface BoardSceneProps {
   readonly onHover: (target: BoardTarget | null) => void
   /** Le clic qui navigue : un chemin du site, à pousser dans le routeur. */
   readonly onSelect: (href: string) => void
+  /** Les shaders de la carte compilés (`ShaderWarmup`) : la scène peut rendre sa première image. */
+  readonly onShadersReady: () => void
 }
 
 /** La carte n'existe qu'une fois construite (`useBoard`) : rien n'est dessiné avant. */
@@ -93,6 +96,7 @@ function BuiltBoardScene({
   focus,
   onHover,
   onSelect,
+  onShadersReady,
 }: BoardSceneProps & { readonly built: BuiltBoard }) {
   const invalidate = useThree((state) => state.invalidate)
 
@@ -180,6 +184,14 @@ function BuiltBoardScene({
         // Un toucher à côté de la carte éteint ce que le premier toucher avait allumé.
         onPointerMissed={() => hover(null)}
       />
+      {/*
+       * ⛔⛔ ICI, et non à côté de `BoardScene` : la carte n'entre au graphe qu'au rendu QUI SUIT
+       * sa construction (`useBoard`, un `setState` dans un effet). Placé à côté, `ShaderWarmup`
+       * compilait une scène sans carte ni lumières, rendait la main aussitôt, et la première image
+       * liait les 11 programmes en synchrone — la tâche longue de 185 ms relevée sur l'accueil
+       * (RTX 5050, 2026-11-02). Après les lumières : elles entrent dans la clé des programmes.
+       */}
+      <ShaderWarmup onReady={onShadersReady} />
     </>
   )
 }
