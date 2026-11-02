@@ -11,14 +11,15 @@ import { expect, test } from '../../support/test'
  * Rien d'autre ne le voyait : la scène s'affichait, juste plus tard que prévu, et le banc n'offre
  * pas `KHR_parallel_shader_compile`, donc ne mesure pas le gain lui-même.
  *
- * ⛔⛔ **Puis, le placement corrigé** : la première image portait encore 130 ms, la PREMIÈRE
- * LECTURE de chaque programme (`onFirstUse` de three : journaux, uniforms, attributs), que three
- * ne fait qu'au premier dessin. `ShaderWarmup` la provoque désormais, un programme par tâche.
+ * ⛔⛔ Puis la première LECTURE de chaque programme (`onFirstUse`), que three ne fait qu'au
+ * premier dessin : le détail est dans `shader-warmup.tsx`.
  *
  * ⭐ Le témoin lit donc l'ORDRE, que le banc rend fidèlement : chaque `linkProgram` et chaque
  * lecture des uniforms (`ACTIVE_UNIFORMS`, que seule cette première lecture demande) horodatés
  * contre le passage de `data-ready` à `true`, qui ouvre la boucle de rendu (`scene-canvas.tsx`).
  */
+type Journal = { liaisons: number[]; lectures: number[]; prete: number | null }
+
 test('chaque programme de la première image est lié et lu avant que la scène soit prête', async ({
   page,
 }) => {
@@ -56,7 +57,7 @@ test('chaque programme de la première image est lié et lu avant que la scène 
   await expect(page.locator(`${RACINE} [data-ready="true"]`)).toBeAttached({
     timeout: PREMIERE_IMAGE_MS,
   })
-  // Dix images après le passage : un programme lié en retard l'aurait été à la première.
+  // Dix images après le passage : une liaison ou une lecture en retard aurait eu lieu à la première.
   await page.evaluate(
     () =>
       new Promise<void>((fin) => {
@@ -67,23 +68,16 @@ test('chaque programme de la première image est lié et lu avant que la scène 
   )
 
   const { liaisons, lectures, prete } = await page.evaluate(() =>
-    (
-      window as unknown as {
-        __warmup: () => { liaisons: number[]; lectures: number[]; prete: number | null }
-      }
-    ).__warmup(),
+    (window as unknown as { __warmup: () => Journal }).__warmup(),
   )
-  // Un passage jamais vu compterait toutes les liaisons « en retard » (`> null` lit 0) : le dire.
+  // Un passage jamais vu compterait tout « en retard » (`> null` lit 0) : le dire.
   expect(prete, 'passage de data-ready à true jamais observé').not.toBeNull()
-  // Contrôle positif : sans programme lié du tout, « aucun en retard » serait vrai par vacuité.
-  expect(liaisons.length).toBeGreaterThan(0)
-  expect(lectures.length).toBeGreaterThan(0)
-  expect(
-    liaisons.filter((instant) => instant > prete!),
-    'liés en retard',
-  ).toEqual([])
-  expect(
-    lectures.filter((instant) => instant > prete!),
-    'lus en retard',
-  ).toEqual([])
+  for (const [nom, instants] of Object.entries({ liaisons, lectures })) {
+    // Contrôle positif : sans aucun appel, « aucun en retard » serait vrai par vacuité.
+    expect(instants.length, nom).toBeGreaterThan(0)
+    expect(
+      instants.filter((instant) => instant > prete!),
+      `${nom} en retard`,
+    ).toEqual([])
+  }
 })

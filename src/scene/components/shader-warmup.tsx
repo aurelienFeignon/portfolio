@@ -32,9 +32,10 @@
  * ⛔⛔ **Lier ne suffit pas** — mesuré le même jour sur la même machine, une fois
  * le placement corrigé : la première image restait une tâche de 130 ms, dont 85 %
  * dans `onFirstUse` de three (journaux, statut de liaison, uniforms, attributs :
- * une cinquantaine d'appels GL synchrones vers le processus GPU), que three ne
- * fait qu'au premier dessin de chaque programme, donc pour les 11 dans la même
- * image. ⭐ On les provoque ici (`getUniforms`), **un programme par tâche** :
+ * des appels GL synchrones vers le processus GPU, dont le premier achève la
+ * liaison côté pilote), que three ne fait qu'au premier dessin de chaque
+ * programme, donc pour les 11 dans la même image. Les journaux sont coupés en
+ * production à la source (`checkShaderErrors`, `scene-canvas.tsx`). ⭐ On les provoque ici (`getUniforms`), **un programme par tâche** :
  * chacun coûte quelques millisecondes, aucun ne fait plus de tâche longue.
  * ⚠️ Sans l'extension (le banc), la première lecture attend toutes les liaisons
  * d'un coup : le gain ne s'y mesure pas (`carte-mere.md` §12.5).
@@ -52,8 +53,17 @@ import type { WebGLProgram } from 'three'
  */
 type Programme = WebGLProgram & { isReady(): boolean }
 
-/** Rend la main au navigateur : la suite part dans une tâche à elle. */
-const tacheSuivante = () => new Promise((fin) => setTimeout(fin, 0))
+/**
+ * Rend la main au navigateur : la suite part dans une tâche à elle. ⛔ Pas `setTimeout(0)` : en
+ * chaîne, il est bridé à 4 ms dès le cinquième, soit ≈ 25 ms de plus avant la première image.
+ */
+function tacheSuivante() {
+  return new Promise<void>((fin) => {
+    const canal = new MessageChannel()
+    canal.port1.onmessage = () => fin()
+    canal.port2.postMessage(null)
+  })
+}
 
 /**
  * `onReadyChange(true)` une fois la compilation finie, `onReadyChange(false)` au démontage : la
@@ -73,22 +83,24 @@ export function ShaderWarmup({
   useEffect(() => {
     let annule = false
     const { gl, scene, camera } = get()
-    gl.compileAsync(scene, camera)
-      .catch(() => undefined)
-      .then(async () => {
+    void (async () => {
+      // Une compilation ou une lecture qui échoue ne laisse pas la scène à jamais « pas prête » :
+      // la première image refera le travail, au pire en synchrone.
+      try {
+        await gl.compileAsync(scene, camera)
         for (const programme of [...(gl.info.programs ?? [])]) {
-          await tacheSuivante()
           if (annule || gl.getContext().isContextLost()) return
-          // ⛔ Seulement un programme LIÉ : lire les autres forcerait leur liaison, en synchrone.
-          if ((programme as Programme).isReady()) programme.getUniforms()
+          // ⛔ Seulement un programme LIÉ (un tardif ne l'est peut-être pas) : lire les autres
+          // forcerait leur liaison, en synchrone.
+          if (!(programme as Programme).isReady()) continue
+          programme.getUniforms()
+          await tacheSuivante()
         }
-      })
-      // Une lecture qui échoue ne doit pas laisser la scène à jamais « pas prête » : la première
-      // image la refera, au pire en synchrone.
-      .catch(() => undefined)
-      .then(() => {
-        if (!annule) onReadyChange(true)
-      })
+      } catch {
+        // voir plus haut
+      }
+      if (!annule) onReadyChange(true)
+    })()
     return () => {
       annule = true
       onReadyChange(false)
