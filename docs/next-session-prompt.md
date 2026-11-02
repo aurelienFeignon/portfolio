@@ -191,8 +191,9 @@ URL, tout le reste rend toujours 302.
 | Chunk 3D, socle partagé, JS par route | chiffres courants en **un seul endroit** : [`performance-budget.md`](./performance-budget.md) §4.5 | — |
 | Image de production | **281 Mo** | cible 250 · bloquant 400 |
 | Tests | **1346** verts (2026-11-02, P8-08) ; couverture de `src/scene/state` : **100 %** sur les quatre axes (2026-10-31, après le retrait de NEXUS et de `closeUp`). Le chiffre global du dépôt n'a pas été relevé | ≥ 80 % |
-| E2E | **153** verts sur 5 profils | — |
-| **Ce que le GPU rend** | ⚠️ dernier relevé = **NEXUS, 2026-08-25** (52 draw calls · 8 182 triangles, passe d'ombre incluse) ; **à remesurer par l'utilisateur sur la carte mère** (`carte-mere.md` §12.5) | ≤ 60 / ≤ 150 000 |
+| E2E | **185** sur 5 profils (2026-11-02, contre l'image de production ; `panel-during-transition` et `content-once` échouent parfois sous la charge de la suite complète, verts en isolé) | — |
+| **Ce que le GPU rend** | carte mère, **les quatre vues**, 2026-11-02 (RTX 5050 Laptop) : **19** draw calls · **28 658** triangles · 11 programmes, identiques d'une vue à l'autre (la carte est dessinée entière) ; mobile non mesuré (`carte-mere.md` §12.5) | ≤ 60 / ≤ 150 000 |
+| **TBT de la scène** (panneau `?debug=scene`, Accueil, production) | **0 ms** sur les quatre vues, 0 tâche longue, 1re image 416 à 495 ms (2026-11-02, après #95 ; 185 ms avant) | — |
 
 ⚠️ **Relevés historiques du 2026-08-25 (Phase 5)** — les chiffres de bundle ont été refaits le
 2026-10-30 (voir ci-dessus), les 127,1 / 11,0 / 234,5 qui suivent sont **datés** ; tous remesurés ce jour-là dans le même
@@ -314,16 +315,26 @@ référence (#57), `ReadingPanel`, P6-04, décisions NEXUS (D11 et amendements d
 prototype, validation visuelle avec l'utilisateur, fusion et déploiement (#58), roadmap reprise.
 
 ⛔ **Avant toute chose, vérifie la fusion de cette mise à jour du prompt** (branche
-`docs/prompt-apres-p8-15`) : `gh pr list --state all --head docs/prompt-apres-p8-15`, puis le
+`docs/prompt-apres-tbt-accueil`) : `gh pr list --state all --head docs/prompt-apres-tbt-accueil`, puis le
 déploiement de `main` (`gh run list --branch main --workflow ci.yml --limit 1`).
-Les précédentes sont fusionnées et déployées : #84 (P8-13), #85 (P8-14), #86 (P8-15).
+Les précédentes sont fusionnées et déployées : #84 (P8-13), #85 (P8-14), #86 (P8-15), #93 (P8-08),
+#94 et #95 (tâche longue du montage), #96 (relevé).
 
 ✅ P8-15 livrée le 2026-10-31 (#86), vérifiée en localhost. Défaut retenu : le temps de transition se comptait en images → ADR-0012 (révision du 2026-10-31).
 
 ⭐⭐ **La suite, dans l'ordre recommandé :**
-1. **Mesure GPU réelle par l'utilisateur** (`carte-mere.md` §12.5 : `?debug=scene`, appels toutes
-   passes et triangles sur les quatre vues, puis `make perf-baseline` pour `Avant / Après / Gain`) —
-   c'est elle qui dit si P8-11 et P8-10 ont encore un objet.
+1. **Mesure GPU réelle par l'utilisateur** (`carte-mere.md` §12.5) — ✅ **les quatre vues relevées
+   le 2026-11-02** : 19 appels, 28 658 triangles partout, TBT 0 ms ⇒ **P8-10 et P8-11 sans objet sur
+   le bureau** (à refermer dans la roadmap ; mobile non mesuré). ⛔ `make perf-baseline` (2026-11-02,
+   `carte-mere.md` §12.5) : **l'accueil coûte ~3× NEXUS sur le banc** (mobile +3 790 ms, ordinateur
+   +735 ms) — non représentatif d'un GPU avec compilation parallèle (0 ms mesuré), mais bien d'un
+   appareil **sans** : **prochaine mesure, un vrai téléphone** sur `?debug=scene`, puis attribuer. Toujours en **fenêtre privée sans extensions** : un profil pris avec extensions portait
+   ≈ 900 ms de leurs scripts et une tâche de montage de 122 ms qui a disparu ensuite.
+   ✅ **La tâche longue de l'Accueil est soldée** (TBT 185 → 0 ms) : #94 a corrigé une précompilation
+   qui compilait une scène vide — défaut réel, **sans gain mesuré** ; #95 a étalé la première lecture
+   des programmes (`onFirstUse` de three), seule cause attribuée par le profil DevTools de la machine
+   réelle. ⭐⭐ **Le banc (swiftshader, sans compilation parallèle) prouve un ORDRE, jamais un GAIN** :
+   tout gain de performance de la scène se juge sur le relevé de l'utilisateur, après déploiement.
 2. ✅ **P8-08 — contrastes, DONE le 2026-11-02** (`carte-mere.md` §9) : pire cas borné sur le
    **blanc** (mélange additif), donc indépendant de P8-05 ; l'accroche tombait à 3,9:1 → vitre des
    étiquettes à 88 % ; garde `scene-labels-keep-their-contrast.test.ts`.

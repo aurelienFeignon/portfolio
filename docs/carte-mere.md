@@ -500,7 +500,34 @@ la première image à 495 ms (762 ms après #94, qui attendait déjà la compila
 avait été pris **avec** des extensions (≈ 900 ms de leurs scripts au chargement, tas JS 96 Mo contre
 25), et #95 coupe aussi `checkShaderErrors` ; les deux changent entre les relevés. ⭐ **Toujours mesurer en fenêtre privée** : le panneau ne compte que les tâches
 postérieures à la marque de palier, mais des extensions ralentissent aussi ce qui suit.
-Restent à relever : les trois autres vues, et `make perf-baseline`.
+**Les trois autres vues, même jour, même session (navigation client depuis l'accueil, d'où une
+« première image » identique de 416 ms)** : Expériences, Projets, Compétences rendent **les mêmes
+19 appels, 28 658 triangles, 11 programmes**, 0 tâche longue, TBT 0 ms, dernière image 0,2 à 0,4 ms.
+⭐ La carte est dessinée **entière** quelle que soit la vue — seule la caméra change —, d'où des
+chiffres identiques : sous les seuils de §9 (≤ 60 appels, ≤ 150 000 triangles) avec une large marge
+sur ce GPU, donc **P8-10 et P8-11 n'ont plus d'objet sur le bureau**. ⚠️ Rien n'est mesuré sur
+mobile.
+
+**`make perf-baseline`, 2026-11-02** — commit `c539563` (code de `main` après #95), Lighthouse 13.6.0
+(`simulate`), SwiftShader **sans GPU ni compilation parallèle**, `benchmarkIndex` 3 272, hôte chargé
+à ~12 sur 20 cœurs. Résumé : [`mesures/2026-11-02-carte-mere-c539563.json`](./mesures/2026-11-02-carte-mere-c539563.json).
+Coût de la scène (TBT médian scène − témoin), contre NEXUS (`nexus-prototype.md` §6.2, `d42fa70`) :
+
+| Page · profil | NEXUS | **Carte mère** | Thread principal (écart) |
+|---|---|---|---|
+| Accueil · mobile (`lite`) | 1 231 ms | **3 856 ms** (+3 790) | +7 079 ms |
+| Accueil · ordinateur (`full`) | 279 ms | **735 ms** (+735) | +2 275 ms |
+| Fiche · mobile | 327 ms | **265 ms** (+199) | +653 ms |
+| Fiche · ordinateur | 0 ms | **0 ms** | +167 ms |
+
+LCP et CLS inchangés par la scène (LCP 905 / 245 ms, CLS 0 partout). ⛔⛔ **Sur le banc, l'accueil
+coûte environ trois fois NEXUS**, sur les deux profils ; les fiches restent au niveau de NEXUS ou en
+dessous (scène cachée). ⚠️ Le banc a surestimé NEXUS d'un facteur ~8 contre un vrai GPU, et le relevé
+réel de la carte est à **0 ms** sur ordinateur : ce chiffre ne décrit pas un visiteur équipé d'une
+compilation parallèle. ⭐⭐ Il décrit en revanche, en ordre de grandeur, un appareil **qui n'en a
+pas** — c'est précisément le cas non vérifié (Safari, téléphones modestes). **Non attribué** : la
+part de la liaison des 11 programmes (8 pour NEXUS), de `buildBoard` et de la sérigraphie, et du
+rendu logiciel lui-même. Prochaine mesure utile : un **vrai téléphone** sur `?debug=scene`.
 
 ### 12.6 Reliquats ouverts (après #86)
 
