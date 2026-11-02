@@ -463,23 +463,37 @@ passes et triangles, et `Avant / Après / Gain`. Procédure :
 3. `make perf-baseline` (l'utilisateur seul, hors conteneur d'agent) donne `Avant / Après / Gain`
    contre la baseline NEXUS de §9 ; coller le tableau ici, avec la date et le GPU.
 
-**Relevé de l'utilisateur, 2026-11-02** — production (`aurelienfeignon.com/fr?debug=scene`),
+**Relevés de l'utilisateur, 2026-11-02** — production (`aurelienfeignon.com/fr?debug=scene`),
 RTX 5050 Laptop (ANGLE D3D11), compilation parallèle offerte, vue **Accueil** seule :
 
-| appels | triangles | géométries | textures | programmes | 1re image | tâches longues | TBT |
-|---|---|---|---|---|---|---|---|
-| 19 | 28 658 | 19 | 2 | 11 | 319 ms | 2 (max 185 ms) | 185 ms |
+| build | appels | triangles | programmes | 1re image | tâches longues | TBT |
+|---|---|---|---|---|---|---|
+| `7b56592` | 19 | 28 658 | 11 | 319 ms | 2 (max 185 ms) | 185 ms |
+| `4c3c760` (#94) | 19 | 28 658 | 11 | 762 ms | 3 (max 204 ms) | 183 ms |
 
-Les appels tombent sur `drawCallBudget` (19). ⛔ **La tâche de 185 ms était un défaut, pas un coût**
-: `ShaderWarmup` était monté à côté de `BoardScene`, or la carte n'entre au graphe qu'au rendu qui
-suit sa construction (`useBoard`, un `setState` dans un effet). `compileAsync` compilait donc une
-scène sans carte ni lumières, et la première image liait les 11 programmes en synchrone. Mesuré sur
-le build de production : **0 programme lié sur 11** avant `data-ready`, 11 sur 11 après déplacement
-de `ShaderWarmup` dans `BoardScene`. Témoin : `scene-shader-warmup.spec.ts`, vu rouge sur l'ancien
-code. ⚠️ Le banc n'offre pas `KHR_parallel_shader_compile` : le **gain** se relit sur le matériel
-réel, après déploiement, en refaisant ce relevé. L'autre tâche longue est la construction de la
-carte (`buildBoard`, ≈ 78 ms en rendu logiciel, sérigraphie comprise). Restent à relever : les trois
-autres vues, et `make perf-baseline`.
+Les appels tombent sur `drawCallBudget` (19).
+
+⛔⛔ **#94 a corrigé un défaut réel, mais ce n'était PAS la tâche de 185 ms.** `ShaderWarmup` était
+monté à côté de `BoardScene`, or la carte n'entre au graphe qu'au rendu qui suit sa construction :
+`compileAsync` compilait une scène vide (0 programme lié sur 11 avant `data-ready`, 11 sur 11
+après). Le relevé suivant n'a pas bougé : avec la compilation parallèle, lier ne bloquait déjà
+presque pas. ⭐ **Leçon : le banc avait prouvé l'ORDRE et j'en avais conclu au GAIN** — un défaut
+réel n'est pas forcément celui qui coûte.
+
+**Attribution sur le matériel réel** (profil DevTools de l'utilisateur, source maps de l'image) :
+
+| tâche | durée | contenu |
+|---|---|---|
+| montage | 122 ms | réconciliation R3F et `setSize` (≈ 35 %), `buildBoard` (≈ 24 %), `compileAsync` lancé (≈ 18 %) |
+| 1re image | 130 ms | **85 % dans `onFirstUse` de three** — journaux, statut, uniforms, attributs des 11 programmes, une cinquantaine d'appels GL synchrones, faits au premier dessin de chacun |
+
+D'où le correctif suivant : `ShaderWarmup` provoque cette première lecture (`getUniforms`) lui-même,
+**un programme par tâche**, avant `data-ready`. Témoin : `scene-shader-warmup.spec.ts` (lectures
+`ACTIVE_UNIFORMS` avant `data-ready`, vu rouge sur `4c3c760`). ⚠️ Le banc ne mesure toujours pas
+le gain : sans l'extension, la première lecture y attend toutes les liaisons d'un coup. **Relevé à
+refaire après déploiement.** ⚠️ Le profil avait été pris hors fenêtre privée : ≈ 900 ms de scripts
+d'extensions au chargement, avant la marque de palier donc hors du TBT du panneau, mais à éviter.
+Restent à relever : les trois autres vues, et `make perf-baseline`.
 
 ### 12.6 Reliquats ouverts (après #86)
 

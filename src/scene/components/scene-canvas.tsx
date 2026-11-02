@@ -110,6 +110,9 @@ export default function SceneCanvas({
         gl.toneMapping = ACESFilmicToneMapping
         gl.toneMappingExposure = 1.05
         gl.outputColorSpace = SRGBColorSpace
+        // Les journaux de compilation : trois lectures synchrones par programme au premier
+        // dessin (`shader-warmup.tsx`), utiles au développement seulement.
+        gl.debug.checkShaderErrors = process.env.NODE_ENV !== 'production'
         // ⭐ Fond transparent : le dégradé CSS du site passe derrière la scène,
         // donc aucun saut de couleur quand le canvas apparaît après `idle`.
         gl.setClearColor(PALETTE.background, 0)

@@ -28,9 +28,42 @@
  * sur le build de production : 0 programme lié sur 11 avant la première image,
  * soit une tâche longue de 185 ms sur une RTX 5050 (`carte-mere.md` §12.5) ;
  * d'où son placement dans `BoardScene`. Témoin : `scene-shader-warmup.spec.ts`.
+ *
+ * ⛔⛔ **Lier ne suffit pas** — mesuré le même jour sur la même machine, une fois
+ * le placement corrigé : la première image restait une tâche de 130 ms, dont 85 %
+ * dans `onFirstUse` de three (journaux, statut de liaison, uniforms, attributs :
+ * des appels GL synchrones vers le processus GPU, dont le premier achève la
+ * liaison côté pilote), que three ne fait qu'au premier dessin de chaque
+ * programme, donc pour les 11 dans la même image. Les journaux sont coupés en
+ * production à la source (`checkShaderErrors`, `scene-canvas.tsx`). ⭐ On les provoque ici (`getUniforms`), **un programme par tâche** :
+ * chacun coûte quelques millisecondes, aucun ne fait plus de tâche longue.
+ * ⚠️ Sans l'extension (le banc), la première lecture attend toutes les liaisons
+ * d'un coup : le gain ne s'y mesure pas (`carte-mere.md` §12.5).
+ * ⚠️ Repose sur deux internes de three 0.186 : `info.programs` est le cache vivant
+ * (d'où la copie, qu'un `releaseProgram` en cours de route ne décale pas), et
+ * `getUniforms` déclenche `onFirstUse`. Le témoin e2e rougit si le second cesse.
  */
 import { useThree } from '@react-three/fiber'
 import { useEffect } from 'react'
+import type { WebGLProgram } from 'three'
+
+/**
+ * `isReady` existe à l'exécution (three 0.186 : vrai d'office sans l'extension, sinon
+ * `COMPLETION_STATUS_KHR`), mais pas dans `@types/three`.
+ */
+type Programme = WebGLProgram & { isReady(): boolean }
+
+/**
+ * Rend la main au navigateur : la suite part dans une tâche à elle. ⛔ Pas `setTimeout(0)` : en
+ * chaîne, il est bridé à 4 ms dès le cinquième, soit ≈ 25 ms de plus avant la première image.
+ */
+function tacheSuivante() {
+  return new Promise<void>((fin) => {
+    const canal = new MessageChannel()
+    canal.port1.onmessage = () => fin()
+    canal.port2.postMessage(null)
+  })
+}
 
 /**
  * `onReadyChange(true)` une fois la compilation finie, `onReadyChange(false)` au démontage : la
@@ -50,11 +83,24 @@ export function ShaderWarmup({
   useEffect(() => {
     let annule = false
     const { gl, scene, camera } = get()
-    gl.compileAsync(scene, camera)
-      .catch(() => undefined)
-      .then(() => {
-        if (!annule) onReadyChange(true)
-      })
+    void (async () => {
+      // Une compilation ou une lecture qui échoue ne laisse pas la scène à jamais « pas prête » :
+      // la première image refera le travail, au pire en synchrone.
+      try {
+        await gl.compileAsync(scene, camera)
+        for (const programme of [...(gl.info.programs ?? [])]) {
+          if (annule || gl.getContext().isContextLost()) return
+          // ⛔ Seulement un programme LIÉ (un tardif ne l'est peut-être pas) : lire les autres
+          // forcerait leur liaison, en synchrone.
+          if (!(programme as Programme).isReady()) continue
+          programme.getUniforms()
+          await tacheSuivante()
+        }
+      } catch {
+        // voir plus haut
+      }
+      if (!annule) onReadyChange(true)
+    })()
     return () => {
       annule = true
       onReadyChange(false)
