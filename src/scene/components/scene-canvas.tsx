@@ -12,7 +12,7 @@
  * la carte n'en importe aucun.
  */
 import { Canvas } from '@react-three/fiber'
-import { type ComponentType, type RefObject, useCallback, useState } from 'react'
+import { type ComponentType, type RefObject, useState } from 'react'
 import { ACESFilmicToneMapping, SRGBColorSpace } from 'three'
 
 import type { Locale } from '@/i18n/locales'
@@ -87,7 +87,6 @@ export default function SceneCanvas({
   const plan = useBoardFile(locale)
   // Aucune image avant que les shaders soient compilés (`ShaderWarmup`).
   const [shadersPrets, setShadersPrets] = useState(false)
-  const quandPret = useCallback(() => setShadersPrets(true), [])
   const pret = shadersPrets && plan !== null
 
   return (
@@ -165,7 +164,7 @@ export default function SceneCanvas({
             focus={state.focus}
             onHover={onHover}
             onSelect={onSelect}
-            onShadersReady={quandPret}
+            onShadersReadyChange={setShadersPrets}
           />
         </>
       )}

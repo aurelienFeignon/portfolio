@@ -77,8 +77,8 @@ interface BoardSceneProps {
   readonly onHover: (target: BoardTarget | null) => void
   /** Le clic qui navigue : un chemin du site, à pousser dans le routeur. */
   readonly onSelect: (href: string) => void
-  /** Les shaders de la carte compilés (`ShaderWarmup`) : la scène peut rendre sa première image. */
-  readonly onShadersReady: () => void
+  /** Les shaders de la carte compilés ou non (`ShaderWarmup`) : la scène ne rend qu'une fois prête. */
+  readonly onShadersReadyChange: (ready: boolean) => void
 }
 
 /** La carte n'existe qu'une fois construite (`useBoard`) : rien n'est dessiné avant. */
@@ -96,7 +96,7 @@ function BuiltBoardScene({
   focus,
   onHover,
   onSelect,
-  onShadersReady,
+  onShadersReadyChange,
 }: BoardSceneProps & { readonly built: BuiltBoard }) {
   const invalidate = useThree((state) => state.invalidate)
 
@@ -189,9 +189,11 @@ function BuiltBoardScene({
        * sa construction (`useBoard`, un `setState` dans un effet). Placé à côté, `ShaderWarmup`
        * compilait une scène sans carte ni lumières, rendait la main aussitôt, et la première image
        * liait les 11 programmes en synchrone — la tâche longue de 185 ms relevée sur l'accueil
-       * (RTX 5050, 2026-11-02). Après les lumières : elles entrent dans la clé des programmes.
+       * (RTX 5050, 2026-11-02). Ici, il se monte dans le même rendu que la carte et ses lumières,
+       * qui entrent dans la clé des programmes. ⭐ La clé : une carte reconstruite (palier, plan)
+       * le remonte, donc la recompile avant toute image.
        */}
-      <ShaderWarmup onReady={onShadersReady} />
+      <ShaderWarmup key={built.root.uuid} onReadyChange={onShadersReadyChange} />
     </>
   )
 }

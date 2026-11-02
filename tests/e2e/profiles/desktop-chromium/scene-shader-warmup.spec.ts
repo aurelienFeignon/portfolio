@@ -47,9 +47,13 @@ test('chaque programme de la première image est lié avant que la scène soit p
   await page.waitForTimeout(1_000)
 
   const { liaisons, prete } = await page.evaluate(() =>
-    (window as unknown as { __warmup: () => { liaisons: number[]; prete: number } }).__warmup(),
+    (
+      window as unknown as { __warmup: () => { liaisons: number[]; prete: number | null } }
+    ).__warmup(),
   )
+  // Un passage jamais vu compterait toutes les liaisons « en retard » (`> null` lit 0) : le dire.
+  expect(prete, 'passage de data-ready à true jamais observé').not.toBeNull()
   // Contrôle positif : sans programme lié du tout, « aucun en retard » serait vrai par vacuité.
   expect(liaisons.length).toBeGreaterThan(0)
-  expect(liaisons.filter((instant) => instant > prete)).toEqual([])
+  expect(liaisons.filter((instant) => instant > prete!)).toEqual([])
 })
