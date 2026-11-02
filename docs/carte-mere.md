@@ -470,6 +470,7 @@ RTX 5050 Laptop (ANGLE D3D11), compilation parallèle offerte, vue **Accueil** s
 |---|---|---|---|---|---|---|
 | `7b56592` | 19 | 28 658 | 11 | 319 ms | 2 (max 185 ms) | 185 ms |
 | `4c3c760` (#94) | 19 | 28 658 | 11 | 762 ms | 3 (max 204 ms) | 183 ms |
+| `0179b3d` (#95) | 19 | 28 658 | 11 | **495 ms** | **0** | **0 ms** |
 
 Les appels tombent sur `drawCallBudget` (19).
 
@@ -485,14 +486,20 @@ réel n'est pas forcément celui qui coûte.
 | tâche | durée | contenu |
 |---|---|---|
 | montage | 122 ms | réconciliation R3F et `setSize` (≈ 35 %), `buildBoard` (≈ 24 %), `compileAsync` lancé (≈ 18 %) |
-| 1re image | 130 ms | **85 % dans `onFirstUse` de three** — journaux, statut, uniforms, attributs des 11 programmes, une cinquantaine d'appels GL synchrones, faits au premier dessin de chacun |
+| 1re image | 130 ms | **85 % dans `onFirstUse` de three** — journaux, statut, uniforms, attributs des 11 programmes, des appels GL synchrones faits au premier dessin de chacun |
 
-D'où le correctif suivant : `ShaderWarmup` provoque cette première lecture (`getUniforms`) lui-même,
-**un programme par tâche**, avant `data-ready`. Témoin : `scene-shader-warmup.spec.ts` (lectures
-`ACTIVE_UNIFORMS` avant `data-ready`, vu rouge sur `4c3c760`). ⚠️ Le banc ne mesure toujours pas
-le gain : sans l'extension, la première lecture y attend toutes les liaisons d'un coup. **Relevé à
-refaire après déploiement.** ⚠️ Le profil avait été pris hors fenêtre privée : ≈ 900 ms de scripts
-d'extensions au chargement, avant la marque de palier donc hors du TBT du panneau, mais à éviter.
+D'où #95 : `ShaderWarmup` provoque cette première lecture (`getUniforms`) lui-même, **un programme
+par tâche**, avant `data-ready`, et `checkShaderErrors` est coupé en production. Témoin :
+`scene-shader-warmup.spec.ts` (lectures `ACTIVE_UNIFORMS` avant `data-ready`, vu rouge sur
+`4c3c760`). ⚠️ Le banc ne mesure pas le gain : sans l'extension, la première lecture y attend toutes
+les liaisons d'un coup.
+
+✅ **Relevé après #95, même machine, fenêtre privée sans extensions : 0 tâche longue, TBT 0 ms**, et
+la première image à 495 ms (762 ms après #94, qui attendait déjà la compilation). La tâche de montage
+(122 ms au profil) passe elle aussi sous le seuil de 50 ms : ce profil-là avait été pris **avec**
+des extensions (≈ 900 ms de leurs scripts au chargement, tas JS 96 Mo contre 25), qui chargeaient
+le fil principal. ⭐ **Toujours mesurer en fenêtre privée** : le panneau ne compte que les tâches
+postérieures à la marque de palier, mais des extensions ralentissent aussi ce qui suit.
 Restent à relever : les trois autres vues, et `make perf-baseline`.
 
 ### 12.6 Reliquats ouverts (après #86)
