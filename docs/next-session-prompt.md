@@ -325,8 +325,10 @@ Les précédentes sont fusionnées et déployées : #84 (P8-13), #85 (P8-14), #8
 ⭐⭐ **La suite, dans l'ordre recommandé :**
 1. **Mesure GPU réelle par l'utilisateur** (`carte-mere.md` §12.5) — ✅ **les quatre vues relevées
    le 2026-11-02** : 19 appels, 28 658 triangles partout, TBT 0 ms ⇒ **P8-10 et P8-11 sans objet sur
-   le bureau** (à refermer dans la roadmap ; mobile non mesuré). Reste `make perf-baseline` (l'utilisateur
-   seul) pour `Avant / Après / Gain`. Toujours en **fenêtre privée sans extensions** : un profil pris avec extensions portait
+   le bureau** (à refermer dans la roadmap ; mobile non mesuré). ⛔ `make perf-baseline` (2026-11-02,
+   `carte-mere.md` §12.5) : **l'accueil coûte ~3× NEXUS sur le banc** (mobile +3 790 ms, ordinateur
+   +735 ms) — non représentatif d'un GPU avec compilation parallèle (0 ms mesuré), mais bien d'un
+   appareil **sans** : **prochaine mesure, un vrai téléphone** sur `?debug=scene`, puis attribuer. Toujours en **fenêtre privée sans extensions** : un profil pris avec extensions portait
    ≈ 900 ms de leurs scripts et une tâche de montage de 122 ms qui a disparu ensuite.
    ✅ **La tâche longue de l'Accueil est soldée** (TBT 185 → 0 ms) : #94 a corrigé une précompilation
    qui compilait une scène vide — défaut réel, **sans gain mesuré** ; #95 a étalé la première lecture
