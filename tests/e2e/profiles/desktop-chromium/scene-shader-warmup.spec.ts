@@ -28,8 +28,10 @@ test('chaque programme de la première image est lié avant que la scène soit p
         lier.call(this, programme)
       }
     }
-    new MutationObserver(() => {
-      prete ??= document.querySelector('[data-ready="true"]') ? performance.now() : null
+    new MutationObserver((_, observateur) => {
+      if (!document.querySelector('[data-ready="true"]')) return
+      prete = performance.now()
+      observateur.disconnect()
     }).observe(document, {
       subtree: true,
       childList: true,
@@ -43,8 +45,15 @@ test('chaque programme de la première image est lié avant que la scène soit p
   await expect(page.locator(`${RACINE} [data-ready="true"]`)).toBeAttached({
     timeout: PREMIERE_IMAGE_MS,
   })
-  // La première image et celles qui suivent : un programme lié en retard aurait eu le temps de l'être.
-  await page.waitForTimeout(1_000)
+  // Dix images après le passage : un programme lié en retard l'aurait été à la première.
+  await page.evaluate(
+    () =>
+      new Promise<void>((fin) => {
+        let images = 0
+        const image = () => (++images >= 10 ? fin() : requestAnimationFrame(image))
+        requestAnimationFrame(image)
+      }),
+  )
 
   const { liaisons, prete } = await page.evaluate(() =>
     (

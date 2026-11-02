@@ -22,11 +22,12 @@
  *
  * Ce composant se monte dans le MÊME rendu que les objets à compiler : React
  * les ajoute au graphe avant d'exécuter les effets, quelle que soit leur place
- * parmi les enfants. ⛔ Être après
- * eux dans l'arbre ne suffit pas quand ils naissent d'un `setState` posé dans un
- * effet — ils n'entrent au graphe qu'au rendu suivant, et `compileAsync`
- * compile une scène vide (mesuré le 2026-11-02 : 0 programme lié sur 11 avant
- * la première image, d'où son placement dans `BoardScene`).
+ * parmi les enfants. ⛔ Être après eux dans l'arbre ne suffit pas quand ils
+ * naissent d'un `setState` posé dans un effet — ils n'entrent au graphe qu'au
+ * rendu suivant, et `compileAsync` compile une scène vide. Mesuré le 2026-11-02
+ * sur le build de production : 0 programme lié sur 11 avant la première image,
+ * soit une tâche longue de 185 ms sur une RTX 5050 (`carte-mere.md` §12.5) ;
+ * d'où son placement dans `BoardScene`. Témoin : `scene-shader-warmup.spec.ts`.
  */
 import { useThree } from '@react-three/fiber'
 import { useEffect } from 'react'
@@ -36,6 +37,8 @@ import { useEffect } from 'react'
  * scène qui le remonte (un plan de l'autre langue, une carte reconstruite) ne rend rien avant
  * d'avoir compilé à nouveau — sans quoi ses programmes, rendus par le `dispose` de l'ancienne
  * carte, seraient liés en synchrone à la première image.
+ * ⛔ `onReadyChange` doit être STABLE (un `setState`) : une fonction neuve à chaque rendu
+ * relancerait la compilation, et repasserait la scène à « pas prête », à chaque rendu.
  */
 export function ShaderWarmup({
   onReadyChange,

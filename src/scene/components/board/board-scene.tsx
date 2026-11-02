@@ -185,13 +185,9 @@ function BuiltBoardScene({
         onPointerMissed={() => hover(null)}
       />
       {/*
-       * ⛔⛔ ICI, et non à côté de `BoardScene` : la carte n'entre au graphe qu'au rendu QUI SUIT
-       * sa construction (`useBoard`, un `setState` dans un effet). Placé à côté, `ShaderWarmup`
-       * compilait une scène sans carte ni lumières, rendait la main aussitôt, et la première image
-       * liait les 11 programmes en synchrone — la tâche longue de 185 ms relevée sur l'accueil
-       * (RTX 5050, 2026-11-02). Ici, il se monte dans le même rendu que la carte et ses lumières,
-       * qui entrent dans la clé des programmes. ⭐ La clé : une carte reconstruite (palier, plan)
-       * le remonte, donc la recompile avant toute image.
+       * ⛔⛔ ICI, et non à côté de `BoardScene` : dans le même rendu que la carte et ses lumières,
+       * qui entrent dans la clé des programmes (pourquoi : `shader-warmup.tsx`). ⭐ La clé : une
+       * carte reconstruite (palier, plan) le remonte, donc la recompile avant toute image.
        */}
       <ShaderWarmup key={built.root.uuid} onReadyChange={onShadersReadyChange} />
     </>

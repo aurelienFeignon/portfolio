@@ -82,11 +82,13 @@ export default function SceneCanvas({
    * Le plan de carte de la locale (P8-15c), qui porte les cadrages précalculés.
    * ⭐ Le canvas est créé SANS l'attendre — seul le contexte WebGL prend de
    * l'avance —, mais il ne rend aucune image avant son arrivée : `ShaderWarmup`
-   * n'est monté qu'avec le plan.
+   * n'est monté qu'avec la carte construite, dans `BoardScene`.
    */
   const plan = useBoardFile(locale)
   // Aucune image avant que les shaders soient compilés (`ShaderWarmup`).
   const [shadersPrets, setShadersPrets] = useState(false)
+  // `plan !== null` couvre le seul rendu où le plan a disparu (changement de langue) et où le
+  // démontage de `ShaderWarmup` n'a pas encore rendu `shadersPrets` à `false`.
   const pret = shadersPrets && plan !== null
 
   return (
