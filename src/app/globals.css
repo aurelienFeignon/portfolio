@@ -20,8 +20,9 @@
   /*
    * ⭐⭐ NEXUS (D11) — thème SOMBRE unique. Les contrastes sont calculés sur les
    * trois fonds où du texte se pose : `background`, `panel` (le panneau de
-   * lecture) et `surface` (les cartes et puces DANS le panneau). Jamais sur la
-   * scène : aucun texte ne s'y pose.
+   * lecture) et `surface` (les cartes et puces DANS le panneau). Le seul texte
+   * posé sur la scène — ses étiquettes, sur leur propre vitre — se juge à part,
+   * sur le pire cas (P8-08, `scene-labels-keep-their-contrast.test.ts`).
    */
   --color-background: #080d18;
   --color-panel: #111c30;
@@ -42,8 +43,9 @@
   --color-sky: #38bdf8;
   /*
    * Ambre et vert d'eau : les deux teintes que la carte mère ajoute à la palette (`PALETTE`,
-   * cinq familles de compétences). Rapports mesurés sur les trois fonds ; le jugement de
-   * contraste sur la scène finale reste celui de P8-08.
+   * cinq familles de compétences). Rapports mesurés sur les trois fonds. ⭐ P8-08 : aucun texte
+   * ne les porte aujourd'hui — elles peignent les puces de la scène, et les étiquettes posées
+   * dessus sont jugées sur le pire cas, le blanc (`scene-labels-keep-their-contrast.test.ts`).
    */
   --color-amber: #f5b342; /* 10,6:1 · 9,3:1 · 8,1:1 */
   --color-teal: #2dd4bf; /* 10,4:1 · 9,2:1 · 8,0:1 */

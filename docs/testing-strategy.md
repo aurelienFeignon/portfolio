@@ -334,7 +334,9 @@ vérifie. Relevé en écrivant P5-09, qui ajoute un contrôle à cette même por
 
 - Lecture au lecteur d'écran (NVDA/VoiceOver) sur les parcours clés — Phase 12.
 - Ressenti de fluidité de la scène sur matériel réel — Phases 8, 13.
-- Vérification des contrastes sur la direction artistique finale — Phase 8.
+- ~~Vérification des contrastes sur la direction artistique finale — Phase 8.~~ Automatisée en P8-08
+  (2026-11-02) pour les étiquettes de la scène, sur le pire cas (blanc) :
+  `tests/integration/scene-labels-keep-their-contrast.test.ts`.
 - Restauration du VPS après incident — Phase 15.
 
 Ces points figurent dans la checklist de release, pour qu'ils ne disparaissent pas faute d'être

@@ -56,7 +56,7 @@ silencieusement.
 | 5 | Fondation Three.js | **DONE** *(2026-08-25)* — 10/10, P5-10 close le 2026-10-23 avec #58 | Scène primitive : le bureau réel, éclairé, budget tenu, isolation gardée |
 | 6 | Navigation spatiale | **CLOSE** *(2026-08-26 → 2026-10-27)* — 12/12 |  Route ↔ scène, testé sans WebGL |
 | 7 | Interfaces de lecture *(réorientée par D11)* | **CLOSE** *(2026-10-23 → 2026-10-29)* — 6 livrées, P7-01/02 abandonnées ; critère CWV tenu par arbitrage D13 (`performance-budget.md` §6.4), écart de LCP mobile instruit par P11-11 : absent sous un bridage réel | Contenu dans un panneau HTML non projeté, instance unique |
-| 8 | Direction artistique NEXUS *(réorientée par D11, puis par D14 : la carte mère)* | **IN_PROGRESS** — prototype NEXUS (P8-09) retiré, **carte mère en production depuis le 2026-10-31** (P8-13 #84, P8-14 #85, P8-15 #86) ; restent P8-05, P8-08, P8-10 (à confirmer par la mesure GPU), P8-11 | Scène crédible, budgets mesurés à chaque ajout |
+| 8 | Direction artistique NEXUS *(réorientée par D11, puis par D14 : la carte mère)* | **IN_PROGRESS** — prototype NEXUS (P8-09) retiré, **carte mère en production depuis le 2026-10-31** (P8-13 #84, P8-14 #85, P8-15 #86) ; restent P8-05, P8-10 (à confirmer par la mesure GPU), P8-11 ; P8-08 DONE le 2026-11-02 | Scène crédible, budgets mesurés à chaque ajout |
 | 9 | Interactions secondaires | TODO — **objets à réévaluer** (D11 : plus de bureau) | CV, GitHub, LinkedIn, contact, à propos |
 | 10 | Envoi du CV | TODO | Server Action + fournisseur abstrait + anti-abus |
 | 11 | Performance | TODO | Audit Avant/Après/Gain, budgets en CI |
@@ -1639,7 +1639,7 @@ chiffrée, P11-11 — soldée le jour même : artefact de Lantern (`performance-
 | P8-05 | Éclairage et ambiance — **IN_PROGRESS** : première version NEXUS en production (#58) ; **à refaire sur la carte mère** (D14, [`carte-mere.md`](./carte-mere.md)) — le rendu monté par P8-15 pose l'éclairage de la carte ; son jugement visuel reste à l'utilisateur | P8-15 |
 | ~~P8-06~~ | ~~Objets de décor porteurs de sens (support des interactions de la Phase 9)~~ — **DROPPED** (D11) : plus de bureau où les poser ; voir la réévaluation de la Phase 9 | P8-05 |
 | P8-07 | Mesure `Avant / Après / Gain` **après chaque ajout** — banc `make perf-baseline` **et** panneau `?debug=scene` sur GPU réel (`nexus-prototype.md` §6) | P8-09 |
-| P8-08 | Vérification des contrastes sur la direction artistique finale — la carte mère (`carte-mere.md` §9) | P8-05 |
+| P8-08 | Vérification des contrastes sur la direction artistique finale — la carte mère (`carte-mere.md` §9) — **DONE** *(2026-11-02)* : pire cas borné sur le blanc, donc indépendant de l'éclairage (P8-05) ; l'accroche tombait à 3,9:1, vitre des étiquettes portée de 80 à 88 % ; gardé par `scene-labels-keep-their-contrast.test.ts` | P8-05 |
 | P8-09 | Prototype NEXUS : noyau et plateforme, trois univers, ambiance, `ReadingPanel` en verre lumineux — **DONE** *(2026-10-23, #58)* | P6-04 |
 | P8-10 | Alléger le premier rendu : moins de variantes de matériaux et de draw calls (72 sur ordinateur, cible 60) — **tenue par construction** par la carte mère montée en P8-15 (D14) : `drawCallBudget` est épinglé par test, chiffres en [`carte-mere.md`](./carte-mere.md) §12.5 | P8-09 |
 | P8-11 | Mesurer sur les appareils non couverts : GPU intégré, téléphone réel, Safari (`KHR_parallel_shader_compile`) | P8-09 |

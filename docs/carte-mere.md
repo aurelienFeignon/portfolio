@@ -223,6 +223,33 @@ qu'elle montre est déjà dans le panneau. Sous `prefers-reduced-motion`, les im
 (une impulsion ou une diode derrière) ; les deux teintes ajoutées à la palette ; le panneau ne change
 pas.
 
+✅ **Jugé le 2026-11-02.** ⭐⭐ Le pire cas n'est pas une teinte de la palette, c'est le **blanc** :
+halos, impulsions et pistes se composent en mélange additif et saturent là où ils se superposent, et
+l'ancre d'une étiquette est justement un composant avec son halo. Borner sur le blanc rend le
+jugement **indépendant de l'éclairage** — il tient quoi que fasse P8-05.
+
+| Texte (étiquette visible, opacité 0,9) | vitre 80 % (#86) | vitre **88 %** |
+|---|---|---|
+| Nom (`--color-text`) sur blanc | 7,4:1 | **9,7:1** |
+| Accroche (`--color-text-muted`) sur blanc | ⛔ **3,9:1** | **5,2:1** |
+| Accroche sur cyan (`#28D9F5`), la teinte la plus claire | 4,7:1 | 5,8:1 |
+
+⛔ **Défaut trouvé et corrigé** : à 80 %, l'accroche des sections passait sous AA (4,5:1) dès que du
+blanc venait derrière. La vitre est à **88 %**, la valeur du verre du panneau, et s'écrit désormais
+depuis le token (`color-mix(var(--color-background) 88%, transparent)`) au lieu d'un littéral.
+- **Ambre et sarcelle** : aucun texte ne les porte — elles peignent les puces, et le blanc les domine
+  comme fond d'étiquette. Leurs rapports sur les trois fonds du site restent notés dans `globals.css`.
+- **Garde** : `tests/integration/scene-labels-keep-their-contrast.test.ts` lit **toutes** les
+  vitres, opacités et couleurs de texte de `scene-mount.module.css` (hors `.decor`), retient la
+  vitre la plus claire et l'opacité visible la plus basse (celle du conteneur `.etiquettes` se
+  multiplie), et exige AA sur le blanc et sur chaque teinte de la carte (`TONES`). ⛔ Une déclaration qu'il ne
+  sait pas lire le fait **échouer** — opacité en `%` ou en `var()`, couleur hors token
+  (`var(--tone)`). Deux témoins : la formule retrouve les rapports notés dans `globals.css`, et
+  l'étiquette de #86 y est vue en défaut. Vu rouge sur 80 %, puis par six mutations : opacité 0,75,
+  `.repere` à 0,7, conteneur à 0,8, vitre survolée à 70 %, `color: var(--tone)`, `opacity: 90%`.
+- ⚠️ **Non couvert** : le fondu d'apparition (300 ms) traverse des contrastes plus bas — un état de
+  transition, pas de lecture.
+
 **Budgets.**
 
 - Appels de dessin : cible **60** sur ordinateur (P8-10). Le rendu jetable en fait environ 200 :
