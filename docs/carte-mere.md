@@ -500,7 +500,13 @@ la première image à 495 ms (762 ms après #94, qui attendait déjà la compila
 avait été pris **avec** des extensions (≈ 900 ms de leurs scripts au chargement, tas JS 96 Mo contre
 25), et #95 coupe aussi `checkShaderErrors` ; les deux changent entre les relevés. ⭐ **Toujours mesurer en fenêtre privée** : le panneau ne compte que les tâches
 postérieures à la marque de palier, mais des extensions ralentissent aussi ce qui suit.
-Restent à relever : les trois autres vues, et `make perf-baseline`.
+**Les trois autres vues, même jour, même session (navigation client depuis l'accueil, d'où une
+« première image » identique de 416 ms)** : Expériences, Projets, Compétences rendent **les mêmes
+19 appels, 28 658 triangles, 11 programmes**, 0 tâche longue, TBT 0 ms, dernière image 0,2 à 0,4 ms.
+⭐ La carte est dessinée **entière** quelle que soit la vue — seule la caméra change —, d'où des
+chiffres identiques : sous les seuils de §9 (≤ 60 appels, ≤ 150 000 triangles) avec une large marge
+sur ce GPU, donc **P8-10 et P8-11 n'ont plus d'objet sur le bureau**. ⚠️ Rien n'est mesuré sur
+mobile. Reste `make perf-baseline` (l'utilisateur seul) pour `Avant / Après / Gain`.
 
 ### 12.6 Reliquats ouverts (après #86)
 

@@ -192,8 +192,8 @@ URL, tout le reste rend toujours 302.
 | Image de production | **281 Mo** | cible 250 · bloquant 400 |
 | Tests | **1346** verts (2026-11-02, P8-08) ; couverture de `src/scene/state` : **100 %** sur les quatre axes (2026-10-31, après le retrait de NEXUS et de `closeUp`). Le chiffre global du dépôt n'a pas été relevé | ≥ 80 % |
 | E2E | **185** sur 5 profils (2026-11-02, contre l'image de production ; `panel-during-transition` et `content-once` échouent parfois sous la charge de la suite complète, verts en isolé) | — |
-| **Ce que le GPU rend** | carte mère, vue **Accueil**, 2026-11-02 (RTX 5050 Laptop) : **19** draw calls · **28 658** triangles · 11 programmes ; les trois autres vues restent à relever (`carte-mere.md` §12.5) | ≤ 60 / ≤ 150 000 |
-| **TBT de la scène** (panneau `?debug=scene`, Accueil, production) | **0 ms**, 0 tâche longue, 1re image 495 ms (2026-11-02, après #95 ; 185 ms avant) | — |
+| **Ce que le GPU rend** | carte mère, **les quatre vues**, 2026-11-02 (RTX 5050 Laptop) : **19** draw calls · **28 658** triangles · 11 programmes, identiques d'une vue à l'autre (la carte est dessinée entière) ; mobile non mesuré (`carte-mere.md` §12.5) | ≤ 60 / ≤ 150 000 |
+| **TBT de la scène** (panneau `?debug=scene`, Accueil, production) | **0 ms** sur les quatre vues, 0 tâche longue, 1re image 416 à 495 ms (2026-11-02, après #95 ; 185 ms avant) | — |
 
 ⚠️ **Relevés historiques du 2026-08-25 (Phase 5)** — les chiffres de bundle ont été refaits le
 2026-10-30 (voir ci-dessus), les 127,1 / 11,0 / 234,5 qui suivent sont **datés** ; tous remesurés ce jour-là dans le même
@@ -323,10 +323,10 @@ Les précédentes sont fusionnées et déployées : #84 (P8-13), #85 (P8-14), #8
 ✅ P8-15 livrée le 2026-10-31 (#86), vérifiée en localhost. Défaut retenu : le temps de transition se comptait en images → ADR-0012 (révision du 2026-10-31).
 
 ⭐⭐ **La suite, dans l'ordre recommandé :**
-1. **Mesure GPU réelle par l'utilisateur** (`carte-mere.md` §12.5) — ✅ **Accueil relevé le
-   2026-11-02** (19 appels, 28 658 triangles) ; restent **Projets, Expériences, Compétences**, puis
-   `make perf-baseline` pour `Avant / Après / Gain` — c'est elle qui dit si P8-11 et P8-10 ont encore
-   un objet. Toujours en **fenêtre privée sans extensions** : un profil pris avec extensions portait
+1. **Mesure GPU réelle par l'utilisateur** (`carte-mere.md` §12.5) — ✅ **les quatre vues relevées
+   le 2026-11-02** : 19 appels, 28 658 triangles partout, TBT 0 ms ⇒ **P8-10 et P8-11 sans objet sur
+   le bureau** (à refermer dans la roadmap ; mobile non mesuré). Reste `make perf-baseline` (l'utilisateur
+   seul) pour `Avant / Après / Gain`. Toujours en **fenêtre privée sans extensions** : un profil pris avec extensions portait
    ≈ 900 ms de leurs scripts et une tâche de montage de 122 ms qui a disparu ensuite.
    ✅ **La tâche longue de l'Accueil est soldée** (TBT 185 → 0 ms) : #94 a corrigé une précompilation
    qui compilait une scène vide — défaut réel, **sans gain mesuré** ; #95 a étalé la première lecture
