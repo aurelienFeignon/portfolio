@@ -505,8 +505,7 @@ postérieures à la marque de palier, mais des extensions ralentissent aussi ce 
 19 appels, 28 658 triangles, 11 programmes**, 0 tâche longue, TBT 0 ms, dernière image 0,2 à 0,4 ms.
 ⭐ La carte est dessinée **entière** quelle que soit la vue — seule la caméra change —, d'où des
 chiffres identiques : sous les seuils de §9 (≤ 60 appels, ≤ 150 000 triangles) avec une large marge
-sur ce GPU, donc **P8-10 et P8-11 n'ont plus d'objet sur le bureau**. ⚠️ Rien n'est mesuré sur
-mobile.
+sur ce GPU, donc **P8-10 et P8-11 n'ont plus d'objet sur le bureau**. ⚠️ Au 2026-11-02, rien n’était mesuré sur mobile ; voir le relevé du 2026-11-03 ci-dessous.
 
 **`make perf-baseline`, 2026-11-02** — commit `c539563` (code de `main` après #95), Lighthouse 13.6.0
 (`simulate`), SwiftShader **sans GPU ni compilation parallèle**, `benchmarkIndex` 3 272, hôte chargé
@@ -527,7 +526,42 @@ réel de la carte est à **0 ms** sur ordinateur : ce chiffre ne décrit pas un 
 compilation parallèle. ⭐⭐ Il décrit en revanche, en ordre de grandeur, un appareil **qui n'en a
 pas** — c'est précisément le cas non vérifié (Safari, téléphones modestes). **Non attribué** : la
 part de la liaison des 11 programmes (8 pour NEXUS), de `buildBoard` et de la sérigraphie, et du
-rendu logiciel lui-même. Prochaine mesure utile : un **vrai téléphone** sur `?debug=scene`.
+rendu logiciel lui-même. Cette recommandation a donné lieu au premier relevé téléphone du 2026-11-03 ci-dessous.
+
+#### Relevé téléphone réel — 2026-11-03
+
+Source : capture du panneau `?debug=scene` fournie par l'utilisateur, vue Accueil.
+GPU déclaré : **ANGLE (ARM, Mali-G720-Immortalis MC12, OpenGL ES 3.2)** ; compilation
+parallèle : **non**. Modèle confirmé par l'utilisateur : **Xiaomi 14T Pro**, navigateur **Chrome** (version non précisée).
+Version du système, mode privé, palier et SHA servi non confirmés. Aucun résultat des autres vues ni retour
+sur la fluidité n'a encore été fourni. **Retour visuel de l'utilisateur : le rendu ne convient
+pas vraiment ; repasse à faire après avoir terminé le contenu** (2026-11-03). Ce report ne vaut
+pas validation de P8-05.
+
+| Indicateur | Valeur visible |
+|---|---|
+| Appels / triangles (toutes passes) | 16 / 19 038 |
+| Géométries / textures / programmes | 16 / 2 / 10 |
+| Images rendues | 95 |
+| Dernière image | 0,7 ms |
+| Tas JS | 12 Mo |
+| Première image | 474 ms |
+| Tâches longues | 1, maximum 63 ms |
+| TBT du panneau | 13 ms |
+
+Les budgets d'appels et de triangles sont tenus sur ce relevé. Il couvre enfin un appareil
+mobile **sans compilation parallèle**, avec un faible blocage observé à l'accueil. La durée
+« dernière image » ne constitue pas une mesure de fréquence d'affichage ni du temps GPU.
+Ce relevé ne reproduit pas le coût de plusieurs secondes du banc logiciel ; les méthodes et
+appareils diffèrent, donc aucun facteur de gain n'en est déduit. Il ne couvre ni tous les
+mobiles, ni Safari, ni les GPU intégrés de bureau. **P8-11 reste IN_PROGRESS**, en attente du
+contexte et du retour d'usage ; P8-05 reste ouverte, avec une repasse visuelle reportée après la finalisation du contenu à la
+demande de l'utilisateur.
+
+**Après ce relevé — enrichissement du contenu du 2026-11-03 :** ajout de PHP et des projets
+Hephaistos 3D, Dedale et exploration NCM. Le plan régénéré comporte six processeurs et
+71 pistes, sans liaison perdue. Les mesures GPU ci-dessus décrivent la version à trois
+projets ; les performances de la nouvelle composition restent à relever après déploiement.
 
 ### 12.6 Reliquats ouverts (après #86)
 
@@ -537,4 +571,4 @@ rendu logiciel lui-même. Prochaine mesure utile : un **vrai téléphone** sur `
 - l'aspect des ponts (effectifs : tableau de §11) ;
 - l'affinité des emplacements de processeurs, différée depuis §11 ;
 - les impulsions immobiles au palier `lite` (règle d'image fixe, ADR-0003, choisie pendant l'exécution, à confirmer) ;
-- la mesure GPU réelle (procédure : §12.5).
+- compléter le contexte et le retour d’usage du relevé téléphone du 2026-11-03 (§12.5).

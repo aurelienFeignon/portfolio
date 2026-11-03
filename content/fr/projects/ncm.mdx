@@ -1,0 +1,35 @@
+---
+slug: ncm
+title: Exploration NCM
+summary: "Une exploration de Next-Concept Modeling à partir du projet HazyResearch : protocoles d'évaluation, préparation de données et essais de génération reproductibles."
+type: personal
+featured: true
+technologies:
+  - python
+  - cuda
+  - automated-testing
+  - documented-architecture
+startedAt: '2026'
+links:
+  repository: https://github.com/aurelienFeignon/ncm
+---
+
+Cette exploration part du projet **Next-Concept Modeling de HazyResearch** : une approche de
+génération de texte qui prédit une hiérarchie de représentations du plus grossier au plus fin,
+avec une génération parallèle à chaque niveau.
+
+## Mon travail d'exploration
+
+Mon travail local porte sur la préparation des expériences : protocoles d'évaluation,
+manifestes de corpus, partitionnement des données et prévention des recouvrements entre jeux.
+J'ai également préparé des validateurs de contenus, un gabarit conversationnel Qwen3, un client
+de génération et un registre d'essais pour tracer les conditions de chaque exécution.
+
+L'objectif est de rendre les comparaisons interprétables : quelles données sont utilisées,
+quel protocole est figé et quelles conclusions les résultats autorisent réellement.
+
+## Périmètre
+
+**Je ne suis pas l'auteur de NCM.** Le dépôt lié est mon fork du travail de HazyResearch ;
+une partie de mon exploration reste locale et n'est pas nécessairement présente sur ce fork.
+La préparation des essais ne vaut ni entraînement achevé, ni gain de qualité ou de vitesse démontré.

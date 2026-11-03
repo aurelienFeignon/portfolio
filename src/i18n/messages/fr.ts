@@ -30,6 +30,8 @@
 export const fr = {
   skipToContent: 'Aller au contenu principal',
 
+  projectRepository: 'Voir le code sur GitHub',
+
   nav: {
     label: 'Navigation principale',
   },

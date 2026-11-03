@@ -37,7 +37,7 @@ Lis, dans cet ordre, et ne me demande pas de te les résumer :
                                  par `make board` (§12), mesures (§11, §12.5).
 12ter. docs/nexus-prototype.md ← NEXUS, la scène retirée le 2026-10-31 : historique, mais §6 (l'enquête
                                  de performance) reste la meilleure lecture sur la mesure de la scène.
-13. docs/phase-6-log.md       ← ⭐⭐ journal de la phase EN COURS. §3 porte les arbitrages
+13. docs/phase-6-log.md       ← journal de la phase CLOSE. §3 porte les arbitrages
                                  d'ouverture, §5 l'ordre de travail et ses deux écarts assumés.
 14. deploy/README.md          ← exploitation réelle du serveur : déploiement, rollback, journaux,
                                  checklist de mise en ligne (§8) et vérification publique (§9)
@@ -67,97 +67,15 @@ lumineux. Pour l'historique, `docs/nexus-prototype.md` §6 (enquête de performa
 **Tout ce qui suit est fusionné sur `main` et déployé**, les cinq jobs verts à chaque fois —
 publication GHCR et déploiement VPS compris.
 
-⭐ **Le 2026-10-27, dix PR fusionnées et déployées** (dernier `main` : `5efbe40`, cinq jobs verts) —
-#71 (ce prompt après P7-05), puis :
-- **#72** — la scène NEXUS reprend quatre idées d'une maquette Stitch : emblèmes des univers (pile de
-  plateaux, prisme, gyroscope), faisceaux en pointillés, parallaxe vers la souris, **étiquettes
-  permanentes** en HTML hors de la racine de scène (ADR-0003/0004 précisés), socle holographique.
-- **#73** — ⛔⛔ **sous Next 16.4, un composant `next/dynamic` rendu DANS le `<Canvas>` fait tomber la
-  scène** (React #438 : le réconciliateur de R3F refuse son `use()`). La sonde de diagnostic est
-  désormais chargée par `import()` dans `useSonde` (`scene-canvas.tsx`), et une garde ESLint interdit
-  `next`/`next/*` dans tout `src/scene/components/**` hors `scene-mount.tsx` et `scene-boundary.tsx`.
-- **Mises à jour** : Next **16.4.1** (#63, sécurité), zod 4.6.6 (#62, sécurité), R3F 9.8.2, drei
-  10.7.9, pnpm 11.28.8, yaml, devDependencies (#66 : Playwright **1.64.1**, `typescript-eslint` 8.72.0
-  — le verrou en portait une **seconde copie**, d'où un ESLint qui refusait de charger).
-  ⚠️ L'image E2E des deux fichiers compose est passée à `playwright:v1.64.1-noble` : un volume
-  `node_modules` resté en 1.62.1 casse `make e2e` — `make install` d'abord.
-- ⭐ **La branche se supprime désormais à la fusion** (`delete_branch_on_merge`, activé le 2026-10-27).
-- ⭐ La protection de `main` exige une branche **à jour** et la fusion automatique est désactivée : on
-  fusionne une PR à la fois, `gh pr update-branch` puis CI complète. Après chaque fusion, les PR
-  Renovate qui touchent le verrou passent souvent en conflit : fusionner `main`, garder le verrou de
-  `main`, `pnpm install --lockfile-only`, puis `pnpm dedupe`.
+### Dernière reprise — 2026-11-03
 
-⛔⛔⛔ **Mais une fusion peut ne RIEN déclencher, en silence — c'est arrivé le 2026-09-24.** La fusion
-de #52 (16:32:44 UTC) n'a produit **aucune exécution** : pas une en attente, pas une en échec —
-aucune, et le compte y était toujours à zéro quarante minutes plus tard. Les trois contrôles qui
-éliminent les causes évidentes avaient été faits : les deux workflows `active`, `pushed_at` du dépôt
-à 16:32:47, et la CI de la PR verte seize minutes plus tôt.
-✅ **Rattrapé par la fusion suivante** (#53, `6ced783`) : le déclencheur `push` a répondu **en une
-minute**, les cinq jobs verts, et le contenu de #52 est parti avec. ⚠️ **La cause reste NON
-ÉTABLIE**, et la piste de l'étranglement d'Actions est affaiblie par ce rattrapage même : les
-`pull_request` répondaient en une minute pendant que ce `push`-là ne produisait rien.
-⭐⭐ **Ce qu'il faut en retenir n'est pas l'incident, c'est ce qu'il révèle** : une fusion peut ne pas
-déployer sans qu'aucune alerte, aucun rouge, aucun message ne le dise. Seule la sonde l'aurait vu, à
-~7 h près. *Un déploiement qui n'a pas lieu ne produit aucun signal — c'est l'absence qu'il faut
-aller regarder.*
-⛔ **Donc ne suppose jamais que `main` est déployée : LIS-LE.** C'est exactement pourquoi l'état
-déployé ne se recopie pas ici — trois SHA successifs ont déjà pourri à cet endroit :
+La mise à jour précédente du prompt est fusionnée : **#97, `a873086`**, présente dans le `main`
+local au relevé du 2026-11-03. Ne plus demander de vérifier la fusion de sa branche.
+Le déploiement distant de ce commit n'a pas été vérifié lors de ce nettoyage : lire la CI et
+l'état servi avant de tirer une conclusion sur la production (procédure ci-dessous).
 
-```bash
-gh run list --branch main --workflow ci.yml --limit 1                 # ce que la CI a conclu
-ssh portfolio 'SSH_ORIGINAL_COMMAND="status" /srv/portfolio/deploy.sh' # ce que le serveur SERT
-```
-
-⛔⛔ **`--workflow ci.yml` n'est pas décoratif** : sans lui, `--limit 1` rend la *Sonde externe* et
-jamais la CI. Pourquoi, et où le piège a mordu : `deploy/README.md` §4.2.
-
-⏸️ **Le projet a DORMI du 2026-08-26 au 2026-09-24**, vingt-neuf jours sans un commit, et c'est ce
-qui a rendu visibles deux propriétés de la supervision qu'aucune session active n'aurait
-rencontrées :
-
-- ✅ **Le site est resté debout** — sonde verte sans interruption sur toute la fenêtre.
-- ⛔⛔ **Mais elle ne tire PAS toutes les 10 minutes** : le délai honnête avant qu'une panne ne soit
-  vue est de l'ordre de **~7 h**. Cadence relevée, méthode et conséquences : `deploy/README.md`
-  **§7.4 ter** — ne pas recopier les chiffres ici.
-  ⚠️⚠️ **Et cette mesure ne décrit QUE le régime dormant.** GitHub étrangle les exécutions planifiées
-  des dépôts peu actifs : les 100 tirs ont tous été relevés pendant la pause, donc *rien n'établit ce
-  que devient la cadence sur un dépôt qui travaille*. Elle peut s'améliorer — ⛔ ne pas le supposer,
-  et remesurer avant de citer un chiffre en période active. *Une mesure prise dans un seul régime ne
-  décrit que celui-là.*
-- ⛔⛔⛔ **GitHub DÉSACTIVE un workflow planifié après 60 jours sans activité sur le dépôt** : passé
-  ce délai la sonde ne rend plus ni vert ni rouge — elle ne tourne plus, et *rien ne le dit*. La
-  règle, l'échéance qui se **calcule** plutôt que se recopier, et le contrôle : `deploy/README.md`
-  §7.5. ⭐ Le compteur a été remis à zéro par la fusion du 2026-09-24 ; ce risque ne revient que si
-  le projet se rendort.
-
-| Tâche | Ce qu'elle a livré |
-|---|---|
-| P5-01 | **Matrice R3F vérifiée par exécution** — installation, types sous TS 6, scène montée sans WebGL. Verdict GO |
-| P5-02 | `three` + R3F + `drei` **épinglés** (ADR-0016), garde ESLint sur l'import global de `drei` |
-| P5-03 | `resolveCapability` : quatre paliers, **pur**, et son adaptateur navigateur injectable |
-| P5-04 | Montage du canvas : dynamique, après `idle`, `aria-hidden`, **rien au palier `none`** |
-| P5-05 | **La scène primitive** : le bureau réel, 30 meshes, 4 114 triangles, pour **3 Ko** |
-| P5-06 | **L'éclairage réglé à l'œil** dans la preview puis recopié — et le cadrage corrigé sous 16:9. ⭐⭐ Le réglage a révélé le travail de P5-05 : **les touches du clavier existent enfin**, les chanfreins accrochent la lumière |
-| P5-07 | **La frontière d'erreur** — et le défaut livré qu'elle a révélé : sans elle, un chunk 3D manquant affichait « Une erreur est survenue » **sur tout le site** |
-| P5-08 | **Le panneau de diagnostic** (`?debug=scene`). ⭐⭐⭐ Il a chiffré ce que le dossier annonçait sans le mesurer : la scène rend **8 182 triangles** pour 4 114 de géométrie — l'écart est **entièrement la passe d'ombre**, +73 % |
-| P5-09 | **Le garde d'isolation** : `pnpm bundle` refuse un build dont la première visite porterait un module `three`. ⭐⭐⭐ Il porte un **témoin** — le détecteur doit voir la scène quelque part, sinon il s'accuse lui-même au lieu de rendre un vert |
-
-### Phase 6, en cours
-
-| Tâche | Ce qu'elle a livré |
-|---|---|
-| P6-01 | **`resolveSceneState(pathname)`**, pure, 100 %. ⭐⭐ La règle tient en une phrase : elle lit la **FORME** de l'URL, jamais l'**EXISTENCE** de ce qu'elle nomme — `scene → content` est interdit, donc `detail` **nomme** sans vérifier |
-| P6-03 | **`getRouteForScreen(focus, locale)`** — l'autre sens du flux. ⭐⭐ Elle prend un `SceneFocus`, donc `overview` : **ADR-0002 amendé**, parce que « revenir au bureau » aurait sinon ouvert une **seconde porte** dans le sens que l'ADR n'en veut qu'une. ⭐⭐⭐ *Une propriété écrite sur une valeur d'**absorption** ne garde rien tant qu'on n'assère pas sur ce qui la distingue d'elle-même* — l'aller-retour était aveugle deux fois sur `overview` |
-| P6-02 | **`getCameraTarget(state)`**, dans `camera-target.ts` — un `Record<SceneFocus, ViewId>`, exhaustif par le **type** (`TS2741` vérifié), qui rend l'instance de `CAMERAS` elle-même. ⭐⭐ *Un banc qui ne compare le code qu'à lui-même ne dit rien de ce qu'il devrait faire* : « lu dans `layout.ts` » laissait passer l'échange de deux écrans, d'où un **oracle** en identifiants de dalles |
-| P6-09 | **[ADR-0012](./adr/0012-camera-animation-strategy.md)** (2026-10-27), écrit **après coup** : il constate l'animation livrée par #58 au lieu de la présenter comme ouverte, et chiffre ses alternatives par mesure. ⭐⭐ *À défaut d'avoir précédé le code, un arbitrage reste vérifiable s'il est mesuré* |
-
-⛔ **Aucune des trois n'a encore d'appelant**, et c'est voulu : P6-04 branchera `getCameraTarget` (le
-canvas lit encore `CAMERAS.accueil` en dur), P6-05 appellera la route, P6-07 exposera l'état au DOM. « Socle et route inchangés » n'affirme donc rien de plus que ce qui
-est écrit — le vrai relevé se prend en P6-07.
-
-La Phase 4 est close (17/17) ; son journal reste la meilleure lecture du dépôt. **Seule P5-10
-reste**, reportée après P6-04 : sa moitié est livrée (`frameloop="demand"` depuis P5-04) et l'autre
-est sans objet tant que rien n'anime. **La Phase 5 n'a plus de tâche exécutable.**
+Les détails des Phases 5 et 6 closes sont dans leurs journaux ; les mesures de NEXUS sont
+historiques. La scène actuelle est la carte mère, documentée dans `carte-mere.md`.
 
 ### ⛔⛔ Ce qui fait foi pour juger d'un déploiement
 
@@ -190,38 +108,14 @@ URL, tout le reste rend toujours 302.
 |---|---|---|
 | Chunk 3D, socle partagé, JS par route | chiffres courants en **un seul endroit** : [`performance-budget.md`](./performance-budget.md) §4.5 | — |
 | Image de production | **281 Mo** | cible 250 · bloquant 400 |
-| Tests | **1346** verts (2026-11-02, P8-08) ; couverture de `src/scene/state` : **100 %** sur les quatre axes (2026-10-31, après le retrait de NEXUS et de `closeUp`). Le chiffre global du dépôt n'a pas été relevé | ≥ 80 % |
+| Tests | **1346** verts (2026-11-03, après enrichissement du contenu) ; couverture de `src/scene/state` : **100 %** sur les quatre axes (2026-10-31, après le retrait de NEXUS et de `closeUp`). Le chiffre global du dépôt n'a pas été relevé | ≥ 80 % |
 | E2E | **185** sur 5 profils (2026-11-02, contre l'image de production ; `panel-during-transition` et `content-once` échouent parfois sous la charge de la suite complète, verts en isolé) | — |
-| **Ce que le GPU rend** | carte mère, **les quatre vues**, 2026-11-02 (RTX 5050 Laptop) : **19** draw calls · **28 658** triangles · 11 programmes, identiques d'une vue à l'autre (la carte est dessinée entière) ; mobile non mesuré (`carte-mere.md` §12.5) | ≤ 60 / ≤ 150 000 |
+| **Ce que le GPU rend** | carte mère, **les quatre vues**, 2026-11-02 (RTX 5050 Laptop) : **19** draw calls · **28 658** triangles · 11 programmes, identiques d'une vue à l'autre (la carte est dessinée entière) ; premier relevé mobile le 2026-11-03, voir `carte-mere.md` §12.5 | ≤ 60 / ≤ 150 000 |
 | **TBT de la scène** (panneau `?debug=scene`, Accueil, production) | **0 ms** sur les quatre vues, 0 tâche longue, 1re image 416 à 495 ms (2026-11-02, après #95 ; 185 ms avant) | — |
 
-⚠️ **Relevés historiques du 2026-08-25 (Phase 5)** — les chiffres de bundle ont été refaits le
-2026-10-30 (voir ci-dessus), les 127,1 / 11,0 / 234,5 qui suivent sont **datés** ; tous remesurés ce jour-là dans le même
-conteneur et par le même geste (`gzip -9`). L'image de production est vérifiée par
-`make check-image-size`, les tests par `pnpm vitest run`.
-⭐ **Trois lignes ont été remesurées le 2026-08-26 (P6-01 puis P6-03) puis le 2026-10-11 (P6-02)** :
-les tests (**830**, +66), le socle
-(**127,1 Ko**) et le JS par route (**11,0 Ko**) — les deux derniers **inchangés**, ce qui n'affirme
-rien d'autre que ce qui est écrit : **aucun des trois modules n'a encore d'appelant**, donc aucun
-n'entre dans un chunk.
-
-⛔⛔ **Le chunk 3D n'est plus UN chunk depuis P5-08** : l'import dynamique du panneau l'a scindé en
-deux (225,4 + 9,1 Ko). Les 234,5 d'alors étaient leur somme, mesurée à la clôture de la phase 5. Les
-relevés antérieurs — 226, 229, 230,0, 230,8 — comptaient **un seul fichier** : ils ne se comparent
-pas à celui-ci, et une « dérive de 4 Ko » lue entre eux serait un artefact de méthode.
-⭐ Le garde de P5-09 énumère les chunks porteurs à chaque build : c'est lui qui dit combien il y en a,
-plutôt qu'une hypothèse.
-
-⛔⛔ **Le « 8,2 Ko par route » qu'annonçait ce tableau était périmé de 2,3 Ko** : remesuré sur `main`
-sans une ligne de P5-07, il vaut **10,5**. C'est la **deuxième** dérive du même chiffre — P4-12 avait
-déjà relevé 7,3 → 8,2 — et toujours pour la même raison : il est recopié de tâche en tâche avec la
-mention « inchangé ». P5-07 y ajoute **+0,3 Ko**, et c'est tout ce qu'elle a le droit d'affirmer.
-⭐ La ligne « Image de production » figurait **deux fois**, à deux valeurs différentes (273 et 281),
-sous un tableau qui se disait unique. Il n'en reste qu'une, la mesurée.
-
-⭐⭐ **Le bureau entier coûte 3 Ko** (226 → 229 Ko) : trente meshes, deux claviers fusionnés,
-quatorze matériaux, trois lumières. C'est ce que vaut une scène **en primitives, sans un seul
-asset** — ni texture, ni modèle, ni fichier à télécharger.
+Les anciens relevés de bundle et du bureau 3D sont conservés dans `phase-5-log.md` et
+`performance-budget.md`. Pour comparer des versions, vérifier la date, la scène et la méthode
+(notamment la somme des chunks 3D depuis la séparation du panneau de diagnostic).
 
 ⛔ **Le profil `no-js` n'est plus vrai *par construction*** : il l'est **par vérification**. Les
 frontières d'erreur sont des composants client, et c'est tout le JavaScript applicatif du site.
@@ -310,375 +204,91 @@ mets l'ADR à jour et ajoute une ligne au journal des révisions. Jamais de chan
 
 ## Ta mission cette session
 
-⭐ **L'ordre arrêté par l'utilisateur le 2026-10-23 est exécuté** : P6-02 (#55), mesure de
-référence (#57), `ReadingPanel`, P6-04, décisions NEXUS (D11 et amendements d'ADR 0002/0003/0004/0010),
-prototype, validation visuelle avec l'utilisateur, fusion et déploiement (#58), roadmap reprise.
+**Priorité convenue le 2026-11-03 : nettoyer ce prompt, puis recueillir le retour de l'utilisateur
+sur son téléphone pour avancer vers la clôture de la partie carte mère.** Une première capture téléphone a été reçue le 2026-11-03 (`carte-mere.md` §12.5) ; son contexte et
+le retour d’usage restent à compléter. Aucune clôture mobile ni validation visuelle ne doit être anticipée.
 
-⛔ **Avant toute chose, vérifie la fusion de cette mise à jour du prompt** (branche
-`docs/prompt-apres-tbt-accueil`) : `gh pr list --state all --head docs/prompt-apres-tbt-accueil`, puis le
-déploiement de `main` (`gh run list --branch main --workflow ci.yml --limit 1`).
-Les précédentes sont fusionnées et déployées : #84 (P8-13), #85 (P8-14), #86 (P8-15), #93 (P8-08),
-#94 et #95 (tâche longue du montage), #96 (relevé).
+### Acquis — ne pas refaire
 
-✅ P8-15 livrée le 2026-10-31 (#86), vérifiée en localhost. Défaut retenu : le temps de transition se comptait en images → ADR-0012 (révision du 2026-10-31).
+- Carte mère livrée : P8-13 (#84), P8-14 (#85), P8-15 (#86).
+- P8-08 **DONE** : contrastes corrigés et gardés par test (#93, `carte-mere.md` §9).
+- Tâche longue de l'accueil soldée sur le bureau mesuré : #94 corrige la précompilation d'une
+  scène vide, sans gain mesuré ; #95 étale la première lecture des programmes. Le relevé après
+  déploiement (#96) confirme le résultat sur la machine de l'utilisateur (`carte-mere.md` §12.5).
+- P8-10 : cible de draw calls tenue par construction et confirmée sur ce bureau ; pas
+  d'optimisation supplémentaire justifiée sur cet appareil. P8-11 reste ouverte pour les appareils
+  non couverts. Le banc SwiftShader ne permet pas d'affirmer un gain sur un GPU réel.
 
-⭐⭐ **La suite, dans l'ordre recommandé :**
-1. **Mesure GPU réelle par l'utilisateur** (`carte-mere.md` §12.5) — ✅ **les quatre vues relevées
-   le 2026-11-02** : 19 appels, 28 658 triangles partout, TBT 0 ms ⇒ **P8-10 et P8-11 sans objet sur
-   le bureau** (à refermer dans la roadmap ; mobile non mesuré). ⛔ `make perf-baseline` (2026-11-02,
-   `carte-mere.md` §12.5) : **l'accueil coûte ~3× NEXUS sur le banc** (mobile +3 790 ms, ordinateur
-   +735 ms) — non représentatif d'un GPU avec compilation parallèle (0 ms mesuré), mais bien d'un
-   appareil **sans** : **prochaine mesure, un vrai téléphone** sur `?debug=scene`, puis attribuer. Toujours en **fenêtre privée sans extensions** : un profil pris avec extensions portait
-   ≈ 900 ms de leurs scripts et une tâche de montage de 122 ms qui a disparu ensuite.
-   ✅ **La tâche longue de l'Accueil est soldée** (TBT 185 → 0 ms) : #94 a corrigé une précompilation
-   qui compilait une scène vide — défaut réel, **sans gain mesuré** ; #95 a étalé la première lecture
-   des programmes (`onFirstUse` de three), seule cause attribuée par le profil DevTools de la machine
-   réelle. ⭐⭐ **Le banc (swiftshader, sans compilation parallèle) prouve un ORDRE, jamais un GAIN** :
-   tout gain de performance de la scène se juge sur le relevé de l'utilisateur, après déploiement.
-2. ✅ **P8-08 — contrastes, DONE le 2026-11-02** (`carte-mere.md` §9) : pire cas borné sur le
-   **blanc** (mélange additif), donc indépendant de P8-05 ; l'accroche tombait à 3,9:1 → vitre des
-   étiquettes à 88 % ; garde `scene-labels-keep-their-contrast.test.ts`.
-3. **P8-05 — éclairage et ambiance** de la carte, sur retour visuel de l'utilisateur.
-4. **Reliquats de P8-15** : `carte-mere.md` §12.6 — à poser à l'utilisateur et non à trancher.
+### Livraison de cette session
 
-En parallèle, indépendant de la 3D : la **Phase 10** (envoi du CV), à commencer par P10-11.
+L'utilisateur a demandé la mise à jour du prompt et le push le 2026-11-03.
+Branche de livraison : `content/projets-competences-2026-11-03`. Vérifier la PR et sa CI avant
+toute suite ; la fusion et le déploiement ne sont pas encore établis.
 
-✅ **Phase 6 close le 2026-10-27** : P6-07 et P6-10 (`phase-6-log.md` §11), P6-11 et P6-12 (§12).
-⛔ P6-11 a trouvé un défaut **en production** : `setFrameloop` remet l'horloge de R3F à zéro, et une
-transition finie se rejouait au retour d'une fiche. Ne jamais mesurer un temps sur `clock.elapsedTime`.
+Accès au serveur de développement sur cette machine : `http://localhost:3002/fr`, via
+la surcharge locale `/tmp/portfolio-preview-port.yml` (hors dépôt). Le port 3000 est occupé
+par un autre processus ; ne pas utiliser `make up` seul en supposant qu'il est libre.
 
-✅ **P6-09 soldée le 2026-10-27** : [ADR-0012](./adr/0012-camera-animation-strategy.md), écrit après
-coup, alternatives chiffrées par mesure. Ses suites ouvertes sont devenues **P6-11** et **P6-12**.
-⚠️ **Chunk 3D remesuré à 242,5 Ko** (237,6 le matin) : les mises à jour du jour ont coûté ~5 Ko. Le
-relevé fait foi dans `nexus-prototype.md` §6.1.
+### Suite et conditions de clôture
 
-✅ **P7-05 est livrée et fusionnée** (2026-10-26, #70, `34d8c49`, E2E-15 ; déploiement à **lire**, pas à supposer — voir « État ») : une navigation client remet le focus au début du
-document, comme un chargement — premier Tab sur le lien d'évitement, nom de la page dit par
-l'annonceur de route de Next (choix de l'utilisateur, parmi `h1` et `<main>`). ⭐⭐ Le défaut mesuré :
-le focus tombait sur `<body>` avec un point de départ propre à chaque entrée — le lien d'évitement
-sauté après un lien d'en-tête, l'en-tête entier après l'ouverture d'une fiche. ⭐ Le geste vit dans
-`src/routing/focus-reset.ts` (unitaire) ; le parcours dans `tests/e2e/profiles/scene-mounted/`, **joué
-sous Chromium ET WebKit** — `focusVisible: false` ne se juge que sous WebKit (sans lui, un anneau
-autour de la page entière). Firefox headless ne monte pas la scène : non couvert.
+**Ordre précisé par l'utilisateur le 2026-11-03 : terminer le contenu, puis faire une repasse
+visuelle.** Le rendu sur Xiaomi 14T Pro sous Chrome ne lui convient pas vraiment. Ne pas
+présenter P8-05 comme validée ni lancer la repasse avant la fin du contenu. Le travail de contenu engagé porte sur les expériences et les projets : PHP ajouté, Codex et OpenCode ajoutés aux outils aux côtés de Claude Code,
+fiches Hephaistos 3D, Dedale et exploration NCM créées en français et en anglais, expériences
+Askor/Augure et fiche portfolio enrichies. **Cet incrément de contenu est validé par
+l'utilisateur le 2026-11-03**, avec les liens vers les dépôts publics et les compétences PHP,
+Codex et OpenCode. Cela ne vaut pas validation du rendu visuel ni clôture de la Phase 8. NCM distingue le travail local du fork public ; Dedale est privé.
+Les fiches rendent désormais `links.repository` avec un lien traduit vers GitHub lorsque
+ce champ est renseigné : portfolio, Hephaistos 3D et fork NCM. Ne renseigner ce champ que pour
+un dépôt public ; Dedale, Askor et Augure restent sans lien de code public.
+Ne pas supposer que la Phase 10 (envoi du CV) équivaut à finaliser le contenu.
 
-⚠️ **Ce que P7-05 a appris du banc local, et qui resservira :**
-- **Les ports 3000 et 3001 de l'hôte peuvent être pris** par d'autres piles (constaté : frontend
-  Augure, Grafana) : `make e2e` échoue alors au démarrage de `web`. Le conteneur `e2e` joint `web` par
-  le réseau compose, le port hôte est inutile : une surcharge **hors dépôt** avec
-  `services: web: ports: !reset []`, passée en second `-f`, suffit.
-- **Contre le serveur de DEV, trois échecs préexistent sur `main`** (`not-found` noindex, deux cibles
-  tactiles `responsive`) — la porte CI joue le build de production, où ils ne se produisent pas.
-- **Un `toHaveURL` qui expire n'est pas un verdict** : juste après une modification de source, le
-  serveur de dev recompile, et sous une charge d'hôte élevée (57-77 relevés) les navigations dépassent
-  5 s. Une passe à blanc, puis la passe qui compte ; `--workers=2` sous charge.
-- **Un worktree d'une autre session peut vivre dans `.worktrees/`** (exclu de git) : `make lint` le
-  parcourt et rougit sur SON code. Lancer ESLint sur `src tests` pour juger le sien.
+Direction visuelle retenue pour la future repasse : panneaux sombres à fine bordure cyan,
+badge monospace et hiérarchie typographique inspirés de la référence fournie ; pas de CTA
+dans ces blocs, la navigation étant déjà présente dans le header.
 
-**Reste à faire — dans l'ordre recommandé le 2026-10-23**, mis à jour le 2026-10-27 :
+Les relevés GPU du 2026-11-02 et du téléphone précèdent cet enrichissement du contenu :
+ils portent sur trois projets. La carte régénérée en porte six ; ne pas lui attribuer ces
+anciens chiffres sans nouveau relevé.
 
-1. **P8-11 — mesurer sur ce qui n'est pas couvert**, dès qu'un appareil est disponible : GPU intégré,
-   téléphone réel, Safari. Sur une RTX 5050, le TBT de la scène est de **0 ms** (154 ms processeur
-   bridé ×4) ; le banc sans GPU annonce 1 231 ms et **surestime d'environ ×8**
-   (`nexus-prototype.md` §6.4). Sans `KHR_parallel_shader_compile`, on retombe sur le cas du banc.
-   Un téléphone ne joint pas `localhost` : il faudra exposer l'aperçu sur le réseau local.
-2. ✅ **Phase 7 close le 2026-10-29** (D13, `phase-0-questions.md`) : aucune régression depuis #58,
-   mais #58 a dégradé le LCP mobile **simulé** — ✅ **P11-11 l'a instruit le jour même** : en bridage
-   réel, aucun écart mesurable (`performance-budget.md` §6.5, `THROTTLING=devtools make perf-baseline`),
-   série déséquilibrée par un redémarrage de l'hôte, et `main` après P8-12 non remesuré. `nexus-prototype.md` §6.2 affirmait « LCP inchangé » : corrigé.
-   ✅ **P7-07 livrée le 2026-10-28** (E2E-18, `scene-mounted/language-switch.spec.ts`) : scène
-   montée, la bascule de langue mène à la page d'un lien direct vers la même adresse (différentiel),
-   et les étiquettes des univers se jugent AUSSI contre le dictionnaire d'arrivée — le différentiel
-   seul ne voit pas un défaut commun aux deux chargements (vu rouge : accroches figées en français).
-   ⚠️ **Constaté, non affirmé** : la bascule **recharge** la page — Next traite le changement du
-   segment `[locale]` du layout racine comme une navigation complète, interception comprise.
-   ✅ **P7-06 livrée le 2026-10-28** (E2E-17, `scene-mounted/panel-during-transition.spec.ts`) :
-   **aucun masquage**, décision de l'utilisateur (journal de l'ADR-0004). Pendant le mouvement, le
-   panneau porte déjà la page d'arrivée, seul ; son `h1` est à opacité effective 1, ni caché, ni
-   `inert`, ni `aria-hidden`, et le point de son centre lui revient — relevé à **chaque image** où
-   `data-camera-transition="true"`, par un échantillonneur `requestAnimationFrame` dans la page. Vu
-   rouge en masquant le panneau 1,6 s après chaque navigation. ⚠️ Non couverts : les fiches (aucun
-   mouvement de caméra) et l'anglais.
-   ✅ **P7-04 livrée le 2026-10-28** (E2E-16, `scene-mounted/content-once.spec.ts`) : un
-   **différentiel** — scène montée, l'arbre d'accessibilité **et** le texte du DOM (caché compris)
-   de chaque forme de page, dans les deux locales et après une navigation client, sont identiques à
-   ceux de la même page sans WebGL (#77). Vu rouge trois fois : étiquettes privées d'`aria-hidden` (le diff
-   nomme les trois), référence privée de sa neutralisation (`scene:tier:full`), et copie cachée du
-   panneau (vue par le seul texte — d'où la seconde lecture). ⚠️ Il **attend** l'égalité : une duplication passagère
-   pendant la transition n'y rougit pas — E2E-17 (P7-06) relève, lui, chaque image du mouvement.
-3. **P8-10** — alléger le premier rendu : la cible de 60 appels est tenue par construction par la
-   carte mère (`carte-mere.md` §12.5) ; les 14 programmes restent à relever si P8-11 montre un problème.
-4. **La carte mère (D14)** : livrée (roadmap P8-13 à P8-15) ; P8-05 et P8-08 se refont et se jugent sur la carte.
-5. ✅ **Le temps des shaders — P8-12, livrée le 2026-10-29** : `ambientFrame`
-   (`src/scene/state/ambient-motion.ts`, pur) accumule le temps de scène au lieu de lire
-   `state.clock`, borne chaque image à `IMAGE_MAX_S` — un onglet masqué faisait aussi sauter les
-   rotations des emblèmes, défaut que la piste ne nommait pas —, et rend la surbrillance et le
-   survol indépendants de la cadence par `approachFactor`, que `approachOrbit` emploie désormais.
-   ⭐ Pas d'horloge **partagée** avec le rig, contrairement à la piste : le rig accumule déjà son
-   propre temps **par transition** (remis à 0 à chaque état), l'ambiance un temps continu — deux
-   grandeurs, pas une.
+1. **P8-11 — compléter le retour sur téléphone réel.** Première capture reçue le 2026-11-03 :
+   Xiaomi 14T Pro sous Chrome, GPU Mali-G720-Immortalis MC12, sans compilation parallèle ; relevé transcrit dans
+   `carte-mere.md` §12.5. Ne pas redemander les valeurs déjà visibles ; recueillir le contexte
+   manquant et le ressenti, puis les autres vues si nécessaire.
+   Utiliser le site avec `?debug=scene`, dans une nouvelle fenêtre privée, et préciser :
+   modèle du téléphone, système, navigateur, URL et version servie si disponible.
+   Relever à l'accueil le palier (`lite`/`full`/`none`), la première image, les tâches longues/TBT
+   si disponibles, les appels, triangles et programmes ; puis parcourir Expériences, Projets,
+   Compétences et une fiche. Signaler chargement, saccades, lisibilité et navigation.
+   Une valeur absente du panneau est **non disponible**, jamais zéro. Si la scène ne monte pas,
+   relever le palier et vérifier le contenu documentaire : cela ne mesure pas la performance 3D.
+   Consigner le retour et ses limites dans `carte-mere.md` §12.5 avant de mettre à jour la roadmap.
+   Un téléphone ne couvre pas à lui seul tous les GPU intégrés et Safari : nommer ce qui reste
+   non mesuré et expliciter l'arbitrage si une clôture avec couverture partielle est proposée.
+2. **P8-05 — repasse visuelle après finalisation du contenu**, puis validation par l'utilisateur.
+   Le rendu actuel ne lui convient pas vraiment ; tâche reportée, toujours ouverte.
+   Recueillir aussi les arbitrages de `carte-mere.md` §12.6 : vide sous Expériences, aspect des
+   ponts, affinité des emplacements de processeurs, impulsions immobiles au palier `lite`.
+   Ne pas trancher ces choix à sa place.
+3. **Bilan de clôture.** Après les retours, corriger les défauts observés si nécessaire,
+   vérifier les critères de sortie de la Phase 8 et mettre à jour ensemble la roadmap, les
+   mesures et ce prompt. Distinguer tâches terminées, arbitrages acceptés et couverture restante.
+   La Phase 8 reste **IN_PROGRESS** tant que ce bilan n'est pas établi.
 
-**Décisions qui appartiennent à l'utilisateur — les poser, ne pas les trancher :**
+**En parallèle, indépendant de la 3D : Phase 10 (envoi du CV), à commencer par P10-11**, vérification
+des prérequis d'expédition.
 
-- **Phase 9** : la forme, dans NEXUS, des destinations CV, GitHub, LinkedIn et « à propos » (les objets
-  du bureau — document, terminal, téléphone, cadre — n'existent plus). Rien avant sa réponse.
-- **Cloudflare Access** : le site entier passe par une connexion (seul `robots.txt` répond en public,
-  `/fr` rend une 302). Voulu ou non ? Constaté le 2026-10-23, non tranché.
+**Décision ultérieure — Phase 9 :** faire choisir à l'utilisateur la forme des destinations CV,
+GitHub, LinkedIn et « à propos » dans la carte mère ; les objets du bureau et NEXUS sont retirés.
 
-**En parallèle, indépendant de la 3D** : la **Phase 10** (envoi du CV), à commencer par P10-11 — la
-vérification des prérequis d'expédition.
+**Cloudflare Access :** la fermeture a été demandée par l'exploitant après la fenêtre de mesure
+P4-16 (`deploy/README.md` §9). Ne pas reposer « voulu ou non ? » sur la seule base du constat
+historique de 302 ; vérifier l'état actuel uniquement si la tâche l'exige. Toute ouverture publique
+reste une décision de l'utilisateur.
 
-**Petites dettes connues** : image de production à 281 Mo (cible 250, seuil 400) ; actions GitHub en
-Node 20, déprécié ; avertissement de lint `TONES` dans `src/ui/mdx/components.tsx`, préexistant.
-
-⛔ **Ne mesure pas un changement de la scène par le seul banc** (`make perf-baseline`) : il tourne sans
-GPU. Il compare deux versions entre elles ; ce que vit un visiteur se lit dans le panneau
-`?debug=scene`, dans un vrai navigateur, en **fenêtre privée neuve** (sinon le cache de shaders fausse
-la première visite).
-
-⚠️ **Ce qui suit date d'avant #58** et décrivait P6-09 comme une décision à prendre avant le rig ;
-elle a été prise dans le rig. Conservé pour l'historique de l'arbitrage, pas comme consigne.
-
-⭐⭐⭐ **Ce que P6-09 doit tenir** : c'est une **décision**, pas du code — interpolation maison
-(`easeInOutCubic` sur 700 ms, déjà décrite par `transitionMs` et le dossier) contre bibliothèque de
-ressorts. `docs/adr/README.md` la réserve « parce qu'elle dépend du **ressenti réel**, non prévisible
-sur le papier » : ⛔ **ne la tranche donc pas sur le papier.** Pose-la comme une liste de choix avec
-un défaut recommandé, **au moment où elle naît**, et ce que chaque option coûte en octets dans le
-chunk 3D (seuil 350 Ko, chiffre courant en `performance-budget.md` §4.5) **mesuré**, pas estimé. CT-08 s'applique : problème /
-adéquation / alternatives / arbitrage.
-⚠️ **Ce que l'option retenue doit permettre, et qui est déjà écrit** : l'**interruption** d'une
-transition en cours (P6-04), le `fov` **interpolé avec la position** puis passé par `fovForAspect`,
-`invalidate()` image par image sans laisser la boucle en `always` (P5-10), et une durée nulle sous
-`reduced-motion` (P6-08, `transitionMs(true)`). Une option qui en rend une difficile se juge là.
-⭐ **Ce que P6-02 laisse à P6-04** : `getCameraTarget(state)` rend l'instance de `CAMERAS` elle-même
-(comparaison par identité possible), `fov` **à 16:9** — la correction de format s'applique sur la
-valeur interpolée, jamais sur les bornes. `scene-canvas.tsx` lit encore `CAMERAS.accueil` en dur :
-c'est P6-04 qui le remplace (`phase-6-log.md` §9.6).
-
-⭐ **L'ordre de travail de la phase est arrêté** (`phase-6-log.md` §5), avec **deux écarts assumés**
-par rapport à l'ordre des identifiants :
-P6-01 → **P6-03** → P6-02 → **P6-09** → P6-04 → P6-07 → P6-08 → P6-05 → P6-06 → P6-10.
-**P6-03 avant P6-02** : l'aller-retour `getRouteForScreen` → `resolveSceneState` est une propriété de
-la couche navigation, sans une cote de scène — la fermer verrouille le contrat que P6-05 emploiera,
-avant que P6-02 n'ouvre la dépendance à `layout.ts`.
-**P6-09 avant P6-04** : un ADR sur l'animation de caméra se pose au moment où l'on choisit entre
-interpolation maison et bibliothèque de ressorts, c'est-à-dire **avant** d'écrire le rig (CT-08).
-
-⭐⭐ **Ce que P5-06 a appris, et qui vaut au-delà d'elle** : le travail de géométrie de P5-05 — les
-chanfreins portés de 3 à 8 mm, le fruit des capuchons — **ne se voyait pas**, faute d'un éclairage
-pour le révéler. Deux tâches séparées par la roadmap étaient une seule chose à l'écran. *Un détail
-modélisé mais non éclairé n'existe pas.*
-⚠️ **Et le cadrage portrait est BORNÉ, pas réparé** : le plafond de 50° empêche l'œil de poisson (la
-formule seule donnerait 103°), mais un téléphone vertical ne voit toujours pas tout le bureau — la
-lampe reste hors cadre. Le traiter vraiment demanderait des cadrages portrait dédiés, donc des
-**cotes**, qui viennent du dossier et ne s'inventent pas. C'est la **Phase 13**.
-
-⛔⛔ **La dette que la Phase 5 lègue, et qu'il ne faut pas maquiller** : le **TBT est passé de 640 à
-2 090 ms** (×3,3), et le score Lighthouse « performance » de ~97 à ~74. ✅ Le critère de sortie est
-tenu au sens strict — **LCP 1,7 → 1,6 s, CLS 0 → 0**, les deux métriques qu'il nomme — et c'est un
-arbitrage daté, pas un oubli. La dette est chiffrée dans `performance-budget.md` §6.2, à traiter en
-Phase 11 **sur du matériel réel** : ces relevés sont pris **sans GPU**.
-⛔ **Ne repousse PAS l'échéance du `requestIdleCallback` pour « améliorer » ce score** : le coût ne
-disparaîtrait pas, seul l'instrument cesserait de le voir. C'est la classe de faux vert que toute
-cette phase a traquée.
-
-⭐⭐⭐ **Et la méthode qui a rendu ce verdict possible, parce qu'elle resservira** : le seul relevé de
-la Phase 4 venait du **site réel** (P4-16, 98/100), donc incomparable à un relevé local. Il a fallu
-**construire une image depuis `67e6ff0`**, le commit de clôture de la Phase 4, et lancer le **même**
-Lighthouse contre les deux, sur la même machine, à quelques minutes d'écart. C'est cette mesure qui a
-montré que la chute de 23 points ne touche **ni le LCP ni le CLS**.
-
-✅ **P6-01 est livrée** (2026-08-26) — `resolveSceneState(pathname)`, pure, 100 % de couverture.
-⭐⭐ **La règle qu'elle établit, et qui gouverne toute la suite de la phase** : la chaîne lit la **FORME** de
-l'URL, jamais l'**EXISTENCE** de ce qu'elle nomme. Une forme qu'aucune route ne sert — locale inconnue,
-segment de section inconnu, **section sans fiche d'entité**, plus profond qu'une entité — rend
-`overview` ; une forme servie rend sa section, avec le nom que l'URL porte, **sans vérifier** qu'une
-entité s'y trouve (`scene → content` est interdit).
-⛔⛔ **La revue a trouvé cette règle appliquée à moitié, deux fois** : `/fr/skills/typescript` cadrait
-Compétences (les compétences n'ont pas de fiche — `SECTIONS_WITH_DETAIL`), et `/fr/projects/augure/`
-rendait la vue d'ensemble sur une page **servie en 200**. ⭐⭐ *Un périmètre dérivé ne garde que la
-dimension dont il est dérivé* : le banc bouclait sur `SECTIONS` sans jamais croiser
-`SECTIONS_WITH_DETAIL`.
-⭐⭐⭐ **La LECTURE d'URL n'est pas dans `scene`.** `parsePagePath` vit dans `src/routing/paths.ts`,
-contre `pathFor` dont elle est l'inverse ; `resolveSceneState` n'en est qu'une projection de neuf
-lignes. C'est ce qui a dispensé P6-03 d'écrire un second inverse : l'aller-retour qu'exige
-`testing-strategy.md` §4.3 est une propriété de `routing`, éprouvée sur
-`pathFor ∘ parsePagePath = id` pour toutes les locales et tous les lieux.
-⛔ Deux pièges déjà payés, à ne pas repayer : le segment de section se résout par
-`sectionForSegment(locale, segment)`, **jamais par un littéral** — la table `routeSegments` est
-l'identité en v1 (ADR-0005), donc un `'projects'` écrit en dur serait vert aujourd'hui et faux le
-jour où `/fr/projets` existe ; et `entityPath` **encode** le slug, donc l'aller-retour n'est vrai que
-parce que la lecture décode.
-⚠️ **Un constat de revue nommé et NON traité** : `entityPath('fr', 'skills', 'x')` compile et
-fabrique une adresse que le site ne sert nulle part — `entityPath` et `PageLocation.entity` prennent
-`Section`, pas `SectionWithDetail`. La contrainte est tenue par **trois** itérations indépendantes.
-Resserrer les deux types est la forme profonde, et touche `src/seo` et `src/app`.
-⭐ **Le mapping ne s'énumère pas, il se dérive** : `SceneFocus = 'overview' | Section`, et le banc
-boucle sur `SECTIONS` × `LOCALES`. P6-02 en a fait le `Record<SceneFocus, ViewId>` de
-`camera-target.ts` (`phase-6-log.md` §9).
-⛔⛔ **Le piège de P6-04 est écrit depuis P5-05 et n'a pas bougé** : le `fov` varie de **16° à 36°**
-selon l'état — le cadrage *Compétences* vise un écran monté sur un corps profond — et **doit être
-interpolé avec la position**, sinon la transition produit un zoom sec. Le rig lui-même —
-interpolation simultanée de la position et de la cible, 700 ms (`transitionMs`), `easeInOutCubic` —
-est **P6-04**, pas P5-06.
-⭐⭐ **Et P6-04 hérite de deux dettes nommées** : le `fov` n'est pas corrigé sous 16:9 (un téléphone
-en portrait perd le cadrage d'accueil — P5-06), et la boucle de rendu devra invalider image par image
-sans rester en `always` (P5-10).
-✅ **Trois arbitrages tranchés le 2026-08-25** : la dépendance de P5-08 et P5-10 passe de P5-06 à
-**P5-05** (une scène *rendue* suffit, un éclairage *réglé* n'y change rien) ; **P5-10 est reportée
-après P6-04** ; **D11 est close en « laisser »**.
-
-⭐⭐ **Pourquoi P5-10 est reportée, et ce que ça apprend** : `frameloop="demand"` est en place depuis
-P5-04 et **rien n'appelle `invalidate()`**, faute d'animation. « Pause hors écran / onglet masqué »
-suppose une boucle à mettre en pause — une boucle qui ne tourne pas ne se suspend pas. L'écrire
-aujourd'hui produirait un mécanisme sans effet mesurable, donc **un garde qu'aucun banc ne pourrait
-voir rouge**. Son contenu naît avec P6-04, quand la transition devra invalider image par image.
-
-⚠️ **Une dette nommée par P5-07 est encore ouverte après P5-08** : `mount-state.ts` porte la
-**cause** d'une défaillance (`chunk`, `render`, `context-lost`) et **personne ne l'affiche**. Le
-panneau de diagnostic montre ce qu'une scène **vivante** rend ; une scène tombée est démontée
-enveloppe comprise, donc le panneau disparaît avec elle. Distinguer « jamais montée » de « tombée,
-et pourquoi » reste à faire, et ce n'est pas une tâche de la Phase 6.
-
-✅ **Le défaut de cadrage sous 16:9 est corrigé** (P5-06, `framing.ts`) : la règle du dossier §6 est
-appliquée aux quatre cadrages, plafonnée à 50°. ⚠️ Elle **borne** le portrait extrême sans le
-réparer — voir la mission ci-dessus.
-
-⭐⭐ **Ce que la Phase 5 laisse et qu'il faut employer plutôt que refaire** :
-`src/scene/state/layout.ts` porte **toutes** les cotes — aucune valeur de scène ne s'écrit ailleurs ;
-`geometry.ts` construit les deux géométries que `three` ne fournit pas, en pur ; et
-`tests/unit/scene/` recompte les budgets depuis les données. Un chiffre changé dans `layout.ts` fait
-rougir le banc, ce qui est exactement l'effet voulu. ⭐ Et `capability/mount-state.ts` porte ce qu'une
-défaillance fait au montage : la bascule en `none` est **terminale**, donc toute idée de « réessayer »
-se discute là, jamais dans un composant.
-
-⭐⭐ **Ce que la Phase 4 laisse, et qu'il faut employer plutôt que refaire** : `deploy/README.md` §8
-(checklist de mise en ligne, jouée), `make check-uptime` (sonde externe), `make check-public-seo`
-(canonical / hreflang / sitemap sur le site public). Aucun de ces trois ne s'imagine à nouveau.
-
-⛔ **Trois portes ne tournent PAS dans `make e2e`, et se découvrent donc en CI** : la couverture
-(`make coverage` — seuil de **95 %** sur `src/scene/state`), `make bundle` — qui porte désormais
-**deux** contrôles, les budgets *et* l'isolation de la scène (P5-09) — et Lighthouse (contre l'image
-de production, ce que le conflit de port local rend malaisé). Chacune a refusé une tâche de cette
-phase après que `make test` l'eut déclarée bonne.
-
-⚠️ **`make bundle` reconstruit** (`pnpm build && pnpm bundle`) : compter deux à trois minutes, et ne
-pas s'étonner que l'arbre de travail en ressorte sali — voir `next-env.d.ts` dans les pièges
-d'environnement.
-
-⛔⛔⛔ **Les dix leçons que ces deux phases ont payées, et qui visent tout ce qui suit :**
-(⚠️ ce titre a déjà annoncé « cinq » pour sept entrées — un compte écrit une fois puis jamais
-recompté, dans le document qui interdit précisément cela. Recompter en éditant.)
-1. **Une preuve d'exploitation peut se périmer sans jamais devenir fausse** (P4-15). Le rollback était
-   « prouvé » depuis P1-15 — mesure prise proxy en *DNS only*, honnête ce jour-là, vide de sens depuis
-   la bascule en *Full (strict)*. Rejoué en jugeant le corps : **~1 s d'origine absente sous un 200
-   constant**.
-2. **Une absence et un instrument aveugle se lisent exactement pareil** (P4-16). Une lecture sensible
-   à la casse a rendu « aucun hreflang » sur quatorze pages qui en portent trois. Vérifie l'instrument
-   avant de conclure au vide.
-3. **Deux mesures ne se comparent que si leurs entrées ne diffèrent QUE par ce qu'on mesure** (P5-01).
-   Un tableau de poids comparait un `export *` à cinq imports nommés : le sur-ensemble y pesait
-   **moins** que son sous-ensemble, ce qui est impossible — et le budget de toute la phase allait s'y
-   appuyer.
-4. **Une préférence d'accessibilité et un coût matériel sont deux axes ORTHOGONAUX** (P5-03) ; les
-   projeter sur un seul ordinal en perd un. Un mobile tombait en `lite` et `prefers-reduced-motion`
-   n'était jamais évalué : la préférence était honorée sur un poste fixe, pas sur un téléphone.
-5. ⛔⛔⛔ **Un échec qui SE DÉPLACE est une course, jamais un défaut du code** (P5-07). Vert en
-   isolation, rouge en suite complète, puis rouge sur l'autre test au run suivant : la conclusion
-   naturelle — « la bascule ne marche pas » — aurait fait corriger du code sain. Trois repères de banc
-   étaient faux, dont un qui ne pouvait pas ne pas l'être : **un `<canvas>` sans attribut mesure
-   300 × 150**, donc « taille non nulle » était vrai avant même l'événement attendu. ⭐⭐ *Une valeur
-   par défaut peut rendre un repère vrai avant ce qu'il prétend attendre.*
-6. ⭐⭐⭐ **Un garde qui cherche une absence doit porter un TÉMOIN** (P5-09). « Aucun module `three`
-   dans la première visite » ne veut rien dire tant qu'on n'a pas montré que le détecteur sait en
-   voir : le même instrument est donc passé sur tous les chunks et doit trouver la scène quelque
-   part. Aveuglé exprès, le garde s'accuse lui-même au lieu de rendre un vert. ⛔⛔ Et le repère
-   apparemment évident était **faux** : la chaîne `node_modules/three/` n'existe pas dans le code
-   minifié, jusque dans le chunk qui est fait de `three`.
-7. ⭐⭐⭐ **Deux mesures justes peuvent se contredire tant qu'on n'a pas dit ce que chacune compte**
-   (P5-08). Le panneau annonçait 52 draw calls là où le banc en certifie 30 : aucune régression — le
-   banc compte la **géométrie**, `renderer.info` compte **toutes les passes de rendu**. Prouvé au
-   palier `lite`, ombres coupées, où les deux comptes coïncident exactement. ⭐ Un nombre nu sur un
-   panneau est une conclusion fausse en attente ; les libellés disent « toutes passes ».
-8. ⭐⭐ **Un banc vert ne voit pas ce qui est illisible** (P5-08). Le panneau recouvrait un lien de
-   navigation ; `pointer-events: none` le gardait **cliquable**, donc tous les parcours passaient. Ce
-   défaut-là ne se trouve qu'en **regardant une capture** — comme les deux de D11.
-9. ⭐⭐ **Une frontière d'erreur ne se juge pas sur ce qu'elle attrape, mais sur ce qui l'attraperait à
-   sa place** (P5-07). Il y en avait déjà une au-dessus, et elle faisait exactement ce qu'il ne
-   fallait pas : afficher « Une erreur est survenue » sur tout le site parce qu'un décor n'avait pas
-   pu se charger.
-10. **Un test qui passe pour deux raisons possibles n'en garde aucune** (P5-04). « N'intercepte aucun
-   clic » cliquait un lien ; `z-index: -1` suffisait déjà à le faire aboutir, donc retirer la ligne de
-   CSS qu'il protégeait l'aurait laissé vert. Affirme la propriété, jamais son symptôme.
-
-⭐⭐⭐ **Et celle qui décide des conflits, née de P5-05** : *entre deux documents qui se contredisent,
-celui qui porte le RAISONNEMENT l'emporte — surtout quand ce raisonnement se mesure.* `layout.ts`
-disait `InstancedMesh`, le dossier de scène disait « fusionné » **et disait pourquoi**. Le banc a
-tranché en 1,2 mm.
-
-⛔⛔⛔ **Et la leçon de P4-14, qui vaut pour toute vérification depuis l'extérieur :
-interposer un CDN change ce qu'un code de retour SIGNIFIE.** Conteneur arrêté, `/robots.txt` rend
-**200 quand même** : Cloudflare compose la réponse à sa périphérie. Un contrôle jugé sur le statut
-aurait été vert sur un site éteint. Ne juge jamais l'origine sur un code de retour seul — juge sur
-quelque chose que **seule l'origine** peut produire.
-
-⭐⭐ **Le serveur est accessible, mais la clé porte une passphrase.** Demande à l'utilisateur de faire
-`ssh-add ~/.ssh/id_ed25519_aureliefeignon` une fois, puis emploie
-`SSH_AUTH_SOCK=/run/user/1000/openssh_agent ssh portfolio '…'`. ⛔⛔ Sans agent, `BatchMode=yes` rend
-`Permission denied (publickey)` — **le même message que pour une clé non autorisée**, et j'en avais
-tiré un diagnostic faux. `ssh-add -l` distingue les deux cas et coûte zéro.
-
-⭐⭐⭐ **Ce que P4-12 a appris, et qui vaut pour la suite : une mission peut être fausse sur trois
-points, et sincère.** Elle annonçait cinq scénarios E2E « couverts » ; trois ne l'étaient pas. C'est
-la forme de défaut que la phase entière traque, arrivée dans le document qui demande de ne plus la
-produire. **Constate, ne crois pas** — y compris ce fichier-ci.
-
-⭐⭐ **L'inventaire des scénarios E2E est désormais un garde, pas un paragraphe.**
-`tests/integration/every-e2e-scenario-has-a-status.test.ts` confronte les quatorze scénarios de
-`testing-strategy.md` §4.7 au banc : un scénario sans statut rougit, un scénario déclaré couvert
-qu'aucun parcours ne revendique (`@covers E2E-xx`) rougit, un report vers une tâche inexistante
-rougit. **Écrire un parcours pour E2E-13 ou E2E-14 suppose donc de basculer son statut** — le garde
-te le dira.
-
-⛔⛔ **Avant de commencer, lis `phase-4-log.md` §14.8 et §15.1 : dix arbitrages sont TRANCHÉS.** Ne
-les repose pas — chacun porte sa condition de réouverture.
-
-⭐⭐⭐ **Une tâche qui produit des arbitrages les pose au moment où ils naissent**, comme une liste de
-choix avec un défaut recommandé — pas en fin de rapport, pas dans un journal qu'on lit après avoir
-fusionné. C'est la même faute que celles que ces tâches traquent dans le code : *une chose écrite
-quelque part que rien ne confronte au moment où elle compte*. P4-09 à P4-11 ont tenu la règle.
-
-### Ce que les tâches précédentes laissent pour toi
-
-- **`links.repository` n'est rendu par aucune page.** Le contenu le porte, personne ne l'affiche, et
-  le JSON-LD ne peut donc pas l'annoncer : une donnée structurée décrit ce que la page **montre**.
-- **Une CSP stricte supprimerait les blocs `ld+json` en silence** — note dans `src/seo/json-ld.ts`
-  pour l'ADR-0015 (Phase 14). Il faudra un `nonce` ou un condensat.
-- **Le sélecteur de langue est rendu par chaque page, dans le `main`** — inhabituel pour une commande
-  de portée globale. Ses options dépendent de la page, donc un layout ne peut pas le rendre. Choix de
-  gabarit, toujours à trancher.
-- **Le second volet de D7 n'est pas fait** : les `sections[x].description` sont à la fois la
-  méta-description d'une section et la copie visible des cartes de l'accueil. Les séparer en six clés
-  porterait aujourd'hui trois valeurs identiques.
-
-### ✅ Ce que P4-13 a vérifié sur le serveur, et qu'il ne faut pas refaire
-
-- ✅ **`SITE_URL` coïncide dans ses trois écritures** — `.env` du VPS, `Config.Env` du conteneur,
-  `ENV` de l'image — et le site **sert** ce qu'elles annoncent : `canonical`, trois `hreflang`,
-  14 URL au sitemap, zéro d'une autre origine. La dette 1 de `phase-3-log.md` §17.4 est soldée.
-  ⭐ **La vérification qui compte n'est aucune des trois variables**, c'est le document servi.
-- ⛔⛔ **`content/` EST dans l'image**, contrairement à ce que quatre documents affirmaient depuis
-  P2-03 : 87 fichiers, 384 Ko, le traceur de Next l'incluant dans la sortie `standalone`. Mesuré en
-  P4-13. L'exigence « aucune route ne se rend à la demande » tient toujours, mais ce qui la protège
-  est le **gate de rendu statique, et lui seul** — le filet de sécurité auquel la Phase 2 croyait
-  n'existe pas. La checklist de P4-15 doit le dire ainsi.
-
-⭐⭐ **Un gate travaillera pour toi si tu le laisses faire.** `check-static-rendering.mts` porte six
-contrôles et a refusé, sans qu'on le lui demande, une image de partage rendue à la demande puis une
-route que le proxy aurait réécrite en 404. Toute nouvelle route non-page devra entrer dans
-`ROUTE_HANDLERS` — le gate te le dira, avec le nom du fichier à éditer.
-
-Avant de coder, applique la méthode de phase. À la fin de la phase, produis un bilan : fait / dérives
-/ reporté.
+Les détails des tâches closes et leurs leçons restent dans les journaux des Phases 4 à 6,
+les ADR et `nexus-prototype.md` pour NEXUS. Les dettes actives sont regroupées dans « Points encore
+ouverts » ci-dessous. Ne pas reprendre les anciennes missions de ces journaux comme des tâches actuelles.
 
 ## Décisions qui m'attendent
 
@@ -692,7 +302,7 @@ de la Phase 7 tenu), **D8** (le 2026-10-29 : les fiches projet Augure et Askor, 
 2026-10-29, la carte mère). **D5 et D12 sont sans objet** depuis que le bureau est retiré (D11 de la
 Phase 8, puis D14) : retirées du bloc.
 
-**D2 🟠 — Relire les 40 niveaux de compétence (1 à 5).** *La seule qui ait un effet visible : les
+**D2 🟠 — Relire les 43 niveaux de compétence (1 à 5).** *La seule qui ait un effet visible : les
 niveaux **ne sont ni affichés ni publiés** tant que tu ne les as pas relus.* Les publier afficherait
 comme un fait une auto-évaluation que personne n'a validée, et **deux gardes le tiennent** — le
 contrat de `SkillGroup`, qui ne porte que `{ slug, name }`, et un parcours sur le JSON-LD.
@@ -764,10 +374,10 @@ officielle n'atteint 250 Mo.
   de score. C'est le défaut du seuil de 400 Mo que P4-05 avait découvert **en s'y référant**.
   **Arbitrage du 2026-08-16 : porté par P4-13 et P4-15**, la mesure se faisant contre le site
   déployé. La phase ne peut pas se déclarer close sans ce relevé.
-- ⛔ **Une donnée structurée décrit ce que la page montre, et deux ne le font pas** : `links.repository`
-  (relevé en P4-09) *et* le `BreadcrumbList` (relevé en P4-12). `content/` porte le premier, P4-09
-  émet le second sur les sections **et** les fiches — et **aucune page ne rend de fil d'Ariane, ni
-  aucun retour visible**. Les deux sont la même dette, à reprendre avec la fiche de projet.
+- **Les liens de dépôt sont affichés sur les fiches projet depuis le 2026-11-03** :
+  `links.repository` rend un lien traduit vers le code. La réserve historique sur leur absence
+  d'affichage est soldée. Le `BreadcrumbList` (P4-12) reste à confronter à la navigation visible
+  actuelle avant l'audit SEO ; les fiches ont désormais un retour via `ReadingPanel`.
 - ⚠️ **Une CSP stricte supprimerait les blocs `ld+json` en silence** — note dans
   `src/seo/json-ld.ts` pour l'ADR-0015 (Phase 14) : il faudra un `nonce` ou un condensat.
 - ✅ **Les six arbitrages de P4-07 et P4-08 sont TRANCHÉS** (2026-08-16, `phase-4-log.md` §14.8) :

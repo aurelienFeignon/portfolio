@@ -1,0 +1,36 @@
+---
+slug: hephaistos3d
+title: Hephaistos 3D
+summary: "Turning a 2D image into a 3D object on a self-hosted GPU: Idol model integration, hardware qualification and an inference engine under development."
+type: personal
+featured: true
+technologies:
+  - python
+  - typescript
+  - nextjs
+  - docker
+  - cuda
+  - automated-testing
+  - documented-architecture
+startedAt: '2026'
+links:
+  repository: https://github.com/aurelienFeignon/hephaistos3d
+---
+
+Hephaistos 3D explores single-image 3D generation using **Sperid Labs' Idol** model and
+Gaussian Splatting. The goal is to run the pipeline on my own NVIDIA infrastructure,
+from weight installation to output export.
+
+## My work
+
+- Design the application, API contract and separation between web interface and GPU worker.
+- Qualify the model on real hardware before building the user journey.
+- Prepare a persistent job queue, cancellation and progress based on actual computation stages.
+- Document memory constraints, architectural decisions and dependency licences.
+
+## Project status
+
+GPU feasibility is validated. **The inference engine is under development and the interface
+is not usable yet.** Browser viewing and PLY export are planned. Model weights have separate
+terms; the FLUX VAE includes a non-commercial restriction. My work is the integration,
+not the creation of Idol.

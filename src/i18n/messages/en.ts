@@ -11,6 +11,8 @@ import type { Messages } from './fr.ts'
 export const en: Messages = {
   skipToContent: 'Skip to main content',
 
+  projectRepository: 'View source on GitHub',
+
   nav: {
     label: 'Main navigation',
   },

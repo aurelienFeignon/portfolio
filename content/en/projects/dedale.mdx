@@ -1,0 +1,43 @@
+---
+slug: dedale
+title: Dedale
+summary: "Exploring patent collections through traceable ingestion, lexical and vector search, and structured answers linked to source documents."
+type: personal
+featured: true
+technologies:
+  - typescript
+  - python
+  - nodejs
+  - nextjs
+  - postgresql
+  - rabbitmq
+  - minio
+  - docker
+  - llm-integration
+  - structured-outputs
+  - automated-testing
+  - documented-architecture
+startedAt: '2026'
+---
+
+Dedale is a personal patent exploration project connecting an ingestion pipeline,
+a hybrid search engine and corpus-grounded answer generation. The aim is to retrieve relevant
+information while keeping its provenance accessible.
+
+## My work
+
+- Design TypeScript and Python services, ingestion workers and document storage.
+- Combine lexical search and embeddings, with an explicit lexical fallback when vector search
+  is unavailable.
+- Identify embeddings by model, revision and configuration to prevent incompatible vectors
+  from being mixed and support reindexing.
+- Integrate CPU-based BGE-M3 and an independent, locally hosted OpenAI-compatible LLM server.
+- Require structured outputs and corpus references rather than unrestricted, unsourced prose.
+
+## Validation and limits
+
+A local pipeline with synthetic documents supports checks of ingestion, indexing, retrieval
+and generation. Simulated backends are distinguished from real models. The project also includes
+semantic qualification procedures, retrieval and RAG evaluation, and local XML import with provenance.
+**This does not validate coverage of worldwide patents**, nor prove that every generated claim
+is supported by its citation. Source code is kept in a private repository.

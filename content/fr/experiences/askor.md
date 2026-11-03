@@ -5,6 +5,7 @@ role: Développeur Full-Stack
 location: Tours
 startedAt: '2021'
 technologies:
+  - php
   - symfony
   - api-platform
   - python
@@ -38,3 +39,13 @@ divisé le travail inutile à chaque évaluation.
 Le second point structurant est le **versionnage des facteurs d'émission**. Un résultat d'analyse
 n'a de sens qu'accompagné des facteurs qui l'ont produit : les faire évoluer sans versionner
 rendrait incomparables deux analyses menées à six mois d'intervalle.
+
+## Mon périmètre
+
+J'interviens entre interface et backend : bibliothèque de composants, workflows de modélisation,
+API métier et chaîne de calcul. React Flow porte l'édition interactive, Zustand l'état de
+l'interface, et PHP avec Symfony et API Platform la structuration du backend.
+
+Le calcul asynchrone et les mises à jour Mercure permettent de séparer le temps du traitement
+de celui de l'interaction. Le module d'éco-conception ajoute une lecture décisionnelle :
+comparer des options et leurs effets, au-delà de l'affichage d'un résultat d'analyse.

@@ -5,6 +5,7 @@ role: Full-Stack Developer
 location: Tours, France
 startedAt: '2021'
 technologies:
+  - php
   - symfony
   - api-platform
   - python
@@ -37,3 +38,13 @@ evaluation.
 The second structuring point is the **versioning of emission factors**. An assessment result only
 means something alongside the factors that produced it: letting them evolve without versioning would
 make two assessments six months apart incomparable.
+
+## My scope
+
+My work spans frontend and backend: component library, modelling workflows, domain APIs and
+the computation pipeline. React Flow supports interactive editing, Zustand manages UI state,
+and PHP with Symfony and API Platform structures the backend.
+
+Asynchronous computation and Mercure updates separate processing time from user interaction.
+The eco-design module adds decision support: comparing options and their effects rather than
+only displaying an assessment result.

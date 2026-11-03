@@ -1,0 +1,36 @@
+---
+slug: hephaistos3d
+title: Hephaistos 3D
+summary: "Transformer une image 2D en objet 3D sur un GPU auto-hébergé : intégration du modèle Idol, qualification matérielle et moteur d'inférence en développement."
+type: personal
+featured: true
+technologies:
+  - python
+  - typescript
+  - nextjs
+  - docker
+  - cuda
+  - automated-testing
+  - documented-architecture
+startedAt: '2026'
+links:
+  repository: https://github.com/aurelienFeignon/hephaistos3d
+---
+
+Hephaistos 3D explore la génération d'objets 3D à partir d'une seule image, avec le modèle
+**Idol de Sperid Labs** et une représentation en Gaussian Splatting. L'objectif est de maîtriser
+la chaîne sur ma propre infrastructure NVIDIA, de l'installation des poids à l'export du résultat.
+
+## Mon travail
+
+- Concevoir l'application, le contrat d'API et la séparation entre interface web et worker GPU.
+- Qualifier le modèle sur du matériel réel avant de construire le parcours utilisateur.
+- Préparer une file de travaux persistante, l'annulation et un suivi par étapes de calcul.
+- Tracer les contraintes de mémoire, les décisions techniques et les licences des dépendances.
+
+## État du projet
+
+La faisabilité GPU est validée ; **le moteur d'inférence est en cours de développement et
+l'interface n'est pas encore utilisable**. La visualisation dans le navigateur et l'export PLY
+font partie du parcours prévu. Les poids ont leurs propres conditions : le VAE FLUX employé
+impose notamment une restriction d'usage commercial. Je développe l'intégration, pas le modèle Idol.

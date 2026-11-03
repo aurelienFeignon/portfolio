@@ -8,3 +8,7 @@
   font-size: var(--text-lg);
   color: var(--color-text-muted);
 }
+
+.repository {
+  margin: 0;
+}
