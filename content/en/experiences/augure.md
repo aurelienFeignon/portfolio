@@ -60,3 +60,13 @@ The part I find most interesting technically is not the machine-learning pipelin
 of the tools exposed to the model**: each tool enforces the application's visibility rules and state
 guards, so the model only ever reaches resources the user talking to it is authorised for. An agentic
 assistant that bypassed those rules would be a privilege escalation dressed up as a feature.
+
+## From design to operations
+
+My role connects product needs with data and infrastructure constraints: defining service
+contracts, organising event-driven processing and making executions observable and recoverable.
+The model and strategy composition interface connects the distributed system to user actions.
+
+I distinguish platform operation from predictive validity: training a model and running a
+backtest do not, by themselves, establish a strategy's value. Research protocols, measurements
+and recorded decisions provide that assessment.

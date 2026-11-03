@@ -17,17 +17,20 @@ links:
   repository: https://github.com/aurelienFeignon/portfolio
 ---
 
-Ce site est développé par phases, chacune close par des critères de sortie vérifiés par une
-exécution — jamais par une relecture. Les décisions structurantes sont écrites dans des ADR
-versionnés, et chaque phase laisse un journal de ce que l'exécution a renversé.
+Ce portfolio associe un **socle documentaire statique et bilingue** à une scène 3D de carte
+mère, construite à partir du contenu. Les compétences deviennent des puces, les projets des
+processeurs et les expériences un bus chronologique ; les pistes représentent leurs relations.
 
-Trois contraintes le gouvernent, dans cet ordre : **accessibilité, indexabilité, performance du
-contenu**. La couche 3D qui viendra ensuite est un enrichissement, jamais un prérequis — supprimer
-entièrement son dossier doit laisser un portfolio complet, navigable et indexable.
+## Mon travail
 
-Quelques conséquences concrètes de cette discipline :
+- Concevoir l'architecture Next.js et React, les schémas de contenu MDX et les routes bilingues.
+- Générer un plan de carte déterministe depuis les fiches, puis le dessiner avec Three.js et React Three Fiber.
+- Garder le contenu accessible sans WebGL et charger la scène comme un enrichissement progressif.
+- Documenter les décisions par ADR et vérifier contenu, rendu statique et isolation de la 3D au build.
+- Automatiser les tests, la publication de l'image Docker et le déploiement avec GitHub Actions.
 
-- aucun outil Node n'est installé sur ma machine : tout passe par des conteneurs ;
-- un contenu invalide **casse le build**, plutôt que de produire une page à moitié vide ;
-- aucune route ne peut se rendre à la demande, et un gate le vérifie à chaque construction ;
-- le site ne sert aujourd'hui **aucun JavaScript propre à ses pages**.
+## Mesurer sur le matériel réel
+
+Le diagnostic embarqué permet de relever le premier rendu et les tâches longues sur ordinateur
+et téléphone. Les mesures du banc logiciel restent distinctes de celles des appareils réels.
+Le contenu continue d'être enrichi ; une repasse visuelle est prévue après sa finalisation.

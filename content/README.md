@@ -3,10 +3,15 @@
 Markdown/MDX par locale : `fr/` et `en/`, chacune avec `experiences/`, `projects/`, `skills/` (ADR-0001).
 Le **nom de fichier fait foi** pour le slug ; un frontmatter invalide casse le build (CF-10), vérifié par `make check-content`, lui-même exécuté par `make build`.
 
-Ce qui s'y trouve est le **contenu réel** (P2-11, 2026-08-15) : par locale, **2 expériences**
-(Augure, Askor chez EVEA Conseil), **3 projets** (Augure, Askor et ce portfolio — les deux premiers
-ajoutés le 2026-10-29 pour la carte mère, D14) et **40 compétences** groupées en cinq catégories,
-dont dix mises en avant. Le contenu d'amorçage de P2-10 a été entièrement remplacé.
+Le contenu comprend, par locale, **2 expériences** (Augure, Askor chez EVEA Conseil),
+**6 projets** (Augure, Askor, portfolio, Hephaistos 3D, Dedale, exploration NCM) et
+**43 compétences**, dont dix mises en avant. PHP est relié au projet et à l'expérience Askor.
+
+Enrichissement du 2026-11-03 : README GitHub pour Hephaistos et Dedale, documentation et historique
+locaux de `/opt/ncm` pour l'exploration NCM (travail local distinct du fork public). Les trois
+nouveaux projets sont datés à l'année 2026 ; le jour de création d'un dépôt n'est pas présenté
+comme le début exact du travail. Dedale reste privé, sans lien de dépôt public.
+Les niveaux demeurent des propositions non affichées (D2), y compris PHP à 4, aligné sur Symfony.
 
 Une réserve à corriger quand tu auras la réponse :
 
@@ -37,3 +42,6 @@ n'ont pas ce problème.
   la carte mère (`docs/carte-mere.md` §5) ;
 - **au plus un** projet `primary: true` par locale — il tient le processeur central —, et **le même**
   dans toutes les locales où sa fiche existe. `primary` est indépendant de `featured`.
+
+Codex et OpenCode sont ajoutés aux outils de développement, aux côtés de Claude Code
+(2026-11-03), avec le même niveau proposé de 3, non affiché tant que D2 reste ouverte.

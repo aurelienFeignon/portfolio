@@ -24,6 +24,7 @@ import { notFound } from 'next/navigation'
 import { contentRepository } from '@/content/repository'
 import { getMessages } from '@/i18n/messages'
 import { sectionPath, type PageLocation } from '@/routing/paths'
+import links from '@/ui/accent-link.module.css'
 import { DateRange } from '@/ui/date-range'
 import { JsonLd } from '@/ui/json-ld'
 import { LanguageSwitcher } from '@/ui/language-switcher'
@@ -88,6 +89,14 @@ export default async function ProjectPage({ params }: EntityParams) {
       <h1 className={page.title}>{project.title}</h1>
       <p className={styles.summary}>{project.summary}</p>
       <DateRange locale={locale} startedAt={project.startedAt} endedAt={project.endedAt} />
+
+      {project.links?.repository && (
+        <p className={styles.repository}>
+          <a className={links.textLink} href={project.links.repository}>
+            {messages.projectRepository}
+          </a>
+        </p>
+      )}
 
       <Prose source={project.body} file={project.file} />
 

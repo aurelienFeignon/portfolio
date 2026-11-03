@@ -62,3 +62,14 @@ mais **la sécurité des outils exposés au modèle** : chaque outil applique le
 et les gardes d'état de l'application, de sorte que le modèle n'accède jamais qu'aux ressources
 autorisées à l'utilisateur qui lui parle. Un assistant agentique qui court-circuiterait ces règles
 serait une élévation de privilèges déguisée en fonctionnalité.
+
+## De la conception à l'exploitation
+
+Mon rôle relie les besoins du produit aux contraintes de données et d'infrastructure :
+choisir les contrats entre services, organiser les traitements événementiels, puis rendre
+les exécutions observables et récupérables. L'interface de composition des modèles et des
+stratégies fait le lien entre ce système distribué et les actions de l'utilisateur.
+
+Je distingue le fonctionnement de la plateforme de la validité des prédictions : entraîner
+un modèle et exécuter un backtest ne démontrent pas à eux seuls la valeur d'une stratégie.
+C'est le rôle des protocoles de recherche, des mesures et des décisions tracées.

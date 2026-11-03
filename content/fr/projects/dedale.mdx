@@ -1,0 +1,45 @@
+---
+slug: dedale
+title: Dedale
+summary: "Explorer un corpus de brevets : ingestion traçable, recherche lexicale et vectorielle, puis réponses structurées reliées aux documents sources."
+type: personal
+featured: true
+technologies:
+  - typescript
+  - python
+  - nodejs
+  - nextjs
+  - postgresql
+  - rabbitmq
+  - minio
+  - docker
+  - llm-integration
+  - structured-outputs
+  - automated-testing
+  - documented-architecture
+startedAt: '2026'
+---
+
+Dedale est un projet personnel d'exploration de brevets. Il relie une chaîne d'ingestion,
+un moteur de recherche hybride et une génération de réponses appuyées sur le corpus.
+L'enjeu est de retrouver une information pertinente et de pouvoir remonter à sa source.
+
+## Mon travail
+
+- Concevoir les services TypeScript et Python, les workers d'ingestion et le stockage documentaire.
+- Articuler recherche lexicale et embeddings, avec un repli lexical explicite si le service
+  vectoriel est indisponible.
+- Identifier les embeddings par modèle, révision et configuration pour éviter de mélanger des
+  vecteurs incompatibles et permettre la réindexation.
+- Intégrer BGE-M3 sur CPU et un serveur LLM local compatible OpenAI, indépendant du cycle de vie
+  de l'application.
+- Exiger des sorties structurées et des références au corpus plutôt qu'un texte libre sans sources.
+
+## Validation et limites
+
+Une chaîne locale sur un corpus synthétique permet de vérifier ingestion, indexation,
+recherche et génération. Les modes simulés sont distingués des modèles réels. Le projet comprend
+aussi des procédures de qualification sémantique, d'évaluation du retrieval et du RAG, et d'import
+XML local avec provenance. **Cela ne constitue pas une validation sur l'ensemble des brevets
+mondiaux**, ni une garantie que chaque affirmation générée est démontrée par sa citation.
+Le code source est conservé dans un dépôt privé.

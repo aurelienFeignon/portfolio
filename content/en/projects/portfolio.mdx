@@ -17,17 +17,20 @@ links:
   repository: https://github.com/aurelienFeignon/portfolio
 ---
 
-This site is built in phases, each closed by exit criteria verified by an execution — never
-by a reading. Structuring decisions are written down in versioned ADRs, and each phase leaves a log of
-what execution overturned.
+This portfolio combines a **static, bilingual documentary foundation** with a motherboard
+3D scene generated from its content. Skills become chips, projects become processors and
+experiences form a chronological bus; traces represent their relationships.
 
-Three constraints govern it, in this order: **accessibility, indexability, content performance**. The
-3D layer that will come later is an enhancement, never a prerequisite — deleting its folder entirely
-must leave a complete, navigable, indexable portfolio behind.
+## My work
 
-A few concrete consequences of that discipline:
+- Design the Next.js and React architecture, MDX content schemas and bilingual routes.
+- Generate a deterministic board plan from content and render it with Three.js and React Three Fiber.
+- Keep content accessible without WebGL and load the scene as a progressive enhancement.
+- Document decisions in ADRs and check content, static rendering and 3D isolation during builds.
+- Automate tests, Docker image publication and deployment with GitHub Actions.
 
-- no Node tooling is installed on my machine: everything runs in containers;
-- invalid content **breaks the build** rather than producing a half-empty page;
-- no route can be rendered on demand, and a gate verifies it on every build;
-- the site currently ships **no page-specific JavaScript at all**.
+## Measuring on real hardware
+
+The embedded diagnostic panel reports initial rendering and long tasks on computers and phones.
+Software-rendered benchmark results remain separate from real-device measurements.
+Content is being expanded; a visual revision is planned once it is complete.
