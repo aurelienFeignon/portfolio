@@ -224,6 +224,45 @@ l'application refuse de démarrer) et `/srv/portfolio/.ghcr-token` sont en `600`
 > Docker range l'identifiant en clair (base64) dans `~/.docker/config.json` — il le signale
 > lui-même. Rendre le paquet public supprimerait ce secret et son renouvellement, l'image ne
 > contenant rien que le dépôt public ne montre déjà.
+>
+> ⛔⛔ **Arrivé le 2026-11-10** : les deux déploiements du jour (`fe06017`, puis `d8b084c`) ont échoué
+> au `docker pull` sur `error from registry: denied` — le jeton du VPS ne donne plus accès au
+> paquet. Le site est resté debout sur `9e5fe91`, donc la sonde est restée verte : c'est ce qui a
+> motivé le contrôle de révision du §7.6. Remède durable : la décision D6 (paquet public) ;
+> remède immédiat : un nouveau jeton `read:packages` dans `/srv/portfolio/.ghcr-token` et
+> `docker login ghcr.io`, puis le rattrapage du §8.4.
+
+### 3.3 `deploy.sh` survit à une coupure de session — 2026-11-11
+
+⛔ Une coupure SSH (runner perdu, réseau) envoyait `SIGHUP` au script : tué entre `compose up` et le
+contrôle de santé, il laissait le serveur à moitié déployé, **sans rollback ni `.tag.previous`**.
+Rejoué sur une copie du script avec un `docker` simulé : l'ancienne version réécrit `.env` puis
+meurt, `.tag.previous` n'existe pas.
+
+Désormais :
+
+- `HUP` **et** `PIPE` sont ignorés — ignorer `HUP` seul ne suffit pas : la première écriture sur la
+  session fermée lève `SIGPIPE`, puis `EPIPE` sous `set -e` ;
+- toute la sortie passe par `tee`, qui écrit **`/srv/portfolio/deploy.log`** (2 000 dernières lignes
+  conservées) et continue quand la session a disparu : le récit d'un déploiement orphelin se relit
+  après coup ;
+- un **verrou** (`flock` sur `/srv/portfolio/.deploy.lock`) sérialise ce qui peut encore se
+  chevaucher — la CI sérialise déjà ses runs de `main` : un déploiement orphelin et le suivant, ou un
+  `rollback` manuel lancé pendant un `deploy`. Le second attend 600 s (le pire cas d'un déploiement
+  avec retour automatique), puis sort en 75. `rollback` lit sa cible **après** la prise du verrou.
+
+- l'image se **tire avant** de basculer `.env` : un pull refusé laissait `.env` sur un tag jamais
+  servi, que le déploiement suivant a pris pour « courant » et inscrit dans `.tag.previous` —
+  constaté le 2026-11-11 (`courant: d8b084c` au déploiement de `6bb9f5e`, alors que le site servait
+  `9e5fe91`). Rejoué : pull refusé, `.env` intact, sortie 1.
+
+Même banc, nouvelle version : déploiement mené à terme malgré `HUP` et tuyau fermé, `.tag.previous`
+écrit, et un second `deploy` refusé en 75 pendant que le verrou est tenu.
+
+⚠️ **La copie qui s'exécute est sur le VPS** : à réinstaller à la main après fusion —
+`scp deploy/deploy.sh portfolio:/tmp/ && ssh portfolio 'sudo install -m 755 /tmp/deploy.sh /srv/portfolio/deploy.sh'`
+(ajuster propriétaire et mode à ceux de la copie en place). `flock` vient de `util-linux`, présent
+sur Debian.
 
 ---
 
@@ -563,6 +602,49 @@ Le message d'échec nomme lui-même quoi regarder, dans cet ordre — les trois 
 conteneur de développement au lieu du runner. Un mécanisme d'alerte qu'on ne peut pas rejouer est un
 mécanisme qu'on ne peut pas instruire le jour où il crie.
 
+### 7.3 bis Le déploiement manquant — 2026-11-11
+
+Le site debout sur une **ancienne** image était vert pour la sonde : un déploiement échoué ou jamais
+lancé ne se voyait qu'à l'œil. Constaté le 2026-11-10 (§3.2) : deux fusions non servies, sonde verte.
+
+⭐ L'image porte désormais sa révision (`SOURCE_REVISION`, argument de construction fourni par la CI
+aux jobs `e2e` **et** `publish`) et la sert en en-tête **`X-Source-Revision` sur `/robots.txt`
+seulement** — le seul chemin anonyme à travers Access. Le job `e2e` vérifie l'en-tête sur l'image
+elle-même. Sur `main`, la sonde planifiée passe `--expect-revision <tête de main>` et
+`--committed-at <date du commit>` ; elle crie si la tête de `main` n'est **pas servie une heure
+après sa fusion** (CI mesurée entre 11 et 23 min). Un écart plus récent est attendu et ne crie pas.
+
+Rejoué contre la production le 2026-11-11 : `DÉPLOIEMENT MANQUANT — main (d8b084c162c1) est fusionné
+depuis 1445 min, mais le site sert : aucune (en-tête X-Source-Revision absent)`, sortie 1.
+
+⭐ **Le job `deploy` vérifie lui-même** que l'origine publique sert `GITHUB_SHA` (six tirs espacés de
+10 s) : un déploiement raté échoue sur **son** run, tout de suite. La sonde ne reste indispensable que
+pour le run qui n'a **jamais** tourné, ou un retour en arrière survenu après.
+
+Un écart passé le délai n'est **pas réessayé** (il ne se résorbe pas en 15 s), et le message titre
+`DÉPLOIEMENT MANQUANT` au lieu de `LE SITE NE RÉPOND PAS` : on ne va pas chercher un VPS éteint.
+
+⚠️ Le délai part de la date du **commit** (`%ct`), pas de son arrivée sur `main`. Une fusion par PR
+les fait coïncider ; un commit ancien poussé tel quel peut faire crier la sonde le temps de sa CI.
+
+⭐ **Un rollback délibéré s'assume**, sans quoi la sonde crierait jusqu'à la prochaine fusion :
+
+```bash
+gh variable set UPTIME_ACCEPTED_REVISION --body <sha40 servi après le rollback>
+# … puis, une fois la tête de main de nouveau servie :
+gh variable delete UPTIME_ACCEPTED_REVISION
+```
+
+La sonde accepte alors cette révision-là, et le dit à chaque passage (« rollback assumé ») pour
+qu'on n'oublie pas de vider la variable.
+
+⛔ **Conséquence à la fusion** : tant que le pull du VPS est refusé, la sonde sera rouge à chaque
+passage — c'est exactement ce qu'elle doit dire. Rétablir l'accès GHCR (§3.2) avant ou juste après.
+
+⚠️ Cloudflare répondait `cf-cache-status: EXPIRED` sur `/robots.txt` le 2026-11-11 (revalidation à
+l'origine à chaque requête) : l'en-tête lu est celui de l'origine. Si une règle de cache venait à le
+servir depuis la périphérie, la sonde verrait une révision périmée jusqu'à 4 h (`max-age=14400`).
+
 ### 7.4 L'arrêt volontaire — exécuté le 2026-08-17
 
 Pas une simulation : le conteneur de production a réellement été arrêté, la sonde a été lancée
@@ -738,6 +820,8 @@ la conclusion du workflow d'un côté, la sonde de l'autre.
 
 ### 8.4 Si ça tourne mal
 
+- [ ] **Après un `rollback` délibéré** : l'assumer auprès de la sonde
+      (`UPTIME_ACCEPTED_REVISION`, §7.3 bis), sinon elle criera jusqu'à la prochaine fusion.
 - [ ] **Ne pas doubler la manœuvre** : si le conteneur n'atteint pas `healthy` en 120 s, `deploy.sh`
       remet **de lui-même** le tag qui servait avant la tentative, et sort en 1. Lire son journal
       avant d'agir.

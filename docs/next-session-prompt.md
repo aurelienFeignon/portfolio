@@ -67,7 +67,33 @@ lumineux. Pour l'historique, `docs/nexus-prototype.md` §6 (enquête de performa
 **Tout ce qui suit est fusionné sur `main` et déployé**, les cinq jobs verts à chaque fois —
 publication GHCR et déploiement VPS compris.
 
-### Dernière reprise — 2026-11-03
+### Dernière reprise — 2026-11-11
+
+Session « dettes ouvertes » : branche `fix/dettes-ouvertes-2026-11-11`. Elle traite le healthcheck
+de dev, `deploy.sh` face à une coupure SSH, la détection d'un déploiement manquant,
+`getFeaturedProjects` et la confrontation du `BreadcrumbList` (détail dans « Points encore
+ouverts »). ⛔ Elle a découvert que **la production ne se déploie plus depuis le 2026-11-10**
+(jeton GHCR refusé, D6).
+
+**État au soir du 2026-11-11 — à reprendre ainsi le 2026-11-12 :**
+
+1. ✅ **Accès GHCR du VPS rétabli par l'utilisateur** (nouveau jeton `read:packages`, paquet toujours
+   privé — D6) : `docker pull …:d8b084c…` réussi sur le VPS.
+   Le site sert toujours `9e5fe91` — rien n'a été redéployé, le pull a seulement été vérifié.
+2. ✅ **La CI ne dépend plus du miroir `apt`** : la panne du miroir Ubuntu (`azure.archive.ubuntu.com`,
+   chaque paquet en `Ign:` après 20 s) figeait `playwright install --with-deps` plus d'une heure.
+   **#105 fusionnée le 2026-11-11** (`6bb9f5e`) : E2E et Lighthouse passent par `make e2e-prod` et
+   `make lighthouse` dans l'image Playwright épinglée (`docker-compose.ci.yml`), le job `versions`
+   vérifie image et `@playwright/test`. Sa CI a déroulé 185 E2E pendant la panne. ⚠️ Cette fusion a
+   aussi **déployé `main`** (#100 et #103 compris) : vérifier son run et le SHA servi.
+3. ⏳ **#104 rebasée sur `main` après #105**, sans conflit : relire sa CI.
+4. Après une CI verte : **fusion de #104 sur accord explicite** (elle déploie), puis la suite de
+   `deploy/README.md` — vérifier le run de `main` (cinq jobs, le job `deploy` contrôle lui-même le
+   SHA servi), `curl -sI https://aurelienfeignon.com/robots.txt | grep -i x-source-revision`, un
+   tir **planifié** vert de la sonde, puis **seulement ensuite** réinstaller `deploy/deploy.sh` sur
+   le VPS (§3.3 : noter propriétaire et mode de la copie en place, vérifier `command -v flock`).
+
+### Reprise précédente — 2026-11-03
 
 La mise à jour précédente du prompt est fusionnée : **#97, `a873086`**, présente dans le `main`
 local au relevé du 2026-11-03. Ne plus demander de vérifier la fusion de sa branche.
@@ -311,7 +337,10 @@ Python, Node.js, React, Next.js, PostgreSQL, Docker, microservices, architecture
 intégration de modèles de langage.*
 ✅ Arbitré le 2026-10-30 pour la carte mère : voir `carte-mere.md` §12.1 (puces de taille égale tant que D2 est ouverte, paramètre du générateur) et `phase-0-questions.md` (D2).
 
-**D6 🟠 — Rendre le paquet GHCR public ?** *(action manuelle, je n'ai pas les droits)* → *GitHub →
+**D6 🟠 — Rendre le paquet GHCR public ?** *(a bloqué les déploiements du 2026-11-10 : jeton du VPS
+refusé. **Jeton `read:packages` renouvelé par l'utilisateur le 2026-11-11** — il expirera de nouveau,
+et le symptôme sera le même : `error from registry: denied` au pull, job `deploy` rouge, puis la
+sonde en `DÉPLOIEMENT MANQUANT`. Le paquet reste privé, la question reste donc ouverte)* *(action manuelle, je n'ai pas les droits)* → *GitHub →
 Packages → portfolio → Change visibility → Public. Puis sur le VPS : `docker logout ghcr.io && rm
 /srv/portfolio/.ghcr-token`, et retirer le `docker login` de `deploy.sh`. Bénéfice : plus de PAT à
 renouveler, donc plus de déploiement qui s'arrête un jour sans rapport apparent avec le code.*
@@ -356,7 +385,10 @@ officielle n'atteint 250 Mo.
   intact, et le site en ligne n'est pas concerné.
 
   ⛔ **Ce qui RESTE ouvert, et qu'une borne ne règle pas :**
-  1. ⚠️ Mesurée le 2026-10-31, cause racine et remède encore ouverts : voir le commentaire du service `web` de `docker-compose.yml`. À décider : ralentir le `healthcheck` de dev, ou chercher qui retient les tampons (piste Next/Turbopack, à signaler en amont).
+  1. ✅ Remède d'attente appliqué le 2026-11-11 : `healthcheck` de dev à 30 s une fois sain
+     (`start_interval` de 5 s au démarrage, pour ne pas ralentir `e2e`), ~290 Mo/jour au lieu de
+     ~1,7 Go. ⚠️ **La cause racine reste ouverte** — qui retient les tampons de `next dev` (piste
+     Next/Turbopack, à signaler en amont) : voir le commentaire du service `web`.
   2. **Ne pas le faire tourner en permanence** — `make up` à la demande, `make down` après. C'est une
      habitude à prendre, pas un correctif à écrire : l'étage `dev` porte `CMD ["pnpm", "dev"]`, donc
      le conteneur sert un serveur de développement tant qu'il vit, même quand personne ne développe.
@@ -374,10 +406,10 @@ officielle n'atteint 250 Mo.
   de score. C'est le défaut du seuil de 400 Mo que P4-05 avait découvert **en s'y référant**.
   **Arbitrage du 2026-08-16 : porté par P4-13 et P4-15**, la mesure se faisant contre le site
   déployé. La phase ne peut pas se déclarer close sans ce relevé.
-- **Les liens de dépôt sont affichés sur les fiches projet depuis le 2026-11-03** :
-  `links.repository` rend un lien traduit vers le code. La réserve historique sur leur absence
-  d'affichage est soldée. Le `BreadcrumbList` (P4-12) reste à confronter à la navigation visible
-  actuelle avant l'audit SEO ; les fiches ont désormais un retour via `ReadingPanel`.
+- ✅ **`BreadcrumbList` confronté à la navigation visible le 2026-11-11** : même hiérarchie
+  (site → section → fiche) que les retours des `ReadingPanel`, feuille = `h1` de la page. Seul écart,
+  assumé : la racine se nomme « Aurélien Feignon » dans le fil, « Vue d'ensemble » sur le retour
+  visible des sections — le nom du site, pas un libellé de bouton. Aucun changement de code.
 - ⚠️ **Une CSP stricte supprimerait les blocs `ld+json` en silence** — note dans
   `src/seo/json-ld.ts` pour l'ADR-0015 (Phase 14) : il faudra un `nonce` ou un condensat.
 - ✅ **Les six arbitrages de P4-07 et P4-08 sont TRANCHÉS** (2026-08-16, `phase-4-log.md` §14.8) :
@@ -392,22 +424,38 @@ officielle n'atteint 250 Mo.
   rendre. Choix de gabarit, à trancher.
 - **`EntityList` ne sert plus qu'aux projets** ; les expériences et les compétences ont leur
   composant. Il reste parce qu'un projet n'a qu'un titre et un résumé, pas parce qu'il est générique.
-- **`getFeaturedProjects` n'a aucun appelant de production.** ⚠️ `getFeaturedSkills`, lui, en a un
-  depuis **P4-09** — le `knowsAbout` du `Person`. La dette a donc **rétréci sans être réécrite**
-  pendant une tâche : le drapeau `featured` est lu pour les compétences, par personne pour les
-  projets.
+- ✅ **`getFeaturedProjects` retiré le 2026-11-11** (aucun appelant de production). ⚠️ Le drapeau
+  `featured` d'un **projet** reste porté par le contenu et validé, mais rien ne le lit : à rebrancher
+  quand une vue en aura l'usage. Celui des compétences est lu (`knowsAbout`, P4-09).
 - **La liste blanche MDX n'est pas une barrière de sécurité** : à reprendre tel quel à l'audit de la
   Phase 14.
 - **Mesure CPU en régime stable** (P11-08) : le seul relevé date d'une minute après démarrage — 32 %,
   au-dessus du seuil d'alerte de 25 %. Ce n'est pas une mesure valide.
 - ✅ **`workflow_dispatch` dans `ci.yml` depuis le 2026-10-29** : rattrapage par `deploy/README.md`
   §8.4, et plus d'annulation des runs de `main` (raison dans `ci.yml`).
-- ⚠️ **`deploy.sh` ne survit pas à une coupure SSH** : un `SIGHUP` entre `compose up` et le contrôle
-  de santé laisse le serveur à moitié déployé, sans retour automatique. Une annulation de CI ne le
-  provoque plus, mais une perte du runner ou du réseau, si. Piste : `trap '' HUP` et un `flock`.
-  Le script vit sur le VPS : à y installer à la main.
-- ⚠️ **Un déploiement manquant ne se voit toujours qu'à l'œil** : la poignée rattrape, elle ne
-  détecte pas. Piste : la sonde compare le SHA servi (`deploy.sh status`) à la tête de `main`.
+- ⚠️ **`deploy.sh` survit à une coupure SSH depuis le 2026-11-11 — DANS LE DÉPÔT** (`HUP`/`PIPE`
+  ignorés, sortie vers `/srv/portfolio/deploy.log`, verrou `flock`), éprouvé sur un banc simulé
+  (`deploy/README.md` §3.3). ⛔ **Pas encore installé sur le VPS** : la copie qui s'exécute est
+  `/srv/portfolio/deploy.sh`, à remplacer à la main après fusion.
+- ✅ **Un déploiement manquant se voit depuis le 2026-11-11** : l'image sert `X-Source-Revision` sur
+  `/robots.txt`, et la sonde planifiée exige la tête de `main` une heure après sa fusion
+  (`deploy/README.md` §7.3 bis). Rejouée contre la production : elle crie sur l'incident ci-dessous.
+  ⚠️ Après un **rollback délibéré**, l'assumer par la variable de dépôt `UPTIME_ACCEPTED_REVISION`,
+  sinon la sonde crie jusqu'à la prochaine fusion. Le job `deploy` vérifie aussi, lui-même, que
+  l'origine publique sert son commit.
+  Pistes **écartées** à la revue du 2026-11-11, à rouvrir si le coût se fait sentir :
+  1. poser l'en-tête **à l'exécution** plutôt qu'au build — aujourd'hui `SOURCE_REVISION` invalide
+     `pnpm build` à chaque commit, docs compris ;
+  2. remplacer le délai de grâce (date du commit) par l'état du dernier run `ci.yml` de `main`, lu
+     par l'API Actions ;
+  3. viser `/robots.txt` plutôt que `/` dans le `healthcheck` de dev, si une route de métadonnées
+     retient moins de mémoire sous `next dev` — à mesurer d'abord.
+- ⛔ **Production sur `9e5fe91` depuis le 2026-11-10** : les déploiements de #100 (`fe06017`) et #103
+  (`d8b084c`) ont échoué au `docker pull` (`error from registry: denied`), comme D6 l'annonçait.
+  ✅ Accès rétabli le 2026-11-11 (pull vérifié sur le VPS). ⏳ Reste à **redéployer** : la fusion de
+  #104 porte #100 et #103, aucun rattrapage séparé n'est nécessaire (« État au soir du 2026-11-11 »).
+- ⚠️ **La CI dépend du miroir `apt` d'Ubuntu** (`playwright install --with-deps`) : en panne le
+  2026-11-11, il a figé le job E2E. Remède retenu si cela se reproduit : E2E dans l'image Playwright.
 - **Procédure de restauration du serveur** (R-23) : Hetzner restreint par intermittence la création
   d'instances. À écrire sous cette contrainte en Phase 15.
 - **Plages Cloudflare** : un timer hebdomadaire les rafraîchit sur le VPS.

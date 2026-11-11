@@ -16,16 +16,15 @@
  * lignes de JSON par cas, et les figer dans le dépôt les ferait diverger de la
  * forme réelle que Next produit sans que personne ne le remarque.
  */
-import { execFile } from 'node:child_process'
 import { mkdtemp, mkdir, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { promisify } from 'node:util'
 
 import { describe, expect, it } from 'vitest'
 
-const run = promisify(execFile)
-const SCRIPT = join(process.cwd(), 'scripts', 'check-static-rendering.mts')
+import { runScript, scriptPath, type ScriptResult } from './support/run-script'
+
+const SCRIPT = scriptPath('check-static-rendering.mts')
 
 interface Manifests {
   readonly appRoutes: Record<string, string>
@@ -78,22 +77,12 @@ async function writeBuild(
   return { root, servedPath, publicDir }
 }
 
-async function runGate(
-  root: string,
-  servedPath: string,
-  publicDir: string,
-): Promise<{ code: number; output: string }> {
-  try {
-    const { stdout, stderr } = await run('node', [SCRIPT, root, servedPath, publicDir])
-    return { code: 0, output: stdout + stderr }
-  } catch (error) {
-    const failure = error as { code?: number; stdout?: string; stderr?: string }
-    return { code: failure.code ?? -1, output: (failure.stdout ?? '') + (failure.stderr ?? '') }
-  }
+function runGate(root: string, servedPath: string, publicDir: string): Promise<ScriptResult> {
+  return runScript(SCRIPT, [root, servedPath, publicDir])
 }
 
 /** Écrit le build fabriqué, puis exécute le gate contre lui. */
-async function checkRendering(manifests: Manifests): Promise<{ code: number; output: string }> {
+async function checkRendering(manifests: Manifests): Promise<ScriptResult> {
   const { root, servedPath, publicDir } = await writeBuild(manifests)
   return runGate(root, servedPath, publicDir)
 }
@@ -232,7 +221,7 @@ describe('gate de rendu statique', () => {
   it('refuse de conclure sans les manifestes de `next build`', async () => {
     const root = await mkdtemp(join(tmpdir(), 'next-empty-'))
 
-    await expect(run('node', [SCRIPT, root])).rejects.toMatchObject({ code: 1 })
+    expect((await runScript(SCRIPT, [root])).code).toBe(1)
   })
 })
 

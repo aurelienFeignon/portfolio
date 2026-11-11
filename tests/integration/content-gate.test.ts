@@ -10,25 +10,17 @@
  * La vérification par `make build` a été faite une fois, à la main, sur un
  * contenu volontairement fautif — voir `phase-2-log.md` §10.
  */
-import { execFile } from 'node:child_process'
 import { join } from 'node:path'
-import { promisify } from 'node:util'
 
 import { describe, expect, it } from 'vitest'
 
-const run = promisify(execFile)
+import { runScript, scriptPath, type ScriptResult } from './support/run-script'
 
-const SCRIPT = join(process.cwd(), 'scripts', 'check-content.mts')
+const SCRIPT = scriptPath('check-content.mts')
 const FIXTURES = join(process.cwd(), 'tests', 'fixtures', 'content')
 
-async function checkContent(root: string): Promise<{ code: number; output: string }> {
-  try {
-    const { stdout, stderr } = await run('node', [SCRIPT, root])
-    return { code: 0, output: stdout + stderr }
-  } catch (error) {
-    const failure = error as { code?: number; stdout?: string; stderr?: string }
-    return { code: failure.code ?? -1, output: (failure.stdout ?? '') + (failure.stderr ?? '') }
-  }
+function checkContent(root: string): Promise<ScriptResult> {
+  return runScript(SCRIPT, [root])
 }
 
 describe('gate de contenu', () => {

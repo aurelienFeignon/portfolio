@@ -101,6 +101,22 @@ jobs:
       # avale le code de sortie et ce gate ne peut PAS échouer. Le dépôt l'a payé
       # deux fois — le seuil de taille d'image et l'audit Lighthouse (P4-13
       # §20.7).
+      # ⭐ Sur `main` — c'est-à-dire tout passage planifié, qui tourne sur la
+      # branche par défaut —, la sonde exige aussi que le site serve CE commit,
+      # passé un délai de grâce : c'est ce qui voit un déploiement manquant
+      # (`src/seo/source-revision.ts`). La date est celle du commit de tête
+      # (`%ct`, celle de la fusion), lue dans le checkout : aucun appel d'API.
+      # Un déclenchement manuel depuis une autre branche ne compare rien.
+      # `UPTIME_ACCEPTED_REVISION` (variable de dépôt, vide par défaut) assume un
+      # rollback délibéré : `deploy/README.md` §7.3 bis.
       - name: Sonder l’origine
         shell: bash
-        run: node scripts/check-uptime.mts 2>&1 | tee -a "$GITHUB_STEP_SUMMARY"
+        env:
+          ACCEPTED: ${{ vars.UPTIME_ACCEPTED_REVISION }}
+        run: |
+          args=()
+          if [ "$GITHUB_REF" = refs/heads/main ]; then
+            args=(--expect-revision "$GITHUB_SHA" --committed-at "$(git log -1 --format=%ct)"
+                  --accept-revision "$ACCEPTED")
+          fi
+          node scripts/check-uptime.mts "${args[@]}" 2>&1 | tee -a "$GITHUB_STEP_SUMMARY"

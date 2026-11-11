@@ -91,6 +91,20 @@ ENV SITE_URL=${SITE_URL}
 COPY --from=deps --chown=node:node /app/node_modules ./node_modules
 COPY --chown=node:node . .
 
+# Révision du dépôt, posée en en-tête sur `/robots.txt` pour que la sonde
+# externe voie un déploiement manquant (`src/seo/source-revision.ts`).
+# Facultative : absente, l'image n'annonce rien — c'est le cas des builds
+# locaux. La CI la fournit aux DEUX constructions (`e2e` et `publish`), pour
+# que l'image publiée reste celle qui a été testée.
+# ⚠️ Déclarée APRÈS les `COPY` : sa valeur change à chaque commit, et placée
+# avant, elle invaliderait aussi la copie de `node_modules`. Elle invalide en
+# revanche `pnpm build` à chaque commit, y compris ceux que `.dockerignore`
+# rendait gratuits (docs, déploiement, workflows) : c'est le prix d'un en-tête
+# gravé au build. L'alternative — le poser à l'exécution — est notée dans le
+# prompt de reprise.
+ARG SOURCE_REVISION
+ENV SOURCE_REVISION=${SOURCE_REVISION}
+
 RUN pnpm build
 
 # ---------------------------------------------------------------------------

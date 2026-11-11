@@ -23,7 +23,6 @@ export interface ContentRepository {
   /** Du plus récent au plus ancien, un projet en cours en tête. */
   getAllProjects(locale: Locale): Promise<readonly Project[]>
   getProjectBySlug(locale: Locale, slug: string): Promise<Project | null>
-  getFeaturedProjects(locale: Locale): Promise<readonly Project[]>
 
   /** Même ordre que les projets : c'est l'ordre attendu d'un CV. */
   getAllExperiences(locale: Locale): Promise<readonly Experience[]>
@@ -139,8 +138,6 @@ export function createContentRepository(loader: ContentLoader): ContentRepositor
   return {
     getAllProjects: projects,
     getProjectBySlug: (locale, slug) => bySlug(projects(locale), slug),
-    getFeaturedProjects: async (locale) =>
-      (await projects(locale)).filter((project) => project.featured),
 
     getAllExperiences: experiences,
     getExperienceBySlug: (locale, slug) => bySlug(experiences(locale), slug),

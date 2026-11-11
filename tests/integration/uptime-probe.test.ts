@@ -13,16 +13,16 @@
  * remplacerait le nôtre (réserve écrite dans `deploy/README.md` §4.2), et une
  * image construite avec la mauvaise `SITE_URL`.
  */
-import { execFile } from 'node:child_process'
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http'
 import type { AddressInfo } from 'node:net'
-import { join } from 'node:path'
-import { promisify } from 'node:util'
 
 import { afterEach, describe, expect, it } from 'vitest'
 
-const run = promisify(execFile)
-const SCRIPT = join(process.cwd(), 'scripts', 'check-uptime.mts')
+import { SOURCE_REVISION_HEADER } from '@/seo/source-revision'
+
+import { runScript, scriptPath, type ScriptResult } from './support/run-script'
+
+const SCRIPT = scriptPath('check-uptime.mts')
 
 type Handler = (request: IncomingMessage, response: ServerResponse, origin: string) => void
 
@@ -46,26 +46,11 @@ async function serving(handler: Handler): Promise<string> {
 }
 
 /**
- * ⚠️ **Le troisième exemplaire de ce lanceur de sous-processus**, après
- * `content-gate.test.ts` et `static-rendering-gate.test.ts`, dont le bloc `catch`
- * est identique au caractère près. Il n'est **pas** extrait ici : sortir un
- * `tests/integration/support/run-script.ts` demanderait de réécrire deux fichiers
- * antérieurs dans une PR de fonctionnalité — ce que le dépôt a déjà refusé pour
- * `htmlOf` (P4-09 §15.5 bis). **Déclencheur écrit** : le prochain qui touche l'un
- * de ces trois fichiers extrait les trois.
+ * L'origine passe par ARGUMENT — elle ne doit pouvoir s'hériter de rien. Le
+ * délai, lui, gouverne la vitesse et non ce qui est mesuré.
  */
-async function probe(origin: string): Promise<{ code: number; output: string }> {
-  try {
-    // L'origine passe par ARGUMENT — elle ne doit pouvoir s'hériter de rien. Le
-    // délai, lui, gouverne la vitesse et non ce qui est mesuré.
-    const { stdout, stderr } = await run('node', [SCRIPT, origin], {
-      env: { ...process.env, UPTIME_RETRY_DELAY_MS: '0' },
-    })
-    return { code: 0, output: stdout + stderr }
-  } catch (error) {
-    const failure = error as { code?: number; stdout?: string; stderr?: string }
-    return { code: failure.code ?? -1, output: (failure.stdout ?? '') + (failure.stderr ?? '') }
-  }
+function probe(origin: string, ...extra: string[]): Promise<ScriptResult> {
+  return runScript(SCRIPT, [origin, ...extra], { ...process.env, UPTIME_RETRY_DELAY_MS: '0' })
 }
 
 /** Le `robots.txt` que l'application sert réellement (`src/app/robots.ts`). */
@@ -262,5 +247,118 @@ describe('sonde externe', () => {
     // Une alerte muette oblige son lecteur à réinventer le diagnostic.
     expect(output).toContain('deploy.sh')
     expect(output).toContain('rollback')
+  })
+})
+
+describe('sonde externe — déploiement manquant', () => {
+  const MAIN = '1111111111111111111111111111111111111111'
+  const OLD = '2222222222222222222222222222222222222222'
+  const PAST_GRACE_S = 2 * 3600
+
+  /**
+   * L'origine sert notre `robots.txt` avec la révision `served` (ou sans
+   * en-tête), et la sonde attend `MAIN`, fusionné il y a `ageS` secondes.
+   */
+  async function expecting(
+    served: string | null,
+    { ageS = PAST_GRACE_S, extra = [] as string[] } = {},
+  ): Promise<ScriptResult> {
+    const origin = await serving((_request, response, base) => {
+      response.writeHead(200, served === null ? {} : { [SOURCE_REVISION_HEADER]: served })
+      response.end(ourRobots(base))
+    })
+    const committedAt = String(Math.floor(Date.now() / 1000) - ageS)
+    return probe(origin, '--expect-revision', MAIN, '--committed-at', committedAt, ...extra)
+  }
+
+  it('sort en 0 quand le site sert la tête de main', async () => {
+    const { code, output } = await expecting(MAIN)
+
+    expect(code).toBe(0)
+    expect(output).toContain('révision servie = tête de main')
+  })
+
+  it('ne crie pas pendant que la CI déploie encore', async () => {
+    // Une alerte à chaque fusion apprendrait à ne plus lire les alertes.
+    const { code, output } = await expecting(OLD, { ageS: 10 * 60 })
+
+    expect(code).toBe(0)
+    expect(output).toContain('déploiement attendu')
+  })
+
+  it('sort en 1 quand main n’est toujours pas servi passé le délai — le 2026-11-10', async () => {
+    const { code, output } = await expecting(OLD)
+
+    expect(code).toBe(1)
+    expect(output).toContain('DÉPLOIEMENT MANQUANT')
+    expect(output).toContain(OLD.slice(0, 12))
+    // Le site répond : l'accuser d'être à terre enverrait chercher la mauvaise panne.
+    expect(output).not.toContain('LE SITE NE RÉPOND PAS')
+    // Un écart de révision ne se résorbe pas en 15 s : pas de seconde tentative.
+    expect(output).toContain('tentative 1/2')
+    expect(output).not.toContain('tentative 2/2')
+  })
+
+  it('compte une image sans en-tête comme un déploiement manquant', async () => {
+    const { code, output } = await expecting(null)
+
+    expect(code).toBe(1)
+    expect(output).toContain(`${SOURCE_REVISION_HEADER} absent`)
+  })
+
+  it('accepte la révision d’un rollback assumé', async () => {
+    // Sans cela, un retour arrière délibéré ferait crier la sonde jusqu'à la
+    // prochaine fusion.
+    const { code, output } = await expecting(OLD, { extra: ['--accept-revision', OLD] })
+
+    expect(code).toBe(0)
+    expect(output).toContain('rollback assumé')
+  })
+
+  it('lit une révision acceptée VIDE comme aucune — la variable de dépôt non définie', async () => {
+    const { code } = await expecting(OLD, { extra: ['--accept-revision', ''] })
+
+    expect(code).toBe(1)
+  })
+
+  it('ignore l’en-tête quand le workflow ne fournit pas de tête de main', async () => {
+    // Déclenchement manuel depuis une branche : rien à comparer.
+    const origin = await serving((_request, response, base) => {
+      response.writeHead(200, { [SOURCE_REVISION_HEADER]: OLD }).end(ourRobots(base))
+    })
+
+    const { code } = await probe(origin)
+
+    expect(code).toBe(0)
+  })
+
+  it.each([[[]], [['--committed-at', '']]])(
+    'refuse une révision attendue sans date exploitable (%o)',
+    async (extra) => {
+      // Sans date, « pas encore déployé » et « jamais déployé » se confondent ;
+      // une date vide valait 0 — le 1er janvier 1970 — et faisait crier la sonde.
+      const origin = await serving(() => {})
+
+      const { code, output } = await probe(origin, '--expect-revision', MAIN, ...extra)
+
+      expect(code).not.toBe(0)
+      expect(output).toContain('vont ensemble')
+    },
+  )
+
+  it('nomme l’option fautive, pas une variable que la sonde ne lit pas', async () => {
+    const origin = await serving(() => {})
+
+    const { code, output } = await probe(
+      origin,
+      '--expect-revision',
+      MAIN.slice(0, 12),
+      '--committed-at',
+      '0',
+    )
+
+    expect(code).not.toBe(0)
+    expect(output).toContain('--expect-revision doit être un SHA de commit complet')
+    expect(output).not.toContain('SOURCE_REVISION')
   })
 })
