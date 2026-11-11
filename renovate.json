@@ -1,4 +1,11 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": ["local>aurelienFeignon/renovate-config"]
+  "extends": ["local>aurelienFeignon/renovate-config"],
+  "packageRules": [
+    {
+      "description": "L'image Playwright des services e2e (docker-compose.yml, docker-compose.prod.yml) embarque les navigateurs de @playwright/test : client et image doivent rester à la même version. Le job `versions` de la CI le vérifie.",
+      "matchPackageNames": ["@playwright/test", "mcr.microsoft.com/playwright"],
+      "groupName": "playwright"
+    }
+  ]
 }
