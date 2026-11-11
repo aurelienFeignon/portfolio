@@ -11,26 +11,17 @@
  * Cloudflare compris, et les pages portent `hrefLang` avec le L majuscule que
  * Next émet — la casse qui a rendu la première lecture aveugle.
  *
- * ⚠️ **Quatrième exemplaire du lanceur de sous-processus** du dépôt, après
- * `content-gate`, `static-rendering-gate` et `uptime-probe`. Le déclencheur écrit
- * dans ce dernier — « le prochain qui touche l'un de ces trois extrait les
- * trois » — ne s'arme pas ici : ce fichier n'en touche aucun. Mais quatre copies
- * est le point où l'extraction cesse d'être facultative, et P4-16 refuse de
- * réécrire trois fichiers antérieurs dans une PR de fonctionnalité — refus que
- * le dépôt a déjà tranché ainsi pour `htmlOf` (P4-09 §15.5 bis).
- * **Déclencheur mis à jour : la prochaine tâche qui touche l'un de ces QUATRE
- * fichiers extrait les quatre.**
+ * Le lanceur de sous-processus est partagé (`support/run-script.ts`) depuis le
+ * 2026-11-11, quand le déclencheur d'extraction écrit ici s'est armé.
  */
-import { execFile } from 'node:child_process'
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http'
 import type { AddressInfo } from 'node:net'
-import { join } from 'node:path'
-import { promisify } from 'node:util'
 
 import { afterEach, describe, expect, it } from 'vitest'
 
-const run = promisify(execFile)
-const SCRIPT = join(process.cwd(), 'scripts', 'check-public-seo.mts')
+import { runScript, scriptPath, type ScriptResult } from './support/run-script'
+
+const SCRIPT = scriptPath('check-public-seo.mts')
 
 type Site = { robots?: string; sitemap?: string; pages?: Record<string, string> }
 type Build = (origin: string) => Site
@@ -112,15 +103,9 @@ async function serving(
   return origin
 }
 
-async function check(origin: string): Promise<{ code: number; output: string }> {
-  try {
-    // L'origine passe par ARGUMENT : elle ne doit pouvoir s'hériter de rien.
-    const { stdout, stderr } = await run('node', [SCRIPT, origin])
-    return { code: 0, output: stdout + stderr }
-  } catch (error) {
-    const failure = error as { code?: number; stdout?: string; stderr?: string }
-    return { code: failure.code ?? -1, output: (failure.stdout ?? '') + (failure.stderr ?? '') }
-  }
+function check(origin: string): Promise<ScriptResult> {
+  // L'origine passe par ARGUMENT : elle ne doit pouvoir s'hériter de rien.
+  return runScript(SCRIPT, [origin])
 }
 
 describe('vérification post-déploiement (P4-16)', () => {

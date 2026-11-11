@@ -1,5 +1,15 @@
 import type { NextConfig } from 'next'
 
+import {
+  SOURCE_REVISION_ENV,
+  SOURCE_REVISION_HEADER,
+  parseSourceRevision,
+} from './src/seo/source-revision.ts'
+
+// Lue à la construction : `headers()` est sérialisé dans le manifeste des
+// routes de la sortie autonome, l'image n'a donc rien à relire à l'exécution.
+const sourceRevision = parseSourceRevision(process.env[SOURCE_REVISION_ENV])
+
 const nextConfig: NextConfig = {
   /**
    * ⛔ **Émises parce qu'un gate le demande, pas par confort.** Depuis que le
@@ -68,6 +78,17 @@ const nextConfig: NextConfig = {
         source: '/resume/:file*',
         headers: [{ key: 'X-Robots-Tag', value: 'noindex' }],
       },
+      // Révision servie, lue par la sonde externe (`src/seo/source-revision.ts`).
+      // Sur `/robots.txt` seulement : c'est le seul chemin que Cloudflare Access
+      // laisse passer anonymement, donc le seul où la sonde peut la lire.
+      ...(sourceRevision === null
+        ? []
+        : [
+            {
+              source: '/robots.txt',
+              headers: [{ key: SOURCE_REVISION_HEADER, value: sourceRevision }],
+            },
+          ]),
     ]
   },
 }

@@ -67,7 +67,10 @@
 // ⭐ La seule dépendance de ce script, et elle est **interne** : `site-url.ts`
 // n'importe rien lui-même, donc la sonde reste exécutable sans `pnpm install` —
 // propriété dont dépend `.github/workflows/uptime.yml`.
+import { parseArgs } from 'node:util'
+
 import { buildAbsoluteUrl, parseSiteUrl } from '../src/seo/site-url.ts'
+import { SOURCE_REVISION_HEADER, parseSourceRevision } from '../src/seo/source-revision.ts'
 
 /**
  * ⛔ **L'origine surveillée n'est PAS lue dans `SITE_URL`, et c'est délibéré.**
@@ -90,7 +93,34 @@ import { buildAbsoluteUrl, parseSiteUrl } from '../src/seo/site-url.ts'
  * forme de la panne que ce commentaire raconte, refermée au lieu d'être
  * déplacée sous un autre nom.
  */
-const SITE = parseSiteUrl(process.argv[2] ?? 'https://aurelienfeignon.com')
+const { values: options, positionals } = parseArgs({
+  allowPositionals: true,
+  options: {
+    'expect-revision': { type: 'string' },
+    'committed-at': { type: 'string' },
+  },
+})
+
+const SITE = parseSiteUrl(positionals[0] ?? 'https://aurelienfeignon.com')
+
+/**
+ * ⭐ **Le déploiement manquant** (`src/seo/source-revision.ts`). Quand le
+ * workflow fournit la tête de `main` et sa date de fusion, la sonde exige que
+ * le site la serve — passé un délai de grâce qui couvre la CI elle-même
+ * (11 à 23 min mesurées sur les cinq derniers runs de `main`, 2026-11-11).
+ *
+ * ⚠️ Facultatif, et c'est voulu : un déclenchement manuel depuis une branche n'a
+ * pas de tête de `main` à comparer, et le workflow n'en passe alors aucune.
+ * Les deux options vont ensemble : une révision sans date ne permet pas de
+ * distinguer « pas encore » de « jamais ».
+ */
+const EXPECTED_REVISION = parseSourceRevision(options['expect-revision'])
+const COMMITTED_AT_S =
+  options['committed-at'] === undefined ? null : Number(options['committed-at'])
+if ((EXPECTED_REVISION === null) !== (COMMITTED_AT_S === null) || Number.isNaN(COMMITTED_AT_S)) {
+  throw new Error('--expect-revision et --committed-at (secondes Unix) vont ensemble.')
+}
+const DEPLOY_GRACE_S = 60 * 60
 
 const PROBE_URL = buildAbsoluteUrl(SITE, '/robots.txt')
 
@@ -129,7 +159,12 @@ const CLOUDFLARE_ORIGIN_ERRORS: Record<number, string> = {
   526: 'certificat de l’origine invalide ou EXPIRÉ — renouvellement Caddy en échec',
 }
 
-type Verdict = { ok: boolean; detail: string }
+/**
+ * `stale` : le site répond, mais pas avec la tête de `main`. C'est une autre
+ * panne que « le site ne répond pas », et le message doit le dire — sinon on
+ * irait chercher un VPS éteint là où un `docker pull` a été refusé.
+ */
+type Verdict = { ok: boolean; detail: string; stale?: true }
 
 /**
  * Le verdict est **pur** : il ne connaît ni le réseau ni l'horloge. Le script ne
@@ -140,7 +175,12 @@ type Verdict = { ok: boolean; detail: string }
  * sous-processus contre un serveur de fixture, ce qui vérifie aussi le code de
  * sortie, c'est-à-dire ce qui déclenche réellement l'alerte.
  */
-function verdictFor(status: number, location: string | null, body: string): Verdict {
+function verdictFor(
+  status: number,
+  location: string | null,
+  body: string,
+  servedRevision: string | null,
+): Verdict {
   if (status >= 300 && status < 400) {
     const target = location ?? '(sans en-tête Location)'
     const access = target.includes('cloudflareaccess.com')
@@ -165,7 +205,44 @@ function verdictFor(status: number, location: string | null, body: string): Verd
     }
   }
 
-  return { ok: true, detail: `200, et la directive « ${EXPECTED_SITEMAP} » est servie` }
+  const served = `200, et la directive « ${EXPECTED_SITEMAP} » est servie`
+  return EXPECTED_REVISION === null
+    ? { ok: true, detail: served }
+    : revisionVerdict(served, servedRevision, EXPECTED_REVISION)
+}
+
+/**
+ * Le site répond ; sert-il la tête de `main` ? Pendant le délai de grâce, un
+ * écart est **attendu** — la CI construit encore — et ne fait pas crier la
+ * sonde : une alerte à chaque fusion apprendrait à ne plus les lire.
+ */
+function revisionVerdict(served: string, servedRevision: string | null, expected: string): Verdict {
+  const shown =
+    servedRevision === null
+      ? `aucune (en-tête ${SOURCE_REVISION_HEADER} absent)`
+      : short(servedRevision)
+  if (servedRevision === expected) {
+    return { ok: true, detail: `${served} ; révision servie = tête de main (${short(expected)})` }
+  }
+  const ageMin = Math.floor((Date.now() / 1000 - (COMMITTED_AT_S ?? 0)) / 60)
+  if (ageMin * 60 < DEPLOY_GRACE_S) {
+    return {
+      ok: true,
+      detail: `${served} ; main (${short(expected)}) fusionné il y a ${ageMin} min, servie : ${shown} — déploiement attendu, délai de grâce de ${DEPLOY_GRACE_S / 60} min`,
+    }
+  }
+  return {
+    ok: false,
+    stale: true,
+    detail:
+      `DÉPLOIEMENT MANQUANT — main (${short(expected)}) est fusionné depuis ${ageMin} min, ` +
+      `mais le site sert : ${shown}. Lire le job « déployer sur le VPS » de ce commit ` +
+      `dans ci.yml ; un « error from registry: denied » au pull est le jeton GHCR du VPS (décision D6).`,
+  }
+}
+
+function short(sha: string): string {
+  return sha.slice(0, 12)
 }
 
 async function probe(url: string): Promise<Verdict> {
@@ -176,7 +253,12 @@ async function probe(url: string): Promise<Verdict> {
       signal: AbortSignal.timeout(TIMEOUT_MS),
       headers: { 'user-agent': 'portfolio-uptime-probe (P4-14)' },
     })
-    return verdictFor(response.status, response.headers.get('location'), await response.text())
+    return verdictFor(
+      response.status,
+      response.headers.get('location'),
+      await response.text(),
+      response.headers.get(SOURCE_REVISION_HEADER),
+    )
   } catch (error) {
     // Connexion refusée, DNS mort, délai dépassé : aucune réponse HTTP n'existe,
     // et c'est la panne la plus grave — celle que le healthcheck du conteneur ne
@@ -200,6 +282,13 @@ const verdict = await probeUntilSettled()
 
 if (verdict.ok) {
   console.log(`\n✓ Le site répond depuis l’extérieur.`)
+} else if (verdict.stale) {
+  console.error(
+    `\n✗ Le site répond, mais ne sert pas la tête de main — ${verdict.detail}\n` +
+      `\n  État de la pile : ssh portfolio 'SSH_ORIGINAL_COMMAND=status /srv/portfolio/deploy.sh'` +
+      `\n  Rattrapage d'un run manquant : deploy/README.md §8.4.`,
+  )
+  process.exitCode = 1
 } else {
   console.error(
     `\n✗ LE SITE NE RÉPOND PAS depuis l’extérieur — ${verdict.detail}\n` +

@@ -145,6 +145,7 @@ jobs:
           tags: portfolio:ci
           build-args: |
             SITE_URL=${{ env.SITE_URL }}
+            SOURCE_REVISION=${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -160,6 +161,17 @@ jobs:
           docker logs portfolio-ci
           echo "Le conteneur n'est jamais devenu sain."
           exit 1
+
+      # ⭐ La sonde externe juge un déploiement manquant sur cet en-tête
+      # (`src/seo/source-revision.ts`). S'il disparaissait de l'image, elle
+      # crierait au premier passage après chaque fusion — ou se tairait, selon
+      # le jour : on vérifie ici, sur l'image elle-même, qu'il porte ce commit.
+      - name: L'image annonce sa révision
+        run: |
+          served="$(curl -fsS -D - -o /dev/null http://127.0.0.1:3000/robots.txt \
+            | tr -d '\r' | grep -i '^x-source-revision:' | cut -d' ' -f2)"
+          echo "révision servie : ${served:-(absente)}"
+          test "$served" = "$GITHUB_SHA"
 
       # Le seuil de `performance-budget.md` §7 était **documenté et appliqué nulle
       # part** : cette étape se contentait d'écrire la taille dans le résumé.
@@ -295,6 +307,7 @@ jobs:
           # a été testée, jusqu'aux URL gravées dans son HTML.
           build-args: |
             SITE_URL=${{ env.SITE_URL }}
+            SOURCE_REVISION=${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -331,7 +344,16 @@ jobs:
           ssh -i ~/.ssh/deploy -o BatchMode=yes -o StrictHostKeyChecking=yes \
             "${VPS_USER}@${VPS_HOST}" "deploy ${GITHUB_SHA}"
 
+      # ⛔ Cette trace écrivait « Déployé » même quand le déploiement venait
+      # d'échouer (`if: always()`) : le 2026-11-10, deux résumés l'affirmaient
+      # sur un `docker pull` refusé. Elle dit désormais ce qui s'est passé.
       - name: Trace
         if: always()
+        env:
+          OUTCOME: ${{ job.status }}
         run: |
-          echo "Déployé sur le VPS — \`${GITHUB_SHA}\`" >> "$GITHUB_STEP_SUMMARY"
+          if [ "$OUTCOME" = success ]; then
+            echo "Déployé sur le VPS — \`${GITHUB_SHA}\`" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "⛔ Déploiement en ÉCHEC (${OUTCOME}) — \`${GITHUB_SHA}\` n'est PAS servi" >> "$GITHUB_STEP_SUMMARY"
+          fi
