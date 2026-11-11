@@ -67,7 +67,15 @@ lumineux. Pour l'historique, `docs/nexus-prototype.md` §6 (enquête de performa
 **Tout ce qui suit est fusionné sur `main` et déployé**, les cinq jobs verts à chaque fois —
 publication GHCR et déploiement VPS compris.
 
-### Dernière reprise — 2026-11-03
+### Dernière reprise — 2026-11-11
+
+Session « dettes ouvertes » : branche `fix/dettes-ouvertes-2026-11-11`. Elle traite le healthcheck
+de dev, `deploy.sh` face à une coupure SSH, la détection d'un déploiement manquant,
+`getFeaturedProjects` et la confrontation du `BreadcrumbList` (détail dans « Points encore
+ouverts »). ⛔ Elle a découvert que **la production ne se déploie plus depuis le 2026-11-10**
+(jeton GHCR refusé, D6). Vérifier la PR, sa CI et sa fusion avant toute suite.
+
+### Reprise précédente — 2026-11-03
 
 La mise à jour précédente du prompt est fusionnée : **#97, `a873086`**, présente dans le `main`
 local au relevé du 2026-11-03. Ne plus demander de vérifier la fusion de sa branche.
@@ -311,7 +319,8 @@ Python, Node.js, React, Next.js, PostgreSQL, Docker, microservices, architecture
 intégration de modèles de langage.*
 ✅ Arbitré le 2026-10-30 pour la carte mère : voir `carte-mere.md` §12.1 (puces de taille égale tant que D2 est ouverte, paramètre du générateur) et `phase-0-questions.md` (D2).
 
-**D6 🟠 — Rendre le paquet GHCR public ?** *(action manuelle, je n'ai pas les droits)* → *GitHub →
+**D6 🔴 — Rendre le paquet GHCR public ?** *(devenue bloquante le 2026-11-10 : le jeton du VPS est
+refusé, plus rien ne se déploie — voir « Points encore ouverts »)* *(action manuelle, je n'ai pas les droits)* → *GitHub →
 Packages → portfolio → Change visibility → Public. Puis sur le VPS : `docker logout ghcr.io && rm
 /srv/portfolio/.ghcr-token`, et retirer le `docker login` de `deploy.sh`. Bénéfice : plus de PAT à
 renouveler, donc plus de déploiement qui s'arrête un jour sans rapport apparent avec le code.*
@@ -356,7 +365,10 @@ officielle n'atteint 250 Mo.
   intact, et le site en ligne n'est pas concerné.
 
   ⛔ **Ce qui RESTE ouvert, et qu'une borne ne règle pas :**
-  1. ⚠️ Mesurée le 2026-10-31, cause racine et remède encore ouverts : voir le commentaire du service `web` de `docker-compose.yml`. À décider : ralentir le `healthcheck` de dev, ou chercher qui retient les tampons (piste Next/Turbopack, à signaler en amont).
+  1. ✅ Remède d'attente appliqué le 2026-11-11 : `healthcheck` de dev à 30 s une fois sain
+     (`start_interval` de 5 s au démarrage, pour ne pas ralentir `e2e`), ~290 Mo/jour au lieu de
+     ~1,7 Go. ⚠️ **La cause racine reste ouverte** — qui retient les tampons de `next dev` (piste
+     Next/Turbopack, à signaler en amont) : voir le commentaire du service `web`.
   2. **Ne pas le faire tourner en permanence** — `make up` à la demande, `make down` après. C'est une
      habitude à prendre, pas un correctif à écrire : l'étage `dev` porte `CMD ["pnpm", "dev"]`, donc
      le conteneur sert un serveur de développement tant qu'il vit, même quand personne ne développe.
@@ -374,10 +386,10 @@ officielle n'atteint 250 Mo.
   de score. C'est le défaut du seuil de 400 Mo que P4-05 avait découvert **en s'y référant**.
   **Arbitrage du 2026-08-16 : porté par P4-13 et P4-15**, la mesure se faisant contre le site
   déployé. La phase ne peut pas se déclarer close sans ce relevé.
-- **Les liens de dépôt sont affichés sur les fiches projet depuis le 2026-11-03** :
-  `links.repository` rend un lien traduit vers le code. La réserve historique sur leur absence
-  d'affichage est soldée. Le `BreadcrumbList` (P4-12) reste à confronter à la navigation visible
-  actuelle avant l'audit SEO ; les fiches ont désormais un retour via `ReadingPanel`.
+- ✅ **`BreadcrumbList` confronté à la navigation visible le 2026-11-11** : même hiérarchie
+  (site → section → fiche) que les retours des `ReadingPanel`, feuille = `h1` de la page. Seul écart,
+  assumé : la racine se nomme « Aurélien Feignon » dans le fil, « Vue d'ensemble » sur le retour
+  visible des sections — le nom du site, pas un libellé de bouton. Aucun changement de code.
 - ⚠️ **Une CSP stricte supprimerait les blocs `ld+json` en silence** — note dans
   `src/seo/json-ld.ts` pour l'ADR-0015 (Phase 14) : il faudra un `nonce` ou un condensat.
 - ✅ **Les six arbitrages de P4-07 et P4-08 sont TRANCHÉS** (2026-08-16, `phase-4-log.md` §14.8) :
@@ -392,22 +404,27 @@ officielle n'atteint 250 Mo.
   rendre. Choix de gabarit, à trancher.
 - **`EntityList` ne sert plus qu'aux projets** ; les expériences et les compétences ont leur
   composant. Il reste parce qu'un projet n'a qu'un titre et un résumé, pas parce qu'il est générique.
-- **`getFeaturedProjects` n'a aucun appelant de production.** ⚠️ `getFeaturedSkills`, lui, en a un
-  depuis **P4-09** — le `knowsAbout` du `Person`. La dette a donc **rétréci sans être réécrite**
-  pendant une tâche : le drapeau `featured` est lu pour les compétences, par personne pour les
-  projets.
+- ✅ **`getFeaturedProjects` retiré le 2026-11-11** (aucun appelant de production). ⚠️ Le drapeau
+  `featured` d'un **projet** reste porté par le contenu et validé, mais rien ne le lit : à rebrancher
+  quand une vue en aura l'usage. Celui des compétences est lu (`knowsAbout`, P4-09).
 - **La liste blanche MDX n'est pas une barrière de sécurité** : à reprendre tel quel à l'audit de la
   Phase 14.
 - **Mesure CPU en régime stable** (P11-08) : le seul relevé date d'une minute après démarrage — 32 %,
   au-dessus du seuil d'alerte de 25 %. Ce n'est pas une mesure valide.
 - ✅ **`workflow_dispatch` dans `ci.yml` depuis le 2026-10-29** : rattrapage par `deploy/README.md`
   §8.4, et plus d'annulation des runs de `main` (raison dans `ci.yml`).
-- ⚠️ **`deploy.sh` ne survit pas à une coupure SSH** : un `SIGHUP` entre `compose up` et le contrôle
-  de santé laisse le serveur à moitié déployé, sans retour automatique. Une annulation de CI ne le
-  provoque plus, mais une perte du runner ou du réseau, si. Piste : `trap '' HUP` et un `flock`.
-  Le script vit sur le VPS : à y installer à la main.
-- ⚠️ **Un déploiement manquant ne se voit toujours qu'à l'œil** : la poignée rattrape, elle ne
-  détecte pas. Piste : la sonde compare le SHA servi (`deploy.sh status`) à la tête de `main`.
+- ⚠️ **`deploy.sh` survit à une coupure SSH depuis le 2026-11-11 — DANS LE DÉPÔT** (`HUP`/`PIPE`
+  ignorés, sortie vers `/srv/portfolio/deploy.log`, verrou `flock`), éprouvé sur un banc simulé
+  (`deploy/README.md` §3.3). ⛔ **Pas encore installé sur le VPS** : la copie qui s'exécute est
+  `/srv/portfolio/deploy.sh`, à remplacer à la main après fusion.
+- ✅ **Un déploiement manquant se voit depuis le 2026-11-11** : l'image sert `X-Source-Revision` sur
+  `/robots.txt`, et la sonde planifiée exige la tête de `main` une heure après sa fusion
+  (`deploy/README.md` §7.3 bis). Rejouée contre la production : elle crie sur l'incident ci-dessous.
+- ⛔⛔ **Production bloquée sur `9e5fe91` depuis le 2026-11-10** : les déploiements de #100 (`fe06017`) et #103 (`d8b084c`)
+  ont échoué au `docker pull` (`error from registry: denied`) — le jeton GHCR du VPS ne donne plus
+  accès. C'est exactement ce que D6 annonçait. **Action de l'utilisateur** : renouveler le jeton (ou
+  trancher D6), puis rattraper par `deploy/README.md` §8.4. Tant que ce n'est pas fait, la sonde
+  sera rouge à chaque passage après la fusion du contrôle de révision.
 - **Procédure de restauration du serveur** (R-23) : Hetzner restreint par intermittence la création
   d'instances. À écrire sous cette contrainte en Phase 15.
 - **Plages Cloudflare** : un timer hebdomadaire les rafraîchit sur le VPS.
