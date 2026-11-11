@@ -251,6 +251,11 @@ Désormais :
   `rollback` manuel lancé pendant un `deploy`. Le second attend 600 s (le pire cas d'un déploiement
   avec retour automatique), puis sort en 75. `rollback` lit sa cible **après** la prise du verrou.
 
+- l'image se **tire avant** de basculer `.env` : un pull refusé laissait `.env` sur un tag jamais
+  servi, que le déploiement suivant a pris pour « courant » et inscrit dans `.tag.previous` —
+  constaté le 2026-11-11 (`courant: d8b084c` au déploiement de `6bb9f5e`, alors que le site servait
+  `9e5fe91`). Rejoué : pull refusé, `.env` intact, sortie 1.
+
 Même banc, nouvelle version : déploiement mené à terme malgré `HUP` et tuyau fermé, `.tag.previous`
 écrit, et un second `deploy` refusé en 75 pendant que le verrou est tenu.
 

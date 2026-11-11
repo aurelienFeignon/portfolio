@@ -131,8 +131,15 @@ wait_healthy() {
 }
 
 log "déploiement de $TAG (courant: ${CURRENT:-aucun})"
+# ⛔ Tirer AVANT de basculer `.env`. Dans l'ordre inverse, un pull refusé
+# (`error from registry: denied`, 2026-11-10) sortait sous `set -e` en laissant
+# `.env` sur un tag jamais servi, pendant que l'ancien conteneur tournait : le
+# déploiement suivant a pris ce tag pour « courant » et l'a inscrit dans
+# `.tag.previous` — une cible de retour qui n'avait jamais tourné. La variable
+# d'environnement l'emporte sur `.env` pour Compose : le pull vise donc `$TAG`
+# sans rien écrire.
+IMAGE_TAG="$TAG" docker compose -f "$COMPOSE" pull --quiet web
 set_tag "$TAG"
-docker compose -f "$COMPOSE" pull --quiet web
 docker compose -f "$COMPOSE" up -d web
 
 if wait_healthy; then
