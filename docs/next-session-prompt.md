@@ -77,7 +77,8 @@ ouverts »). ⛔ Elle a découvert que **la production ne se déploie plus depui
 
 **État au soir du 2026-11-11 — à reprendre ainsi le 2026-11-12 :**
 
-1. ✅ **Accès GHCR du VPS rétabli par l'utilisateur** : `docker pull …:d8b084c…` réussi sur le VPS.
+1. ✅ **Accès GHCR du VPS rétabli par l'utilisateur** (nouveau jeton `read:packages`, paquet toujours
+   privé — D6) : `docker pull …:d8b084c…` réussi sur le VPS.
    Le site sert toujours `9e5fe91` — rien n'a été redéployé, le pull a seulement été vérifié.
 2. ⏳ **PR #104 ouverte, CI bloquée par une panne EXTÉRIEURE** : `versions` et `gates` verts ;
    `image de production · end-to-end` passe construction, healthcheck, « L'image annonce sa révision »
@@ -340,9 +341,10 @@ Python, Node.js, React, Next.js, PostgreSQL, Docker, microservices, architecture
 intégration de modèles de langage.*
 ✅ Arbitré le 2026-10-30 pour la carte mère : voir `carte-mere.md` §12.1 (puces de taille égale tant que D2 est ouverte, paramètre du générateur) et `phase-0-questions.md` (D2).
 
-**D6 🟠 — Rendre le paquet GHCR public ?** *(a bloqué les déploiements du 2026-11-10 ; accès rétabli
-le 2026-11-11 — si c'est par un nouveau jeton, il expirera de nouveau : demander à l'utilisateur
-lequel des deux remèdes il a appliqué, et mettre à jour cette entrée)* *(action manuelle, je n'ai pas les droits)* → *GitHub →
+**D6 🟠 — Rendre le paquet GHCR public ?** *(a bloqué les déploiements du 2026-11-10 : jeton du VPS
+refusé. **Jeton `read:packages` renouvelé par l'utilisateur le 2026-11-11** — il expirera de nouveau,
+et le symptôme sera le même : `error from registry: denied` au pull, job `deploy` rouge, puis la
+sonde en `DÉPLOIEMENT MANQUANT`. Le paquet reste privé, la question reste donc ouverte)* *(action manuelle, je n'ai pas les droits)* → *GitHub →
 Packages → portfolio → Change visibility → Public. Puis sur le VPS : `docker logout ghcr.io && rm
 /srv/portfolio/.ghcr-token`, et retirer le `docker login` de `deploy.sh`. Bénéfice : plus de PAT à
 renouveler, donc plus de déploiement qui s'arrête un jour sans rapport apparent avec le code.*
