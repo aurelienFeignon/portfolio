@@ -59,6 +59,18 @@ jobs:
           echo "pnpm=$pnpm_version" >> "$GITHUB_OUTPUT"
           echo "Node $node_version · pnpm $pnpm_version"
 
+      # Les navigateurs viennent de l'image Playwright des services `e2e` (dev et
+      # prod), le client de `@playwright/test` : un écart fait échouer chaque
+      # projet en « Executable doesn't exist », loin de sa cause. Vérifié ici, sur
+      # les sources, avant toute construction.
+      - name: Image Playwright et client à la même version
+        run: |
+          client="$(grep -oP '"@playwright/test"\s*:\s*"\K[^"]+' package.json)"
+          images="$(grep -ohP 'image:\s*mcr\.microsoft\.com/playwright:\K\S+' docker-compose.yml docker-compose.prod.yml | sort -u)"
+          echo "client ${client} · image(s) ${images}"
+          test "$(wc -l <<<"$images")" = 1 || { echo "les deux services e2e ne tirent pas la même image"; exit 1; }
+          case "$images" in "v${client}-"*@sha256:*) ;; *) echo "image ≠ client ${client}, ou sans condensat"; exit 1 ;; esac
+
   # ---------------------------------------------------------------------------
   # Gates rapides, exécutés nativement avec la version de Node du Dockerfile.
   # ---------------------------------------------------------------------------
@@ -106,23 +118,21 @@ jobs:
     runs-on: ubuntu-latest
     needs: [versions, gates]
     env:
-      # ⛔ Navigateurs et bibliothèques système viennent de CETTE image, plus de
-      # `playwright install --with-deps` : celui-ci passait par `apt` sur les
-      # miroirs Ubuntu du runner, injoignables le 2026-11-11 — chaque paquet en
-      # `Ign:` après 20 s, job figé plus d'une heure avant le premier test.
-      #
-      # ⭐ Seuls les tests y tournent (`scripts/in-playwright-image.sh`), pas le
-      # job entier comme dans d'autres dépôts : la construction de l'image, son
-      # démarrage et son budget de taille ont besoin du démon Docker du runner,
-      # et le site qu'elle sert y est publié sur `localhost:3000`.
-      #
-      # ⚠️ La version DOIT égaler celle de `@playwright/test` du lockfile — client
-      # et navigateurs vont ensemble. Une étape le vérifie avant les tests, et
-      # Renovate les met à jour ensemble (`renovate.json`, qui lit aussi cette
-      # ligne). Épinglée par condensat, comme le service `e2e` de dev.
-      PLAYWRIGHT_IMAGE: mcr.microsoft.com/playwright:v1.64.1-noble@sha256:2f05f8a734509a7b3f26a912639488ee08f58a7b292d14d62271bcff9038768f
+      COMPOSE_PROD_CI: docker compose -f docker-compose.prod.yml -f docker-compose.ci.yml
     steps:
       - uses: actions/checkout@v4
+
+      # L'image Playwright (~2 Go) se tire PENDANT la construction, qui ne
+      # l'attend pas ; l'étape « Image Playwright disponible » en recueille
+      # l'issue. Un échec du registre se lit alors comme tel, pas comme un échec
+      # des tests.
+      - name: Tirer l'image Playwright (en arrière-plan)
+        run: |
+          ( for attempt in 1 2 3; do
+              $COMPOSE_PROD_CI pull --quiet e2e && exit 0
+              [ "$attempt" -lt 3 ] && sleep 20
+            done; exit 1 ) > /tmp/playwright-pull.log 2>&1 &
+          echo $! > /tmp/playwright-pull.pid
 
       - uses: docker/setup-buildx-action@v3
 
@@ -184,37 +194,29 @@ jobs:
           cache: pnpm
 
       # Les dépendances s'installent sur le runner, sans `apt` : seul le registre
-      # npm est touché. `setup-node` ci-dessus fournit aussi le Node des tests,
-      # monté dans l'image Playwright (`scripts/in-playwright-image.sh`).
+      # npm est touché. `docker-compose.ci.yml` les monte dans l'image Playwright.
       - run: pnpm install --frozen-lockfile
 
-      # Un tirage explicite, à part : une panne du registre de l'image se lit
-      # comme telle, pas comme un échec des tests.
-      - name: Tirer l'image Playwright
+      - name: Image Playwright disponible
         run: |
-          for attempt in 1 2 3; do
-            docker pull --quiet "$PLAYWRIGHT_IMAGE" && exit 0
-            echo "tirage ${attempt}/3 en échec" && sleep 20
-          done
-          exit 1
+          pid="$(cat /tmp/playwright-pull.pid)"
+          while kill -0 "$pid" 2>/dev/null; do sleep 2; done
+          cat /tmp/playwright-pull.log
+          $COMPOSE_PROD_CI config --images | xargs docker image inspect >/dev/null
 
-      # Le client vient du lockfile, les navigateurs de l'image : un écart fait
-      # échouer chaque projet en « Executable doesn't exist », loin de sa cause.
-      - name: Image et client Playwright à la même version
-        run: |
-          client="$(node -p "require('@playwright/test/package.json').version")"
-          image="$(sed -E 's/.*:v([0-9.]+)-.*/\1/' <<<"$PLAYWRIGHT_IMAGE")"
-          echo "client ${client}, image ${image}"
-          test "$client" = "$image"
-
+      # ⛔ Plus de `playwright install --with-deps` : il passait par `apt` sur les
+      # miroirs Ubuntu du runner, injoignables le 2026-11-11 — chaque paquet en
+      # `Ign:` après 20 s, job figé plus d'une heure avant le premier test.
+      # ⭐ E2E et Lighthouse passent par les MÊMES cibles qu'en local
+      # (`make e2e-prod`, `make lighthouse`) : le service `e2e` de
+      # `docker-compose.prod.yml`, dans l'image Playwright épinglée, contre
+      # `portfolio:local` — l'image testée, taguée à l'étape précédente. Une CI
+      # verte et un `make e2e-prod` vert disent la même chose.
+      # `SITE_URL` (environnement du workflow) est l'origine gravée au build :
+      # c'est elle que les `canonical` et les `hreflang` doivent annoncer.
       - name: End-to-end contre l'image de production
-        run: scripts/in-playwright-image.sh node_modules/.bin/playwright test
+        run: make e2e-prod COMPOSE_PROD="$COMPOSE_PROD_CI"
         env:
-          PLAYWRIGHT_BASE_URL: http://localhost:3000
-          # L'image est servie depuis `localhost`, mais elle a été construite avec
-          # l'origine de production : c'est cette dernière que les `canonical` et
-          # les `hreflang` doivent annoncer, et c'est ce que le test vérifie.
-          SITE_URL: ${{ env.SITE_URL }}
           CI: 'true'
 
       # ⛔⛔ « Lighthouse mobile ≥ 85 / a11y 100 / SEO 100 » est un critère de
@@ -232,9 +234,7 @@ jobs:
       # pas au résumé.
       - name: Audit Lighthouse de l'image de production
         shell: bash
-        run: scripts/in-playwright-image.sh node scripts/check-lighthouse.mts 2>&1 | tee -a "$GITHUB_STEP_SUMMARY"
-        env:
-          PLAYWRIGHT_BASE_URL: http://localhost:3000
+        run: make lighthouse COMPOSE_PROD="$COMPOSE_PROD_CI" 2>&1 | tee -a "$GITHUB_STEP_SUMMARY"
 
       - name: Publier le rapport Playwright
         if: always()

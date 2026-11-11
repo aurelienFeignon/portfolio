@@ -1,0 +1,13 @@
+# Surcharge de `docker-compose.prod.yml` pour le job `e2e` de la CI — et rien
+# d'autre : `make e2e-prod` et `make lighthouse` y tournent tels quels.
+#
+# La seule différence avec le poste de développement : les dépendances sont
+# installées sur le runner (`pnpm install`), dans le dépôt monté, et non dans le
+# volume nommé du conteneur de développement, qui n'existe pas en CI.
+
+services:
+  e2e:
+    volumes: !override
+      - .:/app
+
+volumes: !reset {}
