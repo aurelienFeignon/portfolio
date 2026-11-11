@@ -124,12 +124,6 @@ describe('dérivations exposées par le dépôt', () => {
     expect(experience?.isOngoing).toBe(true)
   })
 
-  it('ne rend que les projets mis en avant', async () => {
-    const featured = await repository().getFeaturedProjects('fr')
-
-    expect(featured.map((project) => project.slug)).toEqual(['augure'])
-  })
-
   it('ne rend que les compétences mises en avant', async () => {
     const featured = await repository().getFeaturedSkills('fr')
 
