@@ -80,17 +80,13 @@ ouverts »). ⛔ Elle a découvert que **la production ne se déploie plus depui
 1. ✅ **Accès GHCR du VPS rétabli par l'utilisateur** (nouveau jeton `read:packages`, paquet toujours
    privé — D6) : `docker pull …:d8b084c…` réussi sur le VPS.
    Le site sert toujours `9e5fe91` — rien n'a été redéployé, le pull a seulement été vérifié.
-2. ⏳ **PR #104 ouverte, CI bloquée par une panne EXTÉRIEURE** : `versions` et `gates` verts ;
-   `image de production · end-to-end` passe construction, healthcheck, « L'image annonce sa révision »
-   et budget de taille, puis se fige à « Installer les navigateurs Playwright ». Cause lue dans le
-   journal : le miroir `azure.archive.ubuntu.com` ne répond plus, chaque paquet d'`apt` tombe en
-   `Ign:` après 20 s (~150 paquets, ~1 h). Run `43034111043`, deux essais, même blocage.
-   **Geste** : `gh pr checks 104` ; si le run est rouge sur cette étape, `gh run rerun 43034111043
-   --failed`, et relire le journal de l'étape avant de conclure.
-3. 🔀 **Si le miroir bloque encore** : décision prise le 2026-11-11 — rendre la CI indépendante
-   d'`apt` en faisant tourner les E2E dans `mcr.microsoft.com/playwright:v1.64.1-noble` (l'image du
-   service `e2e` de dev, version alignée sur `@playwright/test`). **PR séparée**, branchée de `main`,
-   pas dans #104 ; ne pas empiler (#104 devra être rebasée après sa fusion).
+2. ✅ **La CI ne dépend plus du miroir `apt`** : la panne du miroir Ubuntu (`azure.archive.ubuntu.com`,
+   chaque paquet en `Ign:` après 20 s) figeait `playwright install --with-deps` plus d'une heure.
+   **#105 fusionnée le 2026-11-11** (`6bb9f5e`) : E2E et Lighthouse passent par `make e2e-prod` et
+   `make lighthouse` dans l'image Playwright épinglée (`docker-compose.ci.yml`), le job `versions`
+   vérifie image et `@playwright/test`. Sa CI a déroulé 185 E2E pendant la panne. ⚠️ Cette fusion a
+   aussi **déployé `main`** (#100 et #103 compris) : vérifier son run et le SHA servi.
+3. ⏳ **#104 rebasée sur `main` après #105**, sans conflit : relire sa CI.
 4. Après une CI verte : **fusion de #104 sur accord explicite** (elle déploie), puis la suite de
    `deploy/README.md` — vérifier le run de `main` (cinq jobs, le job `deploy` contrôle lui-même le
    SHA servi), `curl -sI https://aurelienfeignon.com/robots.txt | grep -i x-source-revision`, un
