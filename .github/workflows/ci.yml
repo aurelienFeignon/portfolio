@@ -111,14 +111,15 @@ jobs:
       # miroirs Ubuntu du runner, injoignables le 2026-11-11 — chaque paquet en
       # `Ign:` après 20 s, job figé plus d'une heure avant le premier test.
       #
-      # ⭐ Seuls les tests y tournent (`docker run`, plus bas), pas le job entier
-      # comme dans d'autres dépôts : la construction de l'image, son démarrage et
-      # son budget de taille ont besoin du démon Docker du runner, et le site
-      # qu'elle sert y est publié sur `localhost:3000`.
+      # ⭐ Seuls les tests y tournent (`scripts/in-playwright-image.sh`), pas le
+      # job entier comme dans d'autres dépôts : la construction de l'image, son
+      # démarrage et son budget de taille ont besoin du démon Docker du runner,
+      # et le site qu'elle sert y est publié sur `localhost:3000`.
       #
       # ⚠️ La version DOIT égaler celle de `@playwright/test` du lockfile — client
-      # et navigateurs vont ensemble. Renovate les met à jour ensemble
-      # (`renovate.json`, qui lit aussi cette ligne). Épinglée par condensat.
+      # et navigateurs vont ensemble. Une étape le vérifie avant les tests, et
+      # Renovate les met à jour ensemble (`renovate.json`, qui lit aussi cette
+      # ligne). Épinglée par condensat, comme le service `e2e` de dev.
       PLAYWRIGHT_IMAGE: mcr.microsoft.com/playwright:v1.64.1-noble@sha256:2f05f8a734509a7b3f26a912639488ee08f58a7b292d14d62271bcff9038768f
     steps:
       - uses: actions/checkout@v4
@@ -183,20 +184,31 @@ jobs:
           cache: pnpm
 
       # Les dépendances s'installent sur le runner, sans `apt` : seul le registre
-      # npm est touché. Le dépôt est ensuite monté dans l'image Playwright au
-      # MÊME chemin, pour que les liens de `node_modules` de pnpm restent valides.
+      # npm est touché. `setup-node` ci-dessus fournit aussi le Node des tests,
+      # monté dans l'image Playwright (`scripts/in-playwright-image.sh`).
       - run: pnpm install --frozen-lockfile
 
-      # `--network host` : le site de l'image testée est sur `localhost:3000` du
-      # runner. `--user` : les rapports écrits dans le dépôt appartiennent au
-      # compte du runner, pas à root.
-      - name: End-to-end contre l'image de production
+      # Un tirage explicite, à part : une panne du registre de l'image se lit
+      # comme telle, pas comme un échec des tests.
+      - name: Tirer l'image Playwright
         run: |
-          docker run --rm --network host --ipc=host \
-            --user "$(id -u):$(id -g)" -e HOME=/tmp \
-            -v "$PWD:$PWD" -w "$PWD" \
-            -e PLAYWRIGHT_BASE_URL -e SITE_URL -e CI \
-            "$PLAYWRIGHT_IMAGE" node_modules/.bin/playwright test
+          for attempt in 1 2 3; do
+            docker pull --quiet "$PLAYWRIGHT_IMAGE" && exit 0
+            echo "tirage ${attempt}/3 en échec" && sleep 20
+          done
+          exit 1
+
+      # Le client vient du lockfile, les navigateurs de l'image : un écart fait
+      # échouer chaque projet en « Executable doesn't exist », loin de sa cause.
+      - name: Image et client Playwright à la même version
+        run: |
+          client="$(node -p "require('@playwright/test/package.json').version")"
+          image="$(sed -E 's/.*:v([0-9.]+)-.*/\1/' <<<"$PLAYWRIGHT_IMAGE")"
+          echo "client ${client}, image ${image}"
+          test "$client" = "$image"
+
+      - name: End-to-end contre l'image de production
+        run: scripts/in-playwright-image.sh node_modules/.bin/playwright test
         env:
           PLAYWRIGHT_BASE_URL: http://localhost:3000
           # L'image est servie depuis `localhost`, mais elle a été construite avec
@@ -220,12 +232,7 @@ jobs:
       # pas au résumé.
       - name: Audit Lighthouse de l'image de production
         shell: bash
-        run: |
-          docker run --rm --network host --ipc=host \
-            --user "$(id -u):$(id -g)" -e HOME=/tmp \
-            -v "$PWD:$PWD" -w "$PWD" \
-            -e PLAYWRIGHT_BASE_URL \
-            "$PLAYWRIGHT_IMAGE" node scripts/check-lighthouse.mts 2>&1 | tee -a "$GITHUB_STEP_SUMMARY"
+        run: scripts/in-playwright-image.sh node scripts/check-lighthouse.mts 2>&1 | tee -a "$GITHUB_STEP_SUMMARY"
         env:
           PLAYWRIGHT_BASE_URL: http://localhost:3000
 

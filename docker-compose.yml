@@ -132,7 +132,7 @@ services:
   # La version de l'image et celle de `@playwright/test` doivent rester
   # identiques : les navigateurs viennent de l'image, le client du lockfile.
   e2e:
-    image: mcr.microsoft.com/playwright:v1.64.1-noble
+    image: mcr.microsoft.com/playwright:v1.64.1-noble@sha256:2f05f8a734509a7b3f26a912639488ee08f58a7b292d14d62271bcff9038768f
     user: '${HOST_UID:-1000}:${HOST_GID:-1000}'
     working_dir: /app
     init: true
