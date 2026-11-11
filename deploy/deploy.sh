@@ -23,6 +23,10 @@ ENV_FILE="$STACK/.env"
 PREVIOUS="$STACK/.tag.previous"
 HEALTH_TIMEOUT=120
 
+LOCK="$STACK/.deploy.lock"
+LOG_FILE="$STACK/deploy.log"
+LOCK_TIMEOUT=300
+
 log() { printf '%s %s\n' "$(date -u +%H:%M:%S)" "$*"; }
 
 # --- Analyse de la demande -------------------------------------------------
@@ -57,6 +61,27 @@ case "${VERB:-}" in
     exit 2
     ;;
 esac
+
+# --- Survivre à la session SSH ---------------------------------------------
+# ⛔ Une coupure SSH (runner perdu, réseau) envoie SIGHUP au script : tué entre
+# `compose up` et `wait_healthy`, il laisserait le serveur à moitié déployé,
+# sans rollback ni `.tag.previous` à jour. Ignorer HUP ne suffit pas : la
+# première écriture sur la sortie fermée lève SIGPIPE, puis EPIPE sous
+# `set -e`. Donc :
+#   - HUP et PIPE ignorés — l'ignorance s'hérite, `docker compose` compris ;
+#   - toute la sortie passe par `tee`, qui écrit `deploy.log` et continue
+#     quand la session a disparu (`warn-nopipe`) : le récit d'un déploiement
+#     orphelin reste lisible après coup.
+# `status` est sorti plus haut : il reste en lecture seule, sans verrou.
+trap '' HUP PIPE
+exec > >(tee -a --output-error=warn-nopipe "$LOG_FILE") 2>&1
+
+# Un seul déploiement à la fois : deux runs de `main` ne sont jamais annulés
+# (`ci.yml`), donc deux `deploy` peuvent se chevaucher et réécrire `.env` l'un
+# sous l'autre. Le second attend ; au-delà de LOCK_TIMEOUT, il échoue
+# bruyamment plutôt que de forcer.
+exec 9>"$LOCK"
+flock -w "$LOCK_TIMEOUT" 9 || { log "un autre déploiement tient le verrou depuis plus de ${LOCK_TIMEOUT}s" >&2; exit 75; }
 
 CURRENT="$(grep -oP '^IMAGE_TAG=\K.*' "$ENV_FILE" 2>/dev/null || true)"
 
