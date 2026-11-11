@@ -25,7 +25,9 @@ HEALTH_TIMEOUT=120
 
 LOCK="$STACK/.deploy.lock"
 LOG_FILE="$STACK/deploy.log"
-LOCK_TIMEOUT=300
+# Pire cas d'un déploiement : pull, puis deux attentes de santé (le déploiement et
+# son retour automatique) de HEALTH_TIMEOUT chacune. Le verrou attend davantage.
+LOCK_TIMEOUT=600
 
 log() { printf '%s %s\n' "$(date -u +%H:%M:%S)" "$*"; }
 
@@ -42,9 +44,10 @@ case "${VERB:-}" in
     TAG="$ARG"
     ;;
   rollback)
-    TAG="$(cat "$PREVIOUS" 2>/dev/null || true)"
-    [[ "$TAG" =~ ^[0-9a-f]{40}$ ]] || { echo "aucun tag précédent exploitable" >&2; exit 2; }
-    log "rollback vers $TAG"
+    # La cible est lue APRÈS la prise du verrou, plus bas : lue ici, elle
+    # pourrait précéder la réécriture de `.tag.previous` par un déploiement en
+    # cours, et le retour viserait un tag périmé.
+    TAG=
     ;;
   status)
     # Volontairement sans `docker compose` : la composition exige `IMAGE_TAG`,
@@ -76,12 +79,20 @@ esac
 trap '' HUP PIPE
 exec > >(tee -a --output-error=warn-nopipe "$LOG_FILE") 2>&1
 
-# Un seul déploiement à la fois : deux runs de `main` ne sont jamais annulés
-# (`ci.yml`), donc deux `deploy` peuvent se chevaucher et réécrire `.env` l'un
-# sous l'autre. Le second attend ; au-delà de LOCK_TIMEOUT, il échoue
-# bruyamment plutôt que de forcer.
+# Un seul déploiement à la fois. La CI sérialise déjà ses runs de `main`
+# (`concurrency` sans annulation) ; ce qui peut se chevaucher, c'est un
+# déploiement ORPHELIN — qui continue après la coupure de sa session, voir
+# ci-dessus — et le suivant, ou un `rollback` manuel lancé pendant un `deploy`.
+# Le second attend ; au-delà de LOCK_TIMEOUT, il échoue bruyamment plutôt que
+# de forcer.
 exec 9>"$LOCK"
 flock -w "$LOCK_TIMEOUT" 9 || { log "un autre déploiement tient le verrou depuis plus de ${LOCK_TIMEOUT}s" >&2; exit 75; }
+
+if [[ "$VERB" == rollback ]]; then
+  TAG="$(cat "$PREVIOUS" 2>/dev/null || true)"
+  [[ "$TAG" =~ ^[0-9a-f]{40}$ ]] || { log "aucun tag précédent exploitable" >&2; exit 2; }
+  log "rollback vers $TAG"
+fi
 
 CURRENT="$(grep -oP '^IMAGE_TAG=\K.*' "$ENV_FILE" 2>/dev/null || true)"
 

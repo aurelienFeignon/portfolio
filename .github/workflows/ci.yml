@@ -169,7 +169,7 @@ jobs:
       - name: L'image annonce sa révision
         run: |
           served="$(curl -fsS -D - -o /dev/null http://127.0.0.1:3000/robots.txt \
-            | tr -d '\r' | grep -i '^x-source-revision:' | cut -d' ' -f2)"
+            | tr -d '\r' | grep -i '^x-source-revision:' | sed 's/^[^:]*:[[:space:]]*//')"
           echo "révision servie : ${served:-(absente)}"
           test "$served" = "$GITHUB_SHA"
 

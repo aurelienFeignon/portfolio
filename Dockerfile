@@ -88,16 +88,18 @@ ENV NODE_ENV=production
 ARG SITE_URL
 ENV SITE_URL=${SITE_URL}
 
+COPY --from=deps --chown=node:node /app/node_modules ./node_modules
+COPY --chown=node:node . .
+
 # Révision du dépôt, posée en en-tête sur `/robots.txt` pour que la sonde
 # externe voie un déploiement manquant (`src/seo/source-revision.ts`).
 # Facultative : absente, l'image n'annonce rien — c'est le cas des builds
 # locaux. La CI la fournit aux DEUX constructions (`e2e` et `publish`), pour
 # que l'image publiée reste celle qui a été testée.
+# ⚠️ Déclarée APRÈS les `COPY` : sa valeur change à chaque commit, et placée
+# avant, elle invaliderait la copie de `node_modules` à chaque construction.
 ARG SOURCE_REVISION
 ENV SOURCE_REVISION=${SOURCE_REVISION}
-
-COPY --from=deps --chown=node:node /app/node_modules ./node_modules
-COPY --chown=node:node . .
 
 RUN pnpm build
 

@@ -70,7 +70,7 @@
 import { parseArgs } from 'node:util'
 
 import { buildAbsoluteUrl, parseSiteUrl } from '../src/seo/site-url.ts'
-import { SOURCE_REVISION_HEADER, parseSourceRevision } from '../src/seo/source-revision.ts'
+import { FULL_SHA, SOURCE_REVISION_HEADER } from '../src/seo/source-revision.ts'
 
 /**
  * ⛔ **L'origine surveillée n'est PAS lue dans `SITE_URL`, et c'est délibéré.**
@@ -98,6 +98,7 @@ const { values: options, positionals } = parseArgs({
   options: {
     'expect-revision': { type: 'string' },
     'committed-at': { type: 'string' },
+    'accept-revision': { type: 'string' },
   },
 })
 
@@ -105,21 +106,53 @@ const SITE = parseSiteUrl(positionals[0] ?? 'https://aurelienfeignon.com')
 
 /**
  * ⭐ **Le déploiement manquant** (`src/seo/source-revision.ts`). Quand le
- * workflow fournit la tête de `main` et sa date de fusion, la sonde exige que
- * le site la serve — passé un délai de grâce qui couvre la CI elle-même
+ * workflow fournit la tête de `main` et la date de son commit, la sonde exige
+ * que le site la serve — passé un délai de grâce qui couvre la CI elle-même
  * (11 à 23 min mesurées sur les cinq derniers runs de `main`, 2026-11-11).
  *
  * ⚠️ Facultatif, et c'est voulu : un déclenchement manuel depuis une branche n'a
  * pas de tête de `main` à comparer, et le workflow n'en passe alors aucune.
  * Les deux options vont ensemble : une révision sans date ne permet pas de
  * distinguer « pas encore » de « jamais ».
+ *
+ * ⚠️ La date est celle du **commit**, pas de son arrivée sur `main`. Une fusion
+ * par PR les fait coïncider ; un commit ancien poussé tel quel démarre le délai
+ * en avance, et peut faire crier la sonde le temps que la CI le déploie.
+ *
+ * ⭐ `--accept-revision` : la révision qu'un **rollback assumé** sert à la place
+ * de la tête de `main` (`deploy/README.md` §7.3 bis). Sans elle, un retour
+ * arrière délibéré ferait crier la sonde à chaque passage jusqu'à la prochaine
+ * fusion — l'alerte qu'on apprend à ignorer.
  */
-const EXPECTED_REVISION = parseSourceRevision(options['expect-revision'])
-const COMMITTED_AT_S =
-  options['committed-at'] === undefined ? null : Number(options['committed-at'])
-if ((EXPECTED_REVISION === null) !== (COMMITTED_AT_S === null) || Number.isNaN(COMMITTED_AT_S)) {
-  throw new Error('--expect-revision et --committed-at (secondes Unix) vont ensemble.')
+type Expectation = { revision: string; committedAtS: number; accepted: string | null }
+
+function sha(option: string, raw: string): string {
+  if (!FULL_SHA.test(raw))
+    throw new Error(`${option} doit être un SHA de commit complet, reçu « ${raw} ».`)
+  return raw
 }
+
+function readExpectation(): Expectation | null {
+  const revision = options['expect-revision']
+  const committedAt = options['committed-at']
+  const accepted = options['accept-revision']
+  if (revision === undefined && committedAt === undefined) {
+    if (accepted !== undefined && accepted !== '')
+      throw new Error('--accept-revision exige --expect-revision.')
+    return null
+  }
+  if (revision === undefined || committedAt === undefined || !/^\d+$/.test(committedAt)) {
+    throw new Error('--expect-revision et --committed-at (secondes Unix) vont ensemble.')
+  }
+  return {
+    revision: sha('--expect-revision', revision),
+    committedAtS: Number(committedAt),
+    // Vide = aucune : c'est ce que rend une variable de dépôt non définie.
+    accepted: accepted === undefined || accepted === '' ? null : sha('--accept-revision', accepted),
+  }
+}
+
+const EXPECTATION = readExpectation()
 const DEPLOY_GRACE_S = 60 * 60
 
 const PROBE_URL = buildAbsoluteUrl(SITE, '/robots.txt')
@@ -168,7 +201,7 @@ type Verdict = { ok: boolean; detail: string; stale?: true }
 
 /**
  * Le verdict est **pur** : il ne connaît ni le réseau ni l'horloge. Le script ne
- * fait rien d'autre que lui apporter une réponse HTTP.
+ * fait rien d'autre que lui apporter une réponse HTTP, l'attente et l'heure.
  *
  * ⚠️ Il n'est pas exporté, et son test ne l'importe pas : ce module **agit** dès
  * qu'on le charge. Il est éprouvé comme les autres gates du dépôt — exécuté en
@@ -180,6 +213,8 @@ function verdictFor(
   location: string | null,
   body: string,
   servedRevision: string | null,
+  expectation: Expectation | null,
+  nowS: number,
 ): Verdict {
   if (status >= 300 && status < 400) {
     const target = location ?? '(sans en-tête Location)'
@@ -206,9 +241,9 @@ function verdictFor(
   }
 
   const served = `200, et la directive « ${EXPECTED_SITEMAP} » est servie`
-  return EXPECTED_REVISION === null
+  return expectation === null
     ? { ok: true, detail: served }
-    : revisionVerdict(served, servedRevision, EXPECTED_REVISION)
+    : revisionVerdict(served, servedRevision, expectation, nowS)
 }
 
 /**
@@ -216,28 +251,40 @@ function verdictFor(
  * écart est **attendu** — la CI construit encore — et ne fait pas crier la
  * sonde : une alerte à chaque fusion apprendrait à ne plus les lire.
  */
-function revisionVerdict(served: string, servedRevision: string | null, expected: string): Verdict {
+function revisionVerdict(
+  served: string,
+  servedRevision: string | null,
+  { revision, committedAtS, accepted }: Expectation,
+  nowS: number,
+): Verdict {
   const shown =
     servedRevision === null
       ? `aucune (en-tête ${SOURCE_REVISION_HEADER} absent)`
       : short(servedRevision)
-  if (servedRevision === expected) {
-    return { ok: true, detail: `${served} ; révision servie = tête de main (${short(expected)})` }
+  if (servedRevision === revision) {
+    return { ok: true, detail: `${served} ; révision servie = tête de main (${short(revision)})` }
   }
-  const ageMin = Math.floor((Date.now() / 1000 - (COMMITTED_AT_S ?? 0)) / 60)
+  if (servedRevision !== null && servedRevision === accepted) {
+    return {
+      ok: true,
+      detail: `${served} ; rollback assumé : ${shown} servie, main = ${short(revision)} — vider UPTIME_ACCEPTED_REVISION après le prochain déploiement`,
+    }
+  }
+  const ageMin = Math.floor((nowS - committedAtS) / 60)
   if (ageMin * 60 < DEPLOY_GRACE_S) {
     return {
       ok: true,
-      detail: `${served} ; main (${short(expected)}) fusionné il y a ${ageMin} min, servie : ${shown} — déploiement attendu, délai de grâce de ${DEPLOY_GRACE_S / 60} min`,
+      detail: `${served} ; main (${short(revision)}) fusionné il y a ${ageMin} min, servie : ${shown} — déploiement attendu, délai de grâce de ${DEPLOY_GRACE_S / 60} min`,
     }
   }
   return {
     ok: false,
     stale: true,
     detail:
-      `DÉPLOIEMENT MANQUANT — main (${short(expected)}) est fusionné depuis ${ageMin} min, ` +
-      `mais le site sert : ${shown}. Lire le job « déployer sur le VPS » de ce commit ` +
-      `dans ci.yml ; un « error from registry: denied » au pull est le jeton GHCR du VPS (décision D6).`,
+      `main (${short(revision)}) est fusionné depuis ${ageMin} min, mais le site sert : ${shown}. ` +
+      `Lire le job « déployer sur le VPS » de ce commit dans ci.yml — un « error from registry: denied » ` +
+      `au pull est le jeton GHCR du VPS (décision D6). Un rollback délibéré s'assume par la variable ` +
+      `de dépôt UPTIME_ACCEPTED_REVISION (deploy/README.md §7.3 bis).`,
   }
 }
 
@@ -258,6 +305,8 @@ async function probe(url: string): Promise<Verdict> {
       response.headers.get('location'),
       await response.text(),
       response.headers.get(SOURCE_REVISION_HEADER),
+      EXPECTATION,
+      Math.floor(Date.now() / 1000),
     )
   } catch (error) {
     // Connexion refusée, DNS mort, délai dépassé : aucune réponse HTTP n'existe,
@@ -271,7 +320,9 @@ async function probeUntilSettled(): Promise<Verdict> {
   for (let attempt = 1; ; attempt += 1) {
     const verdict = await probe(PROBE_URL)
     console.log(`  ${verdict.ok ? '✓' : '✗'} tentative ${attempt}/${ATTEMPTS} : ${verdict.detail}`)
-    if (verdict.ok || attempt === ATTEMPTS) return verdict
+    // Un écart de révision passé le délai de grâce ne se résorbe pas en 15 s :
+    // la seconde tentative est réservée aux hoquets du transport.
+    if (verdict.ok || verdict.stale || attempt === ATTEMPTS) return verdict
     await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS))
   }
 }
@@ -284,7 +335,7 @@ if (verdict.ok) {
   console.log(`\n✓ Le site répond depuis l’extérieur.`)
 } else if (verdict.stale) {
   console.error(
-    `\n✗ Le site répond, mais ne sert pas la tête de main — ${verdict.detail}\n` +
+    `\n✗ DÉPLOIEMENT MANQUANT — le site répond, mais ne sert pas la tête de main : ${verdict.detail}\n` +
       `\n  État de la pile : ssh portfolio 'SSH_ORIGINAL_COMMAND=status /srv/portfolio/deploy.sh'` +
       `\n  Rattrapage d'un run manquant : deploy/README.md §8.4.`,
   )

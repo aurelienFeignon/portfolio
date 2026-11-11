@@ -107,11 +107,16 @@ jobs:
       # (`src/seo/source-revision.ts`). La date est celle du commit de tête
       # (`%ct`, celle de la fusion), lue dans le checkout : aucun appel d'API.
       # Un déclenchement manuel depuis une autre branche ne compare rien.
+      # `UPTIME_ACCEPTED_REVISION` (variable de dépôt, vide par défaut) assume un
+      # rollback délibéré : `deploy/README.md` §7.3 bis.
       - name: Sonder l’origine
         shell: bash
+        env:
+          ACCEPTED: ${{ vars.UPTIME_ACCEPTED_REVISION }}
         run: |
           args=()
           if [ "$GITHUB_REF" = refs/heads/main ]; then
-            args=(--expect-revision "$GITHUB_SHA" --committed-at "$(git log -1 --format=%ct)")
+            args=(--expect-revision "$GITHUB_SHA" --committed-at "$(git log -1 --format=%ct)"
+                  --accept-revision "$ACCEPTED")
           fi
           node scripts/check-uptime.mts "${args[@]}" 2>&1 | tee -a "$GITHUB_STEP_SUMMARY"

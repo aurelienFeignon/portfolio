@@ -334,13 +334,83 @@ describe('sonde externe — déploiement manquant', () => {
     expect(code).toBe(0)
   })
 
-  it('refuse une révision attendue sans sa date', async () => {
-    // Sans date, « pas encore déployé » et « jamais déployé » se confondent.
+  it('ne réessaie pas un écart de révision : il ne se résorbe pas en 15 s', async () => {
+    const origin = await servingRevision(OLD)
+
+    const { output } = await probe(
+      origin,
+      '--expect-revision',
+      MAIN,
+      '--committed-at',
+      String(nowS() - 2 * 3600),
+    )
+
+    expect(output).toContain('tentative 1/2')
+    expect(output).not.toContain('tentative 2/2')
+  })
+
+  it('accepte la révision d’un rollback assumé', async () => {
+    // Sans cela, un retour arrière délibéré ferait crier la sonde jusqu'à la
+    // prochaine fusion.
+    const origin = await servingRevision(OLD)
+
+    const { code, output } = await probe(
+      origin,
+      '--expect-revision',
+      MAIN,
+      '--committed-at',
+      String(nowS() - 2 * 3600),
+      '--accept-revision',
+      OLD,
+    )
+
+    expect(code).toBe(0)
+    expect(output).toContain('rollback assumé')
+  })
+
+  it('lit une révision acceptée VIDE comme aucune — la variable de dépôt non définie', async () => {
+    const origin = await servingRevision(OLD)
+
+    const { code } = await probe(
+      origin,
+      '--expect-revision',
+      MAIN,
+      '--committed-at',
+      String(nowS() - 2 * 3600),
+      '--accept-revision',
+      '',
+    )
+
+    expect(code).toBe(1)
+  })
+
+  it.each([[[]], [['--committed-at', '']]])(
+    'refuse une révision attendue sans date exploitable (%o)',
+    async (extra) => {
+      // Sans date, « pas encore déployé » et « jamais déployé » se confondent ;
+      // une date vide valait 0 — le 1er janvier 1970 — et faisait crier la sonde.
+      const origin = await servingRevision(MAIN)
+
+      const { code, output } = await probe(origin, '--expect-revision', MAIN, ...extra)
+
+      expect(code).not.toBe(0)
+      expect(output).toContain('vont ensemble')
+    },
+  )
+
+  it('nomme l’option fautive, pas une variable que la sonde ne lit pas', async () => {
     const origin = await servingRevision(MAIN)
 
-    const { code, output } = await probe(origin, '--expect-revision', MAIN)
+    const { code, output } = await probe(
+      origin,
+      '--expect-revision',
+      MAIN.slice(0, 12),
+      '--committed-at',
+      String(nowS()),
+    )
 
     expect(code).not.toBe(0)
-    expect(output).toContain('vont ensemble')
+    expect(output).toContain('--expect-revision doit être un SHA de commit complet')
+    expect(output).not.toContain('SOURCE_REVISION')
   })
 })

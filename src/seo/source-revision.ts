@@ -12,8 +12,8 @@
  * anonymement à travers Cloudflare Access —, et la sonde la compare à la tête
  * de `main`.
  *
- * ⚠️ Ce module n'importe rien : `scripts/check-uptime.mts` et `next.config.ts`
- * le chargent sans `pnpm install` ni résolution d'alias.
+ * ⚠️ Ce module n'importe rien : `scripts/check-uptime.mts` et `next.config.ts` le chargent sans `pnpm install` ni
+ * résolution d'alias.
  */
 
 export const SOURCE_REVISION_ENV = 'SOURCE_REVISION'
@@ -21,7 +21,8 @@ export const SOURCE_REVISION_ENV = 'SOURCE_REVISION'
 /** Nom de l'en-tête, partagé par `next.config.ts` qui l'émet et la sonde qui le lit. */
 export const SOURCE_REVISION_HEADER = 'X-Source-Revision'
 
-const FULL_SHA = /^[0-9a-f]{40}$/
+/** Un SHA de commit complet, en minuscules : la forme du tag que déploie `deploy.sh`. */
+export const FULL_SHA = /^[0-9a-f]{40}$/
 
 /**
  * Absente → `null` : le serveur de développement et les builds locaux n'ont pas

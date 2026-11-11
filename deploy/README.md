@@ -245,8 +245,10 @@ Désormais :
   session fermée lève `SIGPIPE`, puis `EPIPE` sous `set -e` ;
 - toute la sortie passe par `tee`, qui écrit **`/srv/portfolio/deploy.log`** et continue quand la
   session a disparu : le récit d'un déploiement orphelin se relit après coup ;
-- un **verrou** (`flock` sur `/srv/portfolio/.deploy.lock`) sérialise deux `deploy` qui se
-  chevauchent — les runs de `main` ne sont jamais annulés. Le second attend 300 s, puis sort en 75.
+- un **verrou** (`flock` sur `/srv/portfolio/.deploy.lock`) sérialise ce qui peut encore se
+  chevaucher — la CI sérialise déjà ses runs de `main` : un déploiement orphelin et le suivant, ou un
+  `rollback` manuel lancé pendant un `deploy`. Le second attend 600 s (le pire cas d'un déploiement
+  avec retour automatique), puis sort en 75. `rollback` lit sa cible **après** la prise du verrou.
 
 Même banc, nouvelle version : déploiement mené à terme malgré `HUP` et tuyau fermé, `.tag.previous`
 écrit, et un second `deploy` refusé en 75 pendant que le verrou est tenu.
@@ -609,6 +611,23 @@ après sa fusion** (CI mesurée entre 11 et 23 min). Un écart plus récent est 
 Rejoué contre la production le 2026-11-11 : `DÉPLOIEMENT MANQUANT — main (d8b084c162c1) est fusionné
 depuis 1445 min, mais le site sert : aucune (en-tête X-Source-Revision absent)`, sortie 1.
 
+Un écart passé le délai n'est **pas réessayé** (il ne se résorbe pas en 15 s), et le message titre
+`DÉPLOIEMENT MANQUANT` au lieu de `LE SITE NE RÉPOND PAS` : on ne va pas chercher un VPS éteint.
+
+⚠️ Le délai part de la date du **commit** (`%ct`), pas de son arrivée sur `main`. Une fusion par PR
+les fait coïncider ; un commit ancien poussé tel quel peut faire crier la sonde le temps de sa CI.
+
+⭐ **Un rollback délibéré s'assume**, sans quoi la sonde crierait jusqu'à la prochaine fusion :
+
+```bash
+gh variable set UPTIME_ACCEPTED_REVISION --body <sha40 servi après le rollback>
+# … puis, une fois la tête de main de nouveau servie :
+gh variable delete UPTIME_ACCEPTED_REVISION
+```
+
+La sonde accepte alors cette révision-là, et le dit à chaque passage (« rollback assumé ») pour
+qu'on n'oublie pas de vider la variable.
+
 ⛔ **Conséquence à la fusion** : tant que le pull du VPS est refusé, la sonde sera rouge à chaque
 passage — c'est exactement ce qu'elle doit dire. Rétablir l'accès GHCR (§3.2) avant ou juste après.
 
@@ -791,6 +810,8 @@ la conclusion du workflow d'un côté, la sonde de l'autre.
 
 ### 8.4 Si ça tourne mal
 
+- [ ] **Après un `rollback` délibéré** : l'assumer auprès de la sonde
+      (`UPTIME_ACCEPTED_REVISION`, §7.3 bis), sinon elle criera jusqu'à la prochaine fusion.
 - [ ] **Ne pas doubler la manœuvre** : si le conteneur n'atteint pas `healthy` en 120 s, `deploy.sh`
       remet **de lui-même** le tag qui servait avant la tentative, et sort en 1. Lire son journal
       avant d'agir.

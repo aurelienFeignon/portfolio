@@ -420,6 +420,8 @@ officielle n'atteint 250 Mo.
 - ✅ **Un déploiement manquant se voit depuis le 2026-11-11** : l'image sert `X-Source-Revision` sur
   `/robots.txt`, et la sonde planifiée exige la tête de `main` une heure après sa fusion
   (`deploy/README.md` §7.3 bis). Rejouée contre la production : elle crie sur l'incident ci-dessous.
+  ⚠️ Après un **rollback délibéré**, l'assumer par la variable de dépôt `UPTIME_ACCEPTED_REVISION`,
+  sinon la sonde crie jusqu'à la prochaine fusion.
 - ⛔⛔ **Production bloquée sur `9e5fe91` depuis le 2026-11-10** : les déploiements de #100 (`fe06017`) et #103 (`d8b084c`)
   ont échoué au `docker pull` (`error from registry: denied`) — le jeton GHCR du VPS ne donne plus
   accès. C'est exactement ce que D6 annonçait. **Action de l'utilisateur** : renouveler le jeton (ou
