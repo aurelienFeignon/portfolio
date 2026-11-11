@@ -73,7 +73,28 @@ Session « dettes ouvertes » : branche `fix/dettes-ouvertes-2026-11-11`. Elle t
 de dev, `deploy.sh` face à une coupure SSH, la détection d'un déploiement manquant,
 `getFeaturedProjects` et la confrontation du `BreadcrumbList` (détail dans « Points encore
 ouverts »). ⛔ Elle a découvert que **la production ne se déploie plus depuis le 2026-11-10**
-(jeton GHCR refusé, D6). Vérifier la PR, sa CI et sa fusion avant toute suite.
+(jeton GHCR refusé, D6).
+
+**État au soir du 2026-11-11 — à reprendre ainsi le 2026-11-12 :**
+
+1. ✅ **Accès GHCR du VPS rétabli par l'utilisateur** : `docker pull …:d8b084c…` réussi sur le VPS.
+   Le site sert toujours `9e5fe91` — rien n'a été redéployé, le pull a seulement été vérifié.
+2. ⏳ **PR #104 ouverte, CI bloquée par une panne EXTÉRIEURE** : `versions` et `gates` verts ;
+   `image de production · end-to-end` passe construction, healthcheck, « L'image annonce sa révision »
+   et budget de taille, puis se fige à « Installer les navigateurs Playwright ». Cause lue dans le
+   journal : le miroir `azure.archive.ubuntu.com` ne répond plus, chaque paquet d'`apt` tombe en
+   `Ign:` après 20 s (~150 paquets, ~1 h). Run `43034111043`, deux essais, même blocage.
+   **Geste** : `gh pr checks 104` ; si le run est rouge sur cette étape, `gh run rerun 43034111043
+   --failed`, et relire le journal de l'étape avant de conclure.
+3. 🔀 **Si le miroir bloque encore** : décision prise le 2026-11-11 — rendre la CI indépendante
+   d'`apt` en faisant tourner les E2E dans `mcr.microsoft.com/playwright:v1.64.1-noble` (l'image du
+   service `e2e` de dev, version alignée sur `@playwright/test`). **PR séparée**, branchée de `main`,
+   pas dans #104 ; ne pas empiler (#104 devra être rebasée après sa fusion).
+4. Après une CI verte : **fusion de #104 sur accord explicite** (elle déploie), puis la suite de
+   `deploy/README.md` — vérifier le run de `main` (cinq jobs, le job `deploy` contrôle lui-même le
+   SHA servi), `curl -sI https://aurelienfeignon.com/robots.txt | grep -i x-source-revision`, un
+   tir **planifié** vert de la sonde, puis **seulement ensuite** réinstaller `deploy/deploy.sh` sur
+   le VPS (§3.3 : noter propriétaire et mode de la copie en place, vérifier `command -v flock`).
 
 ### Reprise précédente — 2026-11-03
 
@@ -319,8 +340,9 @@ Python, Node.js, React, Next.js, PostgreSQL, Docker, microservices, architecture
 intégration de modèles de langage.*
 ✅ Arbitré le 2026-10-30 pour la carte mère : voir `carte-mere.md` §12.1 (puces de taille égale tant que D2 est ouverte, paramètre du générateur) et `phase-0-questions.md` (D2).
 
-**D6 🔴 — Rendre le paquet GHCR public ?** *(devenue bloquante le 2026-11-10 : le jeton du VPS est
-refusé, plus rien ne se déploie — voir « Points encore ouverts »)* *(action manuelle, je n'ai pas les droits)* → *GitHub →
+**D6 🟠 — Rendre le paquet GHCR public ?** *(a bloqué les déploiements du 2026-11-10 ; accès rétabli
+le 2026-11-11 — si c'est par un nouveau jeton, il expirera de nouveau : demander à l'utilisateur
+lequel des deux remèdes il a appliqué, et mettre à jour cette entrée)* *(action manuelle, je n'ai pas les droits)* → *GitHub →
 Packages → portfolio → Change visibility → Public. Puis sur le VPS : `docker logout ghcr.io && rm
 /srv/portfolio/.ghcr-token`, et retirer le `docker login` de `deploy.sh`. Bénéfice : plus de PAT à
 renouveler, donc plus de déploiement qui s'arrête un jour sans rapport apparent avec le code.*
@@ -430,11 +452,12 @@ officielle n'atteint 250 Mo.
      par l'API Actions ;
   3. viser `/robots.txt` plutôt que `/` dans le `healthcheck` de dev, si une route de métadonnées
      retient moins de mémoire sous `next dev` — à mesurer d'abord.
-- ⛔⛔ **Production bloquée sur `9e5fe91` depuis le 2026-11-10** : les déploiements de #100 (`fe06017`) et #103 (`d8b084c`)
-  ont échoué au `docker pull` (`error from registry: denied`) — le jeton GHCR du VPS ne donne plus
-  accès. C'est exactement ce que D6 annonçait. **Action de l'utilisateur** : renouveler le jeton (ou
-  trancher D6), puis rattraper par `deploy/README.md` §8.4. Tant que ce n'est pas fait, la sonde
-  sera rouge à chaque passage après la fusion du contrôle de révision.
+- ⛔ **Production sur `9e5fe91` depuis le 2026-11-10** : les déploiements de #100 (`fe06017`) et #103
+  (`d8b084c`) ont échoué au `docker pull` (`error from registry: denied`), comme D6 l'annonçait.
+  ✅ Accès rétabli le 2026-11-11 (pull vérifié sur le VPS). ⏳ Reste à **redéployer** : la fusion de
+  #104 porte #100 et #103, aucun rattrapage séparé n'est nécessaire (« État au soir du 2026-11-11 »).
+- ⚠️ **La CI dépend du miroir `apt` d'Ubuntu** (`playwright install --with-deps`) : en panne le
+  2026-11-11, il a figé le job E2E. Remède retenu si cela se reproduit : E2E dans l'image Playwright.
 - **Procédure de restauration du serveur** (R-23) : Hetzner restreint par intermittence la création
   d'instances. À écrire sous cette contrainte en Phase 15.
 - **Plages Cloudflare** : un timer hebdomadaire les rafraîchit sur le VPS.
