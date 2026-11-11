@@ -1,4 +1,22 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": ["local>aurelienFeignon/renovate-config"]
+  "extends": ["local>aurelienFeignon/renovate-config"],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "description": "L'image Playwright du job e2e est déclarée dans une variable d'environnement de ci.yml, qu'aucun gestionnaire natif ne lit.",
+      "managerFilePatterns": ["/^\\.github/workflows/ci\\.yml$/"],
+      "matchStrings": [
+        "PLAYWRIGHT_IMAGE: (?<depName>mcr\\.microsoft\\.com/playwright):(?<currentValue>[^@\\s]+)@(?<currentDigest>sha256:[a-f0-9]+)"
+      ],
+      "datasourceTemplate": "docker"
+    }
+  ],
+  "packageRules": [
+    {
+      "description": "L'image Playwright embarque les navigateurs de @playwright/test : client et image doivent rester à la même version (ci.yml, docker-compose.yml).",
+      "matchPackageNames": ["@playwright/test", "mcr.microsoft.com/playwright"],
+      "groupName": "playwright"
+    }
+  ]
 }

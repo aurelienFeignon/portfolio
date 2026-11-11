@@ -105,6 +105,21 @@ jobs:
     name: image de production · end-to-end
     runs-on: ubuntu-latest
     needs: [versions, gates]
+    env:
+      # ⛔ Navigateurs et bibliothèques système viennent de CETTE image, plus de
+      # `playwright install --with-deps` : celui-ci passait par `apt` sur les
+      # miroirs Ubuntu du runner, injoignables le 2026-11-11 — chaque paquet en
+      # `Ign:` après 20 s, job figé plus d'une heure avant le premier test.
+      #
+      # ⭐ Seuls les tests y tournent (`docker run`, plus bas), pas le job entier
+      # comme dans d'autres dépôts : la construction de l'image, son démarrage et
+      # son budget de taille ont besoin du démon Docker du runner, et le site
+      # qu'elle sert y est publié sur `localhost:3000`.
+      #
+      # ⚠️ La version DOIT égaler celle de `@playwright/test` du lockfile — client
+      # et navigateurs vont ensemble. Renovate les met à jour ensemble
+      # (`renovate.json`, qui lit aussi cette ligne). Épinglée par condensat.
+      PLAYWRIGHT_IMAGE: mcr.microsoft.com/playwright:v1.64.1-noble@sha256:2f05f8a734509a7b3f26a912639488ee08f58a7b292d14d62271bcff9038768f
     steps:
       - uses: actions/checkout@v4
 
@@ -167,15 +182,21 @@ jobs:
           node-version: ${{ needs.versions.outputs.node }}
           cache: pnpm
 
+      # Les dépendances s'installent sur le runner, sans `apt` : seul le registre
+      # npm est touché. Le dépôt est ensuite monté dans l'image Playwright au
+      # MÊME chemin, pour que les liens de `node_modules` de pnpm restent valides.
       - run: pnpm install --frozen-lockfile
 
-      # Version des navigateurs alignée sur `@playwright/test` du lockfile : les
-      # navigateurs et le client doivent aller ensemble.
-      - name: Installer les navigateurs Playwright
-        run: pnpm exec playwright install --with-deps chromium webkit
-
+      # `--network host` : le site de l'image testée est sur `localhost:3000` du
+      # runner. `--user` : les rapports écrits dans le dépôt appartiennent au
+      # compte du runner, pas à root.
       - name: End-to-end contre l'image de production
-        run: pnpm exec playwright test
+        run: |
+          docker run --rm --network host --ipc=host \
+            --user "$(id -u):$(id -g)" -e HOME=/tmp \
+            -v "$PWD:$PWD" -w "$PWD" \
+            -e PLAYWRIGHT_BASE_URL -e SITE_URL -e CI \
+            "$PLAYWRIGHT_IMAGE" node_modules/.bin/playwright test
         env:
           PLAYWRIGHT_BASE_URL: http://localhost:3000
           # L'image est servie depuis `localhost`, mais elle a été construite avec
@@ -189,7 +210,7 @@ jobs:
       # le mot n'apparaissait que dans quatre documents. C'est le défaut du seuil
       # de 400 Mo, à l'identique. Relevé pendant l'inventaire de P4-12.
       #
-      # ⭐ Le script tourne ici avec le Chromium déjà installé pour Playwright, et
+      # ⭐ Le script tourne ici avec le Chromium de l'image Playwright, et
       # décide lui-même de ce qui bloque : accessibilité et SEO à 100 (structurel),
       # « bonnes pratiques » sur ses audits — son score est plafonné par le HTTP nu
       # du banc —, performance relevée sans être bloquante sur un runner partagé.
@@ -199,7 +220,12 @@ jobs:
       # pas au résumé.
       - name: Audit Lighthouse de l'image de production
         shell: bash
-        run: node scripts/check-lighthouse.mts 2>&1 | tee -a "$GITHUB_STEP_SUMMARY"
+        run: |
+          docker run --rm --network host --ipc=host \
+            --user "$(id -u):$(id -g)" -e HOME=/tmp \
+            -v "$PWD:$PWD" -w "$PWD" \
+            -e PLAYWRIGHT_BASE_URL \
+            "$PLAYWRIGHT_IMAGE" node scripts/check-lighthouse.mts 2>&1 | tee -a "$GITHUB_STEP_SUMMARY"
         env:
           PLAYWRIGHT_BASE_URL: http://localhost:3000
 
