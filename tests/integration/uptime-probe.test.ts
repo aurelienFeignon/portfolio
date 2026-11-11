@@ -18,6 +18,8 @@ import type { AddressInfo } from 'node:net'
 
 import { afterEach, describe, expect, it } from 'vitest'
 
+import { SOURCE_REVISION_HEADER } from '@/seo/source-revision'
+
 import { runScript, scriptPath, type ScriptResult } from './support/run-script'
 
 const SCRIPT = scriptPath('check-uptime.mts')
@@ -251,26 +253,26 @@ describe('sonde externe', () => {
 describe('sonde externe — déploiement manquant', () => {
   const MAIN = '1111111111111111111111111111111111111111'
   const OLD = '2222222222222222222222222222222222222222'
-  const nowS = () => Math.floor(Date.now() / 1000)
+  const PAST_GRACE_S = 2 * 3600
 
-  /** L'origine sert notre `robots.txt`, avec ou sans en-tête de révision. */
-  async function servingRevision(revision: string | null): Promise<string> {
-    return serving((_request, response, base) => {
-      response.writeHead(200, revision === null ? {} : { 'x-source-revision': revision })
+  /**
+   * L'origine sert notre `robots.txt` avec la révision `served` (ou sans
+   * en-tête), et la sonde attend `MAIN`, fusionné il y a `ageS` secondes.
+   */
+  async function expecting(
+    served: string | null,
+    { ageS = PAST_GRACE_S, extra = [] as string[] } = {},
+  ): Promise<ScriptResult> {
+    const origin = await serving((_request, response, base) => {
+      response.writeHead(200, served === null ? {} : { [SOURCE_REVISION_HEADER]: served })
       response.end(ourRobots(base))
     })
+    const committedAt = String(Math.floor(Date.now() / 1000) - ageS)
+    return probe(origin, '--expect-revision', MAIN, '--committed-at', committedAt, ...extra)
   }
 
   it('sort en 0 quand le site sert la tête de main', async () => {
-    const origin = await servingRevision(MAIN)
-
-    const { code, output } = await probe(
-      origin,
-      '--expect-revision',
-      MAIN,
-      '--committed-at',
-      String(nowS() - 3 * 3600),
-    )
+    const { code, output } = await expecting(MAIN)
 
     expect(code).toBe(0)
     expect(output).toContain('révision servie = tête de main')
@@ -278,110 +280,56 @@ describe('sonde externe — déploiement manquant', () => {
 
   it('ne crie pas pendant que la CI déploie encore', async () => {
     // Une alerte à chaque fusion apprendrait à ne plus lire les alertes.
-    const origin = await servingRevision(OLD)
-
-    const { code, output } = await probe(
-      origin,
-      '--expect-revision',
-      MAIN,
-      '--committed-at',
-      String(nowS() - 10 * 60),
-    )
+    const { code, output } = await expecting(OLD, { ageS: 10 * 60 })
 
     expect(code).toBe(0)
     expect(output).toContain('déploiement attendu')
   })
 
   it('sort en 1 quand main n’est toujours pas servi passé le délai — le 2026-11-10', async () => {
-    const origin = await servingRevision(OLD)
-
-    const { code, output } = await probe(
-      origin,
-      '--expect-revision',
-      MAIN,
-      '--committed-at',
-      String(nowS() - 2 * 3600),
-    )
+    const { code, output } = await expecting(OLD)
 
     expect(code).toBe(1)
     expect(output).toContain('DÉPLOIEMENT MANQUANT')
     expect(output).toContain(OLD.slice(0, 12))
     // Le site répond : l'accuser d'être à terre enverrait chercher la mauvaise panne.
     expect(output).not.toContain('LE SITE NE RÉPOND PAS')
+    // Un écart de révision ne se résorbe pas en 15 s : pas de seconde tentative.
+    expect(output).toContain('tentative 1/2')
+    expect(output).not.toContain('tentative 2/2')
   })
 
   it('compte une image sans en-tête comme un déploiement manquant', async () => {
-    const origin = await servingRevision(null)
-
-    const { code, output } = await probe(
-      origin,
-      '--expect-revision',
-      MAIN,
-      '--committed-at',
-      String(nowS() - 2 * 3600),
-    )
+    const { code, output } = await expecting(null)
 
     expect(code).toBe(1)
-    expect(output).toContain('X-Source-Revision absent')
-  })
-
-  it('ignore l’en-tête quand le workflow ne fournit pas de tête de main', async () => {
-    // Déclenchement manuel depuis une branche : rien à comparer.
-    const origin = await servingRevision(OLD)
-
-    const { code } = await probe(origin)
-
-    expect(code).toBe(0)
-  })
-
-  it('ne réessaie pas un écart de révision : il ne se résorbe pas en 15 s', async () => {
-    const origin = await servingRevision(OLD)
-
-    const { output } = await probe(
-      origin,
-      '--expect-revision',
-      MAIN,
-      '--committed-at',
-      String(nowS() - 2 * 3600),
-    )
-
-    expect(output).toContain('tentative 1/2')
-    expect(output).not.toContain('tentative 2/2')
+    expect(output).toContain(`${SOURCE_REVISION_HEADER} absent`)
   })
 
   it('accepte la révision d’un rollback assumé', async () => {
     // Sans cela, un retour arrière délibéré ferait crier la sonde jusqu'à la
     // prochaine fusion.
-    const origin = await servingRevision(OLD)
-
-    const { code, output } = await probe(
-      origin,
-      '--expect-revision',
-      MAIN,
-      '--committed-at',
-      String(nowS() - 2 * 3600),
-      '--accept-revision',
-      OLD,
-    )
+    const { code, output } = await expecting(OLD, { extra: ['--accept-revision', OLD] })
 
     expect(code).toBe(0)
     expect(output).toContain('rollback assumé')
   })
 
   it('lit une révision acceptée VIDE comme aucune — la variable de dépôt non définie', async () => {
-    const origin = await servingRevision(OLD)
-
-    const { code } = await probe(
-      origin,
-      '--expect-revision',
-      MAIN,
-      '--committed-at',
-      String(nowS() - 2 * 3600),
-      '--accept-revision',
-      '',
-    )
+    const { code } = await expecting(OLD, { extra: ['--accept-revision', ''] })
 
     expect(code).toBe(1)
+  })
+
+  it('ignore l’en-tête quand le workflow ne fournit pas de tête de main', async () => {
+    // Déclenchement manuel depuis une branche : rien à comparer.
+    const origin = await serving((_request, response, base) => {
+      response.writeHead(200, { [SOURCE_REVISION_HEADER]: OLD }).end(ourRobots(base))
+    })
+
+    const { code } = await probe(origin)
+
+    expect(code).toBe(0)
   })
 
   it.each([[[]], [['--committed-at', '']]])(
@@ -389,7 +337,7 @@ describe('sonde externe — déploiement manquant', () => {
     async (extra) => {
       // Sans date, « pas encore déployé » et « jamais déployé » se confondent ;
       // une date vide valait 0 — le 1er janvier 1970 — et faisait crier la sonde.
-      const origin = await servingRevision(MAIN)
+      const origin = await serving(() => {})
 
       const { code, output } = await probe(origin, '--expect-revision', MAIN, ...extra)
 
@@ -399,14 +347,14 @@ describe('sonde externe — déploiement manquant', () => {
   )
 
   it('nomme l’option fautive, pas une variable que la sonde ne lit pas', async () => {
-    const origin = await servingRevision(MAIN)
+    const origin = await serving(() => {})
 
     const { code, output } = await probe(
       origin,
       '--expect-revision',
       MAIN.slice(0, 12),
       '--committed-at',
-      String(nowS()),
+      '0',
     )
 
     expect(code).not.toBe(0)

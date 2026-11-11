@@ -1,12 +1,8 @@
 /**
- * Exécute un script de `scripts/` en sous-processus et rend son code de sortie.
- *
- * ⭐ Les gates et la sonde sont éprouvés **par leur code de sortie**, parce que
- * c'est lui, et rien d'autre, qui fait échouer la CI ou déclenche l'alerte. Ce
- * lanceur était recopié au caractère près dans trois fichiers de test
- * (`content-gate`, `static-rendering-gate`, `uptime-probe`) ; le déclencheur
- * d'extraction écrit dans le troisième (« le prochain qui touche l'un de ces
- * trois fichiers extrait les trois ») a été tenu le 2026-11-11.
+ * Exécute un script de `scripts/` en sous-processus et rend son code de sortie
+ * et sa sortie : les gates et la sonde sont éprouvés **par leur code de sortie**,
+ * parce que c'est lui, et rien d'autre, qui fait échouer la CI ou déclenche
+ * l'alerte.
  */
 import { execFile } from 'node:child_process'
 import { join } from 'node:path'

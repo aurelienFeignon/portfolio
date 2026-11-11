@@ -32,6 +32,10 @@ export const projectFrontmatterSchema = z
     /**
      * Absent vaut « non mis en avant ». Un défaut sûr, qui ne ment pas : oublier
      * ce champ ne peut pas faire remonter un projet par accident.
+     *
+     * ⚠️ **Aucune vue ne le lit** (le seul lecteur, `getFeaturedProjects`, n'a
+     * jamais eu d'appelant et a été retiré le 2026-11-11). Il reste parce que le
+     * contenu le porte ; le retirer ou le rebrancher est une décision de contenu.
      */
     featured: z.boolean().default(false),
     /**

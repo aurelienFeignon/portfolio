@@ -10,9 +10,6 @@
  * `aurelienfeignon.com` a réellement servi le 2026-08-20, bloc managé de
  * Cloudflare compris, et les pages portent `hrefLang` avec le L majuscule que
  * Next émet — la casse qui a rendu la première lecture aveugle.
- *
- * Le lanceur de sous-processus est partagé (`support/run-script.ts`) depuis le
- * 2026-11-11, quand le déclencheur d'extraction écrit ici s'est armé.
  */
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http'
 import type { AddressInfo } from 'node:net'

@@ -243,8 +243,9 @@ Désormais :
 
 - `HUP` **et** `PIPE` sont ignorés — ignorer `HUP` seul ne suffit pas : la première écriture sur la
   session fermée lève `SIGPIPE`, puis `EPIPE` sous `set -e` ;
-- toute la sortie passe par `tee`, qui écrit **`/srv/portfolio/deploy.log`** et continue quand la
-  session a disparu : le récit d'un déploiement orphelin se relit après coup ;
+- toute la sortie passe par `tee`, qui écrit **`/srv/portfolio/deploy.log`** (2 000 dernières lignes
+  conservées) et continue quand la session a disparu : le récit d'un déploiement orphelin se relit
+  après coup ;
 - un **verrou** (`flock` sur `/srv/portfolio/.deploy.lock`) sérialise ce qui peut encore se
   chevaucher — la CI sérialise déjà ses runs de `main` : un déploiement orphelin et le suivant, ou un
   `rollback` manuel lancé pendant un `deploy`. Le second attend 600 s (le pire cas d'un déploiement
@@ -610,6 +611,10 @@ après sa fusion** (CI mesurée entre 11 et 23 min). Un écart plus récent est 
 
 Rejoué contre la production le 2026-11-11 : `DÉPLOIEMENT MANQUANT — main (d8b084c162c1) est fusionné
 depuis 1445 min, mais le site sert : aucune (en-tête X-Source-Revision absent)`, sortie 1.
+
+⭐ **Le job `deploy` vérifie lui-même** que l'origine publique sert `GITHUB_SHA` (six tirs espacés de
+10 s) : un déploiement raté échoue sur **son** run, tout de suite. La sonde ne reste indispensable que
+pour le run qui n'a **jamais** tourné, ou un retour en arrière survenu après.
 
 Un écart passé le délai n'est **pas réessayé** (il ne se résorbe pas en 15 s), et le message titre
 `DÉPLOIEMENT MANQUANT` au lieu de `LE SITE NE RÉPOND PAS` : on ne va pas chercher un VPS éteint.

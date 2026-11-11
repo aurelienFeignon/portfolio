@@ -97,7 +97,11 @@ COPY --chown=node:node . .
 # locaux. La CI la fournit aux DEUX constructions (`e2e` et `publish`), pour
 # que l'image publiée reste celle qui a été testée.
 # ⚠️ Déclarée APRÈS les `COPY` : sa valeur change à chaque commit, et placée
-# avant, elle invaliderait la copie de `node_modules` à chaque construction.
+# avant, elle invaliderait aussi la copie de `node_modules`. Elle invalide en
+# revanche `pnpm build` à chaque commit, y compris ceux que `.dockerignore`
+# rendait gratuits (docs, déploiement, workflows) : c'est le prix d'un en-tête
+# gravé au build. L'alternative — le poser à l'exécution — est notée dans le
+# prompt de reprise.
 ARG SOURCE_REVISION
 ENV SOURCE_REVISION=${SOURCE_REVISION}
 

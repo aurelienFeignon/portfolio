@@ -166,10 +166,11 @@ jobs:
       # (`src/seo/source-revision.ts`). S'il disparaissait de l'image, elle
       # crierait au premier passage après chaque fusion — ou se tairait, selon
       # le jour : on vérifie ici, sur l'image elle-même, qu'il porte ce commit.
+      # Nom de l'en-tête : `SOURCE_REVISION_HEADER`, recopié ici faute de pouvoir
+      # l'importer depuis le shell.
       - name: L'image annonce sa révision
         run: |
-          served="$(curl -fsS -D - -o /dev/null http://127.0.0.1:3000/robots.txt \
-            | tr -d '\r' | grep -i '^x-source-revision:' | sed 's/^[^:]*:[[:space:]]*//')"
+          served="$(curl -fsS -o /dev/null -w '%header{x-source-revision}' http://127.0.0.1:3000/robots.txt)"
           echo "révision servie : ${served:-(absente)}"
           test "$served" = "$GITHUB_SHA"
 
@@ -343,6 +344,22 @@ jobs:
         run: |
           ssh -i ~/.ssh/deploy -o BatchMode=yes -o StrictHostKeyChecking=yes \
             "${VPS_USER}@${VPS_HOST}" "deploy ${GITHUB_SHA}"
+
+      # ⭐ Le job qui déploie vérifie lui-même, par le chemin d'un visiteur, que
+      # l'origine publique sert CE commit : un écart échoue ici, sur le run
+      # fautif, au lieu d'attendre que la sonde le découvre une heure plus tard.
+      # Quelques tentatives : Cloudflare revalide `/robots.txt` à l'origine,
+      # mais un tir peut tomber pendant la bascule du conteneur.
+      - name: L'origine publique sert ce commit
+        run: |
+          for attempt in 1 2 3 4 5 6; do
+            served="$(curl -fsS -o /dev/null -w '%header{x-source-revision}' "${SITE_URL}/robots.txt" || true)"
+            echo "tentative ${attempt} : révision servie ${served:-(absente)}"
+            [ "$served" = "$GITHUB_SHA" ] && exit 0
+            sleep 10
+          done
+          echo "L'origine publique ne sert pas ${GITHUB_SHA} — deploy/README.md §7.3 bis"
+          exit 1
 
       # ⛔ Cette trace écrivait « Déployé » même quand le déploiement venait
       # d'échouer (`if: always()`) : le 2026-11-10, deux résumés l'affirmaient

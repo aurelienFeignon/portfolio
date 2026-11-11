@@ -30,6 +30,7 @@ LOG_FILE="$STACK/deploy.log"
 LOCK_TIMEOUT=600
 
 log() { printf '%s %s\n' "$(date -u +%H:%M:%S)" "$*"; }
+is_full_sha() { [[ "$1" =~ ^[0-9a-f]{40}$ ]]; }
 
 # --- Analyse de la demande -------------------------------------------------
 # `read` sur une seule ligne : aucune substitution de commande n'est possible,
@@ -40,14 +41,10 @@ case "${VERB:-}" in
   deploy)
     # Un SHA de commit complet, et rien d'autre. Pas de `latest`, pas de nom de
     # branche : le tag déployé doit désigner un état exact du dépôt.
-    [[ "${ARG:-}" =~ ^[0-9a-f]{40}$ ]] || { echo "tag invalide: '${ARG:-}'" >&2; exit 2; }
+    is_full_sha "${ARG:-}" || { echo "tag invalide: '${ARG:-}'" >&2; exit 2; }
     TAG="$ARG"
     ;;
   rollback)
-    # La cible est lue APRÈS la prise du verrou, plus bas : lue ici, elle
-    # pourrait précéder la réécriture de `.tag.previous` par un déploiement en
-    # cours, et le retour viserait un tag périmé.
-    TAG=
     ;;
   status)
     # Volontairement sans `docker compose` : la composition exige `IMAGE_TAG`,
@@ -77,6 +74,11 @@ esac
 #     orphelin reste lisible après coup.
 # `status` est sorti plus haut : il reste en lecture seule, sans verrou.
 trap '' HUP PIPE
+# Le journal garde ses 2 000 dernières lignes : il raconte des déploiements, il
+# n'a pas à grossir à chaque fusion pour toujours.
+if [[ -f "$LOG_FILE" ]]; then
+  tail -n 2000 "$LOG_FILE" > "$LOG_FILE.tmp" && mv "$LOG_FILE.tmp" "$LOG_FILE"
+fi
 exec > >(tee -a --output-error=warn-nopipe "$LOG_FILE") 2>&1
 
 # Un seul déploiement à la fois. La CI sérialise déjà ses runs de `main`
@@ -88,9 +90,11 @@ exec > >(tee -a --output-error=warn-nopipe "$LOG_FILE") 2>&1
 exec 9>"$LOCK"
 flock -w "$LOCK_TIMEOUT" 9 || { log "un autre déploiement tient le verrou depuis plus de ${LOCK_TIMEOUT}s" >&2; exit 75; }
 
+# La cible d'un `rollback` se lit APRÈS le verrou : lue avant, elle pourrait
+# précéder la réécriture de `.tag.previous` par un déploiement en cours.
 if [[ "$VERB" == rollback ]]; then
   TAG="$(cat "$PREVIOUS" 2>/dev/null || true)"
-  [[ "$TAG" =~ ^[0-9a-f]{40}$ ]] || { log "aucun tag précédent exploitable" >&2; exit 2; }
+  is_full_sha "$TAG" || { log "aucun tag précédent exploitable" >&2; exit 2; }
   log "rollback vers $TAG"
 fi
 

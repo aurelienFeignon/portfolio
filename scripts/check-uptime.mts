@@ -70,7 +70,7 @@
 import { parseArgs } from 'node:util'
 
 import { buildAbsoluteUrl, parseSiteUrl } from '../src/seo/site-url.ts'
-import { FULL_SHA, SOURCE_REVISION_HEADER } from '../src/seo/source-revision.ts'
+import { SOURCE_REVISION_HEADER, parseSourceRevision } from '../src/seo/source-revision.ts'
 
 /**
  * ⛔ **L'origine surveillée n'est PAS lue dans `SITE_URL`, et c'est délibéré.**
@@ -105,51 +105,37 @@ const { values: options, positionals } = parseArgs({
 const SITE = parseSiteUrl(positionals[0] ?? 'https://aurelienfeignon.com')
 
 /**
- * ⭐ **Le déploiement manquant** (`src/seo/source-revision.ts`). Quand le
- * workflow fournit la tête de `main` et la date de son commit, la sonde exige
- * que le site la serve — passé un délai de grâce qui couvre la CI elle-même
- * (11 à 23 min mesurées sur les cinq derniers runs de `main`, 2026-11-11).
- *
- * ⚠️ Facultatif, et c'est voulu : un déclenchement manuel depuis une branche n'a
- * pas de tête de `main` à comparer, et le workflow n'en passe alors aucune.
- * Les deux options vont ensemble : une révision sans date ne permet pas de
- * distinguer « pas encore » de « jamais ».
- *
- * ⚠️ La date est celle du **commit**, pas de son arrivée sur `main`. Une fusion
- * par PR les fait coïncider ; un commit ancien poussé tel quel démarre le délai
- * en avance, et peut faire crier la sonde le temps que la CI le déploie.
- *
- * ⭐ `--accept-revision` : la révision qu'un **rollback assumé** sert à la place
- * de la tête de `main` (`deploy/README.md` §7.3 bis). Sans elle, un retour
- * arrière délibéré ferait crier la sonde à chaque passage jusqu'à la prochaine
- * fusion — l'alerte qu'on apprend à ignorer.
+ * ⭐ **Le déploiement manquant** (`src/seo/source-revision.ts`, et pour le délai,
+ * le rollback assumé et leurs limites : `deploy/README.md` §7.3 bis). Facultatif :
+ * le workflow ne fournit la tête de `main` et la date de son commit que sur
+ * `main`. Les deux vont ensemble — sans date, « pas encore » et « jamais » se
+ * confondent.
  */
 type Expectation = { revision: string; committedAtS: number; accepted: string | null }
-
-function sha(option: string, raw: string): string {
-  if (!FULL_SHA.test(raw))
-    throw new Error(`${option} doit être un SHA de commit complet, reçu « ${raw} ».`)
-  return raw
-}
 
 function readExpectation(): Expectation | null {
   const revision = options['expect-revision']
   const committedAt = options['committed-at']
-  const accepted = options['accept-revision']
+  // Vide = aucune : c'est ce que rend une variable de dépôt non définie.
+  const accepted = options['accept-revision'] || undefined
   if (revision === undefined && committedAt === undefined) {
-    if (accepted !== undefined && accepted !== '')
-      throw new Error('--accept-revision exige --expect-revision.')
+    if (accepted !== undefined) throw new Error('--accept-revision exige --expect-revision.')
     return null
   }
   if (revision === undefined || committedAt === undefined || !/^\d+$/.test(committedAt)) {
     throw new Error('--expect-revision et --committed-at (secondes Unix) vont ensemble.')
   }
   return {
-    revision: sha('--expect-revision', revision),
+    revision: requiredRevision(revision, '--expect-revision'),
     committedAtS: Number(committedAt),
-    // Vide = aucune : c'est ce que rend une variable de dépôt non définie.
-    accepted: accepted === undefined || accepted === '' ? null : sha('--accept-revision', accepted),
+    accepted: parseSourceRevision(accepted, '--accept-revision'),
   }
+}
+
+function requiredRevision(raw: string, label: string): string {
+  const revision = parseSourceRevision(raw, label)
+  if (revision === null) throw new Error(`${label} est vide.`)
+  return revision
 }
 
 const EXPECTATION = readExpectation()
@@ -193,45 +179,38 @@ const CLOUDFLARE_ORIGIN_ERRORS: Record<number, string> = {
 }
 
 /**
- * `stale` : le site répond, mais pas avec la tête de `main`. C'est une autre
- * panne que « le site ne répond pas », et le message doit le dire — sinon on
+ * Trois issues, pas deux : `stale` — le site répond, mais pas avec la tête de
+ * `main` — est une autre panne que `down`, et le message doit le dire, sinon on
  * irait chercher un VPS éteint là où un `docker pull` a été refusé.
  */
-type Verdict = { ok: boolean; detail: string; stale?: true }
+type Verdict = { kind: 'up' | 'down' | 'stale'; detail: string }
 
 /**
  * Le verdict est **pur** : il ne connaît ni le réseau ni l'horloge. Le script ne
- * fait rien d'autre que lui apporter une réponse HTTP, l'attente et l'heure.
+ * fait rien d'autre que lui apporter une réponse HTTP.
  *
  * ⚠️ Il n'est pas exporté, et son test ne l'importe pas : ce module **agit** dès
  * qu'on le charge. Il est éprouvé comme les autres gates du dépôt — exécuté en
  * sous-processus contre un serveur de fixture, ce qui vérifie aussi le code de
  * sortie, c'est-à-dire ce qui déclenche réellement l'alerte.
  */
-function verdictFor(
-  status: number,
-  location: string | null,
-  body: string,
-  servedRevision: string | null,
-  expectation: Expectation | null,
-  nowS: number,
-): Verdict {
+function verdictFor(status: number, location: string | null, body: string): Verdict {
   if (status >= 300 && status < 400) {
     const target = location ?? '(sans en-tête Location)'
     const access = target.includes('cloudflareaccess.com')
       ? ' — Cloudflare Access intercepte ce chemin : la politique Bypass de deploy/README.md §7.2 a disparu, et la sonde ne voit plus le site'
       : ''
-    return { ok: false, detail: `${status} vers ${target}${access}` }
+    return { kind: 'down', detail: `${status} vers ${target}${access}` }
   }
 
   const cloudflare = CLOUDFLARE_ORIGIN_ERRORS[status]
-  if (cloudflare !== undefined) return { ok: false, detail: `${status} — ${cloudflare}` }
+  if (cloudflare !== undefined) return { kind: 'down', detail: `${status} — ${cloudflare}` }
 
-  if (status !== 200) return { ok: false, detail: `${status} au lieu de 200` }
+  if (status !== 200) return { kind: 'down', detail: `${status} au lieu de 200` }
 
   if (!body.includes(EXPECTED_SITEMAP)) {
     return {
-      ok: false,
+      kind: 'down',
       detail:
         `200, mais la directive « ${EXPECTED_SITEMAP} » est absente du corps servi — ` +
         `ce n’est pas le robots.txt de l’application (Cloudflare sert le sien, ` +
@@ -240,19 +219,16 @@ function verdictFor(
     }
   }
 
-  const served = `200, et la directive « ${EXPECTED_SITEMAP} » est servie`
-  return expectation === null
-    ? { ok: true, detail: served }
-    : revisionVerdict(served, servedRevision, expectation, nowS)
+  return { kind: 'up', detail: `200, et la directive « ${EXPECTED_SITEMAP} » est servie` }
 }
 
 /**
- * Le site répond ; sert-il la tête de `main` ? Pendant le délai de grâce, un
- * écart est **attendu** — la CI construit encore — et ne fait pas crier la
- * sonde : une alerte à chaque fusion apprendrait à ne plus les lire.
+ * Le site répond ; sert-il la tête de `main` ? Pur, lui aussi : l'heure est un
+ * paramètre. Pendant le délai de grâce, un écart est **attendu** — la CI
+ * construit encore — et ne fait pas crier la sonde.
  */
 function revisionVerdict(
-  served: string,
+  up: Verdict,
   servedRevision: string | null,
   { revision, committedAtS, accepted }: Expectation,
   nowS: number,
@@ -262,24 +238,27 @@ function revisionVerdict(
       ? `aucune (en-tête ${SOURCE_REVISION_HEADER} absent)`
       : short(servedRevision)
   if (servedRevision === revision) {
-    return { ok: true, detail: `${served} ; révision servie = tête de main (${short(revision)})` }
+    return {
+      kind: 'up',
+      detail: `${up.detail} ; révision servie = tête de main (${short(revision)})`,
+    }
   }
   if (servedRevision !== null && servedRevision === accepted) {
     return {
-      ok: true,
-      detail: `${served} ; rollback assumé : ${shown} servie, main = ${short(revision)} — vider UPTIME_ACCEPTED_REVISION après le prochain déploiement`,
+      kind: 'up',
+      detail: `${up.detail} ; rollback assumé : ${shown} servie, main = ${short(revision)} — vider UPTIME_ACCEPTED_REVISION après le prochain déploiement`,
     }
   }
-  const ageMin = Math.floor((nowS - committedAtS) / 60)
-  if (ageMin * 60 < DEPLOY_GRACE_S) {
+  const ageS = nowS - committedAtS
+  const ageMin = Math.floor(ageS / 60)
+  if (ageS < DEPLOY_GRACE_S) {
     return {
-      ok: true,
-      detail: `${served} ; main (${short(revision)}) fusionné il y a ${ageMin} min, servie : ${shown} — déploiement attendu, délai de grâce de ${DEPLOY_GRACE_S / 60} min`,
+      kind: 'up',
+      detail: `${up.detail} ; main (${short(revision)}) fusionné il y a ${ageMin} min, servie : ${shown} — déploiement attendu, délai de grâce de ${DEPLOY_GRACE_S / 60} min`,
     }
   }
   return {
-    ok: false,
-    stale: true,
+    kind: 'stale',
     detail:
       `main (${short(revision)}) est fusionné depuis ${ageMin} min, mais le site sert : ${shown}. ` +
       `Lire le job « déployer sur le VPS » de ce commit dans ci.yml — un « error from registry: denied » ` +
@@ -300,29 +279,35 @@ async function probe(url: string): Promise<Verdict> {
       signal: AbortSignal.timeout(TIMEOUT_MS),
       headers: { 'user-agent': 'portfolio-uptime-probe (P4-14)' },
     })
-    return verdictFor(
+    const verdict = verdictFor(
       response.status,
       response.headers.get('location'),
       await response.text(),
-      response.headers.get(SOURCE_REVISION_HEADER),
-      EXPECTATION,
-      Math.floor(Date.now() / 1000),
     )
+    return verdict.kind === 'up' && EXPECTATION !== null
+      ? revisionVerdict(
+          verdict,
+          response.headers.get(SOURCE_REVISION_HEADER),
+          EXPECTATION,
+          Math.floor(Date.now() / 1000),
+        )
+      : verdict
   } catch (error) {
     // Connexion refusée, DNS mort, délai dépassé : aucune réponse HTTP n'existe,
     // et c'est la panne la plus grave — celle que le healthcheck du conteneur ne
     // peut par construction jamais voir.
-    return { ok: false, detail: `aucune réponse — ${(error as Error).message}` }
+    return { kind: 'down', detail: `aucune réponse — ${(error as Error).message}` }
   }
 }
 
 async function probeUntilSettled(): Promise<Verdict> {
   for (let attempt = 1; ; attempt += 1) {
     const verdict = await probe(PROBE_URL)
-    console.log(`  ${verdict.ok ? '✓' : '✗'} tentative ${attempt}/${ATTEMPTS} : ${verdict.detail}`)
-    // Un écart de révision passé le délai de grâce ne se résorbe pas en 15 s :
-    // la seconde tentative est réservée aux hoquets du transport.
-    if (verdict.ok || verdict.stale || attempt === ATTEMPTS) return verdict
+    const mark = verdict.kind === 'up' ? '✓' : '✗'
+    console.log(`  ${mark} tentative ${attempt}/${ATTEMPTS} : ${verdict.detail}`)
+    // Seul `down` se réessaie : un écart de révision passé le délai de grâce ne
+    // se résorbe pas en 15 s.
+    if (verdict.kind !== 'down' || attempt === ATTEMPTS) return verdict
     await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS))
   }
 }
@@ -331,26 +316,30 @@ console.log(`Sonde externe — ${PROBE_URL}\n`)
 
 const verdict = await probeUntilSettled()
 
-if (verdict.ok) {
-  console.log(`\n✓ Le site répond depuis l’extérieur.`)
-} else if (verdict.stale) {
-  console.error(
-    `\n✗ DÉPLOIEMENT MANQUANT — le site répond, mais ne sert pas la tête de main : ${verdict.detail}\n` +
-      `\n  État de la pile : ssh portfolio 'SSH_ORIGINAL_COMMAND=status /srv/portfolio/deploy.sh'` +
-      `\n  Rattrapage d'un run manquant : deploy/README.md §8.4.`,
-  )
-  process.exitCode = 1
-} else {
-  console.error(
-    `\n✗ LE SITE NE RÉPOND PAS depuis l’extérieur — ${verdict.detail}\n` +
-      `\n  Le healthcheck du conteneur ne couvre pas ce cas : il interroge` +
-      `\n  127.0.0.1 depuis l’intérieur du conteneur (P1-13).\n` +
-      `\n  Quoi regarder, dans cet ordre (deploy/README.md §7.3, commandes §4) :` +
-      `\n    1. l’état de la pile   : ssh portfolio 'SSH_ORIGINAL_COMMAND=status /srv/portfolio/deploy.sh'` +
-      `\n    2. les journaux        : ssh portfolio 'docker compose -f /srv/portfolio/docker-compose.yml logs --tail 100 web'` +
-      `\n    3. le retour arrière   : ssh portfolio 'SSH_ORIGINAL_COMMAND=rollback /srv/portfolio/deploy.sh'`,
-  )
-  // `process.exit()` abandonne les écritures en attente quand la sortie est un
-  // tuyau — ce qu'elle est en CI. La leçon est celle de P4-13 §20.7.
-  process.exitCode = 1
+switch (verdict.kind) {
+  case 'up':
+    console.log(`\n✓ Le site répond depuis l’extérieur.`)
+    break
+  case 'stale':
+    console.error(
+      `\n✗ DÉPLOIEMENT MANQUANT — le site répond, mais ne sert pas la tête de main : ${verdict.detail}\n` +
+        `\n  État de la pile : ssh portfolio 'SSH_ORIGINAL_COMMAND=status /srv/portfolio/deploy.sh'` +
+        `\n  Rattrapage d'un run manquant : deploy/README.md §8.4.`,
+    )
+    process.exitCode = 1
+    break
+  case 'down':
+    console.error(
+      `\n✗ LE SITE NE RÉPOND PAS depuis l’extérieur — ${verdict.detail}\n` +
+        `\n  Le healthcheck du conteneur ne couvre pas ce cas : il interroge` +
+        `\n  127.0.0.1 depuis l’intérieur du conteneur (P1-13).\n` +
+        `\n  Quoi regarder, dans cet ordre (deploy/README.md §7.3, commandes §4) :` +
+        `\n    1. l’état de la pile   : ssh portfolio 'SSH_ORIGINAL_COMMAND=status /srv/portfolio/deploy.sh'` +
+        `\n    2. les journaux        : ssh portfolio 'docker compose -f /srv/portfolio/docker-compose.yml logs --tail 100 web'` +
+        `\n    3. le retour arrière   : ssh portfolio 'SSH_ORIGINAL_COMMAND=rollback /srv/portfolio/deploy.sh'`,
+    )
+    // `process.exit()` abandonne les écritures en attente quand la sortie est un
+    // tuyau — ce qu'elle est en CI. La leçon est celle de P4-13 §20.7.
+    process.exitCode = 1
+    break
 }
