@@ -83,8 +83,10 @@ services:
     #     reproduit, conteneur `OOMKilled` après ~7 500 rendus.
     # ⛔ NON établi : QUI retient ces tampons. Un instantané du tas pris sur le
     # conteneur chargé l'a fait tomber : le prendre tôt, à ~1 Go.
-    # Remède d'attente, NON appliqué (à décider) : ralentir ce `healthcheck` de
-    # dev à 30 s (~290 Mo/jour).
+    # ✅ Remède d'attente APPLIQUÉ le 2026-11-11 : ce `healthcheck` de dev passe
+    # à 30 s en régime établi (~290 Mo/jour au lieu de ~1,7 Go), via
+    # `start_interval` — voir le `healthcheck` ci-dessous. La cause racine reste
+    # ouverte ; cela ralentit la fuite, ne la ferme pas.
     mem_limit: 4g
     memswap_limit: 4g
     ports:
@@ -108,10 +110,20 @@ services:
           '-e',
           "fetch('http://127.0.0.1:3000/').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))",
         ]
-      interval: 5s
+      # ⭐ Deux cadences, et c'est le remède d'attente à la fuite décrite plus
+      # haut : chaque sonde est un rendu de `next dev`, qui retient ~100 Ko.
+      #   - au démarrage, `start_interval` sonde toutes les 5 s pendant
+      #     `start_period` : `e2e` attend `service_healthy`, il ne doit pas
+      #     payer 30 s de plus que nécessaire ;
+      #   - une fois sain, `interval` : six fois moins de rendus qu'à 5 s.
+      # Les échecs pendant `start_period` ne comptent pas : 120 s couvrent la
+      # première compilation, comme les 20 × 5 s d'avant. `start_interval`
+      # exige Docker Engine ≥ 25.
+      interval: 30s
       timeout: 5s
-      retries: 20
-      start_period: 5s
+      retries: 3
+      start_period: 120s
+      start_interval: 5s
     volumes:
       # Code source : bind mount, pour que l'édition sur l'hôte soit vue par le
       # conteneur (hot reload).
