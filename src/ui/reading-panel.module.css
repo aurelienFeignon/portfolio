@@ -59,7 +59,7 @@
   composes: base glass;
   flex: 1;
   margin-top: var(--scene-band);
-  padding: var(--space-6) var(--layout-gutter) var(--space-8);
+  padding: var(--space-4) var(--layout-gutter) var(--space-8);
   border-width: 1px 0 0;
   border-radius: var(--radius-lg) var(--radius-lg) 0 0;
   box-shadow: var(--shadow-sheet), var(--glow-edge);

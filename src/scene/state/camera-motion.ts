@@ -6,7 +6,6 @@
  * l'interruption, les bornes de l'orbite, le décentrage du cadrage — est ici, où
  * un banc l'éprouve sans navigateur.
  */
-import { fitFov } from './framing.ts'
 import { type CameraSpec, transitionMs, type Vec3 } from './layout.ts'
 
 /** Une pose de caméra : ce que l'interpolation fait varier. */
@@ -147,8 +146,8 @@ export function framingFor(
 
 /**
  * Le brouillard, tiré de la distance de cadrage : il commence un peu au-delà de la
- * cible et s'achève loin derrière. ⭐ Proportionnel : une caméra reculée (champ au
- * plafond) ne plonge pas la carte dans la bande de brouillard.
+ * cible et s'achève loin derrière. ⭐ Proportionnel : une caméra reculée pour cadrer
+ * une grande carte ne la plonge pas dans la bande de brouillard.
  */
 export function fogRange(distance: number): { readonly near: number; readonly far: number } {
   return { near: distance * 1.05, far: distance * 2.4 }
@@ -258,15 +257,45 @@ export function approachOrbit(
 /** L'écart d'orbite, en degrés, en deçà duquel l'orbite est arrivée. */
 const ORBIT_SETTLED_DEG = 0.01
 
+/** L'état du rig qu'une nouvelle cible remet en place. */
+interface RigStart {
+  readonly from: Pose
+  readonly shown: Pose
+  readonly elapsedMs: number
+  readonly drag: OrbitAngles
+}
+
+/**
+ * Ce qu'une nouvelle cible fait au rig — deux causes, deux gestes (P8-05) :
+ *
+ * - **la route** a changé de vue (`sameView` faux) : la transition repart de la pose
+ *   AFFICHÉE, et l'orbite revient au repos ;
+ * - **la zone seule** a changé — barre d'adresse d'un mobile, fenêtre redimensionnée,
+ *   première mesure de la zone au montage : la caméra se RECADRE sur place, transition
+ *   finie, orbite gardée. ⛔ Une transition à chaque défilement ou au chargement serait un
+ *   mouvement que personne n'a demandé, et elle ramènerait l'orbite au repos sous le doigt.
+ */
+export function retarget(input: {
+  readonly sameView: boolean
+  readonly shown: Pose
+  readonly goal: Pose
+  readonly drag: OrbitAngles
+}): RigStart {
+  if (input.sameView) {
+    return { from: input.goal, shown: input.goal, elapsedMs: transitionMs(false), drag: input.drag }
+  }
+  return { from: input.shown, shown: input.shown, elapsedMs: 0, drag: ORBIT_REST }
+}
+
 /** Ce que le rig applique à la caméra pour une image. */
 interface RigFrame {
   /** La pose interpolée, avant orbite : la prochaine transition repart d'ELLE. */
   readonly shown: Pose
   /** La position, orbite comprise ; la caméra vise `shown.target`. */
   readonly position: Vec3
-  /** Le champ vertical, corrigé pour le format À PARTIR de la valeur interpolée, borné. */
+  /** Le champ vertical interpolé : le cadrage le calcule déjà pour la zone libre. */
   readonly fov: number
-  /** La distance caméra–cible, recul compris : celle que lit le brouillard (`fogRange`). */
+  /** La distance caméra–cible : celle que lit le brouillard (`fogRange`). */
   readonly distance: number
   readonly orbit: OrbitAngles
   /** Le temps de transition écoulé APRÈS cette image, à rendre à l'image suivante. */
@@ -301,10 +330,6 @@ export function rigFrame(input: {
   readonly wasMoving: boolean
   /** Faux sous `reduced-motion` : la transition coupe, l'orbite saute. */
   readonly animated: boolean
-  /** La largeur de la zone libre sur la hauteur du canvas (`framingFor`). */
-  readonly aspect: number
-  /** La part de la hauteur du canvas que la zone libre occupe ; 1 par défaut. */
-  readonly heightFraction?: number
 }): RigFrame {
   const step = frameStepS(input.deltaS, input.wasMoving)
   const elapsedMs = input.elapsedMs + transitionStepS(input.deltaS, input.wasMoving) * 1000
@@ -319,20 +344,16 @@ export function rigFrame(input: {
   const orbit = approachOrbit(input.orbitNow, consigne, step, input.animated)
   const transitioning = t < 1
   /*
-   * Le champ que le cadrage demande dans la zone libre, plafonné, et le recul qui
-   * rend ce que le plafond retire (`fitFov`). ⭐ Le recul s'applique à l'image,
-   * jamais à `shown` : la prochaine transition repart du cadrage, pas d'un recul
-   * cumulé.
+   * ⭐ Le cadrage est déjà celui de la zone libre (`boardCameras(plan, zone)`, P8-05) : ni
+   * élargissement du champ, ni recul — `shown` est rendue telle quelle.
    */
-  const { fov, k } = fitFov(shown.fov, input.aspect, input.heightFraction)
   const [px, py, pz] = shown.position
   const [tx, ty, tz] = shown.target
-  const backed: Vec3 = [tx + (px - tx) * k, ty + (py - ty) * k, tz + (pz - tz) * k]
   return {
     shown,
-    position: orbitAround(backed, shown.target, orbit.yawDeg, orbit.pitchDeg),
-    fov,
-    distance: Math.hypot(backed[0] - tx, backed[1] - ty, backed[2] - tz),
+    position: orbitAround(shown.position, shown.target, orbit.yawDeg, orbit.pitchDeg),
+    fov: shown.fov,
+    distance: Math.hypot(px - tx, py - ty, pz - tz),
     orbit,
     elapsedMs,
     transitioning,

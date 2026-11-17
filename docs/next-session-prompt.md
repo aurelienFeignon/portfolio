@@ -69,29 +69,30 @@ publication GHCR et déploiement VPS compris.
 
 ### Dernière reprise — 2026-11-11
 
-Session « dettes ouvertes » : branche `fix/dettes-ouvertes-2026-11-11`. Elle traite le healthcheck
-de dev, `deploy.sh` face à une coupure SSH, la détection d'un déploiement manquant,
-`getFeaturedProjects` et la confrontation du `BreadcrumbList` (détail dans « Points encore
-ouverts »). ⛔ Elle a découvert que **la production ne se déploie plus depuis le 2026-11-10**
-(jeton GHCR refusé, D6).
+Session « dettes ouvertes », **close et déployée**. Tout ce qui suit est fusionné sur `main`,
+déployé, et vérifié en production le 2026-11-11 vers 17:55 UTC.
 
-**État au soir du 2026-11-11 — à reprendre ainsi le 2026-11-12 :**
+- **#104** (`369e289`) : healthcheck de dev, `deploy.sh` durci, déploiement manquant visible
+  (`X-Source-Revision`), `getFeaturedProjects` retiré, `BreadcrumbList` confronté. Le détail est
+  dans « Points encore ouverts ».
+- **#105** (`6bb9f5e`) : la CI ne dépend plus d'`apt`. E2E et Lighthouse passent par
+  `make e2e-prod` et `make lighthouse` dans l'image Playwright épinglée (`docker-compose.ci.yml`).
+  La panne du miroir Ubuntu du 2026-11-11 figeait `playwright install --with-deps` plus d'une heure.
+- **Production débloquée** : bloquée sur `9e5fe91` depuis le 2026-11-10 (jeton GHCR refusé, D6),
+  elle sert `369e289`, avec #100 et #103. Tag précédent : `6bb9f5e`. Les deux runs de `main` ont
+  leurs cinq jobs verts. Le job `deploy` a vu sa révision servie au premier tir, et la sonde,
+  déclenchée sur `main`, aussi : `révision servie = tête de main (369e2895ff61)`.
+- **`deploy.sh` installé sur le VPS** par l'utilisateur : empreinte `3137a8a3…5c2a`, identique à
+  `main` ; `flock` présent (`/usr/bin/flock`).
 
-1. ✅ **Accès GHCR du VPS rétabli par l'utilisateur** (nouveau jeton `read:packages`, paquet toujours
-   privé — D6) : `docker pull …:d8b084c…` réussi sur le VPS.
-   Le site sert toujours `9e5fe91` — rien n'a été redéployé, le pull a seulement été vérifié.
-2. ✅ **La CI ne dépend plus du miroir `apt`** : la panne du miroir Ubuntu (`azure.archive.ubuntu.com`,
-   chaque paquet en `Ign:` après 20 s) figeait `playwright install --with-deps` plus d'une heure.
-   **#105 fusionnée le 2026-11-11** (`6bb9f5e`) : E2E et Lighthouse passent par `make e2e-prod` et
-   `make lighthouse` dans l'image Playwright épinglée (`docker-compose.ci.yml`), le job `versions`
-   vérifie image et `@playwright/test`. Sa CI a déroulé 185 E2E pendant la panne. ⚠️ Cette fusion a
-   aussi **déployé `main`** (#100 et #103 compris) : vérifier son run et le SHA servi.
-3. ⏳ **#104 rebasée sur `main` après #105**, sans conflit : relire sa CI.
-4. Après une CI verte : **fusion de #104 sur accord explicite** (elle déploie), puis la suite de
-   `deploy/README.md` — vérifier le run de `main` (cinq jobs, le job `deploy` contrôle lui-même le
-   SHA servi), `curl -sI https://aurelienfeignon.com/robots.txt | grep -i x-source-revision`, un
-   tir **planifié** vert de la sonde, puis **seulement ensuite** réinstaller `deploy/deploy.sh` sur
-   le VPS (§3.3 : noter propriétaire et mode de la copie en place, vérifier `command -v flock`).
+⏳ **À vérifier à la reprise** :
+1. Un tir **planifié** de la sonde, vert, après le déploiement :
+   `gh run list --workflow "Sonde externe" --event schedule --limit 1`. Le dernier datait de
+   10:22 UTC le 2026-11-11 : environ 7 h 30 sans tir, la planification « au mieux » de
+   `deploy/README.md` §7.4 ter. Le tir manuel ne prouve pas que le `cron` est vivant.
+2. Le premier déploiement mené par le nouveau `deploy.sh` doit écrire `/srv/portfolio/deploy.log`.
+3. **#101 et #102 (Renovate)** : leur case de rebase a été cochée le 2026-11-11, avec 2 commits de
+   retard. Relire leur CI après le passage de Renovate. Ne pas les fusionner sans accord.
 
 ### Reprise précédente — 2026-11-03
 
@@ -218,8 +219,9 @@ mets l'ADR à jour et ajoute une ligne au journal des révisions. Jamais de chan
 - Les identifiants de tâches (P1-01…) sont stables et ne sont JAMAIS réutilisés.
 - Aucune dépendance structurante sans justifier : problème / pourquoi adaptée / alternatives /
   pourquoi préférée. Écris-le dans un ADR si la décision est structurante.
-- **Avant CHAQUE push : `/code-review` puis `/simplify`**, et traite les retours avant de pousser,
-  pas après. Sur la Phase 3, ce rituel a trouvé cinq défauts réels et un trou de vérification que
+- **Avant CHAQUE PR : `/code-review`, puis `/security-review`, puis `/simplify`**, et traite les
+  retours avant de pousser, pas après. Un crochet de session refuse l'ouverture de la PR tant que
+  les trois n'ont pas été faits. Sur la Phase 3, ce rituel a trouvé cinq défauts réels et un trou de vérification que
   personne n'avait identifié.
 - **Heures de publication** : je travaille pour mon employeur 9h-12h30 et 14h-17h30 (heure de Paris),
   et le dépôt est public. Dans ces créneaux, commite localement mais **demande avant de pousser**.
@@ -245,11 +247,7 @@ le retour d’usage restent à compléter. Aucune clôture mobile ni validation 
   d'optimisation supplémentaire justifiée sur cet appareil. P8-11 reste ouverte pour les appareils
   non couverts. Le banc SwiftShader ne permet pas d'affirmer un gain sur un GPU réel.
 
-### Livraison de cette session
-
-L'utilisateur a demandé la mise à jour du prompt et le push le 2026-11-03.
-Branche de livraison : `content/projets-competences-2026-11-03`. Vérifier la PR et sa CI avant
-toute suite ; la fusion et le déploiement ne sont pas encore établis.
+### Environnement de cette machine
 
 Accès au serveur de développement sur cette machine : `http://localhost:3002/fr`, via
 la surcharge locale `/tmp/portfolio-preview-port.yml` (hors dépôt). Le port 3000 est occupé
@@ -433,10 +431,11 @@ officielle n'atteint 250 Mo.
   au-dessus du seuil d'alerte de 25 %. Ce n'est pas une mesure valide.
 - ✅ **`workflow_dispatch` dans `ci.yml` depuis le 2026-10-29** : rattrapage par `deploy/README.md`
   §8.4, et plus d'annulation des runs de `main` (raison dans `ci.yml`).
-- ⚠️ **`deploy.sh` survit à une coupure SSH depuis le 2026-11-11 — DANS LE DÉPÔT** (`HUP`/`PIPE`
-  ignorés, sortie vers `/srv/portfolio/deploy.log`, verrou `flock`), éprouvé sur un banc simulé
-  (`deploy/README.md` §3.3). ⛔ **Pas encore installé sur le VPS** : la copie qui s'exécute est
-  `/srv/portfolio/deploy.sh`, à remplacer à la main après fusion.
+- ✅ **`deploy.sh` survit à une coupure SSH depuis le 2026-11-11** : `HUP`/`PIPE` ignorés, sortie
+  vers `/srv/portfolio/deploy.log`, verrou `flock`. Il **tire l'image avant de basculer `.env`** :
+  dans l'ordre inverse, le pull refusé du 2026-11-10 avait laissé `.env` sur un tag jamais servi.
+  Éprouvé sur un banc simulé (`deploy/README.md` §3.3), **installé sur le VPS le 2026-11-11**.
+  ⚠️ Toute modification future du script se réinstalle à la main.
 - ✅ **Un déploiement manquant se voit depuis le 2026-11-11** : l'image sert `X-Source-Revision` sur
   `/robots.txt`, et la sonde planifiée exige la tête de `main` une heure après sa fusion
   (`deploy/README.md` §7.3 bis). Rejouée contre la production : elle crie sur l'incident ci-dessous.
@@ -450,12 +449,11 @@ officielle n'atteint 250 Mo.
      par l'API Actions ;
   3. viser `/robots.txt` plutôt que `/` dans le `healthcheck` de dev, si une route de métadonnées
      retient moins de mémoire sous `next dev` — à mesurer d'abord.
-- ⛔ **Production sur `9e5fe91` depuis le 2026-11-10** : les déploiements de #100 (`fe06017`) et #103
-  (`d8b084c`) ont échoué au `docker pull` (`error from registry: denied`), comme D6 l'annonçait.
-  ✅ Accès rétabli le 2026-11-11 (pull vérifié sur le VPS). ⏳ Reste à **redéployer** : la fusion de
-  #104 porte #100 et #103, aucun rattrapage séparé n'est nécessaire (« État au soir du 2026-11-11 »).
-- ⚠️ **La CI dépend du miroir `apt` d'Ubuntu** (`playwright install --with-deps`) : en panne le
-  2026-11-11, il a figé le job E2E. Remède retenu si cela se reproduit : E2E dans l'image Playwright.
+- ✅ **Production bloquée du 2026-11-10 au 2026-11-11** (pull refusé, jeton GHCR) : débloquée par un
+  nouveau jeton, et servie à jour depuis. ⚠️ Le jeton expirera de nouveau : voir D6.
+- ✅ **La CI ne dépend plus du miroir `apt` d'Ubuntu** depuis #105. ⚠️ Les E2E tournent sous le
+  Node de l'image Playwright (26), comme `make e2e-prod` en local, hors de l'intervalle `engines`
+  (24). C'est assumé : CI et local identiques.
 - **Procédure de restauration du serveur** (R-23) : Hetzner restreint par intermittence la création
   d'instances. À écrire sous cette contrainte en Phase 15.
 - **Plages Cloudflare** : un timer hebdomadaire les rafraîchit sur le VPS.

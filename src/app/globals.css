@@ -56,21 +56,16 @@
    * ⭐ Le verre lumineux (étape 2 de NEXUS). Opacité 0,88 : calculée pour que
    * le PIRE cas — du cyan pur derrière le verre — garde le texte secondaire à
    * 5,3:1 et le cyan à 6,9:1. Le flou fait le reste : la scène se devine, ne se
-   * lit pas.
+   * lit pas. P8-05 l'a assombri et porté à 0,92-0,94 (panneau sombre de la carte
+   * mère) : plus opaque et plus sombre, le pire cas ne peut que s'améliorer.
    */
-  --color-panel-glass: linear-gradient(160deg, rgb(20 33 58 / 0.88), rgb(10 17 31 / 0.9));
+  --color-panel-glass: linear-gradient(160deg, rgb(15 24 42 / 0.92), rgb(8 13 24 / 0.94));
   --glass-border: rgb(40 217 245 / 0.45);
   --glass-corner: rgb(40 217 245 / 0.95);
-  --glow-edge:
-    0 0 0 1px rgb(40 217 245 / 0.08), 0 0 36px rgb(40 217 245 / 0.18),
-    inset 0 0 48px rgb(40 217 245 / 0.06);
+  --glow-edge: 0 0 0 1px rgb(40 217 245 / 0.06), 0 0 20px rgb(40 217 245 / 0.1);
   --glow-card: 0 0 0 1px rgb(40 217 245 / 0.18), 0 0 22px rgb(40 217 245 / 0.18);
-  --gradient-edge: linear-gradient(
-    135deg,
-    rgb(40 217 245 / 0.8),
-    rgb(137 115 245 / 0.6) 55%,
-    rgb(40 217 245 / 0.2)
-  );
+  /* La fine bordure cyan des cartes (P8-05), décorative : le texte ne s'y pose pas. */
+  --card-border: rgb(40 217 245 / 0.32);
   --glow-text: 0 0 12px rgb(40 217 245 / 0.55);
   --glow-horizon: 0 1px 18px rgb(40 217 245 / 0.08);
   --shadow-panel: 0 1.5rem 4rem rgb(2 4 10 / 0.6), inset 0 1px 0 rgb(241 245 251 / 0.04);
@@ -91,6 +86,9 @@
    * cette raison.
    */
   --space-1: 0.25rem;
+  /* Consommé par les repères de la carte (`scene-mount.module.css`) avant d'exister : leur
+     `padding` était ignoré en silence. Entré avec la repasse mobile (P8-05). */
+  --space-2: 0.5rem;
   --space-3: 0.75rem;
   --space-4: 1rem;
   --space-6: 1.5rem;
@@ -98,6 +96,8 @@
 
   /* Typographie. */
   --font-sans: system-ui, -apple-system, 'Segoe UI', sans-serif;
+  /* Badges et monogramme (P8-05) : la voix « composant électronique » de la carte mère. */
+  --font-mono: ui-monospace, 'SFMono-Regular', 'Cascadia Mono', Menlo, Consolas, monospace;
   --text-sm: 0.875rem;
   --text-base: 1rem;
   --text-lg: 1.125rem;
@@ -125,7 +125,16 @@
   --header-h: 4.25rem;
   --footer-h: 3rem;
   --panel-width: clamp(24rem, 38vw, 38rem);
-  --scene-band: 42svh;
+  /*
+   * P8-05 — bornée par la LARGEUR : la carte est en paysage, et sur un téléphone en portrait
+   * c'est la largeur qui la cadre. À 42svh seuls, la bande d'un 393 × 852 faisait ~360 px pour
+   * une carte d'accueil haute de ~210 : du vide au-dessus et au-dessous (capture du 2026-11-17).
+   * Sans effet sur tablette ni ordinateur, où 42svh reste le plus petit.
+   * ⚠️ 78vw APPROCHE le format de la carte cadrée (largeur sur hauteur ≈ 1,3, mesuré sur le
+   * plan de novembre 2026) : une carte qui changerait de proportions — beaucoup plus de
+   * contenu — demande de le remesurer (captures à 393 px de large).
+   */
+  --scene-band: min(42svh, 78vw);
 
   /*
    * Cible tactile minimale : 44 px (WCAG 2.2 — 2.5.8 exige 24, les

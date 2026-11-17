@@ -1,8 +1,8 @@
 /**
  * Les constantes de la scène, en données pures — palette, vocabulaire des vues,
  * mouvement de caméra et densité par palier. Nées avec NEXUS (D11) ; depuis la
- * carte mère (D14, P8-15), les cadrages ne sont plus ici mais **calculés** par
- * `make board` dans le plan versionné (`BoardFile.cameras`).
+ * carte mère (D14, P8-15), les cadrages ne sont plus ici mais **calculés** depuis le
+ * plan de carte, pour la zone libre (`boardCameras`, P8-05).
  *
  * Aucun import de three, aucun JSX : ce module doit rester testable sans contexte
  * WebGL, et il reste **hors du chemin de première visite** (garde

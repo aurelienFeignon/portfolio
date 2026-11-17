@@ -60,3 +60,54 @@
 .brand:hover {
   text-decoration: underline;
 }
+
+/*
+ * P8-05 — sur un téléphone, nom et navigation sur UNE ligne : sur deux, l'en-tête prenait
+ * 128 px sur 852 (Xiaomi 14T Pro, 2026-11-17), autant de moins pour la scène et le contenu.
+ * Le nom complet ne tient pas à côté des trois liens sous 30rem : le monogramme le remplace
+ * à l'œil, et le nom reste lu par les lecteurs d'écran (hors écran, pas `display: none`).
+ * ⚠️ Un écran plus étroit que la ligne (≈ 330 px) retombe sur deux lignes : `flex-wrap`.
+ * La navigation s'y compacte aussi, ICI et non dans `site-nav.module.css` : un seul seuil
+ * tient la ligne, et la navigation n'a pas d'autre hôte que l'en-tête.
+ */
+.monogram {
+  display: none;
+}
+
+@media (max-width: 29.999rem) {
+  .inner {
+    gap: var(--space-3);
+    padding-block: var(--space-1);
+  }
+
+  /*
+   * Hors écran, au-dessus de l'en-tête collé en haut — la technique du lien d'évitement
+   * (`.skip-link`, `globals.css`). ⛔ Pas la boîte d'un pixel en `overflow: hidden` : elle
+   * ROGNE le texte par construction, et la garde « aucun contenu rogné » (`responsive.spec.ts`)
+   * l'attrapait à 320 et 375 px.
+   */
+  .name {
+    position: absolute;
+    top: 0;
+    left: 0;
+    white-space: nowrap;
+    transform: translateY(-150%);
+  }
+
+  /* Plus spécifique que `.link` de `site-nav.module.css` : c'est l'en-tête qui la compacte. */
+  .inner nav a {
+    padding-inline: var(--space-2);
+    font-size: var(--text-sm);
+  }
+
+  .monogram {
+    display: inline-block;
+    padding: var(--space-1) var(--space-2);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-sm);
+    color: var(--color-accent);
+    font-family: var(--font-mono);
+    font-size: var(--text-sm);
+    letter-spacing: 0.12em;
+  }
+}

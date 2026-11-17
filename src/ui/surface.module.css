@@ -11,24 +11,25 @@
  */
 
 /*
- * NEXUS, étape 2 : une carte de verre au liseré en dégradé cyan → violet. Le
- * dégradé est posé en `border-box` sous un fond plein en `padding-box` — la
- * seule façon d'avoir une bordure en dégradé ET des coins arrondis
- * (`border-image` ignore `border-radius`). Le fond reste OPAQUE : c'est sur lui
- * que se lit le texte.
+ * P8-05 — la direction retenue le 2026-11-03 : un panneau sombre à FINE bordure cyan, la
+ * matière de la carte mère (plaque nuit, sérigraphie cyan). Elle remplace le verre bleuté au
+ * liseré en dégradé de NEXUS, qui faisait deux sites sur un même écran. ⭐ Le fond reste
+ * OPAQUE, et c'est `--color-background` : le plus sombre des trois fonds notés de
+ * `globals.css`, donc le texte n'y perd aucun contraste.
  */
 .surface {
-  background:
-    linear-gradient(var(--color-surface), var(--color-surface)) padding-box,
-    var(--gradient-edge) border-box;
-  border: 1px solid transparent;
-  border-radius: var(--radius-md);
-  transition: box-shadow 200ms ease-out;
+  background: var(--color-background);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-sm);
+  transition:
+    border-color 200ms ease-out,
+    box-shadow 200ms ease-out;
 }
 
-/* Le halo ne s'allume que sur une carte qui mène quelque part. */
+/* La bordure et le halo ne s'allument que sur une carte qui mène quelque part. */
 .surface:has(a):hover,
 .surface:has(a:focus-visible) {
+  border-color: var(--color-accent);
   box-shadow: var(--glow-card);
 }
 

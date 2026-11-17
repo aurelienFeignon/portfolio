@@ -18,17 +18,6 @@ export const LABEL_MARGIN = 0.3
  */
 export const EMPTY_RECT: Rect = rectOf([0, 0], 4, 4)
 
-/** Le plus petit rectangle qui les contient tous ; `null` pour une liste vide. */
-export function rectUnion(rects: readonly Rect[]): Rect | null {
-  if (rects.length === 0) return null
-  return rects.reduce((acc, r) => ({
-    minX: Math.min(acc.minX, r.minX),
-    minZ: Math.min(acc.minZ, r.minZ),
-    maxX: Math.max(acc.maxX, r.maxX),
-    maxZ: Math.max(acc.maxZ, r.maxZ),
-  }))
-}
-
 /**
  * Vrai si l'écart entre les deux rectangles est **strictement** inférieur à `gap`.
  * Deux rectangles qui se touchent exactement à `gap` ne se recouvrent pas.

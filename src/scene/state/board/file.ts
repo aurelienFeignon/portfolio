@@ -1,6 +1,7 @@
 /**
  * Le plan de carte **versionné** (P8-15b, `carte-mere.md` §12) : du contenu d'une locale au
- * `BoardFile` que `make board` écrit — le plan du palier `full` et les quatre cadrages.
+ * `BoardFile` que `make board` écrit — le plan du palier `full`. Les cadrages n'y sont plus
+ * (format 2, P8-05) : le rig les calcule pour la zone libre.
  *
  * Le format (types, version, garde) vit dans `board-render/file-format.ts`, que la scène peut lire
  * sans tirer ce module ; celui-ci ne garde que ce qui sert au générateur.
@@ -8,7 +9,6 @@
  * Module pur : ni `Date` (l'année est un paramètre), ni `Math.random`, ni Three.js.
  */
 import { BOARD_FILE_VERSION, type BoardFile } from '../board-render/file-format.ts'
-import { boardCameras } from './cameras.ts'
 import type { BoardContent } from './content.ts'
 import { planBoard } from './plan.ts'
 import type { ChipSizing } from './zones.ts'
@@ -19,7 +19,7 @@ interface BuildOptions {
   readonly chipSizing: ChipSizing
 }
 
-/** Assemble le fichier : le plan complet (palier `full`) et les cadrages qui en découlent. */
+/** Assemble le fichier : le plan complet (palier `full`). */
 export function buildBoardFile(content: BoardContent, options: BuildOptions): BoardFile {
   const plan = planBoard(content, {
     currentYear: options.year,
@@ -32,7 +32,6 @@ export function buildBoardFile(content: BoardContent, options: BuildOptions): Bo
     year: options.year,
     chipSizing: options.chipSizing,
     plan,
-    cameras: boardCameras(plan),
   }
 }
 

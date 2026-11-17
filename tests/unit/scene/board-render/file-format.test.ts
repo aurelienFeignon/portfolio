@@ -18,18 +18,14 @@ describe('isBoardFile', () => {
     expect(isBoardFile({ ...file, version: BOARD_FILE_VERSION + 1 })).toBe(false)
   })
 
-  it.each(['locale', 'year', 'chipSizing', 'plan', 'cameras'] as const)(
-    'refuse un fichier sans %s',
-    (key) => {
-      const rest = Object.fromEntries(Object.entries(file).filter(([name]) => name !== key))
-      expect(isBoardFile(rest)).toBe(false)
-    },
-  )
+  it.each(['locale', 'year', 'chipSizing', 'plan'] as const)('refuse un fichier sans %s', (key) => {
+    const rest = Object.fromEntries(Object.entries(file).filter(([name]) => name !== key))
+    expect(isBoardFile(rest)).toBe(false)
+  })
 
-  it('refuse un plan ou des cadrages mal formés', () => {
+  it('refuse un plan mal formé', () => {
     expect(isBoardFile({ ...file, plan: null })).toBe(false)
     expect(isBoardFile({ ...file, plan: {} })).toBe(false)
-    expect(isBoardFile({ ...file, cameras: { accueil: file.cameras.accueil } })).toBe(false)
     expect(isBoardFile({ ...file, year: '2026' })).toBe(false)
   })
 })

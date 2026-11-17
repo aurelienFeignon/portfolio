@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest'
 import { makeBoardContent, makeRealSizeBoard } from '../../../fixtures/builders/board'
-import { boardCameras } from '@/scene/state/board/cameras'
 import { boardLosses, buildBoardFile, summarize } from '@/scene/state/board/file'
 import { BOARD_FILE_VERSION, type BoardFile } from '@/scene/state/board-render/file-format'
 
@@ -16,8 +15,8 @@ describe('buildBoardFile', () => {
     expect(file.chipSizing).toBe('uniform')
   })
 
-  it('porte les quatre cadrages calculés depuis le plan', () => {
-    expect(file.cameras).toEqual(boardCameras(file.plan))
+  it('⛔ ne porte plus de cadrages (format 2, P8-05) : le rig les calcule pour la zone', () => {
+    expect(Object.hasOwn(file, 'cameras')).toBe(false)
   })
 
   it('le plan est celui du palier full', () => {

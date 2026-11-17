@@ -26,6 +26,13 @@ function renderHeader(props: Partial<Parameters<typeof SiteHeader>[0]> = {}) {
   )
 }
 
+/**
+ * Le nom accessible de la marque COMMENCE par le nom : sous jsdom, sans feuille de style, il
+ * porte aussi le monogramme (« Aurélien Feignon AF »), que le CSS ne montre que sous 30rem et
+ * qui doit alors figurer dans le nom (WCAG 2.5.3, P8-05).
+ */
+const MARQUE = /^Aurélien Feignon(?: AF)?$/
+
 describe('en-tête du site', () => {
   it('est le point de repère de bannière, et contient la navigation', () => {
     renderHeader()
@@ -42,13 +49,13 @@ describe('en-tête du site', () => {
 
     // Le texte visible EST le nom accessible : pas d'`aria-label` qui le
     // remplacerait, ce que WCAG 2.5.3 (« label in name ») interdit.
-    expect(screen.getByRole('link', { name: 'Aurélien Feignon' })).toHaveAttribute('href', '/fr')
+    expect(screen.getByRole('link', { name: MARQUE })).toHaveAttribute('href', '/fr')
   })
 
   it('suit la locale sans traduire la marque, qui est un nom propre', () => {
     render(<SiteHeader locale="en" homeHref="/en" links={makeSectionLinks('en')} current="home" />)
 
-    expect(screen.getByRole('link', { name: 'Aurélien Feignon' })).toHaveAttribute('href', '/en')
+    expect(screen.getByRole('link', { name: MARQUE })).toHaveAttribute('href', '/en')
   })
 
   it('ne transmet pas « home » à la navigation : c’est la marque qui est marquée', () => {
@@ -57,10 +64,7 @@ describe('en-tête du site', () => {
     // section serait marquée à tort.
     renderHeader({ current: 'home' })
 
-    expect(screen.getByRole('link', { name: 'Aurélien Feignon' })).toHaveAttribute(
-      'aria-current',
-      'page',
-    )
+    expect(screen.getByRole('link', { name: MARQUE })).toHaveAttribute('aria-current', 'page')
     for (const section of ['Expériences', 'Projets', 'Compétences']) {
       expect(screen.getByRole('link', { name: section })).not.toHaveAttribute('aria-current')
     }
@@ -73,8 +77,6 @@ describe('en-tête du site', () => {
       'aria-current',
       'true',
     )
-    expect(screen.getByRole('link', { name: 'Aurélien Feignon' })).not.toHaveAttribute(
-      'aria-current',
-    )
+    expect(screen.getByRole('link', { name: MARQUE })).not.toHaveAttribute('aria-current')
   })
 })

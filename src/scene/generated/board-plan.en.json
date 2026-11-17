@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 2,
   "locale": "en",
   "year": 2026,
   "chipSizing": "uniform",
@@ -2343,30 +2343,5 @@
       { "kind": "resistor", "ref": "R45", "center": [12.35, -13.975000000000001], "rotated": false }
     ],
     "pulses": 48
-  },
-  "cameras": {
-    "accueil": {
-      "position": [0, 30.820048033495635, 15.208503440504757],
-      "target": [0, 0, -4.050000000000001],
-      "fov": 40
-    },
-    "experiences": {
-      "position": [0, 18.500057425629215, 10.727240374926474],
-      "target": [0, 0, -0.8328785189117918],
-      "fov": 40,
-      "focusNodeId": "experiences"
-    },
-    "projets": {
-      "position": [0, 11.574950166425962, 5.682831608877352],
-      "target": [0, 0, -1.55],
-      "fov": 40,
-      "focusNodeId": "projects"
-    },
-    "competences": {
-      "position": [0, 23.629196689444033, 9.265160821470918],
-      "target": [0, 0, -5.500000000000001],
-      "fov": 40,
-      "focusNodeId": "skills"
-    }
   }
 }

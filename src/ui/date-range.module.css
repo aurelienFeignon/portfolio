@@ -9,7 +9,10 @@
 
 .range {
   margin: 0;
+  /* P8-05 — un badge monospace, la voix des repères de la carte (2021…2026). */
+  font-family: var(--font-mono);
   font-size: var(--text-sm);
+  letter-spacing: 0.04em;
   color: var(--color-text-muted);
 }
 

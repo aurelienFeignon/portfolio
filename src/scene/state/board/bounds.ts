@@ -7,8 +7,8 @@
  *
  * Module pur : ni `Date`, ni `Math.random`, ni Three.js.
  */
-import { EMPTY_RECT, rectUnion } from './rect.ts'
-import { inflate, type Rect } from '../plane.ts'
+import { EMPTY_RECT } from './rect.ts'
+import { inflate, type Rect, rectUnion } from '../plane.ts'
 import type { Zone } from './zones.ts'
 
 /** Marge autour de tout ce que porte la carte : les pistes contournent par là. */
