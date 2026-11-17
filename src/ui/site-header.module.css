@@ -67,8 +67,8 @@
  * Le nom complet ne tient pas à côté des trois liens sous 30rem : le monogramme le remplace
  * à l'œil, et le nom reste lu par les lecteurs d'écran (masquage visuel, pas `display: none`).
  * ⚠️ Un écran plus étroit que la ligne (≈ 330 px) retombe sur deux lignes : `flex-wrap`.
- * ⛔ Même seuil que la navigation compacte (`site-nav.module.css`) : l'un sans l'autre, la
- * ligne déborde et l'en-tête repasse sur deux lignes.
+ * La navigation s'y compacte aussi, ICI et non dans `site-nav.module.css` : un seul seuil
+ * tient la ligne, et la navigation n'a pas d'autre hôte que l'en-tête.
  */
 .monogram {
   display: none;
@@ -87,6 +87,12 @@
     overflow: hidden;
     clip-path: inset(50%);
     white-space: nowrap;
+  }
+
+  /* Plus spécifique que `.link` de `site-nav.module.css` : c'est l'en-tête qui la compacte. */
+  .inner nav a {
+    padding-inline: var(--space-2);
+    font-size: var(--text-sm);
   }
 
   .monogram {

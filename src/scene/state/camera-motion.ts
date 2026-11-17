@@ -258,7 +258,7 @@ export function approachOrbit(
 const ORBIT_SETTLED_DEG = 0.01
 
 /** L'état du rig qu'une nouvelle cible remet en place. */
-export interface RigStart {
+interface RigStart {
   readonly from: Pose
   readonly shown: Pose
   readonly elapsedMs: number

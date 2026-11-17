@@ -27,7 +27,7 @@ import type { BoardPlan } from '../board/plan.ts'
 import { type Rect, rectCenter, rectUnion } from '../plane.ts'
 
 /** Un degré, en radians. */
-export const DEG = Math.PI / 180
+const DEG = Math.PI / 180
 
 /** Le format de la zone de référence : un canvas 16:9, celui des valeurs de départ (P5-06). */
 export const REFERENCE_ASPECT = 16 / 9
@@ -36,6 +36,11 @@ export const REFERENCE_ASPECT = 16 / 9
 export const BOARD_FOV = 40
 /** Hauteur de la caméra au-dessus du plan de la carte, en degrés. */
 export const ELEVATION_DEG = 58
+
+/** L'élévation en radians, et sa trigonométrie : constantes, calculées une fois. */
+const E = ELEVATION_DEG * DEG
+const COS_E = Math.cos(E)
+const SIN_E = Math.sin(E)
 /**
  * L'air autour du rectangle cadré, **dans l'image** : ses coins tiennent dans `1 / FRAME_MARGIN`
  * de la zone. ⛔ Elle multipliait la DISTANCE jusqu'à P8-05 : sur un rectangle profond, les
@@ -83,7 +88,6 @@ function distanceFor(
   zoneTanH: number,
   zoneTanV: number,
 ): number {
-  const e = ELEVATION_DEG * DEG
   const tanH = zoneTanH / FRAME_MARGIN
   const tanV = zoneTanV / FRAME_MARGIN
   let need = MIN_DISTANCE
@@ -91,8 +95,8 @@ function distanceFor(
     for (const z of [rect.minZ, rect.maxZ]) {
       const dx = x - ax
       const dz = z - az
-      const base = dz * Math.cos(e)
-      need = Math.max(need, base + Math.abs(dx) / tanH, base + (Math.abs(dz) * Math.sin(e)) / tanV)
+      const base = dz * COS_E
+      need = Math.max(need, base + Math.abs(dx) / tanH, base + (Math.abs(dz) * SIN_E) / tanV)
     }
   }
   return need
@@ -102,9 +106,8 @@ function distanceFor(
  * L'ordonnée projetée (tangente, vers le haut) du bord `z`, la caméra visant `az` à `distance`.
  */
 function rise(z: number, az: number, distance: number): number {
-  const e = ELEVATION_DEG * DEG
   const dz = z - az
-  return (-dz * Math.sin(e)) / (distance - dz * Math.cos(e))
+  return (-dz * SIN_E) / (distance - dz * COS_E)
 }
 
 /**
@@ -126,7 +129,6 @@ export function frameRect(
   zone: FrameZone = REFERENCE_ZONE,
 ): CameraSpec {
   const [cx] = rectCenter(rect)
-  const e = ELEVATION_DEG * DEG
   const tan = Math.tan((BOARD_FOV / 2) * DEG)
   const tanV = tan * zone.heightFraction
   const tanH = tan * zone.aspect
@@ -143,7 +145,7 @@ export function frameRect(
   const distance = distanceFor(rect, cx, az, tanH, tanV)
 
   const spec: CameraSpec = {
-    position: [cx, distance * Math.sin(e), az + distance * Math.cos(e)],
+    position: [cx, distance * SIN_E, az + distance * COS_E],
     target: [cx, 0, az],
     fov: BOARD_FOV,
   }
@@ -168,7 +170,7 @@ function timelineView(plan: BoardPlan, zone: FrameZone): Rect {
   const strip = plan.timeline.bounds
   const maxZ = Math.min(strip.maxZ + STRIP_FRONT, plan.bounds.maxZ)
   const format = zone.aspect / zone.heightFraction
-  const depth = (strip.maxX - strip.minX) / (format * Math.sin(ELEVATION_DEG * DEG))
+  const depth = (strip.maxX - strip.minX) / (format * SIN_E)
   const minZ = Math.max(plan.bounds.minZ, Math.min(strip.minZ, maxZ - depth))
   return { minX: strip.minX, maxX: strip.maxX, minZ, maxZ }
 }
@@ -197,8 +199,7 @@ export function viewRects(
  * (`FRAME_MARGIN`) d'une frise profonde suffisait à passer le bord avant de la carte.
  */
 function keepNearEdgeWithin(spec: CameraSpec, maxZ: number, zone: FrameZone): CameraSpec {
-  const steepest =
-    ELEVATION_DEG * DEG + Math.atan(Math.tan((spec.fov / 2) * DEG) * zone.heightFraction)
+  const steepest = E + Math.atan(Math.tan((spec.fov / 2) * DEG) * zone.heightFraction)
   const near = spec.position[2] - spec.position[1] / Math.tan(steepest)
   const shift = Math.max(0, near - maxZ)
   if (shift === 0) return spec

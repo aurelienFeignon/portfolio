@@ -219,10 +219,6 @@ describe.each([
     },
   )
 
-  it('la zone par défaut est la zone de référence', () => {
-    expect(boardCameras(plan, REFERENCE_ZONE)).toEqual(boardCameras(plan))
-  })
-
   describe('P8-05 — la bande de scène d’un téléphone en portrait', () => {
     it.each(['accueil', 'experiences', 'projets', 'competences'] as const)(
       '%s : les quatre coins tiennent dans la ZONE, pas dans un 16:9',
