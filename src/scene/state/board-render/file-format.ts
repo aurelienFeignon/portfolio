@@ -7,12 +7,15 @@
  *
  * Module pur : ni Three.js, ni `Date`, ni `Math.random`.
  */
-import type { CameraSpec, ViewId } from '../layout.ts'
 import type { BoardPlan } from '../board/plan.ts'
 import type { ChipSizing } from '../board/zones.ts'
 
-/** Numéro du format : à incrémenter dès que la forme de `BoardFile` change. */
-export const BOARD_FILE_VERSION = 1
+/**
+ * Numéro du format : à incrémenter dès que la forme de `BoardFile` change.
+ * 2 (P8-05) : les quatre cadrages ne sont plus versionnés — le rig les calcule pour la zone
+ * libre (`boardCameras(plan, zone)`), et le champ n'était plus lu par personne.
+ */
+export const BOARD_FILE_VERSION = 2
 
 export interface BoardFile {
   readonly version: typeof BOARD_FILE_VERSION
@@ -22,17 +25,14 @@ export interface BoardFile {
   readonly chipSizing: ChipSizing
   /** Le plan du palier `full` ; les paliers plus légers en dérivent à l'exécution. */
   readonly plan: BoardPlan
-  readonly cameras: Readonly<Record<ViewId, CameraSpec>>
 }
-
-const VIEWS: readonly ViewId[] = ['accueil', 'experiences', 'projets', 'competences']
 
 const isObject = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value)
 
 /**
- * Garde de type **minimale** sur du JSON relu : la version, les champs scalaires, la présence du
- * plan et des quatre cadrages. Elle ne revalide pas la géométrie — le fichier est produit par notre
+ * Garde de type **minimale** sur du JSON relu : la version, les champs scalaires et la présence du
+ * plan. Elle ne revalide pas la géométrie — le fichier est produit par notre
  * générateur et gardé frais par un test ; elle refuse seulement ce qui n'est manifestement pas un
  * plan de cette version (fichier d'un autre format, réponse tronquée ou page d'erreur).
  */
@@ -46,7 +46,5 @@ export function isBoardFile(value: unknown): value is BoardFile {
   for (const key of ['bounds', 'district', 'timeline', 'traces']) {
     if (!isObject(plan[key])) return false
   }
-  if (!Array.isArray(plan['zones']) || !Array.isArray(plan['passives'])) return false
-  const cameras = value['cameras']
-  return isObject(cameras) && VIEWS.every((view) => isObject(cameras[view]))
+  return Array.isArray(plan['zones']) && Array.isArray(plan['passives'])
 }

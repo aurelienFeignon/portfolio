@@ -67,6 +67,8 @@
  * Le nom complet ne tient pas à côté des trois liens sous 30rem : le monogramme le remplace
  * à l'œil, et le nom reste lu par les lecteurs d'écran (masquage visuel, pas `display: none`).
  * ⚠️ Un écran plus étroit que la ligne (≈ 330 px) retombe sur deux lignes : `flex-wrap`.
+ * ⛔ Même seuil que la navigation compacte (`site-nav.module.css`) : l'un sans l'autre, la
+ * ligne déborde et l'en-tête repasse sur deux lignes.
  */
 .monogram {
   display: none;
@@ -89,7 +91,7 @@
 
   .monogram {
     display: inline-block;
-    padding: 0.125rem var(--space-2);
+    padding: var(--space-1) var(--space-2);
     border: 1px solid var(--glass-border);
     border-radius: var(--radius-sm);
     color: var(--color-accent);

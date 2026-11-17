@@ -18,6 +18,7 @@ import {
   parallaxFor,
   poseOf,
   REVEIL_S,
+  retarget,
   rigFrame,
   TRANSITION_IMAGE_MAX_S,
   transitionProgress,
@@ -26,21 +27,19 @@ import {
   type Rect as ScreenRect,
 } from '@/scene/state/camera-motion'
 import { buildBoardFile } from '@/scene/state/board/file'
-import { boardCameras, viewRects } from '@/scene/state/board/cameras'
+import { boardCameras, viewRects } from '@/scene/state/board-render/cameras'
 import type { Rect as BoardRect } from '@/scene/state/plane'
 import { makeLargeBoard, makeRealSizeBoard } from '../../fixtures/builders/board'
 import { ORBIT_LIMITS, PARALLAX, transitionMs, type Vec3, type ViewId } from '@/scene/state/layout'
 
 /**
  * Les cadrages d'un plan de carte réel (P8-15h) : ceux que le rig reçoit en
- * production. Les bancs de mouvement ci-dessous n'affirment rien sur leurs cotes,
- * seulement sur ce que l'interpolation, l'orbite et le recul en font.
+ * production, dans la zone de référence. Les bancs de mouvement ci-dessous n'affirment rien
+ * sur leurs cotes, seulement sur ce que l'interpolation et l'orbite en font.
  */
-const CAMERAS = buildBoardFile(makeRealSizeBoard(), {
-  locale: 'fr',
-  year: 2026,
-  chipSizing: 'uniform',
-}).cameras
+const CAMERAS = boardCameras(
+  buildBoardFile(makeRealSizeBoard(), { locale: 'fr', year: 2026, chipSizing: 'uniform' }).plan,
+)
 
 const distance = (a: readonly number[], b: readonly number[]) =>
   Math.hypot((a[0] ?? 0) - (b[0] ?? 0), (a[1] ?? 0) - (b[1] ?? 0), (a[2] ?? 0) - (b[2] ?? 0))
@@ -463,6 +462,41 @@ describe.each([
       const hauteur = (Math.max(...ys) - Math.min(...ys)) / free.height
       expect(Math.max(largeur, hauteur)).toBeGreaterThan(0.85)
     })
+  })
+})
+
+describe('retarget — une nouvelle cible, par la route ou par la zone (P8-05)', () => {
+  const affichee = poseOf(CAMERAS.accueil)
+  const cible = poseOf(CAMERAS.projets)
+  const glisse = { yawDeg: 12, pitchDeg: -4 }
+
+  it('par la route : la transition repart de la pose AFFICHÉE, l’orbite revient au repos', () => {
+    const start = retarget({ sameView: false, shown: affichee, goal: cible, drag: glisse })
+    expect(start.from).toBe(affichee)
+    expect(start.elapsedMs).toBe(0)
+    expect(start.drag).toBe(ORBIT_REST)
+  })
+
+  it('⛔ par la zone seule : recadrée sur place, transition finie, orbite gardée', () => {
+    const start = retarget({ sameView: true, shown: affichee, goal: cible, drag: glisse })
+    expect(start.from).toBe(cible)
+    expect(start.shown).toBe(cible)
+    expect(start.drag).toBe(glisse)
+    // Rendue à l'image suivante : la pose est la cible, et rien ne bouge plus.
+    const image = rigFrame({
+      from: start.from,
+      goal: cible,
+      elapsedMs: start.elapsedMs,
+      orbitNow: glisse,
+      drag: start.drag,
+      parallax: ORBIT_REST,
+      limits: ORBIT_LIMITS,
+      deltaS: 1 / 60,
+      wasMoving: false,
+      animated: true,
+    })
+    expect(image.transitioning).toBe(false)
+    expect(image.shown.position).toEqual(cible.position)
   })
 })
 

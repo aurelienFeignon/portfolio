@@ -11,7 +11,7 @@
  * est à `k × LANE_PITCH` de la voie 0.
  */
 import { type BoardExperience, compareSlugs } from './content.ts'
-import { rectUnion } from './rect.ts'
+import { rectUnion } from '../plane.ts'
 import { EPSILON, type Rect, type Vec2 } from '../plane.ts'
 import { TONES, type Tone } from '../layout.ts'
 

@@ -11,13 +11,12 @@ import {
   FRAME_MARGIN,
   type FrameZone,
   frameRect,
+  REFERENCE_ASPECT,
   REFERENCE_ZONE,
   viewRects,
-} from '@/scene/state/board/cameras'
+} from '@/scene/state/board-render/cameras'
 import { type BoardPlan, planBoard } from '@/scene/state/board/plan'
-import { rectUnion } from '@/scene/state/board/rect'
-import { type Rect } from '@/scene/state/plane'
-import { REFERENCE_ASPECT } from '@/scene/state/framing'
+import { type Rect, rectUnion } from '@/scene/state/plane'
 import type { CameraSpec, Vec3, ViewId } from '@/scene/state/layout'
 
 const options = { currentYear: 2026, chipSizing: 'level', tier: 'full' } as const
@@ -220,7 +219,7 @@ describe.each([
     },
   )
 
-  it('la zone par défaut est la référence : le plan versionné ne change pas', () => {
+  it('la zone par défaut est la zone de référence', () => {
     expect(boardCameras(plan, REFERENCE_ZONE)).toEqual(boardCameras(plan))
   })
 

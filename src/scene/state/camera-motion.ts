@@ -146,8 +146,8 @@ export function framingFor(
 
 /**
  * Le brouillard, tiré de la distance de cadrage : il commence un peu au-delà de la
- * cible et s'achève loin derrière. ⭐ Proportionnel : une caméra reculée (champ au
- * plafond) ne plonge pas la carte dans la bande de brouillard.
+ * cible et s'achève loin derrière. ⭐ Proportionnel : une caméra reculée pour cadrer
+ * une grande carte ne la plonge pas dans la bande de brouillard.
  */
 export function fogRange(distance: number): { readonly near: number; readonly far: number } {
   return { near: distance * 1.05, far: distance * 2.4 }
@@ -256,6 +256,36 @@ export function approachOrbit(
 
 /** L'écart d'orbite, en degrés, en deçà duquel l'orbite est arrivée. */
 const ORBIT_SETTLED_DEG = 0.01
+
+/** L'état du rig qu'une nouvelle cible remet en place. */
+export interface RigStart {
+  readonly from: Pose
+  readonly shown: Pose
+  readonly elapsedMs: number
+  readonly drag: OrbitAngles
+}
+
+/**
+ * Ce qu'une nouvelle cible fait au rig — deux causes, deux gestes (P8-05) :
+ *
+ * - **la route** a changé de vue (`sameView` faux) : la transition repart de la pose
+ *   AFFICHÉE, et l'orbite revient au repos ;
+ * - **la zone seule** a changé — barre d'adresse d'un mobile, fenêtre redimensionnée,
+ *   première mesure de la zone au montage : la caméra se RECADRE sur place, transition
+ *   finie, orbite gardée. ⛔ Une transition à chaque défilement ou au chargement serait un
+ *   mouvement que personne n'a demandé, et elle ramènerait l'orbite au repos sous le doigt.
+ */
+export function retarget(input: {
+  readonly sameView: boolean
+  readonly shown: Pose
+  readonly goal: Pose
+  readonly drag: OrbitAngles
+}): RigStart {
+  if (input.sameView) {
+    return { from: input.goal, shown: input.goal, elapsedMs: transitionMs(false), drag: input.drag }
+  }
+  return { from: input.shown, shown: input.shown, elapsedMs: 0, drag: ORBIT_REST }
+}
 
 /** Ce que le rig applique à la caméra pour une image. */
 interface RigFrame {

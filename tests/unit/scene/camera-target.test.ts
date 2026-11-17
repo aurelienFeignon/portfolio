@@ -4,8 +4,8 @@
  * ADR-0002 : *l'URL décide, la scène suit* — ce banc éprouve le deuxième maillon,
  * `SceneState ──▶ getCameraTarget ──▶ caméra`.
  *
- * ⭐ **Aucune cote n'est écrite ici.** Depuis P8-15c, les cadrages viennent du
- * plan de carte versionné (`BoardFile.cameras`) et sont PASSÉS à
+ * ⭐ **Aucune cote n'est écrite ici.** Depuis P8-15c, les cadrages sont calculés
+ * depuis le plan de carte (`boardCameras`, P8-05) et sont PASSÉS à
  * `getCameraTarget` ; ce banc n'affirme que la correspondance entre les deux
  * vocabulaires — `SceneFocus` (l'URL, en anglais) et `ViewId` (le plan coté, en
  * français) — sur un jeu de cadrages qu'il fabrique, copie de ceux d'un plan de
@@ -14,6 +14,7 @@
  */
 import { describe, expect, it } from 'vitest'
 
+import { boardCameras } from '@/scene/state/board-render/cameras'
 import { buildBoardFile } from '@/scene/state/board/file'
 import { getCameraTarget } from '@/scene/state/camera-target'
 import type { CameraSpec, ViewId } from '@/scene/state/layout'
@@ -44,12 +45,10 @@ const SECTION_ATTENDUE: Record<SceneFocus, string | undefined> = {
 
 const FOCUSES = Object.keys(SECTION_ATTENDUE) as readonly SceneFocus[]
 
-/** Les cadrages d'un plan réel, tels que `make board` les écrit. */
-const PLAN = buildBoardFile(makeRealSizeBoard(), {
-  locale: 'fr',
-  year: 2026,
-  chipSizing: 'uniform',
-}).cameras
+/** Les cadrages d'un plan réel, dans la zone de référence. */
+const PLAN = boardCameras(
+  buildBoardFile(makeRealSizeBoard(), { locale: 'fr', year: 2026, chipSizing: 'uniform' }).plan,
+)
 
 /**
  * Les cadrages passés à la fonction : des COPIES de ceux du plan, donc des
@@ -69,7 +68,7 @@ const cadrage = (focus: SceneFocus, detail: string | null = null) =>
 describe('chaque focus cadre sa section', () => {
   // ⭐ Le cas `experiences` est l'exemple de `testing-strategy.md` §4.3. Que ce
   // cadrage montre bien la frise, la zone ou le quartier de sa section est une
-  // propriété de `board/cameras.ts`, tenue par `board/cameras.test.ts`.
+  // propriété de `board-render/cameras.ts`, tenue par `board-render/cameras.test.ts`.
   for (const focus of FOCUSES) {
     it(`${focus} → ${SECTION_ATTENDUE[focus] ?? 'aucune section, la vue d’ensemble'}`, () => {
       expect(cadrage(focus).focusNodeId).toBe(SECTION_ATTENDUE[focus])

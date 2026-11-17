@@ -4,7 +4,7 @@
  * ⭐ Depuis le retrait de NEXUS (P8-15h), les univers, le noyau et les gros plans
  * calculés autour de lui n'existent plus : leurs assertions sont parties avec eux.
  * Les cadrages de la carte mère sont calculés par `make board` et tenus par
- * `board/cameras.test.ts`. Restent ici le mouvement, la palette et la densité par
+ * `board-render/cameras.test.ts`. Restent ici le mouvement, la palette et la densité par
  * palier — qui ne fait que décroître, sans jamais changer la composition.
  */
 import { describe, expect, it } from 'vitest'

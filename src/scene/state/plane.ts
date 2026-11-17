@@ -56,3 +56,14 @@ export function rectCenter(rect: Rect): Vec2 {
 export function rectContains(rect: Rect, [x, z]: Vec2): boolean {
   return x >= rect.minX && x <= rect.maxX && z >= rect.minZ && z <= rect.maxZ
 }
+
+/** Le plus petit rectangle qui les contient tous ; `null` pour une liste vide. */
+export function rectUnion(rects: readonly Rect[]): Rect | null {
+  if (rects.length === 0) return null
+  return rects.reduce((acc, r) => ({
+    minX: Math.min(acc.minX, r.minX),
+    minZ: Math.min(acc.minZ, r.minZ),
+    maxX: Math.max(acc.maxX, r.maxX),
+    maxZ: Math.max(acc.maxZ, r.maxZ),
+  }))
+}

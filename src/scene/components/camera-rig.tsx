@@ -25,7 +25,7 @@ import { useFrame, useThree } from '@react-three/fiber'
 import { useEffect, useLayoutEffect, useMemo, useRef } from 'react'
 import { Fog, PerspectiveCamera } from 'three'
 
-import { boardCameras } from '@/scene/state/board/cameras'
+import { boardCameras } from '@/scene/state/board-render/cameras'
 import type { BoardPlan } from '@/scene/state/board/plan'
 import { getCameraTarget } from '@/scene/state/camera-target'
 import {
@@ -38,16 +38,18 @@ import {
   type Pose,
   poseOf,
   type Rect,
+  retarget,
   rigFrame,
 } from '@/scene/state/camera-motion'
 import { ORBIT_LIMITS, PARALLAX } from '@/scene/state/layout'
 import type { SceneState } from '@/scene/state/scene-state'
 
 /**
- * La zone arrondie au centième : un redimensionnement d'un pixel — la barre d'adresse
- * d'un mobile qui se replie — ne relance pas une transition vers un cadrage identique.
+ * La zone arrondie au centième : un redimensionnement d'un pixel ne recalcule pas quatre
+ * cadrages identiques. ⛔ Jamais 0 : `framingFor` garantit une zone positive, et un arrondi à
+ * zéro ferait diviser `boardCameras` par une tangente nulle.
  */
-const auCentieme = (value: number): number => Math.round(value * 100) / 100
+const auCentieme = (value: number): number => Math.max(0.01, Math.round(value * 100) / 100)
 
 export function CameraRig({
   state,
@@ -69,8 +71,7 @@ export function CameraRig({
   const framing = framingFor(free, size.width, size.height)
   const aspect = auCentieme(framing.aspect)
   const heightFraction = auCentieme(framing.heightFraction)
-  // ⭐ Mémoïsés sur la zone ARRONDIE : la cible est une instance, et une nouvelle instance
-  // relance la transition (`useLayoutEffect` ci-dessous).
+  // Mémoïsés sur la zone ARRONDIE : la cible est une instance, comparée par identité.
   const cameras = useMemo(
     () => boardCameras(plan, { aspect, heightFraction }),
     [plan, aspect, heightFraction],
@@ -85,19 +86,30 @@ export function CameraRig({
   const orbitNow = useRef<OrbitAngles>(ORBIT_REST)
   const parallax = useRef<OrbitAngles>(ORBIT_REST)
 
+  const focusVise = useRef(state.focus)
+
   /*
-   * Un nouvel état : la transition repart d'où la caméra EST.
+   * Une nouvelle cible : par la route, une transition ; par la zone seule, un recadrage sur
+   * place (`retarget`, P8-05).
    * ⛔ `useLayoutEffect`, pas `useEffect` (P6-12) : un effet passif peut s'exécuter
    * APRÈS une image, qui lirait alors le nouvel objectif avec l'ancien départ —
    * une transition déjà finie (`t = 1`) devenait une coupe. L'effet de mise en
    * page s'exécute au commit, avant toute image.
    */
   useLayoutEffect(() => {
-    from.current = shown.current
-    elapsed.current = 0
-    drag.current = ORBIT_REST
+    const start = retarget({
+      sameView: focusVise.current === state.focus,
+      shown: shown.current,
+      goal: poseOf(goal),
+      drag: drag.current,
+    })
+    focusVise.current = state.focus
+    from.current = start.from
+    shown.current = start.shown
+    elapsed.current = start.elapsedMs
+    drag.current = start.drag
     get().invalidate()
-  }, [goal, get])
+  }, [goal, state.focus, get])
 
   // Le glisser, écouté sur le canvas lui-même.
   useEffect(() => {
@@ -159,9 +171,12 @@ export function CameraRig({
     }
   }, [orbit, animated, get])
 
-  useFrame(({ invalidate }, delta) => {
+  useFrame(({ size: taille, invalidate }, delta) => {
     const { camera } = get()
     if (!(camera instanceof PerspectiveCamera)) return
+    // ⭐ La taille VIVANTE de l'image, pas celle du dernier rendu React : entre un
+    // redimensionnement et le rendu suivant, le décalage suivrait l'ancienne taille.
+    const decalage = framingFor(free, taille.width, taille.height)
 
     // Tout le calcul de l'image est pur (`rigFrame`, éprouvé sans navigateur) :
     // le rig ne fait que l'appliquer.
@@ -185,22 +200,22 @@ export function CameraRig({
     camera.position.set(...image.position)
     camera.lookAt(...image.shown.target)
     camera.fov = image.fov
-    // ⭐ Le brouillard suit la distance de cadrage, recul compris (`fogRange`).
+    // ⭐ Le brouillard suit la distance de cadrage (`fogRange`).
     const { scene } = get()
     if (scene.fog instanceof Fog) {
       const range = fogRange(image.distance)
       scene.fog.near = range.near
       scene.fog.far = range.far
     }
-    if (framing.offsetX === 0 && framing.offsetY === 0) camera.clearViewOffset()
+    if (decalage.offsetX === 0 && decalage.offsetY === 0) camera.clearViewOffset()
     else
       camera.setViewOffset(
-        size.width,
-        size.height,
-        framing.offsetX,
-        framing.offsetY,
-        size.width,
-        size.height,
+        taille.width,
+        taille.height,
+        decalage.offsetX,
+        decalage.offsetY,
+        taille.width,
+        taille.height,
       )
     camera.updateProjectionMatrix()
 

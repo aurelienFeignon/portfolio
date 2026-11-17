@@ -7,7 +7,8 @@
  *
  * Module pur : ni `Date`, ni `Math.random`, ni Three.js.
  */
-import { EMPTY_RECT, rectUnion } from './rect.ts'
+import { rectUnion } from '../plane.ts'
+import { EMPTY_RECT } from './rect.ts'
 import { inflate, type Rect } from '../plane.ts'
 import type { Zone } from './zones.ts'
 

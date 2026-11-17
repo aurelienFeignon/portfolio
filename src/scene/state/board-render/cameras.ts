@@ -12,19 +12,27 @@
  * élargissait le champ pour garder le champ horizontal du 16:9 (`fitFov`) : sur un téléphone
  * en portrait, la vue gardait les marges latérales du 16:9 — la carte d'accueil n'occupait
  * que 65 % de la largeur, et la frise des expériences montrait la carte entière, petite, au-
- * dessus d'une bande vide (capture du 2026-11-17, Xiaomi 14T Pro). Le plan versionné garde
- * le cadrage de référence (`BoardFile.cameras`) ; le rig recadre pour la zone réelle.
+ * dessus d'une bande vide (capture du 2026-11-17, Xiaomi 14T Pro). Le rig les calcule pour
+ * la zone réelle ; le plan versionné ne les porte plus (format 2).
+ *
+ * ⭐ Dans `board-render/` et non `board/` (P8-05) : le rig les calcule à l'exécution, donc ce
+ * module part dans le chunk 3D, où rien de `board/` — le module du générateur — n'a sa place
+ * (`check-scene-isolation.mts`). Il ne tire de `board/` que des types.
  *
  * Module pur : ni Three.js, ni `Date`, ni `Math.random`.
  */
 import type { Section } from '../../../routing/sections.ts'
-import { DEG, REFERENCE_ASPECT } from '../framing.ts'
 import type { CameraSpec, ViewId } from '../layout.ts'
-import type { BoardPlan } from './plan.ts'
-import { rectUnion } from './rect.ts'
-import { type Rect, rectCenter } from '../plane.ts'
+import type { BoardPlan } from '../board/plan.ts'
+import { type Rect, rectCenter, rectUnion } from '../plane.ts'
 
-/** Champ vertical, en degrés, pour un rapport 16:9. */
+/** Un degré, en radians. */
+export const DEG = Math.PI / 180
+
+/** Le format de la zone de référence : un canvas 16:9, celui des valeurs de départ (P5-06). */
+export const REFERENCE_ASPECT = 16 / 9
+
+/** Champ vertical, en degrés : fixe, c'est la caméra qui recule ou avance pour cadrer. */
 export const BOARD_FOV = 40
 /** Hauteur de la caméra au-dessus du plan de la carte, en degrés. */
 export const ELEVATION_DEG = 58
@@ -48,7 +56,7 @@ export interface FrameZone {
   readonly heightFraction: number
 }
 
-/** La zone de référence du plan versionné : un canvas 16:9, entièrement libre. */
+/** La zone de référence : un canvas 16:9, entièrement libre. */
 export const REFERENCE_ZONE: FrameZone = { aspect: REFERENCE_ASPECT, heightFraction: 1 }
 
 /** Plancher de la distance : un rectangle réduit à un point ne pose pas la caméra sur sa cible. */

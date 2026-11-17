@@ -10,10 +10,9 @@
  * celle du plan coté (`accueil`, `projets`, `competences`). Aucun quatrième
  * vocabulaire — pas de `Screen`, pas de position d'écran recopiée.
  *
- * ⭐ **Depuis P8-15c, les cadrages sont un PARAMÈTRE** : ils viennent du plan de
- * carte versionné (`BoardFile.cameras`, précalculé par `make board`), chargé par
- * la scène pour sa locale. Ce module n'importe plus que des types — il ne tire
- * plus `layout.ts`.
+ * ⭐ **Depuis P8-15c, les cadrages sont un PARAMÈTRE** : le rig les calcule depuis le
+ * plan de carte de sa locale, pour la zone libre (`boardCameras(plan, zone)`, P8-05).
+ * Ce module n'importe que des types — il ne tire pas `layout.ts`.
  */
 import type { CameraSpec, ViewId } from './layout.ts'
 import type { SceneFocus, SceneState } from './scene-state.ts'
