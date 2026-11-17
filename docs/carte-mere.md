@@ -567,8 +567,32 @@ projets ; les performances de la nouvelle composition restent à relever après 
 
 À poser à l'utilisateur, non à trancher :
 
-- le vide d'environ 18 % sous la vue Expériences ;
+- ~~le vide d'environ 18 % sous la vue Expériences~~ — **traité par la repasse mobile du 2026-11-17** (§12.7) : la frise est posée en bas de la zone, la carte remplit l'espace au-dessus ;
 - l'aspect des ponts (effectifs : tableau de §11) ;
 - l'affinité des emplacements de processeurs, différée depuis §11 ;
 - les impulsions immobiles au palier `lite` (règle d'image fixe, ADR-0003, choisie pendant l'exécution, à confirmer) ;
 - compléter le contexte et le retour d’usage du relevé téléphone du 2026-11-03 (§12.5).
+
+### 12.7 Repasse mobile (P8-05, 2026-11-17)
+
+Déclenchée par une capture de l'utilisateur sur Xiaomi 14T Pro (Chrome, 393 × 852 CSS) : carte
+petite et coupée, vide sous la carte, panneau qui mange l'écran, deux styles qui ne vont pas
+ensemble. Reproduit au banc (Playwright, 393 × 852, WebGL logiciel), puis corrigé :
+
+| Constat | Cause | Correction |
+|---|---|---|
+| Carte d'accueil à ~65 % de la largeur ; vue Expériences = carte entière, petite | cadrages calculés pour 16:9, et `fitFov` gardait le champ HORIZONTAL du 16:9 | chaque vue cadre son rectangle dans la **zone libre réelle** (`board-render/cameras.ts`, `boardCameras(plan, zone)`) ; `fitFov` et son plafond retirés |
+| Vide en haut de la zone (150 px contre 62 en bas, grand banc) | visée au centre du rectangle au sol, dont l'image n'est pas centrée en perspective | visée au point qui **équilibre** les deux bords à l'écran (bisection) |
+| Air disproportionné autour des coins proches | la marge multipliait la distance | marge **dans l'image** : les coins tiennent dans 1/1,15 de la zone |
+| Bande de scène trop haute pour une carte en paysage | `--scene-band: 42svh` seul | `min(42svh, 78vw)` — 78vw approche le format de la carte cadrée (≈ 1,3), à remesurer si elle change de proportions |
+| En-tête de 128 px sur deux lignes | nom + trois liens trop larges | sous 30rem : monogramme « AF » (le nom reste dans le nom accessible, WCAG 2.5.3), navigation en petit corps |
+| Cartes de verre bleuté à liseré dégradé, étrangères à la carte mère | héritage NEXUS | fond nuit, fine bordure cyan qui s'allume au survol, dates et surtitre en badge monospace (direction du 2026-11-03) |
+
+Les cadrages ne sont plus versionnés : le format du plan passe en **version 2**, sans `cameras`.
+Un changement de zone seul (barre d'adresse mobile, redimensionnement, première mesure) recadre
+sur place, sans transition (`retarget`) ; seule la route en déclenche une.
+
+⚠️ **Non mesuré** : aucun relevé GPU après cette repasse, ni sur ordinateur ni sur téléphone. Les
+appels et triangles ne changent pas par construction (la géométrie est la même), mais la caméra
+plus proche change ce qui est à l'écran. Le relevé téléphone de P8-11 se fait **après** la
+validation visuelle par l'utilisateur, sur le rendu déployé.
