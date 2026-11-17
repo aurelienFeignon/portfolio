@@ -31,6 +31,7 @@
 import { type Locale } from '../i18n/locales.ts'
 import { getMessages } from '../i18n/messages/index.ts'
 
+import { initials } from './initials.ts'
 import styles from './site-header.module.css'
 import { SiteNav, type SectionLink, type SectionName } from './site-nav'
 
@@ -58,7 +59,12 @@ export function SiteHeader({
           href={homeHref}
           {...(current === 'home' ? { 'aria-current': 'page' as const } : {})}
         >
-          {messages.site.name}
+          {/* ⭐ Sur un téléphone, le monogramme tient la place et le nom reste le nom
+              ACCESSIBLE du lien — masqué à l'œil, jamais retiré (P8-05). */}
+          <span className={styles.name}>{messages.site.name}</span>
+          <span className={styles.monogram} aria-hidden="true">
+            {initials(messages.site.name)}
+          </span>
         </a>
         {/* Propagation par étalement conditionnel plutôt que par `undefined` :
             `exactOptionalPropertyTypes` distingue « prop absente » de « prop à

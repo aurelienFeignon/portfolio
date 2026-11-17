@@ -45,8 +45,15 @@
 
 .title {
   margin: 0;
-  font-size: var(--text-2xl);
+  /* P8-05 — sur un téléphone, le titre de section cédait trop de hauteur à lui seul. */
+  font-size: var(--text-xl);
   line-height: 1.2;
+}
+
+@media (min-width: 48rem) {
+  .title {
+    font-size: var(--text-2xl);
+  }
 }
 
 /*
@@ -57,6 +64,7 @@
 .eyebrow {
   margin: 0;
   color: var(--color-accent);
+  font-family: var(--font-mono);
   font-size: var(--text-sm);
   font-weight: 600;
   letter-spacing: 0.14em;

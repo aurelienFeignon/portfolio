@@ -60,3 +60,41 @@
 .brand:hover {
   text-decoration: underline;
 }
+
+/*
+ * P8-05 — sur un téléphone, nom et navigation sur UNE ligne : sur deux, l'en-tête prenait
+ * 128 px sur 852 (Xiaomi 14T Pro, 2026-11-17), autant de moins pour la scène et le contenu.
+ * Le nom complet ne tient pas à côté des trois liens sous 30rem : le monogramme le remplace
+ * à l'œil, et le nom reste lu par les lecteurs d'écran (masquage visuel, pas `display: none`).
+ * ⚠️ Un écran plus étroit que la ligne (≈ 330 px) retombe sur deux lignes : `flex-wrap`.
+ */
+.monogram {
+  display: none;
+}
+
+@media (max-width: 29.999rem) {
+  .inner {
+    gap: var(--space-3);
+    padding-block: var(--space-1);
+  }
+
+  .name {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .monogram {
+    display: inline-block;
+    padding: 0.125rem var(--space-2);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-sm);
+    color: var(--color-accent);
+    font-family: var(--font-mono);
+    font-size: var(--text-sm);
+    letter-spacing: 0.12em;
+  }
+}
