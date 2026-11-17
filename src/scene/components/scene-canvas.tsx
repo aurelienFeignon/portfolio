@@ -148,7 +148,7 @@ export default function SceneCanvas({
         <>
           <CameraRig
             state={state}
-            cameras={plan.cameras}
+            plan={plan.plan}
             free={free}
             animated={animated}
             orbit={tier !== 'lite'}

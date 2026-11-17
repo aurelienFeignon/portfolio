@@ -31,19 +31,15 @@ const VIEW_FOR_FOCUS: Readonly<Record<SceneFocus, ViewId>> = {
 }
 
 /**
- * Le cadrage — position, cible, `fov` à 16:9 et dalle mise en avant — que la
- * caméra doit atteindre pour cet état.
+ * Le cadrage — position, cible, `fov` et dalle mise en avant — que la caméra
+ * doit atteindre pour cet état, pris dans `cameras` : ceux que le rig calcule
+ * pour la zone libre (`boardCameras(plan, zone)`, P8-05).
  *
  * ⭐ **Rend l'instance de `cameras` elle-même**, jamais une copie : le rig dit
  * « même cible » par identité.
  *
  * ⛔ **`detail` ne change rien**, et c'est voulu : le dossier cadre des écrans, pas
  * des fiches, et une fiche s'affiche sur l'écran de sa section (Phase 7).
- *
- * ⚠️ **Le `fov` rendu est celui de 16:9.** La correction de format
- * (`fitFov`, P5-06) s'applique au moment du rendu, sur la valeur
- * **interpolée** — c'est P6-04. L'appliquer ici la ferait jouer avant
- * l'interpolation, donc sur les deux bornes seulement.
  */
 export function getCameraTarget(
   state: SceneState,

@@ -25,9 +25,8 @@ import {
   fogRange,
   type Rect as ScreenRect,
 } from '@/scene/state/camera-motion'
-import { FOV_MAX_DEG, fitFov } from '@/scene/state/framing'
 import { buildBoardFile } from '@/scene/state/board/file'
-import { viewRects } from '@/scene/state/board/cameras'
+import { boardCameras, viewRects } from '@/scene/state/board/cameras'
 import type { Rect as BoardRect } from '@/scene/state/plane'
 import { makeLargeBoard, makeRealSizeBoard } from '../../fixtures/builders/board'
 import { ORBIT_LIMITS, PARALLAX, transitionMs, type Vec3, type ViewId } from '@/scene/state/layout'
@@ -270,7 +269,6 @@ describe('une image du rig', () => {
       deltaS: 1 / 60,
       wasMoving: true,
       animated: true,
-      aspect: 16 / 9,
       ...patch,
     })
 
@@ -298,18 +296,13 @@ describe('une image du rig', () => {
     if (pose.fov !== undefined) expect(pose.fov).toBeCloseTo(vers.fov)
   }
 
-  it('⭐ corrige le format sur le fov INTERPOLÉ, jamais sur celui de l’arrivée', () => {
-    // Un écran plus étroit que 16:9 : la correction élargit. À mi-chemin, elle
-    // part du fov du milieu de la transition, pas du fov cible (exigence 2).
-    // ⛔ Des fov DIFFÉRENTS au départ et à l'arrivée : toutes les caméras de la
-    // scène sont à 40°, et un banc sur elles ne distinguerait pas les deux. Et un
-    // format de 1,6, pas un portrait : en portrait, les deux butent sur le plafond
-    // de 50° et redeviennent indiscernables.
-    const etroit = image({ from: { ...de, fov: 30 }, goal: { ...vers, fov: 50 }, aspect: 1.6 })
-    expect(etroit.shown.fov).toBeGreaterThan(35)
-    expect(etroit.shown.fov).toBeLessThan(45)
-    expect(etroit.fov).toBeCloseTo(fitFov(etroit.shown.fov, 1.6).fov)
-    expect(etroit.fov).not.toBeCloseTo(fitFov(50, 1.6).fov)
+  it('⭐ rend le fov INTERPOLÉ tel quel : le cadrage est déjà celui de la zone (P8-05)', () => {
+    // ⛔ Des fov DIFFÉRENTS au départ et à l'arrivée : toutes les caméras de la scène sont
+    // à 40°, et un banc sur elles ne distinguerait pas le fov interpolé de celui d'arrivée.
+    const milieu = image({ from: { ...de, fov: 30 }, goal: { ...vers, fov: 50 } })
+    expect(milieu.shown.fov).toBeGreaterThan(35)
+    expect(milieu.shown.fov).toBeLessThan(45)
+    expect(milieu.fov).toBe(milieu.shown.fov)
   })
 
   it('⭐ demande une image tant qu’une transition est en cours (exigence 3)', () => {
@@ -387,22 +380,32 @@ function projectToPx(
   return [x, y]
 }
 
+/**
+ * Les deux écrans que la scène doit servir : l'ordinateur, panneau fixe à gauche, et le
+ * téléphone en portrait, bande de scène sous l'en-tête (393 × 852, le Xiaomi 14T Pro de la
+ * capture du 2026-11-17 ; en-tête 68 px, bande `min(42svh, 78vw)` = 306 px).
+ */
+const ECRANS = [
+  { nom: '1440 × 900', W: 1440, H: 900, libre: { x: 584, y: 72, width: 840, height: 808 } },
+  { nom: '393 × 852, portrait', W: 393, H: 852, libre: { x: 0, y: 68, width: 393, height: 306 } },
+] as const
+
 describe.each([
   ['taille réelle', makeRealSizeBoard],
   ['grand banc', makeLargeBoard],
-])('la carte dans la zone libre, 1440 × 900 — %s', (_name, make) => {
+])('la carte dans la zone libre — %s', (_name, make) => {
   const file = buildBoardFile(make(), { locale: 'fr', year: 2026, chipSizing: 'uniform' })
-  const rects = viewRects(file.plan)
-  const W = 1440
-  const H = 900
-  // La zone que le panneau de lecture et l'en-tête laissent : format ≈ 1,04.
-  const free: ScreenRect = { x: 584, y: 72, width: 840, height: 808 }
 
-  it.each(['accueil', 'experiences', 'projets', 'competences'] as const)(
-    '%s : chaque coin de son rectangle se projette DANS la zone libre',
-    (view: ViewId) => {
-      const goal = poseOf(file.cameras[view])
-      const framing = framingFor(free, W, H)
+  describe.each(ECRANS)('$nom', ({ W, H, libre }) => {
+    const free: ScreenRect = libre
+    const framing = framingFor(free, W, H)
+    const zone = { aspect: framing.aspect, heightFraction: framing.heightFraction }
+    const cameras = boardCameras(file.plan, zone)
+    const rects = viewRects(file.plan, zone)
+
+    /** Les quatre coins du rectangle de la vue, projetés en pixels. */
+    const coins = (view: ViewId) => {
+      const goal = poseOf(cameras[view])
       const image = rigFrame({
         from: goal,
         goal,
@@ -414,66 +417,77 @@ describe.each([
         deltaS: 1 / 60,
         wasMoving: false,
         animated: false,
-        aspect: framing.aspect,
-        heightFraction: framing.heightFraction,
       })
-      expect(image.fov).toBeLessThanOrEqual(FOV_MAX_DEG + 1e-9)
       const r: BoardRect = rects[view]
-      for (const [x, z] of [
-        [r.minX, r.minZ],
-        [r.maxX, r.minZ],
-        [r.minX, r.maxZ],
-        [r.maxX, r.maxZ],
-      ] as const) {
-        const [px, py] = projectToPx(
+      return (
+        [
+          [r.minX, r.minZ],
+          [r.maxX, r.minZ],
+          [r.minX, r.maxZ],
+          [r.maxX, r.maxZ],
+        ] as const
+      ).map(([x, z]) =>
+        projectToPx(
           [x, 0, z],
           { position: image.position, target: image.shown.target, fov: image.fov },
           W,
           H,
           framing.offsetX,
           framing.offsetY,
-        )
-        expect(px).toBeGreaterThanOrEqual(free.x)
-        expect(px).toBeLessThanOrEqual(free.x + free.width)
-        expect(py).toBeGreaterThanOrEqual(free.y)
-        expect(py).toBeLessThanOrEqual(free.y + free.height)
-      }
-    },
-  )
+        ),
+      )
+    }
+
+    it.each(['accueil', 'experiences', 'projets', 'competences'] as const)(
+      '%s : chaque coin de son rectangle se projette DANS la zone libre',
+      (view: ViewId) => {
+        for (const [px, py] of coins(view)) {
+          expect(px).toBeGreaterThanOrEqual(free.x - 1e-6)
+          expect(px).toBeLessThanOrEqual(free.x + free.width + 1e-6)
+          expect(py).toBeGreaterThanOrEqual(free.y - 1e-6)
+          expect(py).toBeLessThanOrEqual(free.y + free.height + 1e-6)
+        }
+      },
+    )
+
+    /*
+     * ⛔⛔ La régression que P8-05 corrige : le cadrage gardait le champ horizontal du 16:9,
+     * et la carte d'accueil n'occupait que ~65 % de la largeur d'un téléphone. Cadrée dans la
+     * zone, elle la remplit à la marge près (`FRAME_MARGIN` = 1,15, soit ≥ 1/1,15 ≈ 87 %),
+     * ou c'est la hauteur qui la borne.
+     */
+    it('accueil : la carte remplit la zone en largeur OU en hauteur, à la marge près', () => {
+      const xs = coins('accueil').map(([x]) => x)
+      const ys = coins('accueil').map(([, y]) => y)
+      const largeur = (Math.max(...xs) - Math.min(...xs)) / free.width
+      const hauteur = (Math.max(...ys) - Math.min(...ys)) / free.height
+      expect(Math.max(largeur, hauteur)).toBeGreaterThan(0.85)
+    })
+  })
 })
 
-describe('le recul quand le champ bute sur son plafond', () => {
+describe('la distance rendue est celle du cadrage, sans recul', () => {
   const goal = poseOf(CAMERAS.accueil)
-  const at = (aspect: number) =>
-    rigFrame({
-      from: goal,
-      goal,
-      elapsedMs: 5000,
-      orbitNow: ORBIT_REST,
-      drag: ORBIT_REST,
-      parallax: ORBIT_REST,
-      limits: ORBIT_LIMITS,
-      deltaS: 1 / 60,
-      wasMoving: false,
-      animated: false,
-      aspect,
-    })
-
-  it('sous le plafond : la distance ne change pas', () => {
-    expect(at(1.6).distance).toBeCloseTo(distance(goal.position, goal.target))
+  const image = rigFrame({
+    from: goal,
+    goal,
+    elapsedMs: 5000,
+    orbitNow: ORBIT_REST,
+    drag: ORBIT_REST,
+    parallax: ORBIT_REST,
+    limits: ORBIT_LIMITS,
+    deltaS: 1 / 60,
+    wasMoving: false,
+    animated: false,
   })
 
-  it('au plafond : le champ s’arrête à 50°, la caméra recule de tan(voulu/2) / tan(50°/2)', () => {
-    const image = at(0.9)
-    const wanted = fitFov(goal.fov, 0.9, 1, Infinity).fov
-    expect(image.fov).toBeCloseTo(FOV_MAX_DEG)
-    const k = Math.tan((wanted * Math.PI) / 360) / Math.tan((FOV_MAX_DEG * Math.PI) / 360)
-    expect(image.distance).toBeCloseTo(distance(goal.position, goal.target) * k)
+  it('distance = |position − cible| du cadrage', () => {
+    expect(image.distance).toBeCloseTo(distance(goal.position, goal.target))
     expect(distance(image.position, image.shown.target)).toBeCloseTo(image.distance)
   })
 
-  it('la pose interpolée reste celle du cadrage : le recul ne se cumule pas d’image en image', () => {
-    expect(at(0.9).shown.position).toEqual(goal.position)
+  it('la pose interpolée reste celle du cadrage', () => {
+    expect(image.shown.position).toEqual(goal.position)
   })
 })
 

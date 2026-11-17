@@ -18,12 +18,15 @@
  *    l'orbite revient à zéro à chaque changement de route, et rien n'entre
  *    jamais dans l'URL.
  * 3. **Le cadrage dans la zone libre** : le panneau de lecture occupe une partie
- *    de l'écran, la scène se centre dans le reste (`framingFor`).
+ *    de l'écran, la scène se centre dans le reste (`framingFor`), et chaque vue
+ *    cadre son rectangle dans CE reste (`boardCameras(plan, zone)`, P8-05).
  */
 import { useFrame, useThree } from '@react-three/fiber'
-import { useEffect, useLayoutEffect, useRef } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef } from 'react'
 import { Fog, PerspectiveCamera } from 'three'
 
+import { boardCameras } from '@/scene/state/board/cameras'
+import type { BoardPlan } from '@/scene/state/board/plan'
 import { getCameraTarget } from '@/scene/state/camera-target'
 import {
   dragOrbit,
@@ -37,25 +40,41 @@ import {
   type Rect,
   rigFrame,
 } from '@/scene/state/camera-motion'
-import { type CameraSpec, ORBIT_LIMITS, PARALLAX, type ViewId } from '@/scene/state/layout'
+import { ORBIT_LIMITS, PARALLAX } from '@/scene/state/layout'
 import type { SceneState } from '@/scene/state/scene-state'
+
+/**
+ * La zone arrondie au centième : un redimensionnement d'un pixel — la barre d'adresse
+ * d'un mobile qui se replie — ne relance pas une transition vers un cadrage identique.
+ */
+const auCentieme = (value: number): number => Math.round(value * 100) / 100
 
 export function CameraRig({
   state,
-  cameras,
+  plan,
   free,
   animated,
   orbit,
 }: {
   readonly state: SceneState
-  /** Les cadrages du plan de carte de la locale (P8-15c) ; la cible en est une instance. */
-  readonly cameras: Readonly<Record<ViewId, CameraSpec>>
+  /** Le plan de carte de la locale (P8-15c) : les cadrages en sont calculés pour la zone libre. */
+  readonly plan: BoardPlan
   readonly free: Rect | null
   readonly animated: boolean
   /** Faux sur un pointeur grossier : le tactile défile la page, il ne tourne pas la scène. */
   readonly orbit: boolean
 }) {
   const get = useThree((s) => s.get)
+  const size = useThree((s) => s.size)
+  const framing = framingFor(free, size.width, size.height)
+  const aspect = auCentieme(framing.aspect)
+  const heightFraction = auCentieme(framing.heightFraction)
+  // ⭐ Mémoïsés sur la zone ARRONDIE : la cible est une instance, et une nouvelle instance
+  // relance la transition (`useLayoutEffect` ci-dessous).
+  const cameras = useMemo(
+    () => boardCameras(plan, { aspect, heightFraction }),
+    [plan, aspect, heightFraction],
+  )
   const goal = getCameraTarget(state, cameras)
 
   const shown = useRef<Pose>(poseOf(goal))
@@ -140,11 +159,10 @@ export function CameraRig({
     }
   }, [orbit, animated, get])
 
-  useFrame(({ size, invalidate }, delta) => {
+  useFrame(({ invalidate }, delta) => {
     const { camera } = get()
     if (!(camera instanceof PerspectiveCamera)) return
 
-    const framing = framingFor(free, size.width, size.height)
     // Tout le calcul de l'image est pur (`rigFrame`, éprouvé sans navigateur) :
     // le rig ne fait que l'appliquer.
     const image = rigFrame({
@@ -158,8 +176,6 @@ export function CameraRig({
       deltaS: delta,
       wasMoving: wasMoving.current,
       animated,
-      aspect: framing.aspect,
-      heightFraction: framing.heightFraction,
     })
     shown.current = image.shown
     orbitNow.current = image.orbit
