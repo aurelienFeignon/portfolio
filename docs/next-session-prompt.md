@@ -67,42 +67,41 @@ lumineux. Pour l'historique, `docs/nexus-prototype.md` §6 (enquête de performa
 **Tout ce qui suit est fusionné sur `main` et déployé**, les cinq jobs verts à chaque fois —
 publication GHCR et déploiement VPS compris.
 
-### Dernière reprise — 2026-11-11
+### Dernière reprise — 2026-11-17
 
-Session « dettes ouvertes », **close et déployée**. Tout ce qui suit est fusionné sur `main`,
-déployé, et vérifié en production le 2026-11-11 vers 17:55 UTC.
+Session « PR Renovate puis repasse mobile », **close et déployée** : la production sert
+`59c0db9` (#109), révision servie au premier tir, les cinq jobs de `main` verts.
 
-- **#104** (`369e289`) : healthcheck de dev, `deploy.sh` durci, déploiement manquant visible
-  (`X-Source-Revision`), `getFeaturedProjects` retiré, `BreadcrumbList` confronté. Le détail est
-  dans « Points encore ouverts ».
-- **#105** (`6bb9f5e`) : la CI ne dépend plus d'`apt`. E2E et Lighthouse passent par
-  `make e2e-prod` et `make lighthouse` dans l'image Playwright épinglée (`docker-compose.ci.yml`).
-  La panne du miroir Ubuntu du 2026-11-11 figeait `playwright install --with-deps` plus d'une heure.
-- **Production débloquée** : bloquée sur `9e5fe91` depuis le 2026-11-10 (jeton GHCR refusé, D6),
-  elle sert `369e289`, avec #100 et #103. Tag précédent : `6bb9f5e`. Les deux runs de `main` ont
-  leurs cinq jobs verts. Le job `deploy` a vu sa révision servie au premier tir, et la sonde,
-  déclenchée sur `main`, aussi : `révision servie = tête de main (369e2895ff61)`.
-- **`deploy.sh` installé sur le VPS** par l'utilisateur : empreinte `3137a8a3…5c2a`, identique à
-  `main` ; `flock` présent (`/usr/bin/flock`).
+- **Renovate** : #101 (devDependencies) et #102 (three 0.187, rebasée à la main après #101 :
+  verrou régénéré par pnpm 11.28.11) fusionnées et déployées. **#107** (Playwright 1.65.1) :
+  Renovate avait monté le client SANS l'image des services e2e, que le groupe « playwright »
+  devait emporter — le job `versions de référence` refusait l'écart. Image `v1.65.1-noble`
+  ajoutée à la main (condensat de l'index multi-arch), fusionnée et déployée. ⚠️ À surveiller
+  au prochain passage : si Renovate sépare encore client et image, chercher la cause (âge
+  minimal du preset commun et image MCR sans horodatage — hypothèse non vérifiée).
+- **#108** (`eslint-import-resolver-typescript` 4.x) **laissée ouverte à la demande de
+  l'utilisateur** : `eslint-config-next` 16.4.3 épingle la 3.10.1, pnpm installe alors deux
+  instances d'`eslint-plugin-import` et ESLint refuse `Cannot redefine plugin "import"`.
+  Ne pas la fusionner ; elle redeviendra possible quand Next passera en 4.x.
+- **#109 — repasse mobile P8-05**, sur capture Xiaomi 14T Pro (`carte-mere.md` §12.7) :
+  chaque vue se cadre dans la zone LIBRE réelle (`board-render/cameras.ts`, `fitFov` retiré),
+  visée équilibrée en perspective, marge dans l'image, recadrage sans transition quand seule la
+  zone change (`retarget`) ; format du plan en **version 2** sans `cameras` ; cartes sombres à
+  fine bordure cyan, badges monospace ; en-tête sur une ligne sous 30rem (monogramme « AF ») ;
+  bande de scène `min(42svh, 78vw)`.
+- La mise à jour du prompt du 2026-11-11, jamais poussée, est entrée avec #109.
 
 ⏳ **À vérifier à la reprise** :
-1. Un tir **planifié** de la sonde, vert, après le déploiement :
-   `gh run list --workflow "Sonde externe" --event schedule --limit 1`. Le dernier datait de
-   10:22 UTC le 2026-11-11 : environ 7 h 30 sans tir, la planification « au mieux » de
-   `deploy/README.md` §7.4 ter. Le tir manuel ne prouve pas que le `cron` est vivant.
-2. Le premier déploiement mené par le nouveau `deploy.sh` doit écrire `/srv/portfolio/deploy.log`.
-3. **#101 et #102 (Renovate)** : leur case de rebase a été cochée le 2026-11-11, avec 2 commits de
-   retard. Relire leur CI après le passage de Renovate. Ne pas les fusionner sans accord.
+1. Le retour de l'utilisateur sur son téléphone, sur le rendu de #109 (voir la mission).
+2. `/srv/portfolio/deploy.log` sur le VPS : le premier déploiement mené par le nouveau
+   `deploy.sh` devait l'écrire (point ouvert depuis le 2026-11-11, non vérifiable depuis ici).
+3. ✅ Soldé le 2026-11-17 : la sonde planifiée tire bien (dernier tir vert à 11:11 UTC).
 
-### Reprise précédente — 2026-11-03
+### Reprise précédente — 2026-11-11
 
-La mise à jour précédente du prompt est fusionnée : **#97, `a873086`**, présente dans le `main`
-local au relevé du 2026-11-03. Ne plus demander de vérifier la fusion de sa branche.
-Le déploiement distant de ce commit n'a pas été vérifié lors de ce nettoyage : lire la CI et
-l'état servi avant de tirer une conclusion sur la production (procédure ci-dessous).
-
-Les détails des Phases 5 et 6 closes sont dans leurs journaux ; les mesures de NEXUS sont
-historiques. La scène actuelle est la carte mère, documentée dans `carte-mere.md`.
+Session « dettes ouvertes » (#104, #105), close et déployée : healthcheck de dev, `deploy.sh`
+durci et installé sur le VPS, déploiement manquant visible (`X-Source-Revision`), CI sans `apt`.
+Détail dans « Points encore ouverts » et l'historique de `main`.
 
 ### ⛔⛔ Ce qui fait foi pour juger d'un déploiement
 
@@ -135,8 +134,8 @@ URL, tout le reste rend toujours 302.
 |---|---|---|
 | Chunk 3D, socle partagé, JS par route | chiffres courants en **un seul endroit** : [`performance-budget.md`](./performance-budget.md) §4.5 | — |
 | Image de production | **281 Mo** | cible 250 · bloquant 400 |
-| Tests | **1346** verts (2026-11-03, après enrichissement du contenu) ; couverture de `src/scene/state` : **100 %** sur les quatre axes (2026-10-31, après le retrait de NEXUS et de `closeUp`). Le chiffre global du dépôt n'a pas été relevé | ≥ 80 % |
-| E2E | **185** sur 5 profils (2026-11-02, contre l'image de production ; `panel-during-transition` et `content-once` échouent parfois sous la charge de la suite complète, verts en isolé) | — |
+| Tests | **1380** verts (2026-11-17, après #109) ; couverture de `src/scene/state` : **100 %** sur les quatre axes (2026-10-31, après le retrait de NEXUS et de `closeUp`). Le chiffre global du dépôt n'a pas été relevé | ≥ 80 % |
+| E2E | **185** sur 5 profils (2026-11-17, rejoué après #109 ; relevé précédent 2026-11-02, contre l'image de production ; `panel-during-transition` et `content-once` échouent parfois sous la charge de la suite complète, verts en isolé) | — |
 | **Ce que le GPU rend** | carte mère, **les quatre vues**, 2026-11-02 (RTX 5050 Laptop) : **19** draw calls · **28 658** triangles · 11 programmes, identiques d'une vue à l'autre (la carte est dessinée entière) ; premier relevé mobile le 2026-11-03, voir `carte-mere.md` §12.5 | ≤ 60 / ≤ 150 000 |
 | **TBT de la scène** (panneau `?debug=scene`, Accueil, production) | **0 ms** sur les quatre vues, 0 tâche longue, 1re image 416 à 495 ms (2026-11-02, après #95 ; 185 ms avant) | — |
 
@@ -232,9 +231,10 @@ mets l'ADR à jour et ajoute une ligne au journal des révisions. Jamais de chan
 
 ## Ta mission cette session
 
-**Priorité convenue le 2026-11-03 : nettoyer ce prompt, puis recueillir le retour de l'utilisateur
-sur son téléphone pour avancer vers la clôture de la partie carte mère.** Une première capture téléphone a été reçue le 2026-11-03 (`carte-mere.md` §12.5) ; son contexte et
-le retour d’usage restent à compléter. Aucune clôture mobile ni validation visuelle ne doit être anticipée.
+**Priorité convenue le 2026-11-17 : clore la Phase 8.** La repasse mobile (#109) est en
+production ; il manque le retour de l'utilisateur sur son téléphone, le relevé P8-11 et trois
+arbitrages, puis le bilan de clôture. Aucune validation visuelle ni clôture mobile ne doit être
+anticipée : c'est l'utilisateur qui valide.
 
 ### Acquis — ne pas refaire
 
@@ -249,9 +249,14 @@ le retour d’usage restent à compléter. Aucune clôture mobile ni validation 
 
 ### Environnement de cette machine
 
-Accès au serveur de développement sur cette machine : `http://localhost:3002/fr`, via
-la surcharge locale `/tmp/portfolio-preview-port.yml` (hors dépôt). Le port 3000 est occupé
-par un autre processus ; ne pas utiliser `make up` seul en supposant qu'il est libre.
+Le dépôt est sur `/opt/portfolio`. Le serveur de développement sert `http://localhost:3000/fr`
+(`make up-d`, puis **`make down` après** : fuite mémoire connue). ⚠️ Le port **3001** est tenu par
+le Grafana de la pile augure : `make e2e-prod` échoue à recréer `portfolio-prod-web-1` sur ce port.
+Contournement utilisé le 2026-11-17 — une surcharge jetable qui retire la publication du port
+(les tests passent par `http://web:3000`, réseau interne) :
+`docker compose -f docker-compose.prod.yml -f <surcharge> run --rm e2e`, la surcharge portant
+`services: { web: { ports: !reset [] } }`. Captures mobiles : service `e2e` + script Playwright
+jetable, viewport 393 × 852, `--use-angle=swiftshader`.
 
 ### Suite et conditions de clôture
 
@@ -275,29 +280,24 @@ Les relevés GPU du 2026-11-02 et du téléphone précèdent cet enrichissement 
 ils portent sur trois projets. La carte régénérée en porte six ; ne pas lui attribuer ces
 anciens chiffres sans nouveau relevé.
 
-1. **P8-11 — compléter le retour sur téléphone réel.** Première capture reçue le 2026-11-03 :
-   Xiaomi 14T Pro sous Chrome, GPU Mali-G720-Immortalis MC12, sans compilation parallèle ; relevé transcrit dans
-   `carte-mere.md` §12.5. Ne pas redemander les valeurs déjà visibles ; recueillir le contexte
-   manquant et le ressenti, puis les autres vues si nécessaire.
-   Utiliser le site avec `?debug=scene`, dans une nouvelle fenêtre privée, et préciser :
-   modèle du téléphone, système, navigateur, URL et version servie si disponible.
-   Relever à l'accueil le palier (`lite`/`full`/`none`), la première image, les tâches longues/TBT
-   si disponibles, les appels, triangles et programmes ; puis parcourir Expériences, Projets,
-   Compétences et une fiche. Signaler chargement, saccades, lisibilité et navigation.
-   Une valeur absente du panneau est **non disponible**, jamais zéro. Si la scène ne monte pas,
-   relever le palier et vérifier le contenu documentaire : cela ne mesure pas la performance 3D.
-   Consigner le retour et ses limites dans `carte-mere.md` §12.5 avant de mettre à jour la roadmap.
-   Un téléphone ne couvre pas à lui seul tous les GPU intégrés et Safari : nommer ce qui reste
-   non mesuré et expliciter l'arbitrage si une clôture avec couverture partielle est proposée.
-2. **P8-05 — repasse visuelle après finalisation du contenu**, puis validation par l'utilisateur.
-   Le rendu actuel ne lui convient pas vraiment ; tâche reportée, toujours ouverte.
-   Recueillir aussi les arbitrages de `carte-mere.md` §12.6 : vide sous Expériences, aspect des
-   ponts, affinité des emplacements de processeurs, impulsions immobiles au palier `lite`.
-   Ne pas trancher ces choix à sa place.
-3. **Bilan de clôture.** Après les retours, corriger les défauts observés si nécessaire,
-   vérifier les critères de sortie de la Phase 8 et mettre à jour ensemble la roadmap, les
-   mesures et ce prompt. Distinguer tâches terminées, arbitrages acceptés et couverture restante.
-   La Phase 8 reste **IN_PROGRESS** tant que ce bilan n'est pas établi.
+1. **P8-05 — validation par l'utilisateur** du rendu de #109 sur son téléphone, en fenêtre
+   privée. La repasse est faite (`carte-mere.md` §12.7) ; si le rendu ne convient toujours pas,
+   recueillir CE qui gêne sur une capture avant de proposer quoi que ce soit.
+2. **P8-11 — relevé sur téléphone réel**, APRÈS la validation, sur le rendu déployé. Le relevé
+   du 2026-11-03 (`carte-mere.md` §12.5) précède l'enrichissement du contenu (6 projets) et la
+   repasse : il ne vaut plus pour la version servie. Avec `?debug=scene`, nouvelle fenêtre
+   privée : modèle, système, navigateur et sa version, URL ; à l'accueil le palier, la première
+   image, les tâches longues/TBT, appels, triangles, programmes ; puis Expériences, Projets,
+   Compétences et une fiche — chargement, saccades, lisibilité, navigation. Une valeur absente
+   du panneau est **non disponible**, jamais zéro. Consigner dans `carte-mere.md` §12.5 ; un
+   téléphone ne couvre ni Safari ni les GPU intégrés de bureau : le nommer.
+3. **Arbitrages restants de `carte-mere.md` §12.6** : aspect des ponts, affinité des
+   emplacements de processeurs, impulsions immobiles au palier `lite` (le vide sous Expériences
+   est traité). Ne pas les trancher à sa place.
+4. **Bilan de clôture** : corriger ce que les retours révèlent, vérifier les critères de sortie
+   de la Phase 8 (budgets de `performance-budget.md` §5 tenus, journal de mesures complet,
+   aucun objet sans justification, contrastes), puis mettre à jour ensemble roadmap, mesures et
+   ce prompt. La Phase 8 reste **IN_PROGRESS** tant que ce bilan n'est pas établi.
 
 **En parallèle, indépendant de la 3D : Phase 10 (envoi du CV), à commencer par P10-11**, vérification
 des prérequis d'expédition.
