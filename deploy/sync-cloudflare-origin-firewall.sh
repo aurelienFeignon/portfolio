@@ -48,14 +48,14 @@ STATE_V4=/srv/edge/.cloudflare-ranges-v4
 STATE_V6=/srv/edge/.cloudflare-ranges-v6
 CHAIN=CF-ORIGIN
 PORTS=80,443
-# Interface publique : seul le trafic qui ENTRE par elle est filtré (pas la sortie des conteneurs).
-# Constante, pas variable d'environnement : le démarrage, le minuteur et un --check à la main
-# doivent tous viser la même interface.
-IFACE=eth0
+IFACE=eth0   # interface publique : seule l'ENTRÉE par elle est filtrée (voir l'en-tête)
+# L'accroche, définie une fois : --apply, --restore et --check doivent viser la même règle.
+HOOK=(-i "$IFACE" -p tcp -m multiport --dports "$PORTS" -j "$CHAIN")
+OLD_HOOK=("${HOOK[@]:2}")   # la même sans -i : l'accroche fautive d'avant le 2026-10-25
 
 die() { echo "ERREUR: $*" >&2; exit 2; }
 [[ $EUID -eq 0 ]] || die "à exécuter en root (sudo)"
-# Une interface absente ou renommée rendrait l'accroche inopérante SANS erreur : 80/443 ouverts à tous.
+# Interface absente ou renommée = accroche inopérante sans erreur, 80/443 ouverts à tous.
 ip link show "$IFACE" >/dev/null 2>&1 || die "interface $IFACE absente — rien n'a été modifié"
 
 # --- Récupération et garde-fous --------------------------------------------
@@ -84,12 +84,9 @@ build() {
     [[ -n "$cidr" ]] && "$ipt" -A "$CHAIN" -s "$cidr" -j RETURN
   done < "$list"
   "$ipt" -A "$CHAIN" -j DROP
-  # Accroche dans DOCKER-USER, une seule fois, pour le seul trafic ENTRANT par l'interface publique.
-  "$ipt" -C DOCKER-USER -i "$IFACE" -p tcp -m multiport --dports "$PORTS" -j "$CHAIN" 2>/dev/null \
-    || "$ipt" -I DOCKER-USER 1 -i "$IFACE" -p tcp -m multiport --dports "$PORTS" -j "$CHAIN"
-  # Puis, seulement une fois la bonne posée (aucune fenêtre sans filtrage), retire l'ancienne
-  # accroche non bornée, qui coupait la sortie des conteneurs (voir l'en-tête).
-  while "$ipt" -D DOCKER-USER -p tcp -m multiport --dports "$PORTS" -j "$CHAIN" 2>/dev/null; do :; done
+  # La bonne accroche d'abord, l'ancienne ensuite : aucune fenêtre sans filtrage.
+  "$ipt" -C DOCKER-USER "${HOOK[@]}" 2>/dev/null || "$ipt" -I DOCKER-USER 1 "${HOOK[@]}"
+  while "$ipt" -D DOCKER-USER "${OLD_HOOK[@]}" 2>/dev/null; do :; done
   echo "  $(basename "$ipt") : $(wc -l < "$list") plages autorisées, le reste rejeté"
 }
 
@@ -138,11 +135,11 @@ case "$MODE" in
       echo "DÉRIVE : la chaîne $CHAIN est absente ou ne se termine pas par DROP"
       drift=1
     fi
-    if ! iptables -C DOCKER-USER -i "$IFACE" -p tcp -m multiport --dports "$PORTS" -j "$CHAIN" 2>/dev/null; then
+    if ! iptables -C DOCKER-USER "${HOOK[@]}" 2>/dev/null; then
       echo "DÉRIVE : $CHAIN n'est pas accrochée dans DOCKER-USER pour l'entrée par $IFACE"
       drift=1
     fi
-    if iptables -C DOCKER-USER -p tcp -m multiport --dports "$PORTS" -j "$CHAIN" 2>/dev/null; then
+    if iptables -C DOCKER-USER "${OLD_HOOK[@]}" 2>/dev/null; then
       echo "DÉRIVE : ancienne accroche non bornée à $IFACE présente — elle coupe le HTTPS sortant des conteneurs"
       drift=1
     fi
