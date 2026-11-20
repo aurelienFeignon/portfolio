@@ -17,6 +17,13 @@ services:
     restart: unless-stopped
     init: true
 
+    # Audit debian-host-audit du 2026-11-20 (docker-bench 5.11, 5.26). ~120 Mio
+    # observés : la borne empêche un emballement d'affamer les autres piles du
+    # VPS (4 Go, collecte de secours Augure comprise).
+    mem_limit: 384m
+    security_opt:
+      - no-new-privileges:true
+
     # SITE_URL notamment : l'application refuse de démarrer sans (P1-10).
     env_file:
       - .env

@@ -45,6 +45,8 @@ STATE_V4=/srv/edge/.cloudflare-ranges-v4
 STATE_V6=/srv/edge/.cloudflare-ranges-v6
 CHAIN=CF-ORIGIN
 PORTS=80,443
+# Interface publique : seul le trafic qui ENTRE par elle est filtré (pas la sortie des conteneurs).
+IFACE="${CF_ORIGIN_IFACE:-eth0}"
 
 die() { echo "ERREUR: $*" >&2; exit 2; }
 [[ $EUID -eq 0 ]] || die "à exécuter en root (sudo)"
@@ -75,9 +77,13 @@ build() {
     [[ -n "$cidr" ]] && "$ipt" -A "$CHAIN" -s "$cidr" -j RETURN
   done < "$list"
   "$ipt" -A "$CHAIN" -j DROP
-  # Accroche dans DOCKER-USER, une seule fois.
-  "$ipt" -C DOCKER-USER -p tcp -m multiport --dports "$PORTS" -j "$CHAIN" 2>/dev/null \
-    || "$ipt" -I DOCKER-USER 1 -p tcp -m multiport --dports "$PORTS" -j "$CHAIN"
+  # Retire l'ancienne accroche, non bornée à l'interface publique : elle filtrait AUSSI la sortie
+  # des conteneurs vers :80/:443 (source 172.x, hors plages Cloudflare → DROP), ce qui bloquait le
+  # renouvellement ACME de Caddy et tout HTTPS sortant des conteneurs (constaté le 2026-10-25).
+  while "$ipt" -D DOCKER-USER -p tcp -m multiport --dports "$PORTS" -j "$CHAIN" 2>/dev/null; do :; done
+  # Accroche dans DOCKER-USER, une seule fois, pour le seul trafic ENTRANT par l'interface publique.
+  "$ipt" -C DOCKER-USER -i "$IFACE" -p tcp -m multiport --dports "$PORTS" -j "$CHAIN" 2>/dev/null \
+    || "$ipt" -I DOCKER-USER 1 -i "$IFACE" -p tcp -m multiport --dports "$PORTS" -j "$CHAIN"
   echo "  $(basename "$ipt") : $(wc -l < "$list") plages autorisées, le reste rejeté"
 }
 
@@ -126,7 +132,7 @@ case "$MODE" in
       echo "DÉRIVE : la chaîne $CHAIN est absente ou ne se termine pas par DROP"
       drift=1
     fi
-    if ! iptables -C DOCKER-USER -p tcp -m multiport --dports "$PORTS" -j "$CHAIN" 2>/dev/null; then
+    if ! iptables -C DOCKER-USER -i "$IFACE" -p tcp -m multiport --dports "$PORTS" -j "$CHAIN" 2>/dev/null; then
       echo "DÉRIVE : $CHAIN n'est pas accrochée dans DOCKER-USER"
       drift=1
     fi
