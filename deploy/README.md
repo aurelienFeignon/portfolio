@@ -522,6 +522,14 @@ Deux unités systemd portent l'automatisme :
 répond toujours par Cloudflare, et le challenge ACME atteint encore Caddy — le renouvellement du
 certificat n'est donc pas cassé par ce filtrage.
 
+> ⛔ **Ce contrôle ne regardait que l'ENTRÉE.** La première accroche, non bornée à une interface,
+> filtrait aussi la **sortie** des conteneurs vers :80/:443 (source 172.x, hors plages Cloudflare →
+> DROP) : tout HTTPS sortant était coupé, le renouvellement ACME **de Caddy vers Let's Encrypt**
+> compris (constaté le 2026-10-25). L'accroche porte donc `-i eth0` ; le script refuse de tourner si
+> l'interface n'existe pas (renommée en `ens3` par exemple, elle n'aurait plus filtré, sans erreur),
+> et `--check` signale l'ancienne accroche si elle réapparaît. Sur un VPS dont l'interface publique
+> porte un autre nom, changer la constante `IFACE` du script.
+
 Le port 22 n'est pas concerné : voir §6.1.
 
 **Ce que ce filtrage ne fait pas.** Il rejette au niveau de l'hôte, donc les paquets ont déjà

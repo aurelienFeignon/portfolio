@@ -25,8 +25,11 @@
 # les adresses changent à chaque exécution (voir README §6.1). Ce script ne
 # filtre que 80 et 443, et uniquement pour le trafic destiné aux conteneurs.
 #
-# Le renouvellement du certificat continue de fonctionner : le challenge ACME
-# arrive par Cloudflare, ce qui a été vérifié avant d'écrire ce script.
+# L'accroche est bornée à l'interface publique (`-i $IFACE`), et ce n'est pas
+# facultatif : sans elle, la règle filtre aussi la SORTIE des conteneurs vers
+# :80/:443 (source 172.x, hors plages Cloudflare → DROP), ce qui coupe tout
+# HTTPS sortant, renouvellement ACME de Caddy compris (constaté le 2026-10-25).
+# Le challenge ACME entrant, lui, arrive par Cloudflare.
 #
 # Usage :
 #   sudo ./sync-cloudflare-origin-firewall.sh --apply     récupère les plages, applique, mémorise
@@ -46,10 +49,14 @@ STATE_V6=/srv/edge/.cloudflare-ranges-v6
 CHAIN=CF-ORIGIN
 PORTS=80,443
 # Interface publique : seul le trafic qui ENTRE par elle est filtré (pas la sortie des conteneurs).
-IFACE="${CF_ORIGIN_IFACE:-eth0}"
+# Constante, pas variable d'environnement : le démarrage, le minuteur et un --check à la main
+# doivent tous viser la même interface.
+IFACE=eth0
 
 die() { echo "ERREUR: $*" >&2; exit 2; }
 [[ $EUID -eq 0 ]] || die "à exécuter en root (sudo)"
+# Une interface absente ou renommée rendrait l'accroche inopérante SANS erreur : 80/443 ouverts à tous.
+ip link show "$IFACE" >/dev/null 2>&1 || die "interface $IFACE absente — rien n'a été modifié"
 
 # --- Récupération et garde-fous --------------------------------------------
 fetch() {
@@ -77,13 +84,12 @@ build() {
     [[ -n "$cidr" ]] && "$ipt" -A "$CHAIN" -s "$cidr" -j RETURN
   done < "$list"
   "$ipt" -A "$CHAIN" -j DROP
-  # Retire l'ancienne accroche, non bornée à l'interface publique : elle filtrait AUSSI la sortie
-  # des conteneurs vers :80/:443 (source 172.x, hors plages Cloudflare → DROP), ce qui bloquait le
-  # renouvellement ACME de Caddy et tout HTTPS sortant des conteneurs (constaté le 2026-10-25).
-  while "$ipt" -D DOCKER-USER -p tcp -m multiport --dports "$PORTS" -j "$CHAIN" 2>/dev/null; do :; done
   # Accroche dans DOCKER-USER, une seule fois, pour le seul trafic ENTRANT par l'interface publique.
   "$ipt" -C DOCKER-USER -i "$IFACE" -p tcp -m multiport --dports "$PORTS" -j "$CHAIN" 2>/dev/null \
     || "$ipt" -I DOCKER-USER 1 -i "$IFACE" -p tcp -m multiport --dports "$PORTS" -j "$CHAIN"
+  # Puis, seulement une fois la bonne posée (aucune fenêtre sans filtrage), retire l'ancienne
+  # accroche non bornée, qui coupait la sortie des conteneurs (voir l'en-tête).
+  while "$ipt" -D DOCKER-USER -p tcp -m multiport --dports "$PORTS" -j "$CHAIN" 2>/dev/null; do :; done
   echo "  $(basename "$ipt") : $(wc -l < "$list") plages autorisées, le reste rejeté"
 }
 
@@ -133,7 +139,11 @@ case "$MODE" in
       drift=1
     fi
     if ! iptables -C DOCKER-USER -i "$IFACE" -p tcp -m multiport --dports "$PORTS" -j "$CHAIN" 2>/dev/null; then
-      echo "DÉRIVE : $CHAIN n'est pas accrochée dans DOCKER-USER"
+      echo "DÉRIVE : $CHAIN n'est pas accrochée dans DOCKER-USER pour l'entrée par $IFACE"
+      drift=1
+    fi
+    if iptables -C DOCKER-USER -p tcp -m multiport --dports "$PORTS" -j "$CHAIN" 2>/dev/null; then
+      echo "DÉRIVE : ancienne accroche non bornée à $IFACE présente — elle coupe le HTTPS sortant des conteneurs"
       drift=1
     fi
     if (( drift )); then echo "corriger avec : sudo $0 --apply"; exit 1; fi

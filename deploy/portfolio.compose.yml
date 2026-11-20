@@ -19,8 +19,10 @@ services:
 
     # Audit debian-host-audit du 2026-11-20 (docker-bench 5.11, 5.26). ~120 Mio
     # observés : la borne empêche un emballement d'affamer les autres piles du
-    # VPS (4 Go, collecte de secours Augure comprise).
+    # VPS (4 Go, collecte de secours Augure comprise). memswap_limit égal : sans
+    # lui, le VPS ayant du swap, le conteneur pourrait doubler sa borne en swap.
     mem_limit: 384m
+    memswap_limit: 384m
     security_opt:
       - no-new-privileges:true
 
