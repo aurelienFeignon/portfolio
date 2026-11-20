@@ -25,8 +25,11 @@
 # les adresses changent à chaque exécution (voir README §6.1). Ce script ne
 # filtre que 80 et 443, et uniquement pour le trafic destiné aux conteneurs.
 #
-# Le renouvellement du certificat continue de fonctionner : le challenge ACME
-# arrive par Cloudflare, ce qui a été vérifié avant d'écrire ce script.
+# L'accroche est bornée à l'interface publique (`-i $IFACE`), et ce n'est pas
+# facultatif : sans elle, la règle filtre aussi la SORTIE des conteneurs vers
+# :80/:443 (source 172.x, hors plages Cloudflare → DROP), ce qui coupe tout
+# HTTPS sortant, renouvellement ACME de Caddy compris (constaté le 2026-10-25).
+# Le challenge ACME entrant, lui, arrive par Cloudflare.
 #
 # Usage :
 #   sudo ./sync-cloudflare-origin-firewall.sh --apply     récupère les plages, applique, mémorise
@@ -45,9 +48,15 @@ STATE_V4=/srv/edge/.cloudflare-ranges-v4
 STATE_V6=/srv/edge/.cloudflare-ranges-v6
 CHAIN=CF-ORIGIN
 PORTS=80,443
+IFACE=eth0   # interface publique : seule l'ENTRÉE par elle est filtrée (voir l'en-tête)
+# L'accroche, définie une fois : --apply, --restore et --check doivent viser la même règle.
+HOOK=(-i "$IFACE" -p tcp -m multiport --dports "$PORTS" -j "$CHAIN")
+OLD_HOOK=("${HOOK[@]:2}")   # la même sans -i : l'accroche fautive d'avant le 2026-10-25
 
 die() { echo "ERREUR: $*" >&2; exit 2; }
 [[ $EUID -eq 0 ]] || die "à exécuter en root (sudo)"
+# Interface absente ou renommée = accroche inopérante sans erreur, 80/443 ouverts à tous.
+ip link show "$IFACE" >/dev/null 2>&1 || die "interface $IFACE absente — rien n'a été modifié"
 
 # --- Récupération et garde-fous --------------------------------------------
 fetch() {
@@ -75,9 +84,9 @@ build() {
     [[ -n "$cidr" ]] && "$ipt" -A "$CHAIN" -s "$cidr" -j RETURN
   done < "$list"
   "$ipt" -A "$CHAIN" -j DROP
-  # Accroche dans DOCKER-USER, une seule fois.
-  "$ipt" -C DOCKER-USER -p tcp -m multiport --dports "$PORTS" -j "$CHAIN" 2>/dev/null \
-    || "$ipt" -I DOCKER-USER 1 -p tcp -m multiport --dports "$PORTS" -j "$CHAIN"
+  # La bonne accroche d'abord, l'ancienne ensuite : aucune fenêtre sans filtrage.
+  "$ipt" -C DOCKER-USER "${HOOK[@]}" 2>/dev/null || "$ipt" -I DOCKER-USER 1 "${HOOK[@]}"
+  while "$ipt" -D DOCKER-USER "${OLD_HOOK[@]}" 2>/dev/null; do :; done
   echo "  $(basename "$ipt") : $(wc -l < "$list") plages autorisées, le reste rejeté"
 }
 
@@ -126,8 +135,12 @@ case "$MODE" in
       echo "DÉRIVE : la chaîne $CHAIN est absente ou ne se termine pas par DROP"
       drift=1
     fi
-    if ! iptables -C DOCKER-USER -p tcp -m multiport --dports "$PORTS" -j "$CHAIN" 2>/dev/null; then
-      echo "DÉRIVE : $CHAIN n'est pas accrochée dans DOCKER-USER"
+    if ! iptables -C DOCKER-USER "${HOOK[@]}" 2>/dev/null; then
+      echo "DÉRIVE : $CHAIN n'est pas accrochée dans DOCKER-USER pour l'entrée par $IFACE"
+      drift=1
+    fi
+    if iptables -C DOCKER-USER "${OLD_HOOK[@]}" 2>/dev/null; then
+      echo "DÉRIVE : ancienne accroche non bornée à $IFACE présente — elle coupe le HTTPS sortant des conteneurs"
       drift=1
     fi
     if (( drift )); then echo "corriger avec : sudo $0 --apply"; exit 1; fi
