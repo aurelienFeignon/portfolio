@@ -1,0 +1,46 @@
+# Pile « edge » du VPS — ADR-0008 §2.
+#
+# Autonome : son cycle de vie est independant de celui du portfolio. Un
+# `docker compose down` cote portfolio ne doit jamais emporter le TLS des
+# autres sites heberges ici.
+#
+# Image epinglee par digest, comme le Dockerfile du projet : le tag `2-alpine`
+# est mutable et ferait deriver le proxy sans qu'aucun fichier ne change.
+
+name: edge
+
+services:
+  caddy:
+    image: caddy:2.11.9-alpine@sha256:003a97808e781aa9f7e75cc2f43d34d461099031faf5e20faefb9f61126836f0
+    restart: unless-stopped
+    # Audit 2026-11-20 (docker-bench 5.11/5.26) : 36 Mio observes ; borne un emballement
+    # avant qu il n affame la collecte de secours sur ce VPS de 4 Go.
+    mem_limit: 256m
+    memswap_limit: 256m
+    security_opt:
+      - no-new-privileges:true
+    init: true
+    ports:
+      - '80:80'
+      - '443:443'
+      - '443:443/udp' # HTTP/3
+    environment:
+      # Absent ou vide => Compose refuse de demarrer, plutot que de servir un
+      # site sur un nom vide.
+      - SITE_DOMAIN=${SITE_DOMAIN:?SITE_DOMAIN manquant dans /srv/edge/.env}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      # Les certificats vivent ici : sans ce volume, chaque redemarrage
+      # redemande un certificat et se heurte aux quotas Let's Encrypt.
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      - edge
+
+networks:
+  edge:
+    external: true
+
+volumes:
+  caddy_data:
+  caddy_config:
