@@ -5,6 +5,7 @@ Ce dossier porte la configuration d'exécution sur le VPS (ADR-0008).
 | Fichier | Rôle | Tâche |
 |---|---|---|
 | [`Caddyfile`](./Caddyfile) | Pile « edge » : TLS automatique, en-têtes de sécurité, cache des assets immuables | P1-13 |
+| [`edge.compose.yml`](./edge.compose.yml) | Pile « edge » (Caddy épinglé par digest, bornes mémoire, `no-new-privileges`), copiée en `/srv/edge/docker-compose.yml` ; versionnée le 2026-11-23, elle n'existait jusque-là que sur le VPS | P1-13 |
 | [`portfolio.compose.yml`](./portfolio.compose.yml) | Pile applicative, copiée en `/srv/portfolio/docker-compose.yml` | P1-15 |
 | [`deploy.sh`](./deploy.sh) | Point d'entrée unique de la clé de déploiement de la CI | P1-15 |
 | [`sync-cloudflare-origin-firewall.sh`](./sync-cloudflare-origin-firewall.sh) | Restreint 80/443 de l'origine aux plages Cloudflare | P1-15 |
@@ -107,7 +108,7 @@ réseau `edge` présent, minuterie de purge active, politique `sshd` inchangée.
 
 ```
 /srv/edge/          pile « edge », autonome (Caddy, TLS, en-têtes)
-  docker-compose.yml    image Caddy épinglée par digest
+  docker-compose.yml    copie de deploy/edge.compose.yml (image Caddy épinglée par digest)
   Caddyfile             copie de deploy/Caddyfile de ce dépôt
   .env                  SITE_DOMAIN — permissions 600
 /srv/portfolio/     pile applicative
