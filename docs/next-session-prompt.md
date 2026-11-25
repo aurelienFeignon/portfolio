@@ -64,10 +64,40 @@ fait échouer la commande, donc le build), et la scène ne fait que le dessiner.
 ⚠️ **Ce qui suit sur NEXUS est historique** (en production du 2026-10-23 au 2026-10-31, #58, `854d1fe`) — D11 : le bureau 3D est
 remplacé par un noyau numérique et trois univers, avec navigation hybride et `ReadingPanel` en verre
 lumineux. Pour l'historique, `docs/nexus-prototype.md` §6 (enquête de performance). Les Phases 7 à 9 sont réorientées dans la roadmap.
+### Dernière reprise — 2026-11-25 : Phase 10 engagée, ⛔ RIEN de fusionné
+
+Session « Phase 10, envoi du CV ». **Deux PR ouvertes, CI verte, NON fusionnées** — la
+fusion déploie sur le VPS, et elle attend le **feu vert explicite du pilote K2** de la pile
+augure (voir « Environnement de cette machine ») :
+
+- **#117** — P10-11, P10-13, P10-14 (documentation) :
+  - P10-11 : `make check-dns` vert ; domaine `Active`, SPF/DKIM OK chez Mailjet ; offre
+    **gratuite**, chiffres dans l'ADR-0006 ; plafond de 20/jour conservé.
+  - P10-13 : **sous-compte Mailjet `portfolio`** (inclus dans l'offre gratuite), seul porteur de
+    `aurelienfeignon.com` (retiré du compte principal, aucun changement DNS) ; expéditeur
+    **`cv@aurelienfeignon.com`**, déclaré, type Transactionnel. Aucune limite par clé : le
+    cloisonnement du **quota** d'Augure n'est **pas établi**, le plafond du code reste la protection.
+  - P10-14 : test reçu en boîte de réception sur Gmail et Outlook, **SPF, DKIM, DMARC PASS**,
+    0 rejet. ⭐ DMARC ne passe **que par le DKIM** (SPF non aligné chez Mailjet). ⚠️ La réception
+    du **CV réel** reste à faire après P10-07.
+- **#118** — P10-01 à P10-05 (code, `src/features/resume/`, 68 tests, 100 % de couverture) :
+  interfaces, faux et console (refusée en production), `parseResumeRequest` (Zod, honeypot
+  `comment`, time-trap 3 s, adresse en minuscules), `MemoryRateLimiter` et `FileRateLimiter`
+  (plafond persisté, écriture durable, stockage en échec ⇒ refus signalé), décision commune
+  `sliding-window.ts`. Les deux revues ont trouvé **16 défauts réels** sur du code vert, tous traités.
+  - ⚠️ P10-05 : **le volume** (dans `deploy/`, inscriptible par `node`) reste au câblage — geste VPS.
+  - ⭐ **Décisions de P10-06, prises par l'utilisateur** et consignées dans la roadmap : page
+    `/[locale]/contact` **rendue à la demande** (seule exception à `check-static-rendering`, à
+    nommer et tester ; ADR-0006 et `architecture.md` à amender), **hors navigation et hors
+    sitemap** jusqu'à P10-07 et la réception réelle du CV.
+
+**Si la fusion est autorisée** : fusionner **#116, puis #117, puis #118** (#116 porte ce
+fichier, mis à jour en fin de session) ; vérifier les cinq jobs de `main` à chaque fois.
+
 **Tout ce qui suit est fusionné sur `main` et déployé**, les cinq jobs verts à chaque fois —
 publication GHCR et déploiement VPS compris.
 
-### Dernière reprise — 2026-11-17
+### Reprise précédente — 2026-11-17
 
 Session « PR Renovate puis repasse mobile », **close et déployée** : la production sert
 `59c0db9` (#109), révision servie au premier tir, les cinq jobs de `main` verts.
@@ -97,7 +127,7 @@ Session « PR Renovate puis repasse mobile », **close et déployée** : la prod
    `deploy.sh` devait l'écrire (point ouvert depuis le 2026-11-11, non vérifiable depuis ici).
 3. ✅ Soldé le 2026-11-17 : la sonde planifiée tire bien (dernier tir vert à 11:11 UTC).
 
-### Reprise précédente — 2026-11-11
+### Reprise du 2026-11-11
 
 Session « dettes ouvertes » (#104, #105), close et déployée : healthcheck de dev, `deploy.sh`
 durci et installé sur le VPS, déploiement manquant visible (`X-Source-Revision`), CI sans `apt`.
@@ -258,6 +288,15 @@ Contournement utilisé le 2026-11-17 — une surcharge jetable qui retire la pub
 `services: { web: { ports: !reset [] } }`. Captures mobiles : service `e2e` + script Playwright
 jetable, viewport 393 × 852, `--use-angle=swiftshader`.
 
+⛔⛔ **Cette machine est l'hôte de la pile augure, et des campagnes de mesure (« K2 », chantier
+MMA) y gèlent des plages** (novembre 2026, peut durer). **Avant tout conteneur, test, build, push
+ou fusion** : lire `~/mma-nocturne/COORDINATION-PLAGES-GELEES-K2-2026-11.md`, et demander au
+pilote K2 (session `augure-dev-*`, via `ListAgents`) ce qui est permis. Le 2026-11-25 : conteneurs
+jusqu'à 17:45 UTC, Playwright avant 17:00, push autorisé (CI sur runners GitHub hébergés),
+**aucune fusion ni geste sur le VPS** — son ntfy sert de canal au quitus K2. Chaque activité dans
+une plage se **consigne** dans `~/mma-nocturne/COORDINATION-JOURNAL-PLAGES.md` (une ligne, UTC).
+⚠️ Le crochet de garde MMA refuse un heredoc non protégé contenant `` ` `` ou `$(` : écrire `<<'EOF'`.
+
 ### Suite et conditions de clôture
 
 **Ordre précisé par l'utilisateur le 2026-11-03 : terminer le contenu, puis faire une repasse
@@ -299,8 +338,11 @@ anciens chiffres sans nouveau relevé.
    aucun objet sans justification, contrastes), puis mettre à jour ensemble roadmap, mesures et
    ce prompt. La Phase 8 reste **IN_PROGRESS** tant que ce bilan n'est pas établi.
 
-**En parallèle, indépendant de la 3D : Phase 10 (envoi du CV), à commencer par P10-11**, vérification
-des prérequis d'expédition.
+**En parallèle, indépendant de la 3D : Phase 10 (envoi du CV).** P10-01 à P10-05, P10-11, P10-13
+et P10-14 sont livrées (PR #117 et #118, voir « Dernière reprise »). **Suite : P10-06** (Server
+Action + formulaire sans JavaScript), selon les deux décisions déjà prises — ne pas les reposer.
+Puis P10-07 (`MailjetResumeSender`, refuse `ConsoleResumeSender` en production, câble le volume du
+plafond), P10-16, P10-09, P10-08, P10-15, P10-18, P10-17, P10-10, et la réception du CV réel.
 
 **Décision ultérieure — Phase 9 :** faire choisir à l'utilisateur la forme des destinations CV,
 GitHub, LinkedIn et « à propos » dans la carte mère ; les objets du bureau et NEXUS sont retirés.
