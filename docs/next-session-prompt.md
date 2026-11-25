@@ -91,7 +91,9 @@ augure (voir « Environnement de cette machine ») :
     nommer et tester ; ADR-0006 et `architecture.md` à amender), **hors navigation et hors
     sitemap** jusqu'à P10-07 et la réception réelle du CV.
 
-**Si la fusion est autorisée** : fusionner **#116, puis #117, puis #118** (#116 porte ce
+⛔ **Pilote K2 `augure-dev-f6 [8ee6bf]`, le 2026-11-25 à 17:50 UTC : aucune fusion et aucun geste sur le
+VPS avant le vendredi 27/11 à 07:30 UTC**, puis seulement sur son feu vert explicite (plus tôt si la
+campagne du 26 est annulée). **Si la fusion est autorisée** : fusionner **#116, puis #117, puis #118** (#116 porte ce
 fichier, mis à jour en fin de session) ; vérifier les cinq jobs de `main` à chaque fois.
 
 **Tout ce qui suit est fusionné sur `main` et déployé**, les cinq jobs verts à chaque fois —
