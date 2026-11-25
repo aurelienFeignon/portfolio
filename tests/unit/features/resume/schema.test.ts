@@ -30,6 +30,18 @@ describe('parseResumeRequest', () => {
     })
   })
 
+  it('met l’adresse en minuscules : la casse ne crée pas une seconde clé de rate limit', () => {
+    const verdict = parseResumeRequest(form({ email: 'Visiteur@Example.TEST' }), NOW)
+    expect(verdict).toEqual({
+      kind: 'valid',
+      request: { email: 'visiteur@example.test', locale: 'fr' },
+    })
+  })
+
+  it('n’appelle pas son honeypot d’un nom que le remplissage automatique reconnaît', () => {
+    expect(HONEYPOT_FIELD).not.toMatch(/website|url|company|name|email|tel|address/i)
+  })
+
   it('accepte un honeypot absent', () => {
     const sansPiege: Record<string, unknown> = form()
     delete sansPiege[HONEYPOT_FIELD]

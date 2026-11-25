@@ -6,8 +6,10 @@
  *
  * ⚠️ Il journalise l'adresse saisie. C'est acceptable parce qu'il ne sert qu'en
  * développement, où l'adresse est celle du développeur ; le choix de
- * l'implémentation selon l'environnement (P10-07) doit donc **refuser** celle-ci
- * en production plutôt que de s'y rabattre faute d'identifiants.
+ * l'implémentation selon l'environnement (P10-07) doit **refuser** celle-ci en
+ * production plutôt que de s'y rabattre faute d'identifiants — et le
+ * constructeur le refuse aussi, pour qu'un mauvais repli échoue bruyamment au
+ * lieu d'écrire les adresses des visiteurs dans les journaux (CF-08).
  */
 import type { Locale } from '@/i18n/locales'
 
@@ -17,6 +19,9 @@ export class ConsoleResumeSender implements ResumeSender {
   readonly #log: (message: string) => void
 
   constructor(log: (message: string) => void = (message) => console.info(message)) {
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('ConsoleResumeSender est réservé au développement')
+    }
     this.#log = log
   }
 

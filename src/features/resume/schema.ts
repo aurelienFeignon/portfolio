@@ -16,10 +16,22 @@ import { z } from 'zod'
 
 import { LOCALES, type Locale } from '@/i18n/locales'
 
-/** Champ invisible pour un humain ; un robot qui remplit tout le remplit aussi. */
-export const HONEYPOT_FIELD = 'website'
+/**
+ * Champ invisible pour un humain ; un robot qui remplit tout le remplit aussi.
+ * ⚠️ Pas `website`, `url` ni `company` : le remplissage automatique des
+ * navigateurs les reconnaît, et un humain serait alors jugé robot sans le savoir.
+ * Le rendu (P10-06) le pose avec `autocomplete="off"`, `tabindex="-1"` et hors de
+ * l'arbre d'accessibilité.
+ */
+export const HONEYPOT_FIELD = 'comment'
 
-/** Horodatage (ms) du rendu du formulaire, posé en champ caché par le serveur. */
+/**
+ * Horodatage (ms) du rendu du formulaire, posé en champ caché par le serveur.
+ * ⛔ Il doit être écrit **à chaque requête** : sur une page prégénérée, il
+ * porterait l'instant du build, toujours vieux de plus de `MIN_FILL_MS`, et le
+ * piège laisserait tout passer sans rien dire. P10-06 rend donc ce segment
+ * dynamiquement.
+ */
 export const RENDERED_AT_FIELD = 'renderedAt'
 
 /** En dessous, aucun humain n'a pu lire la page, saisir une adresse et valider. */
@@ -29,7 +41,9 @@ export const MIN_FILL_MS = 3_000
 const EMAIL_MAX_LENGTH = 254
 
 const requestSchema = z.object({
-  email: z.string().trim().max(EMAIL_MAX_LENGTH).pipe(z.email()),
+  // En minuscules : sinon `Victim@Example.test` et `victim@example.test` feraient
+  // deux clés de rate limit, et la limite par adresse se contournerait à la casse.
+  email: z.string().trim().toLowerCase().max(EMAIL_MAX_LENGTH).pipe(z.email()),
   locale: z.enum(LOCALES),
 })
 

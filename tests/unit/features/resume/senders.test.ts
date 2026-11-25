@@ -29,6 +29,13 @@ describe('FakeResumeSender', () => {
     expect(sender.sent).toHaveLength(1)
   })
 
+  it('rend une copie : un instantané ne voit pas les envois suivants', async () => {
+    const sender = new FakeResumeSender()
+    const avant = sender.sent
+    await sender.sendResume('a@example.test', 'fr')
+    expect(avant).toEqual([])
+  })
+
   it('rejette avec une erreur par défaut quand aucune n’est fournie', async () => {
     const sender = new FakeResumeSender()
     sender.failWith()
@@ -42,6 +49,15 @@ describe('ConsoleResumeSender', () => {
     await new ConsoleResumeSender(log).sendResume('a@example.test', 'en')
     expect(log).toHaveBeenCalledOnce()
     expect(log.mock.calls[0]?.[0]).toMatch(/\(en\).*non envoyé.*a@example\.test/)
+  })
+
+  it('refuse d’exister en production, pour ne jamais journaliser une adresse de visiteur', () => {
+    vi.stubEnv('NODE_ENV', 'production')
+    try {
+      expect(() => new ConsoleResumeSender()).toThrow(/développement/)
+    } finally {
+      vi.unstubAllEnvs()
+    }
   })
 
   it('écrit par défaut dans console.info', async () => {

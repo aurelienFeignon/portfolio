@@ -10,6 +10,9 @@
  * l'on oublie celles qui sortent de la fenêtre. Les volumes sont minuscules
  * (quelques unités par clé), donc la liste est le bon compromis.
  *
+ * Une clé appartient à **une seule règle** : la réutiliser sous une autre fenêtre
+ * raccourcirait en silence l'historique d'une limite longue. C'est refusé.
+ *
  * Deux règles du contrat (`rate-limiter.ts`) tenues ici :
  * - une consommation **refusée n'est pas enregistrée** ;
  * - le résultat ne dit que oui ou non.
@@ -24,7 +27,8 @@ const SWEEP_INTERVAL_MS = 60_000
 
 interface Entry {
   hits: number[]
-  windowMs: number
+  readonly windowMs: number
+  readonly limit: number
 }
 
 const ALLOWED: RateResult = { allowed: true }
@@ -50,16 +54,17 @@ export class MemoryRateLimiter implements RateLimiter {
     const now = this.#now()
     this.#sweep(now)
 
-    const entry = this.#entries.get(key) ?? { hits: [], windowMs: rule.windowMs }
-    entry.windowMs = rule.windowMs
+    const entry = this.#entries.get(key) ?? { hits: [], windowMs: rule.windowMs, limit: rule.limit }
+    if (entry.windowMs !== rule.windowMs || entry.limit !== rule.limit) {
+      // Sans la clé dans le message : elle peut dériver d'une adresse e-mail.
+      throw new RangeError('cette clé est déjà suivie sous une autre règle')
+    }
     entry.hits = entry.hits.filter((hit) => hit > now - rule.windowMs)
 
-    if (entry.hits.length >= rule.limit) {
-      this.#entries.set(key, entry)
-      return REFUSED
-    }
-    entry.hits.push(now)
     this.#entries.set(key, entry)
+
+    if (entry.hits.length >= rule.limit) return REFUSED
+    entry.hits.push(now)
     return ALLOWED
   }
 
@@ -68,7 +73,8 @@ export class MemoryRateLimiter implements RateLimiter {
    * cela, chaque IP de passage resterait en mémoire pour la vie du processus.
    */
   #sweep(now: number): void {
-    if (now - this.#lastSweep < SWEEP_INTERVAL_MS) return
+    // Une horloge qui recule (correction NTP) ne doit pas suspendre la purge.
+    if (now >= this.#lastSweep && now - this.#lastSweep < SWEEP_INTERVAL_MS) return
     this.#lastSweep = now
     for (const [key, entry] of this.#entries) {
       const last = entry.hits.at(-1)

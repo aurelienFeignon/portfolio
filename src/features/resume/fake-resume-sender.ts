@@ -18,9 +18,9 @@ export class FakeResumeSender implements ResumeSender {
   readonly #sent: SentResume[] = []
   #failure: Error | null = null
 
-  /** Les envois acceptés, dans l'ordre. Une panne simulée n'y laisse rien. */
+  /** Copie des envois acceptés, dans l'ordre. Une panne simulée n'y laisse rien. */
   get sent(): readonly SentResume[] {
-    return this.#sent
+    return [...this.#sent]
   }
 
   /** Les envois suivants rejettent avec `error`, jusqu'à `recover()`. */

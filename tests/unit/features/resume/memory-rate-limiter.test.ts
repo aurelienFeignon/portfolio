@@ -83,6 +83,24 @@ describe('MemoryRateLimiter', () => {
     expect(limiter.size).toBe(2)
   })
 
+  it('refuse de suivre une même clé sous deux règles', async () => {
+    const { limiter } = setup()
+    await limiter.consume('k', { limit: 1, windowMs: 24 * HOUR })
+    await expect(limiter.consume('k', { limit: 5, windowMs: 1_000 })).rejects.toThrow(RangeError)
+    await expect(limiter.consume('k', { limit: 2, windowMs: 24 * HOUR })).rejects.toThrow(
+      RangeError,
+    )
+  })
+
+  it('purge encore quand l’horloge recule (correction NTP)', async () => {
+    const { limiter, advance } = setup()
+    advance(-HOUR) // l'horloge recule d'une heure
+    await limiter.consume('ip:a', { limit: 1, windowMs: 1_000 })
+    advance(2 * 60_000) // toujours avant l'instant de départ
+    await limiter.consume('ip:b', { limit: 1, windowMs: 1_000 })
+    expect(limiter.size).toBe(1) // ip:a, expirée, a été purgée
+  })
+
   it.each([
     { limit: 0, windowMs: HOUR },
     { limit: 1.5, windowMs: HOUR },
