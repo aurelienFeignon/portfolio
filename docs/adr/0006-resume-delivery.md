@@ -106,6 +106,12 @@ repose donc entièrement sur ces valeurs, à confirmer une fois le quota du plan
 | Par adresse IP | 3 / heure et 5 / 24 h | Absorbe une erreur de saisie ou un doute, bloque l'automatisation naïve. |
 | Par adresse e-mail | 2 / 24 h | Un visiteur n'a besoin du CV qu'une fois ; la seconde couvre le message égaré. Au-delà, c'est du harcèlement d'un tiers. |
 
+✅ **Quota confirmé le 2026-11-25 (P10-11, H-02c)** : plan Mailjet **gratuit**, **200 envois/jour**
+et **6 000/mois**, les deux limites s'appliquant ensemble et **partagées avec Augure**. Le plafond
+global de 20/jour en consomme au plus 10 % : il reste en dessous du quota sans recalibrage. Le
+domaine `aurelienfeignon.com` est **Active** chez Mailjet, SPF et DKIM **OK** — toute adresse du
+domaine peut donc expédier sans validation individuelle.
+
 Ces valeurs sont **délibérément basses**. Un visiteur légitime ne les rencontrera jamais ; un abus
 les rencontre immédiatement. En cas de saturation du plafond global, le service se coupe proprement
 avec un message invitant à utiliser le téléchargement direct du PDF (P10-08) — la fonction reste

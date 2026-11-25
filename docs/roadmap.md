@@ -1689,7 +1689,7 @@ information n'existe uniquement dans la scène.
 | P10-08 | Téléchargement direct du PDF en complément — **les deux PDF existent depuis le 2026-08-12** (`public/resume/cv-{fr,en}.pdf`, `noindex` posé et vérifié en E2E) ; reste le lien et son libellé | P10-06 |
 | P10-09 | Garde-fou : la suite échoue si des identifiants Mailjet de production sont présents | P10-07 |
 | P10-10 | E2E : succès, adresse invalide, panne serveur, rate limit, sans JS | P10-06 |
-| P10-11 | **Vérification des prérequis d'expédition** : authentification du domaine effective (SPF, DKIM, DMARC en place depuis P1-17), expéditeur validé, quota du plan connu (H-02c) | P1-17 |
+| P10-11 | **Vérification des prérequis d'expédition** : authentification du domaine effective (SPF, DKIM, DMARC en place depuis P1-17), expéditeur validé, quota du plan connu (H-02c) — **DONE** *(2026-11-25)* : `make check-dns` vert (SPF unique incluant Mailjet, DKIM, DMARC `p=none`, MX) ; tableau de bord Mailjet relevé par l'exploitant : domaine `aurelienfeignon.com` **Active**, SPF et DKIM **OK** — un domaine validé autorise toute adresse du domaine sans validation d'expéditeur une à une ; plan **gratuit**, 200 envois/jour **et** 6 000/mois, **partagés avec `augure.tech`**. Le plafond de 20/jour (ADR-0006) tient à 10 % du quota journalier. ⚠️ Non établi : la disponibilité d'un sous-compte sur l'offre gratuite (sources contradictoires) — reste à P10-13 | P1-17 |
 | ~~P10-12~~ | ~~Service Mailpit + test d'intégration SMTP~~ — **DROPPED** : sans objet depuis l'abandon du transport SMTP. Remplacé par P10-16. | — |
 | P10-13 | Identité d'expédition dédiée au portfolio, cloisonnée d'Augure — sous-compte si possible (H-02b, R-20) | P10-11 |
 | P10-14 | Consultation du tableau de bord des rejets ; vérification de réception réelle | P10-13 |
@@ -1705,9 +1705,9 @@ prérequis H-02a et H-02c **vérifiés et consignés**, pas supposés ; plafond 
 quota ; un CV de test reçu et lisible dans au moins deux messageries grand public ; **aucune
 dépendance ajoutée au projet**.
 
-> P10-11 est sans dépendance interne et **conditionne toute la phase** : si le domaine du portfolio
-> n'est pas authentifié chez le fournisseur, ce n'est pas du code qui corrigera l'envoi. À traiter
-> en premier.
+> ✅ P10-11 **DONE** le 2026-11-25 : la phase n'est plus conditionnée par l'expédition.
+> P10-11 était sans dépendance interne et **conditionnait toute la phase** : si le domaine du portfolio
+> n'est pas authentifié chez le fournisseur, ce n'est pas du code qui corrigera l'envoi.
 
 ---
 
