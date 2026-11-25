@@ -11,10 +11,9 @@
  * fenêtre glissante exacte, refus non comptés, une clé pour une seule règle.
  */
 import type { RateLimiter, RateResult, RateRule } from './rate-limiter'
-import { decide, isExpired, type WindowEntry } from './sliding-window'
+import { type Clock, decide, isExpired, type WindowEntry } from './sliding-window'
 
-/** Une horloge en millisecondes depuis l'époque Unix, injectée pour les tests. */
-export type Clock = () => number
+export type { Clock } from './sliding-window'
 
 /** Intervalle minimal entre deux purges des clés inactives. */
 const SWEEP_INTERVAL_MS = 60_000

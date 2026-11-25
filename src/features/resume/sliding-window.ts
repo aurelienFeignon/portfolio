@@ -6,6 +6,9 @@
  */
 import type { RateRule } from './rate-limiter'
 
+/** Une horloge en millisecondes depuis l'époque Unix, injectée pour les tests. */
+export type Clock = () => number
+
 /** Historique d'une clé. Une clé appartient à une seule règle. */
 export interface WindowEntry {
   readonly hits: readonly number[]
@@ -30,8 +33,14 @@ export function assertRule(rule: RateRule): void {
 /**
  * Oublie les consommations sorties de la fenêtre, puis admet ou refuse. Une
  * consommation refusée n'est **pas** enregistrée : un abus bloqué ne prolonge
- * pas son blocage. Réutiliser une clé sous une autre règle raccourcirait en
- * silence l'historique d'une limite longue : c'est refusé.
+ * pas son blocage. Réutiliser une clé **encore active** sous une autre règle
+ * raccourcirait en silence l'historique d'une limite longue : c'est refusé. Une
+ * clé expirée, elle, est oubliée — sans quoi changer le plafond dans le code
+ * bloquerait pour toujours une clé persistée sous l'ancienne règle.
+ *
+ * Une consommation « dans le futur » (horloge corrigée en arrière, fichier
+ * retouché) est ignorée : elle ne doit pas saturer une limite jusqu'à ce que
+ * l'horloge la rattrape.
  */
 export function decide(
   previous: WindowEntry | undefined,
@@ -39,11 +48,12 @@ export function decide(
   now: number,
 ): WindowDecision {
   assertRule(rule)
-  if (previous && (previous.windowMs !== rule.windowMs || previous.limit !== rule.limit)) {
+  const active = previous && !isExpired(previous, now) ? previous : undefined
+  if (active && (active.windowMs !== rule.windowMs || active.limit !== rule.limit)) {
     // Sans la clé dans le message : elle peut dériver d'une adresse e-mail.
     throw new RangeError('cette clé est déjà suivie sous une autre règle')
   }
-  const hits = (previous?.hits ?? []).filter((hit) => hit > now - rule.windowMs)
+  const hits = (active?.hits ?? []).filter((hit) => hit > now - rule.windowMs && hit <= now)
   const base = { windowMs: rule.windowMs, limit: rule.limit }
   if (hits.length >= rule.limit) return { allowed: false, entry: { ...base, hits } }
   return { allowed: true, entry: { ...base, hits: [...hits, now] } }
