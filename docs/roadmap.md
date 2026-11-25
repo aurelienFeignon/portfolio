@@ -1679,7 +1679,7 @@ information n'existe uniquement dans la scène.
 
 | ID | Tâche | Dépend de |
 |---|---|---|
-| P10-01 | Interfaces `ResumeSender` et `RateLimiter` | P4-02 |
+| P10-01 | Interfaces `ResumeSender` et `RateLimiter` — **DONE** *(2026-11-25)* : `src/features/resume/resume-sender.ts` et `rate-limiter.ts`, signatures de l'ADR-0006. Deux choix posés **dans le contrat** : `RateResult` ne porte que `allowed` (ni compteur ni délai, qui révéleraient sur une clé e-mail qu'une demande a déjà eu lieu, `architecture.md` §6) ; une consommation **refusée n'est pas comptée** (un abus bloqué ne prolonge pas son blocage) — à tenir par P10-04. Types purs, sans test propre : ils sont exercés par P10-02 et P10-04 | P4-02 |
 | P10-02 | `FakeResumeSender` et `ConsoleResumeSender` | P10-01 |
 | P10-03 | Schéma de validation Zod + honeypot + time-trap | P10-01 |
 | P10-04 | Rate limiter en mémoire, horloge injectée, fenêtre glissante | P10-01 |
