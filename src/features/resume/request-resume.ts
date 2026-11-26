@@ -31,9 +31,10 @@
  *    peut l'épuiser par d'autres adresses de toute façon.
  * 3. **Adresse** en dernier, juste avant l'envoi.
  *
- * ⚠️ Résidu assumé : une panne d'**envoi** consomme encore le créneau de l'adresse. Deux pannes
- * pour la même adresse dans la journée la feraient répondre `sent` à vide jusqu'au lendemain ; le
- * contrat `RateLimiter` ne rend rien, et l'élargir pour ce cas n'a pas paru proportionné.
+ * ⚠️ Résidu assumé : une panne d'**envoi** consomme encore le créneau de l'adresse **et** celui du
+ * plafond global. Deux pannes pour la même adresse dans la journée la feraient répondre `sent` à
+ * vide jusqu'au lendemain. Le contrat `RateLimiter` ne rend rien ; un `release` est la
+ * correction de fond, à trancher avec P10-07 (délai d'expiration et pannes réelles de Mailjet).
  */
 import type { Locale } from '@/i18n/locales'
 
@@ -41,14 +42,10 @@ import type { RateLimiter, RateRule } from './rate-limiter'
 import type { ResumeSender } from './resume-sender'
 import { parseResumeRequest } from './schema'
 
-export type ResumeOutcome = 'sent' | 'invalid' | 'limited' | 'unavailable'
+/** Les issues, une seule fois : le type en dérive, et la lecture de l'URL ne peut en oublier. */
+const RESUME_OUTCOMES = ['sent', 'invalid', 'limited', 'unavailable'] as const
 
-export const RESUME_OUTCOMES: readonly ResumeOutcome[] = [
-  'sent',
-  'invalid',
-  'limited',
-  'unavailable',
-]
+export type ResumeOutcome = (typeof RESUME_OUTCOMES)[number]
 
 /**
  * Le paramètre d'URL qui porte l'issue après la redirection (Post-Redirect-Get) — partagé par la

@@ -76,7 +76,26 @@ const ALLOWED = {
   app: ['content', 'i18n', 'routing', 'ui', 'scene', 'seo', 'features'],
 }
 
+/**
+ * ⭐ P10-06 — **rien sur le chemin d'une page rendue à la demande ne lit `content/`.** C'est
+ * l'invariant qui rend admissible l'exception de `src/routing/on-demand.ts`, et sans cette zone
+ * il n'était tenu par rien : un import du dépôt de contenu dans la page de contact, ou de retour
+ * dans le layout racine, passait lint, tsc et le gate. Le dossier est dans l'image par le seul
+ * effet du traceur de Next (`phase-4-log.md` §20.8), donc la lecture réussirait en silence.
+ */
+const ON_DEMAND_PATH = [
+  './src/app/[[]locale]/layout.tsx',
+  './src/app/[[]locale]/place-layout.tsx',
+  './src/app/[[]locale]/contact/**',
+]
+
 const zones = [
+  ...ON_DEMAND_PATH.map((target) => ({
+    target,
+    from: './src/content',
+    message:
+      'Une page rendue à la demande (et les layouts qu’elle traverse) ne lit jamais `src/content` : P10-06, `src/routing/on-demand.ts`.',
+  })),
   ...LAYERS.flatMap((layer) =>
     LAYERS.filter((other) => other !== layer && !ALLOWED[layer].includes(other)).map(
       (forbidden) => ({

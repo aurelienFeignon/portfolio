@@ -12,7 +12,10 @@
  *
  * ⛔ L'exception est **exacte**, et le gate la confronte dans les deux sens : une route déclarée
  * ici doit exister au build **et ne pas** y être prérendue (sinon le piège serait gravé), et ses
- * chemins doivent figurer au manifeste du proxy mais **pas** au sitemap.
+ * chemins doivent figurer au manifeste du proxy — au sitemap si et seulement si `listed`.
+ *
+ * ⭐ Rendu et indexation sont **deux** décisions : le rendu à la demande est permanent (le piège
+ * l'exige), la mise hors index est provisoire (jusqu'à P10-07). Passer `listed` à `true` suffira.
  */
 import { LOCALES } from '../i18n/locales.ts'
 
@@ -23,8 +26,11 @@ export interface OnDemandPage {
   readonly route: string
   /** Les adresses qu'elle sert, une par locale. */
   readonly paths: readonly string[]
+  /** Annoncée au sitemap ou non — indépendant du rendu. */
+  readonly listed: boolean
 }
 
 export const ON_DEMAND_PAGES: readonly OnDemandPage[] = [
-  { route: '/[locale]/contact', paths: LOCALES.map(contactPath) },
+  // Hors index tant que l'envoi réel et la réception du CV ne sont pas validés (P10-07).
+  { route: '/[locale]/contact', paths: LOCALES.map(contactPath), listed: false },
 ]

@@ -56,7 +56,7 @@ import { join, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 
 import { LOCALES } from '../src/i18n/locales.ts'
-import { ON_DEMAND_PAGES } from '../src/routing/on-demand.ts'
+import { ON_DEMAND_PAGES, type OnDemandPage } from '../src/routing/on-demand.ts'
 import { notFoundPath } from '../src/routing/paths.ts'
 
 import { publicUrlPaths } from './public-paths.mts'
@@ -70,12 +70,16 @@ const publicDir = process.argv[4] ?? 'public'
  * Un cinquième argument, du JSON, la remplace : c'est ce qui rend l'exception testable contre
  * des manifestes fabriqués, comme le reste du gate.
  */
-const onDemandPages: typeof ON_DEMAND_PAGES =
+const onDemandPages: readonly OnDemandPage[] =
   process.argv[5] === undefined
     ? ON_DEMAND_PAGES
-    : (JSON.parse(process.argv[5]) as typeof ON_DEMAND_PAGES)
-const onDemandRoutes = new Set(onDemandPages.map((page) => page.route))
+    : (JSON.parse(process.argv[5]) as readonly OnDemandPage[])
+const onDemandByRoute = new Map(onDemandPages.map((page) => [page.route, page]))
 const onDemandPaths = new Set(onDemandPages.flatMap((page) => page.paths))
+/** Le **rendu** et l'**indexation** sont deux questions : une page à la demande peut être listée. */
+const listedOnDemandPaths = onDemandPages
+  .filter((page) => page.listed)
+  .flatMap((page) => page.paths)
 
 /**
  * Les destinations de réécriture du proxy (P4-07) — **la même fonction que lui**.
@@ -162,7 +166,7 @@ for (const route of pageRoutes) {
 
   // L'exception nommée (P10-06) : elle doit être rendue à la demande, et **seulement** ainsi.
   // Prérendue, elle graverait l'instant du build dans le time-trap, qui laisserait tout passer.
-  const onDemand = onDemandPages.find((page) => page.route === route)
+  const onDemand = onDemandByRoute.get(route)
   if (onDemand !== undefined) {
     const baked = onDemand.paths.filter((path) => prerender.routes[path] !== undefined)
     if (dynamic !== undefined || baked.length > 0) {
@@ -195,7 +199,7 @@ for (const route of pageRoutes) {
   }
 }
 
-for (const route of difference(onDemandRoutes, new Set(pageRoutes))) {
+for (const route of difference(onDemandByRoute.keys(), new Set(pageRoutes))) {
   problems.push(
     `${route} — déclarée rendue à la demande, mais absente du build : une exception sans ` +
       `route n'excuse plus rien. Retirez-la de « src/routing/on-demand.ts ».`,
@@ -228,6 +232,14 @@ const publicPages = new Set(
   prerenderedPaths.filter((route) => !isInternal(route) && !NOT_FOUND_PAGES.has(route)),
 )
 
+/**
+ * Ce que le site **sert** : les pages prérendues publiques, plus l'exception nommée. C'est la
+ * référence unique des contrôles 3 et 4 — l'exception n'y a donc pas de branche à elle.
+ */
+const servablePages = new Set([...publicPages, ...onDemandPaths])
+/** Ce que le sitemap doit annoncer : tout le servi, moins les pages à la demande non listées. */
+const listedPages = new Set([...publicPages, ...listedOnDemandPaths])
+
 // --- 3. Sitemap -------------------------------------------------------------
 if (appRoutes.includes('/sitemap.xml')) {
   const body = readFileSync(join(nextDir, 'server', 'app', 'sitemap.xml.body'), 'utf8')
@@ -235,25 +247,20 @@ if (appRoutes.includes('/sitemap.xml')) {
     [...body.matchAll(/<loc>([^<]+)<\/loc>/g)].map((match) => new URL(match[1] as string).pathname),
   )
 
-  for (const route of difference(publicPages, inSitemap)) {
+  for (const route of difference(listedPages, inSitemap)) {
     problems.push(
-      `${route} — prégénérée mais absente du sitemap : elle ne sera pas indexée, ` +
+      `${route} — servie mais absente du sitemap : elle ne sera pas indexée, ` +
         `et le contrôle E2E des « hreflang » ne la verra pas non plus.`,
     )
   }
 
-  for (const path of [...inSitemap].filter((path) => onDemandPaths.has(path))) {
+  for (const path of difference(inSitemap, listedPages)) {
     problems.push(
-      `${path} — rendue à la demande, mais annoncée au sitemap : elle reste hors de l'index ` +
-        `tant que l'envoi réel du CV n'est pas validé (P10-06, P10-07).`,
-    )
-  }
-
-  for (const path of difference(inSitemap, publicPages)) {
-    if (onDemandPaths.has(path)) continue
-    problems.push(
-      `${path} — annoncée au sitemap, mais aucune page n'est prégénérée à cette adresse : ` +
-        `le sitemap promet à un moteur de recherche une URL qui répond 404.`,
+      onDemandPaths.has(path)
+        ? `${path} — annoncée au sitemap, mais déclarée non listée (src/routing/on-demand.ts) : ` +
+            `elle reste hors de l'index tant que l'envoi réel du CV n'est pas validé (P10-07).`
+        : `${path} — annoncée au sitemap, mais aucune page n'est servie à cette adresse : ` +
+            `le sitemap promet à un moteur de recherche une URL qui répond 404.`,
     )
   }
 }
@@ -262,26 +269,18 @@ if (appRoutes.includes('/sitemap.xml')) {
 // Les deux sens sont des pannes silencieuses, et elles ne se ressemblent pas.
 const { served, passthrough } = await readRouteManifest()
 const servedPages = new Set(served)
-const servablePages = new Set([...publicPages, ...onDemandPaths])
 
 for (const path of difference(servedPages, servablePages)) {
   problems.push(
-    `${path} — annoncé servi par le proxy, mais aucune page n'est prégénérée à cette ` +
+    `${path} — annoncé servi par le proxy, mais aucune page n'est servie à cette ` +
       `adresse : le proxy laisserait passer l'URL, et Next servirait sa 404 interne, ` +
       `hors du layout racine — donc sans « lang » (P4-07).`,
   )
 }
 
 for (const route of difference(servablePages, servedPages)) {
-  if (onDemandPaths.has(route)) {
-    problems.push(
-      `${route} — rendue à la demande mais absente du manifeste du proxy : celui-ci la ` +
-        `réécrirait vers la page introuvable, en 404. Régénérez « src/routing/route-manifest.ts ».`,
-    )
-    continue
-  }
   problems.push(
-    `${route} — prégénérée mais absente du manifeste du proxy : celui-ci réécrirait ` +
+    `${route} — servie mais absente du manifeste du proxy : celui-ci réécrirait ` +
       `une page réelle vers la page introuvable, en 404. Régénérez « src/routing/` +
       `route-manifest.ts » (« node scripts/generate-route-manifest.mts »).`,
   )
@@ -358,7 +357,7 @@ if (problems.length > 0) {
 console.log(
   `✓ Rendu statique — ${pageRoutes.length} route(s) applicative(s), ` +
     `${prerenderedPages.length} page(s) prégénérée(s), ` +
-    `${onDemandRoutes.size} rendue(s) à la demande par exception nommée, ` +
+    `${onDemandByRoute.size} rendue(s) à la demande par exception nommée, ` +
     `${publicPages.size} page(s) publique(s) au sitemap comme au manifeste du proxy, ` +
     `${passthrough.length} ressource(s) laissée(s) passer.`,
 )

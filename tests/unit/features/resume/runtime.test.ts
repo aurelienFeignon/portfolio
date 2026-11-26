@@ -4,7 +4,7 @@
  * Rien ici n'écrit sur le disque : `FileRateLimiter` ne touche son fichier qu'à la première
  * consommation, et aucune n'a lieu.
  */
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 
 import { ConsoleResumeSender } from '@/features/resume/console-resume-sender'
 import { FileRateLimiter } from '@/features/resume/file-rate-limiter'
@@ -44,17 +44,10 @@ describe('createResumeDeps', () => {
   })
 
   it('journalise sur la sortie d’erreur', () => {
-    const { log, now } = createResumeDeps({ NODE_ENV: 'test' })
-    const written: unknown[] = []
-    const original = console.error
-    console.error = (message: unknown) => written.push(message)
-    try {
-      log('[resume] essai')
-    } finally {
-      console.error = original
-    }
-    expect(written).toEqual(['[resume] essai'])
-    expect(typeof now()).toBe('number')
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {})
+    createResumeDeps({ NODE_ENV: 'test' }).log('[resume] essai')
+    expect(error).toHaveBeenCalledWith('[resume] essai')
+    error.mockRestore()
   })
 })
 

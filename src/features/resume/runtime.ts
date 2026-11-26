@@ -25,20 +25,20 @@ let runtime: ResumeRequestDeps | undefined
 export function createResumeDeps(env: NodeJS.ProcessEnv = process.env): ResumeRequestDeps {
   const production = env.NODE_ENV === 'production'
   const capFile = env[DAILY_CAP_FILE_ENV]
-  const log = (message: string) => console.error(message)
+  // Un fichier persisté si configuré ; sinon la mémoire hors production, et rien en production.
+  const globalLimiter = capFile
+    ? new FileRateLimiter(capFile)
+    : production
+      ? null
+      : new MemoryRateLimiter()
 
   return {
     sender: production ? null : new ConsoleResumeSender(),
     visitorLimiter: new MemoryRateLimiter(),
-    globalLimiter:
-      capFile !== undefined && capFile !== ''
-        ? new FileRateLimiter(capFile)
-        : production
-          ? null
-          : new MemoryRateLimiter(),
+    globalLimiter,
     now: Date.now,
     hash: (value) => createHash('sha256').update(value).digest('hex'),
-    log,
+    log: (message) => console.error(message),
   }
 }
 

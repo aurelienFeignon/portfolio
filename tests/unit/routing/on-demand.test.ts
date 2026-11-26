@@ -6,7 +6,6 @@
  */
 import { describe, expect, it } from 'vitest'
 
-import { LOCALES } from '@/i18n/locales'
 import { ON_DEMAND_PAGES } from '@/routing/on-demand'
 import { contactPath } from '@/routing/paths'
 
@@ -18,9 +17,9 @@ describe('contactPath', () => {
 })
 
 describe('ON_DEMAND_PAGES', () => {
-  it('ne nomme que la page de contact, dans chaque locale', () => {
+  it('ne nomme que la page de contact, dans chaque locale, hors index jusqu’à P10-07', () => {
     expect(ON_DEMAND_PAGES).toEqual([
-      { route: '/[locale]/contact', paths: LOCALES.map(contactPath) },
+      { route: '/[locale]/contact', paths: ['/fr/contact', '/en/contact'], listed: false },
     ])
   })
 })
