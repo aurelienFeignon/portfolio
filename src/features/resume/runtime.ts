@@ -41,6 +41,9 @@ const mailjetEnvSchema = z
     // Un entier de millisecondes, borné : trop court, tout échoue ; trop long, la requête du
     // visiteur reste pendue.
     RESUME_SEND_TIMEOUT_MS: z.coerce.number().int().min(1_000).max(60_000),
+    // Les liens de la signature : en `https`, rien d'autre ne part dans un e-mail.
+    RESUME_SIGNATURE_GITHUB_URL: z.url({ protocol: /^https$/ }),
+    RESUME_SIGNATURE_LINKEDIN_URL: z.url({ protocol: /^https$/ }),
   })
   .transform(
     (e) =>
@@ -50,6 +53,7 @@ const mailjetEnvSchema = z
         senderEmail: e.RESUME_SENDER_EMAIL,
         senderName: e.RESUME_SENDER_NAME,
         timeoutMs: e.RESUME_SEND_TIMEOUT_MS,
+        signatureLinks: [e.RESUME_SIGNATURE_GITHUB_URL, e.RESUME_SIGNATURE_LINKEDIN_URL],
       }) satisfies MailjetConfig,
   )
 

@@ -231,7 +231,8 @@ sur un volume, car c'est la seule limite dont la perte au redémarrage serait ex
   dans l'image : les secrets ne passent ni par le build ni par GHCR. Validation Zod à
   l'assemblage ; en production, une configuration incomplète désactive l'envoi (`unavailable`) et
   nomme les variables en cause au journal, jamais leurs valeurs ; jamais de repli sur la console.
-  Les cinq variables de l'envoi sont **obligatoires**, aucune valeur par défaut cachée dans le
+  Les sept variables de l'envoi sont **obligatoires** — dont les liens GitHub et LinkedIn ajoutés
+  sous la signature, en `https`, une ligne chacun —, aucune valeur par défaut cachée dans le
   code. **Au démarrage** (`src/instrumentation.ts`), une ligne du journal dit l'expéditeur retenu
   (`mailjet` | `console` | `aucun`), les variables en défaut et le plafond : une configuration
   manquante se lit dans `docker logs` dès le déploiement, pas au premier visiteur.

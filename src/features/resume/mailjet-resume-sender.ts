@@ -36,6 +36,11 @@ export interface MailjetConfig {
   readonly senderName: string
   /** Au-delà, l'appel est abandonné et traité comme une panne de transport. */
   readonly timeoutMs: number
+  /**
+   * Les liens ajoutés sous la signature (GitHub, LinkedIn), une ligne chacun et sans libellé :
+   * ils se lisent pareil dans les deux langues, et le dictionnaire reste sans interpolation.
+   */
+  readonly signatureLinks: readonly string[]
 }
 
 interface MailjetDeps {
@@ -72,7 +77,7 @@ export class MailjetResumeSender implements ResumeSender {
     const attachment = await this.#readAttachment(locale).catch(() => {
       throw new MailjetError('pièce jointe illisible')
     })
-    const { apiKey, secretKey, senderEmail, senderName, timeoutMs } = this.#config
+    const { apiKey, secretKey, senderEmail, senderName, timeoutMs, signatureLinks } = this.#config
 
     const response = await this.#fetch(MAILJET_SEND_URL, {
       method: 'POST',
@@ -86,7 +91,7 @@ export class MailjetResumeSender implements ResumeSender {
             From: { Email: senderEmail, Name: senderName },
             To: [{ Email: email }],
             Subject: resumeEmail.subject,
-            TextPart: resumeEmail.text,
+            TextPart: [resumeEmail.text, ...signatureLinks].join('\n'),
             Attachments: [
               {
                 ContentType: 'application/pdf',

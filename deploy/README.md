@@ -204,7 +204,7 @@ l'application refuse de démarrer) et `/srv/portfolio/.ghcr-token` sont en `600`
 > **Envoi du CV (P10-07) — tout passe par ce `.env`**, lu au démarrage du conteneur et jamais gravé
 > dans l'image : `MAILJET_API_KEY`, `MAILJET_SECRET_KEY` (sous-compte `portfolio`, jamais le compte
 > principal partagé avec Augure), `RESUME_SENDER_EMAIL`, `RESUME_SENDER_NAME`,
-> `RESUME_SEND_TIMEOUT_MS` — **les cinq sont obligatoires**, aucune valeur par défaut —, et `RESUME_DAILY_CAP_FILE` (P10-05, fichier sur un volume inscriptible
+> `RESUME_SEND_TIMEOUT_MS`, `RESUME_SIGNATURE_GITHUB_URL`, `RESUME_SIGNATURE_LINKEDIN_URL` — **les sept sont obligatoires**, aucune valeur par défaut —, et `RESUME_DAILY_CAP_FILE` (P10-05, fichier sur un volume inscriptible
 > par `node`). Modèle commenté : `.env.example`. Une variable absente ou invalide laisse le
 > formulaire **indisponible**, et **dès le démarrage** le journal du conteneur dit en une ligne
 > `[resume] expéditeur : … ; plafond global : …`, variables en défaut nommées — jamais leurs valeurs.

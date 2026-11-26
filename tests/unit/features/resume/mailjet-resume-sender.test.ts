@@ -24,6 +24,7 @@ const CONFIG: MailjetConfig = {
   senderEmail: 'cv@exemple.test',
   senderName: 'Expéditeur',
   timeoutMs: 5_000,
+  signatureLinks: ['https://github.com/exemple', 'https://www.linkedin.com/in/exemple'],
 }
 
 const PDF = new Uint8Array([0x25, 0x50, 0x44, 0x46])
@@ -66,7 +67,7 @@ describe('MailjetResumeSender — la requête', () => {
             From: { Email: 'cv@exemple.test', Name: 'Expéditeur' },
             To: [{ Email: 'visiteur@example.test' }],
             Subject: resumeEmail.subject,
-            TextPart: resumeEmail.text,
+            TextPart: `${resumeEmail.text}\nhttps://github.com/exemple\nhttps://www.linkedin.com/in/exemple`,
             Attachments: [
               {
                 ContentType: 'application/pdf',

@@ -26,12 +26,14 @@ const MAILJET = {
   RESUME_SENDER_EMAIL: 'cv@exemple.test',
   RESUME_SENDER_NAME: 'Expéditeur',
   RESUME_SEND_TIMEOUT_MS: '10000',
+  RESUME_SIGNATURE_GITHUB_URL: 'https://github.com/exemple',
+  RESUME_SIGNATURE_LINKEDIN_URL: 'https://www.linkedin.com/in/exemple',
 }
 const CAP = { [DAILY_CAP_FILE_ENV]: '/data/plafond.json' }
 const PDFS = () => true
 
 describe('readMailjetConfig', () => {
-  it('lit les cinq variables de l’envoi, délai converti en nombre', () => {
+  it('lit les sept variables de l’envoi, délai converti en nombre', () => {
     expect(readMailjetConfig(MAILJET)).toEqual({
       config: {
         apiKey: 'cle-factice',
@@ -39,6 +41,7 @@ describe('readMailjetConfig', () => {
         senderEmail: 'cv@exemple.test',
         senderName: 'Expéditeur',
         timeoutMs: 10_000,
+        signatureLinks: ['https://github.com/exemple', 'https://www.linkedin.com/in/exemple'],
       },
     })
   })
@@ -53,6 +56,8 @@ describe('readMailjetConfig', () => {
     ['RESUME_SEND_TIMEOUT_MS', '10s'],
     ['RESUME_SEND_TIMEOUT_MS', '999'],
     ['RESUME_SEND_TIMEOUT_MS', '60001'],
+    ['RESUME_SIGNATURE_GITHUB_URL', 'github.com/exemple'],
+    ['RESUME_SIGNATURE_LINKEDIN_URL', 'http://www.linkedin.com/in/exemple'],
   ])('refuse %s = « %s », en la nommant sans rendre sa valeur', (name, value) => {
     expect(readMailjetConfig({ ...MAILJET, [name]: value })).toEqual({ invalid: [name] })
   })
@@ -104,7 +109,8 @@ describe('describeResumePlan', () => {
     const line = describeResumePlan(plan)
     expect(line).toBe(
       '[resume] expéditeur : aucun (en défaut : MAILJET_SECRET_KEY, RESUME_SENDER_EMAIL, ' +
-        'RESUME_SENDER_NAME, RESUME_SEND_TIMEOUT_MS) ; plafond global : aucun (RESUME_DAILY_CAP_FILE)',
+        'RESUME_SENDER_NAME, RESUME_SEND_TIMEOUT_MS, RESUME_SIGNATURE_GITHUB_URL, ' +
+        'RESUME_SIGNATURE_LINKEDIN_URL) ; plafond global : aucun (RESUME_DAILY_CAP_FILE)',
     )
     expect(line).not.toContain('cle-factice')
   })
