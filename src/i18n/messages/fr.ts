@@ -169,13 +169,6 @@ export const fr = {
   },
 
   /**
-   * Demande du CV par e-mail (P10-06). Page rendue à la demande, ni liée ni au sitemap tant que
-   * l'envoi réel n'est pas validé (P10-07).
-   *
-   * ⛔ Les issues taisent ce qui révélerait un tiers : une adresse qui a déjà reçu le CV reçoit
-   * le même message qu'un premier envoi (`architecture.md` §6).
-   */
-  /**
    * Le message qui porte le CV (P10-07). **Entièrement fixe** : rien de la saisie n'y entre, seul le
    * destinataire varie (ADR-0006, anti-relais). Envoyé dans la langue de la page de la demande.
    */
@@ -193,6 +186,13 @@ export const fr = {
     attachmentName: 'CV-Aurelien-Feignon.pdf',
   },
 
+  /**
+   * Demande du CV par e-mail (P10-06). Page rendue à la demande, ni liée ni au sitemap tant que
+   * l'envoi réel n'est pas validé (P10-07).
+   *
+   * ⛔ Les issues taisent ce qui révélerait un tiers : une adresse qui a déjà reçu le CV reçoit
+   * le même message qu'un premier envoi (`architecture.md` §6).
+   */
   contact: {
     title: 'Recevoir mon CV',
     description: 'Recevoir le CV d’Aurélien Feignon par e-mail.',

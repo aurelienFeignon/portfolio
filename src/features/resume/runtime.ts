@@ -37,7 +37,7 @@ const mailjetEnvSchema = z.object({
   RESUME_SEND_TIMEOUT_MS: z.coerce.number().int().min(1_000).max(60_000),
 })
 
-export const MAILJET_ENV = mailjetEnvSchema.keyof().options
+const MAILJET_ENV = mailjetEnvSchema.keyof().options
 
 /**
  * La configuration Mailjet, ou les **noms** des variables absentes ou invalides. Les valeurs ne
@@ -77,7 +77,16 @@ export function createResumeDeps(env: NodeJS.ProcessEnv = process.env): ResumeRe
     log(
       `[resume] envoi désactivé, configuration Mailjet incomplète : ${mailjet.invalid.join(', ')}`,
     )
-  } else sender = new ConsoleResumeSender()
+  } else {
+    // Hors production, la console — mais une configuration COMMENCÉE puis invalide se dit : sinon
+    // le formulaire répond « envoyé » et l'on croit l'intégration en place.
+    if (MAILJET_ENV.some((name) => env[name] !== undefined && env[name] !== '')) {
+      log(
+        `[resume] configuration Mailjet incomplète, CV journalisé : ${mailjet.invalid.join(', ')}`,
+      )
+    }
+    sender = new ConsoleResumeSender()
+  }
 
   const capFile = env[DAILY_CAP_FILE_ENV]
   // Un fichier persisté si configuré ; sinon la mémoire hors production, et rien en production.

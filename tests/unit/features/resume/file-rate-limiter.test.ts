@@ -200,4 +200,43 @@ describe('FileRateLimiter', () => {
   it('prend Date.now par défaut', async () => {
     expect((await new FileRateLimiter(path).consume('global', CAP)).allowed).toBe(true)
   })
+
+  describe('release (P10-07)', () => {
+    it('rend la dernière consommation, sur le disque : une nouvelle instance la voit libre', async () => {
+      for (let i = 0; i < 3; i++) await limiter().consume('global', CAP)
+      await limiter().release('global')
+      expect((await limiter().consume('global', CAP)).allowed).toBe(true)
+      expect((await limiter().consume('global', CAP)).allowed).toBe(false)
+    })
+
+    it('retire la clé quand sa seule consommation est rendue', async () => {
+      await limiter().consume('global', CAP)
+      await limiter().release('global')
+      const state = JSON.parse(await readFile(path, 'utf8')) as { keys: Record<string, unknown> }
+      expect(state.keys).toEqual({})
+    })
+
+    it('ne crée aucun fichier pour une clé inconnue', async () => {
+      await limiter().release('global')
+      await expect(readFile(path, 'utf8')).rejects.toMatchObject({ code: 'ENOENT' })
+    })
+
+    it('ne rejette pas sur un état illisible, qu’il laisse intact', async () => {
+      await mkdir(join(dir, 'state'), { recursive: true })
+      await writeFile(path, 'pas du JSON')
+      await expect(limiter().release('global')).resolves.toBeUndefined()
+      expect(await readFile(path, 'utf8')).toBe('pas du JSON')
+    })
+
+    it('garde le créneau et le signale si l’écriture échoue', async () => {
+      await limiter().consume('global', CAP)
+      await chmod(join(dir, 'state'), 0o500)
+      try {
+        await expect(limiter().release('global')).resolves.toBeUndefined()
+      } finally {
+        await chmod(join(dir, 'state'), 0o700)
+      }
+      expect(log).toHaveBeenCalledWith(expect.stringContaining('restitution impossible'))
+    })
+  })
 })

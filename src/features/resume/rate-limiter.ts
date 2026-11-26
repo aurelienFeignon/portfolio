@@ -34,4 +34,12 @@ export interface RateLimiter {
    * elle dérive d'une donnée personnelle (adresse e-mail, IP).
    */
   consume(key: string, rule: RateRule): Promise<RateResult>
+
+  /**
+   * Rend la **dernière** consommation admise de `key` (P10-07) : une demande comptée puis
+   * abandonnée — l'envoi a échoué — ne doit pas occuper un créneau. Ne rend rien, comme `consume`
+   * ne dit que oui ou non, et **ne rejette jamais** : en cas de doute, le créneau reste consommé,
+   * ce qui est le côté sûr pour le quota d'Augure.
+   */
+  release(key: string): Promise<void>
 }

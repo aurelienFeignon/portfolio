@@ -11,7 +11,7 @@
  * fenêtre glissante exacte, refus non comptés, une clé pour une seule règle.
  */
 import type { RateLimiter, RateResult, RateRule } from './rate-limiter'
-import { type Clock, decide, isExpired, type WindowEntry } from './sliding-window'
+import { type Clock, decide, isExpired, type WindowEntry, withoutLastHit } from './sliding-window'
 
 export type { Clock } from './sliding-window'
 
@@ -39,6 +39,12 @@ export class MemoryRateLimiter implements RateLimiter {
     this.#sweep(now)
     this.#entries.set(key, entry)
     return { allowed }
+  }
+
+  async release(key: string): Promise<void> {
+    const entry = withoutLastHit(this.#entries.get(key))
+    if (entry === undefined) this.#entries.delete(key)
+    else this.#entries.set(key, entry)
   }
 
   /**

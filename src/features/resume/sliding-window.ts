@@ -59,6 +59,12 @@ export function decide(
   return { allowed: true, entry: { ...base, hits: [...hits, now] } }
 }
 
+/** L'historique sans sa dernière consommation ; `undefined` s'il n'en reste aucune. */
+export function withoutLastHit(entry: WindowEntry | undefined): WindowEntry | undefined {
+  if (entry === undefined || entry.hits.length <= 1) return undefined
+  return { ...entry, hits: entry.hits.slice(0, -1) }
+}
+
 /** Vrai quand plus aucune consommation de la clé n'est dans sa fenêtre. */
 export function isExpired(entry: WindowEntry, now: number): boolean {
   const last = entry.hits.at(-1)

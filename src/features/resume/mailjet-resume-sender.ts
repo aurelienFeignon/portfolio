@@ -94,7 +94,11 @@ export class MailjetResumeSender implements ResumeSender {
       signal: AbortSignal.timeout(timeoutMs),
     })
 
-    if (!response.ok) throw new MailjetError(`HTTP ${response.status}`)
+    if (!response.ok) {
+      // Un corps jamais lu retient la connexion jusqu'au ramasse-miettes : on le jette.
+      await response.body?.cancel()
+      throw new MailjetError(`HTTP ${response.status}`)
+    }
     const status = await response.json().then(
       (body: unknown) =>
         (body as { Messages?: { Status?: unknown }[] } | null)?.Messages?.[0]?.Status,

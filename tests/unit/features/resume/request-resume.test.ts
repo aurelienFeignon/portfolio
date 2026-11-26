@@ -50,16 +50,28 @@ function submission(form: Record<string, unknown> = {}, ip: string | null = '203
 }
 
 /** Un limiteur qui consigne les clés vues : pour vérifier ce qui est compté, et dans quel ordre. */
-function recording(inner: RateLimiter): RateLimiter & { keys: string[] } {
+function recording(inner: RateLimiter): RateLimiter & { keys: string[]; released: string[] } {
   const keys: string[] = []
+  const released: string[] = []
   return {
     keys,
+    released,
     consume(key, rule) {
       keys.push(key)
       return inner.consume(key, rule)
     },
+    release(key) {
+      released.push(key)
+      return inner.release(key)
+    },
   }
 }
+
+/** Un limiteur dont la seule réponse est fixée par le test. */
+const fixed = (consume: RateLimiter['consume']): RateLimiter => ({
+  consume,
+  release: async () => {},
+})
 
 describe('requestResume', () => {
   it('envoie le CV dans la langue de la page, à l’adresse en minuscules', async () => {
@@ -176,7 +188,7 @@ describe('requestResume', () => {
   it('ne consomme pas le créneau d’une adresse quand le plafond global refuse', async () => {
     let open = false
     const { sender, deps } = setup({
-      globalLimiter: { consume: async () => ({ allowed: open }) },
+      globalLimiter: fixed(async () => ({ allowed: open })),
     })
     expect(await requestResume(submission({}, '198.51.100.1'), deps)).toBe('unavailable')
     expect(await requestResume(submission({}, '198.51.100.2'), deps)).toBe('unavailable')
@@ -194,17 +206,15 @@ describe('requestResume', () => {
   })
 
   it('est indisponible au plafond global atteint, sans rien envoyer', async () => {
-    const { sender, deps } = setup({ globalLimiter: { consume: async () => ({ allowed: false }) } })
+    const { sender, deps } = setup({ globalLimiter: fixed(async () => ({ allowed: false })) })
     expect(await requestResume(submission(), deps)).toBe('unavailable')
     expect(sender.sent).toEqual([])
   })
 
   it('est indisponible si la limitation échoue, et ne journalise pas l’adresse', async () => {
-    const failing: RateLimiter = {
-      consume: async () => {
-        throw new TypeError('visiteur@example.test')
-      },
-    }
+    const failing = fixed(async () => {
+      throw new TypeError('visiteur@example.test')
+    })
     const { sender, logs, deps } = setup({ visitorLimiter: failing })
     expect(await requestResume(submission(), deps)).toBe('unavailable')
     expect(sender.sent).toEqual([])
@@ -216,6 +226,26 @@ describe('requestResume', () => {
     sender.failWith(new Error('refus pour visiteur@example.test'))
     expect(await requestResume(submission(), deps)).toBe('unavailable')
     expect(logs).toEqual(['[resume] envoi en échec : Error'])
+  })
+
+  it('rend les créneaux de l’adresse et du plafond sur panne d’envoi, pas ceux de l’IP', async () => {
+    const visitor = recording(new MemoryRateLimiter(() => NOW))
+    const global = recording(new MemoryRateLimiter(() => NOW))
+    const { sender, deps } = setup({ visitorLimiter: visitor, globalLimiter: global })
+    sender.failWith()
+    expect(await requestResume(submission({}, '198.51.100.1'), deps)).toBe('unavailable')
+    expect(visitor.released).toEqual(['email:h(visiteur@example.test)'])
+    expect(global.released).toEqual(['global'])
+  })
+
+  it('après deux pannes d’envoi, la même adresse est encore servie : aucun « sent » à vide', async () => {
+    const { sender, deps } = setup()
+    sender.failWith()
+    expect(await requestResume(submission({}, '198.51.100.1'), deps)).toBe('unavailable')
+    expect(await requestResume(submission({}, '198.51.100.2'), deps)).toBe('unavailable')
+    sender.recover()
+    expect(await requestResume(submission({}, '198.51.100.3'), deps)).toBe('sent')
+    expect(sender.sent).toHaveLength(1)
   })
 
   it('décrit une panne qui n’est pas une erreur par son seul type', async () => {

@@ -114,4 +114,27 @@ describe('MemoryRateLimiter', () => {
   it('prend Date.now par défaut', async () => {
     expect((await new MemoryRateLimiter().consume('ip:a', rule)).allowed).toBe(true)
   })
+
+  describe('release (P10-07)', () => {
+    it('rend la dernière consommation admise : la place est de nouveau libre', async () => {
+      const { limiter } = setup()
+      for (let i = 0; i < 3; i++) await limiter.consume('k', rule)
+      await limiter.release('k')
+      expect((await limiter.consume('k', rule)).allowed).toBe(true)
+      expect((await limiter.consume('k', rule)).allowed).toBe(false)
+    })
+
+    it('oublie la clé quand sa seule consommation est rendue', async () => {
+      const { limiter } = setup()
+      await limiter.consume('k', rule)
+      await limiter.release('k')
+      expect(limiter.size).toBe(0)
+    })
+
+    it('ne fait rien sur une clé inconnue', async () => {
+      const { limiter } = setup()
+      await expect(limiter.release('inconnue')).resolves.toBeUndefined()
+      expect(limiter.size).toBe(0)
+    })
+  })
 })

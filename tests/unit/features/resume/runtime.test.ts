@@ -14,7 +14,6 @@ import { MemoryRateLimiter } from '@/features/resume/memory-rate-limiter'
 import {
   createResumeDeps,
   DAILY_CAP_FILE_ENV,
-  MAILJET_ENV,
   readMailjetConfig,
   resumeDeps,
 } from '@/features/resume/runtime'
@@ -49,7 +48,7 @@ describe('readMailjetConfig', () => {
   })
 
   it('nomme toutes les variables absentes', () => {
-    expect(readMailjetConfig({})).toEqual({ invalid: [...MAILJET_ENV] })
+    expect(readMailjetConfig({})).toEqual({ invalid: Object.keys(MAILJET) })
   })
 
   it.each([
@@ -70,6 +69,18 @@ describe('createResumeDeps', () => {
     expect(deps.sender).toBeInstanceOf(ConsoleResumeSender)
     expect(deps.globalLimiter).toBeInstanceOf(MemoryRateLimiter)
     expect(deps.visitorLimiter).toBeInstanceOf(MemoryRateLimiter)
+  })
+
+  it('hors production, une configuration Mailjet commencée mais invalide se dit au journal', () => {
+    const deps = createResumeDeps({ NODE_ENV: 'test', MAILJET_API_KEY: 'cle-factice' })
+    expect(deps.sender).toBeInstanceOf(ConsoleResumeSender)
+    expect(error).toHaveBeenCalledWith(expect.stringContaining('configuration Mailjet incomplète'))
+    expect(JSON.stringify(error.mock.calls)).not.toContain('cle-factice')
+  })
+
+  it('hors production, sans aucune variable Mailjet : la console, sans rien dire', () => {
+    createResumeDeps({ NODE_ENV: 'test' })
+    expect(error).not.toHaveBeenCalled()
   })
 
   it('avec une configuration Mailjet complète : Mailjet, dans tout environnement', () => {
