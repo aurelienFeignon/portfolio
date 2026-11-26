@@ -24,3 +24,12 @@ export interface ResumeSender {
    */
   sendResume(email: string, locale: Locale): Promise<void>
 }
+
+/**
+ * Le fournisseur a **refusé** le message : rien n'est parti, c'est certain (P10-07). Toute autre
+ * panne — délai dépassé, réseau coupé en cours de route — est **ambiguë** : le message a pu être
+ * accepté. L'appelant ne rend les créneaux consommés que sur ce refus-ci.
+ */
+export class ResumeRefusedError extends Error {
+  override readonly name: string = 'ResumeRefusedError'
+}

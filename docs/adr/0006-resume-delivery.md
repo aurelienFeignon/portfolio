@@ -204,9 +204,10 @@ sur un volume, car c'est la seule limite dont la perte au redémarrage serait ex
   `sent` (ne rien révéler d'un tiers) ; seule l'IP reçoit `limited`. Ordre : IP, plafond
   global, adresse — le plafond **avant** l'adresse, sans quoi une demande refusée au plafond
   consommait le créneau de l'adresse et le troisième essai répondait `sent` à vide. Une panne
-  d'envoi **rend** les créneaux de l'adresse et du plafond (`RateLimiter.release`, P10-07), pas
-  ceux de l'IP. ⚠️ Un délai dépassé est ambigu (Mailjet a pu accepter) : rendu quand même, au
-  risque d'un CV reçu deux fois plutôt que d'un envoi annoncé qui n'a pas eu lieu.
+  d'envoi **certaine** — Mailjet a refusé (`ResumeRefusedError`) — rend les créneaux de l'adresse et
+  du plafond (`RateLimiter.release`, P10-07), pas ceux de l'IP. Une panne **ambiguë** (délai
+  dépassé, réseau coupé : Mailjet a pu accepter) les garde, comme le veut le contrat de `release`
+  — le plafond protège un quota peut-être consommé ; il reste un essai à l'adresse.
 - **IPv6** comptée par son préfixe /64 : un client en choisit librement les bits bas.
 - **IP** : `CF-Connecting-IP`, fiable parce que l'origine n'accepte que Cloudflare ; hachée avant
   de servir de clé, comme l'adresse. Deux clés pour les deux règles par IP (une clé = une règle).
@@ -231,7 +232,9 @@ sur un volume, car c'est la seule limite dont la perte au redémarrage serait ex
   l'assemblage ; en production, une configuration incomplète désactive l'envoi (`unavailable`) et
   nomme les variables en cause au journal, jamais leurs valeurs ; jamais de repli sur la console.
   Les cinq variables de l'envoi sont **obligatoires**, aucune valeur par défaut cachée dans le
-  code ; hors production, une configuration commencée puis invalide est signalée au journal.
+  code. **Au démarrage** (`src/instrumentation.ts`), une ligne du journal dit l'expéditeur retenu
+  (`mailjet` | `console` | `aucun`), les variables en défaut et le plafond : une configuration
+  manquante se lit dans `docker logs` dès le déploiement, pas au premier visiteur.
 
 **Déclencheurs de réexamen**
 

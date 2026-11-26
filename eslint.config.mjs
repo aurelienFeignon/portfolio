@@ -63,6 +63,9 @@ const COMPOSITION_ROOTS = [
   // graphe — or c'est un point d'entrée exécuté à chaque visite de la racine, et
   // donc le dernier endroit où l'on veut pouvoir importer n'importe quoi.
   { target: './src/proxy.ts', label: 'src/proxy.ts', allowed: ['i18n', 'routing'] },
+  // `src/instrumentation.ts` (P10-07) : le crochet de démarrage de Next, hors couches lui aussi. Il
+  // ne fait que dire comment l'envoi du CV est configuré, donc ne voit que `features`.
+  { target: './src/instrumentation.ts', label: 'src/instrumentation.ts', allowed: ['features'] },
 ]
 
 const ALLOWED = {

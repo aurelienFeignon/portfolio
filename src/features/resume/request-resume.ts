@@ -31,17 +31,17 @@
  *    peut l'épuiser par d'autres adresses de toute façon.
  * 3. **Adresse** en dernier, juste avant l'envoi.
  *
- * Une panne d'**envoi** **rend** les créneaux de l'adresse et du plafond (`release`, P10-07) :
- * sans cela, deux pannes de Mailjet pour une même adresse la faisaient répondre `sent` à vide
- * jusqu'au lendemain. Les créneaux d'IP, eux, restent comptés : ils bornent les nouvelles
- * tentatives. ⚠️ Un **délai dépassé** est ambigu — Mailjet peut avoir accepté le message avant la
- * coupure ; le créneau est rendu quand même, et le visiteur qui réessaie peut recevoir le CV deux
- * fois. Préféré à l'inverse, qui lui ferait croire à un envoi qui n'a pas eu lieu.
+ * Un **refus certain** du fournisseur (`ResumeRefusedError`) **rend** les créneaux de l'adresse et
+ * du plafond (`release`, P10-07) : sans cela, deux refus de Mailjet pour une même adresse la
+ * faisaient répondre `sent` à vide jusqu'au lendemain. Une panne **ambiguë** — délai dépassé,
+ * réseau coupé — les garde, comme le veut le contrat de `release` : le message a pu partir, et le
+ * plafond protège un quota qu'il a peut-être consommé. Il reste alors un essai à l'adresse (2/24 h).
+ * Les créneaux d'IP restent toujours comptés : ils bornent les nouvelles tentatives.
  */
 import type { Locale } from '@/i18n/locales'
 
 import type { RateLimiter, RateRule } from './rate-limiter'
-import type { ResumeSender } from './resume-sender'
+import { ResumeRefusedError, type ResumeSender } from './resume-sender'
 import { parseResumeRequest } from './schema'
 
 /** Les issues, une seule fois : le type en dérive, et la lecture de l'URL ne peut en oublier. */
@@ -135,7 +135,9 @@ export async function requestResume(
     return 'sent'
   } catch (error) {
     deps.log(`[resume] envoi en échec : ${describe(error)}`)
-    await Promise.all([deps.visitorLimiter.release(emailKey), globalLimiter.release('global')])
+    if (error instanceof ResumeRefusedError) {
+      await Promise.all([deps.visitorLimiter.release(emailKey), globalLimiter.release('global')])
+    }
     return 'unavailable'
   }
 }

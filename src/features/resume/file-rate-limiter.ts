@@ -34,7 +34,7 @@ import {
   decide,
   isExpired,
   type WindowEntry,
-  withoutLastHit,
+  releaseLastHit,
 } from './sliding-window'
 
 const FORMAT_VERSION = 1
@@ -65,7 +65,7 @@ export class FileRateLimiter implements RateLimiter {
   }
 
   /** Dans la même file que les consommations : une restitution ne croise jamais une écriture. */
-  async release(key: string): Promise<void> {
+  release(key: string): Promise<void> {
     return this.#enqueue(() => this.#release(key))
   }
 
@@ -83,9 +83,7 @@ export class FileRateLimiter implements RateLimiter {
   async #release(key: string): Promise<void> {
     const state = await this.#read()
     if (state === null || !state.has(key)) return
-    const entry = withoutLastHit(state.get(key))
-    if (entry === undefined) state.delete(key)
-    else state.set(key, entry)
+    releaseLastHit(state, key)
     try {
       await this.#write(state)
     } catch (error) {

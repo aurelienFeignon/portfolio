@@ -13,9 +13,9 @@ import {
   MAILJET_SEND_URL,
   MailjetError,
   MailjetResumeSender,
-  resumePdfPath,
   type MailjetConfig,
 } from '@/features/resume/mailjet-resume-sender'
+import { ResumeRefusedError } from '@/features/resume/resume-sender'
 import { getMessages } from '@/i18n/messages'
 
 const CONFIG: MailjetConfig = {
@@ -98,15 +98,6 @@ describe('MailjetResumeSender — la requête', () => {
     expect(sentRequest(fetch).init.signal).toBeInstanceOf(AbortSignal)
     timeout.mockRestore()
   })
-
-  it('n’emploie que des textes du dictionnaire : la saisie n’entre ni au sujet ni au corps', () => {
-    for (const locale of ['fr', 'en'] as const) {
-      const { resumeEmail } = getMessages(locale)
-      expect(resumeEmail.subject.length).toBeGreaterThan(0)
-      expect(resumeEmail.text.length).toBeGreaterThan(0)
-      expect(resumeEmail.attachmentName).toMatch(/\.pdf$/)
-    }
-  })
 })
 
 describe('MailjetResumeSender — les réponses', () => {
@@ -125,11 +116,13 @@ describe('MailjetResumeSender — les réponses', () => {
       .sender.sendResume('visiteur@example.test', 'fr')
       .catch((caught: unknown) => caught)
     expect(error).toBeInstanceOf(MailjetError)
+    // Un refus CERTAIN : c'est ce qui autorise l'appelant à rendre les créneaux.
+    expect(error).toBeInstanceOf(ResumeRefusedError)
     expect((error as Error).name).toBe('MailjetError')
     expect((error as Error).message).not.toContain('visiteur@example.test')
   })
 
-  it('propage un délai dépassé comme une panne de transport', async () => {
+  it('propage un délai dépassé tel quel : panne ambiguë, pas un refus', async () => {
     const abort = new DOMException('délai', 'TimeoutError')
     const { sender } = setup(Promise.reject(abort))
     await expect(sender.sendResume('a@example.test', 'fr')).rejects.toBe(abort)
@@ -137,19 +130,18 @@ describe('MailjetResumeSender — les réponses', () => {
 })
 
 describe('le PDF joint par défaut', () => {
-  it.each(['fr', 'en'] as const)('est le CV versionné de la locale « %s »', async (locale) => {
-    expect(resumePdfPath(locale)).toMatch(new RegExp(`public/resume/cv-${locale}\\.pdf$`))
-    const pdf = await readFile(resumePdfPath(locale))
-    expect(pdf.subarray(0, 4).toString()).toBe('%PDF')
-  })
-
-  it('est lu sur le disque quand aucun lecteur n’est injecté', async () => {
-    const fetch = vi.fn<typeof globalThis.fetch>(async () => respond(200, SUCCESS))
-    await new MailjetResumeSender(CONFIG, { fetch }).sendResume('a@example.test', 'en')
-    const body = sentRequest(fetch).body as {
-      Messages: { Attachments: { Base64Content: string }[] }[]
-    }
-    const sent = Buffer.from(body.Messages[0]!.Attachments[0]!.Base64Content, 'base64')
-    expect(sent.equals(await readFile(resumePdfPath('en')))).toBe(true)
-  })
+  it.each(['fr', 'en'] as const)(
+    'est le CV versionné de la locale « %s », lu sur le disque',
+    async (locale) => {
+      const fetch = vi.fn<typeof globalThis.fetch>(async () => respond(200, SUCCESS))
+      await new MailjetResumeSender(CONFIG, { fetch }).sendResume('a@example.test', locale)
+      const body = sentRequest(fetch).body as {
+        Messages: { Attachments: { Base64Content: string }[] }[]
+      }
+      const sent = Buffer.from(body.Messages[0]!.Attachments[0]!.Base64Content, 'base64')
+      const served = await readFile(`public/resume/cv-${locale}.pdf`)
+      expect(served.subarray(0, 4).toString()).toBe('%PDF')
+      expect(sent.equals(served)).toBe(true)
+    },
+  )
 })

@@ -17,6 +17,7 @@ import {
   type ResumeRequestDeps,
   type ResumeSubmission,
 } from '@/features/resume/request-resume'
+import { ResumeRefusedError } from '@/features/resume/resume-sender'
 import { HONEYPOT_FIELD, MIN_FILL_MS, RENDERED_AT_FIELD } from '@/features/resume/schema'
 
 const NOW = 1_800_000_000_000
@@ -228,19 +229,29 @@ describe('requestResume', () => {
     expect(logs).toEqual(['[resume] envoi en échec : Error'])
   })
 
-  it('rend les créneaux de l’adresse et du plafond sur panne d’envoi, pas ceux de l’IP', async () => {
+  it('rend les créneaux de l’adresse et du plafond sur un refus certain, pas ceux de l’IP', async () => {
     const visitor = recording(new MemoryRateLimiter(() => NOW))
     const global = recording(new MemoryRateLimiter(() => NOW))
     const { sender, deps } = setup({ visitorLimiter: visitor, globalLimiter: global })
-    sender.failWith()
+    sender.failWith(new ResumeRefusedError('refus'))
     expect(await requestResume(submission({}, '198.51.100.1'), deps)).toBe('unavailable')
     expect(visitor.released).toEqual(['email:h(visiteur@example.test)'])
     expect(global.released).toEqual(['global'])
   })
 
-  it('après deux pannes d’envoi, la même adresse est encore servie : aucun « sent » à vide', async () => {
+  it('garde les créneaux sur une panne ambiguë (délai dépassé) : le message a pu partir', async () => {
+    const visitor = recording(new MemoryRateLimiter(() => NOW))
+    const global = recording(new MemoryRateLimiter(() => NOW))
+    const { sender, deps } = setup({ visitorLimiter: visitor, globalLimiter: global })
+    sender.failWith(new DOMException('délai', 'TimeoutError') as unknown as Error)
+    expect(await requestResume(submission(), deps)).toBe('unavailable')
+    expect(visitor.released).toEqual([])
+    expect(global.released).toEqual([])
+  })
+
+  it('après deux refus de Mailjet, la même adresse est encore servie : aucun « sent » à vide', async () => {
     const { sender, deps } = setup()
-    sender.failWith()
+    sender.failWith(new ResumeRefusedError('refus'))
     expect(await requestResume(submission({}, '198.51.100.1'), deps)).toBe('unavailable')
     expect(await requestResume(submission({}, '198.51.100.2'), deps)).toBe('unavailable')
     sender.recover()

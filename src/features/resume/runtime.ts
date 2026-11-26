@@ -26,18 +26,30 @@ import type { ResumeSender } from './resume-sender'
 
 export const DAILY_CAP_FILE_ENV = 'RESUME_DAILY_CAP_FILE'
 
-/** Les variables de l'envoi, et leur forme. Les noms sont ceux du fichier d'environnement. */
-const mailjetEnvSchema = z.object({
-  MAILJET_API_KEY: z.string().trim().min(1),
-  MAILJET_SECRET_KEY: z.string().trim().min(1),
-  RESUME_SENDER_EMAIL: z.email(),
-  RESUME_SENDER_NAME: z.string().trim().min(1),
-  // Un entier de millisecondes, borné : trop court, tout échoue ; trop long, la requête du
-  // visiteur reste pendue.
-  RESUME_SEND_TIMEOUT_MS: z.coerce.number().int().min(1_000).max(60_000),
-})
-
-const MAILJET_ENV = mailjetEnvSchema.keyof().options
+/**
+ * Les variables de l'envoi, et leur forme. Les noms sont ceux du fichier d'environnement ; la
+ * transformation rend directement la configuration de l'adaptateur.
+ */
+const mailjetEnvSchema = z
+  .object({
+    MAILJET_API_KEY: z.string().trim().min(1),
+    MAILJET_SECRET_KEY: z.string().trim().min(1),
+    RESUME_SENDER_EMAIL: z.email(),
+    RESUME_SENDER_NAME: z.string().trim().min(1),
+    // Un entier de millisecondes, borné : trop court, tout échoue ; trop long, la requête du
+    // visiteur reste pendue.
+    RESUME_SEND_TIMEOUT_MS: z.coerce.number().int().min(1_000).max(60_000),
+  })
+  .transform(
+    (e) =>
+      ({
+        apiKey: e.MAILJET_API_KEY,
+        secretKey: e.MAILJET_SECRET_KEY,
+        senderEmail: e.RESUME_SENDER_EMAIL,
+        senderName: e.RESUME_SENDER_NAME,
+        timeoutMs: e.RESUME_SEND_TIMEOUT_MS,
+      }) satisfies MailjetConfig,
+  )
 
 /**
  * La configuration Mailjet, ou les **noms** des variables absentes ou invalides. Les valeurs ne
@@ -47,46 +59,31 @@ export function readMailjetConfig(
   env: Readonly<Record<string, string | undefined>>,
 ): { readonly config: MailjetConfig } | { readonly invalid: readonly string[] } {
   const parsed = mailjetEnvSchema.safeParse(env)
-  if (!parsed.success) {
-    return { invalid: [...new Set(parsed.error.issues.map((issue) => String(issue.path[0])))] }
-  }
-  const e = parsed.data
-  return {
-    config: {
-      apiKey: e.MAILJET_API_KEY,
-      secretKey: e.MAILJET_SECRET_KEY,
-      senderEmail: e.RESUME_SENDER_EMAIL,
-      senderName: e.RESUME_SENDER_NAME,
-      timeoutMs: e.RESUME_SEND_TIMEOUT_MS,
-    },
-  }
+  if (parsed.success) return { config: parsed.data }
+  return { invalid: [...new Set(parsed.error.issues.map((issue) => String(issue.path[0])))] }
 }
 
 /** Les limiteurs survivent aux requêtes : ils vivent avec le processus. */
 let runtime: ResumeRequestDeps | undefined
 
+/**
+ * Assemble, et le **dit en une ligne** : expéditeur retenu (`mailjet` | `console` | `aucun`),
+ * variables en défaut (noms seuls), plafond (`fichier` | `mémoire` | `aucun`). Appelée au
+ * démarrage par `src/instrumentation.ts`, la ligne paraît au journal du conteneur avant toute
+ * visite — une configuration manquante ne se découvre pas au premier visiteur.
+ */
 export function createResumeDeps(env: NodeJS.ProcessEnv = process.env): ResumeRequestDeps {
   const production = env.NODE_ENV === 'production'
   const log = (message: string) => console.error(message)
 
   const mailjet = readMailjetConfig(env)
-  let sender: ResumeSender | null
-  if ('config' in mailjet) sender = new MailjetResumeSender(mailjet.config)
-  else if (production) {
-    sender = null
-    log(
-      `[resume] envoi désactivé, configuration Mailjet incomplète : ${mailjet.invalid.join(', ')}`,
-    )
-  } else {
-    // Hors production, la console — mais une configuration COMMENCÉE puis invalide se dit : sinon
-    // le formulaire répond « envoyé » et l'on croit l'intégration en place.
-    if (MAILJET_ENV.some((name) => env[name] !== undefined && env[name] !== '')) {
-      log(
-        `[resume] configuration Mailjet incomplète, CV journalisé : ${mailjet.invalid.join(', ')}`,
-      )
-    }
-    sender = new ConsoleResumeSender()
-  }
+  // ⛔ Jamais la console en production : elle écrirait les adresses des visiteurs au journal.
+  const sender: ResumeSender | null =
+    'config' in mailjet
+      ? new MailjetResumeSender(mailjet.config)
+      : production
+        ? null
+        : new ConsoleResumeSender()
 
   const capFile = env[DAILY_CAP_FILE_ENV]
   // Un fichier persisté si configuré ; sinon la mémoire hors production, et rien en production.
@@ -95,7 +92,16 @@ export function createResumeDeps(env: NodeJS.ProcessEnv = process.env): ResumeRe
     : production
       ? null
       : new MemoryRateLimiter()
-  if (globalLimiter === null) log(`[resume] envoi désactivé : ${DAILY_CAP_FILE_ENV} absente`)
+
+  const chosen = sender === null ? 'aucun' : 'config' in mailjet ? 'mailjet' : 'console'
+  const invalid =
+    'invalid' in mailjet ? ` (variables en défaut : ${mailjet.invalid.join(', ')})` : ''
+  const cap = capFile
+    ? 'fichier'
+    : globalLimiter === null
+      ? `aucun (${DAILY_CAP_FILE_ENV})`
+      : 'mémoire'
+  log(`[resume] expéditeur : ${chosen}${invalid} ; plafond global : ${cap}`)
 
   return {
     sender,

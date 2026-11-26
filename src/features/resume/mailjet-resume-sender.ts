@@ -11,8 +11,9 @@
  *
  * ## Les pannes
  *
- * Toute réponse autre qu'un `success` explicite **rejette** — statut HTTP, corps illisible, statut
- * de message `error`, délai dépassé. ⛔ Les erreurs ne portent ni l'adresse ni le corps de la
+ * Toute réponse autre qu'un `success` explicite **rejette** en `MailjetError`, un refus certain —
+ * statut HTTP, corps illisible, statut de message `error`. Un délai dépassé rejette tel quel
+ * (`TimeoutError`) : il est ambigu, Mailjet a pu accepter le message. ⛔ Les erreurs ne portent ni l'adresse ni le corps de la
  * réponse : `requestResume` n'en journalise que le nom, et le corps de Mailjet répète le
  * destinataire.
  */
@@ -22,7 +23,7 @@ import { join } from 'node:path'
 import type { Locale } from '@/i18n/locales'
 import { getMessages } from '@/i18n/messages'
 
-import type { ResumeSender } from './resume-sender'
+import { ResumeRefusedError, type ResumeSender } from './resume-sender'
 
 export const MAILJET_SEND_URL = 'https://api.mailjet.com/v3.1/send'
 
@@ -35,22 +36,21 @@ export interface MailjetConfig {
   readonly timeoutMs: number
 }
 
-export interface MailjetDeps {
+interface MailjetDeps {
   /** Injecté par les tests : aucun chemin de la suite ne joint le réseau. */
   readonly fetch?: typeof fetch
   /** Le PDF de la locale. Par défaut, celui que l'image sert sous `public/resume/`. */
   readonly readAttachment?: (locale: Locale) => Promise<Uint8Array>
 }
 
-/** Une panne de transport : le nom suffit au journal, le message ne dit que le statut. */
-export class MailjetError extends Error {
+/** Un refus de Mailjet : le nom suffit au journal, le message ne dit que le statut. */
+export class MailjetError extends ResumeRefusedError {
   override readonly name = 'MailjetError'
 }
 
 /** Le CV versionné de la locale, tel que l'image le sert (`public/resume/cv-<locale>.pdf`). */
-export function resumePdfPath(locale: Locale): string {
-  return join(process.cwd(), 'public', 'resume', `cv-${locale}.pdf`)
-}
+const readResumePdf = (locale: Locale) =>
+  readFile(join(process.cwd(), 'public', 'resume', `cv-${locale}.pdf`))
 
 export class MailjetResumeSender implements ResumeSender {
   readonly #config: MailjetConfig
@@ -60,7 +60,7 @@ export class MailjetResumeSender implements ResumeSender {
   constructor(config: MailjetConfig, deps: MailjetDeps = {}) {
     this.#config = config
     this.#fetch = deps.fetch ?? fetch
-    this.#readAttachment = deps.readAttachment ?? ((locale) => readFile(resumePdfPath(locale)))
+    this.#readAttachment = deps.readAttachment ?? readResumePdf
   }
 
   async sendResume(email: string, locale: Locale): Promise<void> {
@@ -99,11 +99,12 @@ export class MailjetResumeSender implements ResumeSender {
       await response.body?.cancel()
       throw new MailjetError(`HTTP ${response.status}`)
     }
-    const status = await response.json().then(
-      (body: unknown) =>
-        (body as { Messages?: { Status?: unknown }[] } | null)?.Messages?.[0]?.Status,
-      () => undefined,
-    )
-    if (status !== 'success') throw new MailjetError('statut de message non réussi')
+    // Un corps illisible vaut un refus : seul un `success` explicite dit que le message est parti.
+    const body = (await response.json().catch(() => null)) as {
+      Messages?: { Status?: unknown }[]
+    } | null
+    if (body?.Messages?.[0]?.Status !== 'success') {
+      throw new MailjetError('statut de message non réussi')
+    }
   }
 }

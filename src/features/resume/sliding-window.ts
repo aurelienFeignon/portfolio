@@ -59,10 +59,12 @@ export function decide(
   return { allowed: true, entry: { ...base, hits: [...hits, now] } }
 }
 
-/** L'historique sans sa dernière consommation ; `undefined` s'il n'en reste aucune. */
-export function withoutLastHit(entry: WindowEntry | undefined): WindowEntry | undefined {
-  if (entry === undefined || entry.hits.length <= 1) return undefined
-  return { ...entry, hits: entry.hits.slice(0, -1) }
+/** Retire de `entries` la dernière consommation de `key`, et la clé s'il n'en reste aucune. */
+export function releaseLastHit(entries: Map<string, WindowEntry>, key: string): void {
+  const entry = entries.get(key)
+  if (entry === undefined) return
+  if (entry.hits.length <= 1) entries.delete(key)
+  else entries.set(key, { ...entry, hits: entry.hits.slice(0, -1) })
 }
 
 /** Vrai quand plus aucune consommation de la clé n'est dans sa fenêtre. */

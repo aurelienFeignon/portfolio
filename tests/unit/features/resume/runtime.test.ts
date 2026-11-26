@@ -71,40 +71,40 @@ describe('createResumeDeps', () => {
     expect(deps.visitorLimiter).toBeInstanceOf(MemoryRateLimiter)
   })
 
-  it('hors production, une configuration Mailjet commencée mais invalide se dit au journal', () => {
-    const deps = createResumeDeps({ NODE_ENV: 'test', MAILJET_API_KEY: 'cle-factice' })
-    expect(deps.sender).toBeInstanceOf(ConsoleResumeSender)
-    expect(error).toHaveBeenCalledWith(expect.stringContaining('configuration Mailjet incomplète'))
+  it('dit en une ligne l’expéditeur et le plafond retenus, hors production', () => {
+    createResumeDeps({ NODE_ENV: 'test', MAILJET_API_KEY: 'cle-factice' })
+    expect(error).toHaveBeenCalledWith(
+      '[resume] expéditeur : console (variables en défaut : MAILJET_SECRET_KEY, ' +
+        'RESUME_SENDER_EMAIL, RESUME_SENDER_NAME, RESUME_SEND_TIMEOUT_MS) ; plafond global : mémoire',
+    )
     expect(JSON.stringify(error.mock.calls)).not.toContain('cle-factice')
-  })
-
-  it('hors production, sans aucune variable Mailjet : la console, sans rien dire', () => {
-    createResumeDeps({ NODE_ENV: 'test' })
-    expect(error).not.toHaveBeenCalled()
   })
 
   it('avec une configuration Mailjet complète : Mailjet, dans tout environnement', () => {
     for (const NODE_ENV of ['production', 'test'] as const) {
       expect(createResumeDeps({ NODE_ENV, ...MAILJET }).sender).toBeInstanceOf(MailjetResumeSender)
     }
+    expect(error).toHaveBeenCalledWith(
+      '[resume] expéditeur : mailjet ; plafond global : aucun (RESUME_DAILY_CAP_FILE)',
+    )
   })
 
   it('en production sans Mailjet : aucun expéditeur, jamais la console, et les noms au journal', () => {
     const deps = createResumeDeps({ NODE_ENV: 'production', ...MAILJET, MAILJET_SECRET_KEY: '' })
     expect(deps.sender).toBeNull()
     expect(error).toHaveBeenCalledWith(
-      '[resume] envoi désactivé, configuration Mailjet incomplète : MAILJET_SECRET_KEY',
+      '[resume] expéditeur : aucun (variables en défaut : MAILJET_SECRET_KEY) ; ' +
+        'plafond global : aucun (RESUME_DAILY_CAP_FILE)',
     )
-    expect(JSON.stringify(error.mock.calls)).not.toContain('cle-factice')
+    expect(JSON.stringify(error.mock.calls)).not.toContain('secret-factice')
   })
 
-  it('en production sans fichier de plafond : aucun plafond, donc indisponible, et dit', () => {
+  it('en production sans fichier de plafond : aucun plafond, donc indisponible', () => {
     expect(createResumeDeps({ NODE_ENV: 'production', ...MAILJET }).globalLimiter).toBeNull()
     expect(
       createResumeDeps({ NODE_ENV: 'production', ...MAILJET, [DAILY_CAP_FILE_ENV]: '' })
         .globalLimiter,
     ).toBeNull()
-    expect(error).toHaveBeenCalledWith(`[resume] envoi désactivé : ${DAILY_CAP_FILE_ENV} absente`)
   })
 
   it('avec un fichier de plafond : le plafond est persisté, dans tout environnement', () => {
@@ -112,6 +112,7 @@ describe('createResumeDeps', () => {
       const deps = createResumeDeps({ NODE_ENV, [DAILY_CAP_FILE_ENV]: '/data/plafond.json' })
       expect(deps.globalLimiter).toBeInstanceOf(FileRateLimiter)
     }
+    expect(error).toHaveBeenLastCalledWith(expect.stringContaining('plafond global : fichier'))
   })
 
   it('hache en SHA-256 hexadécimal, sans jamais rendre la valeur', () => {

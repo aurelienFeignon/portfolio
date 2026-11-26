@@ -206,7 +206,9 @@ l'application refuse de démarrer) et `/srv/portfolio/.ghcr-token` sont en `600`
 > principal partagé avec Augure), `RESUME_SENDER_EMAIL`, `RESUME_SENDER_NAME`,
 > `RESUME_SEND_TIMEOUT_MS` — **les cinq sont obligatoires**, aucune valeur par défaut —, et `RESUME_DAILY_CAP_FILE` (P10-05, fichier sur un volume inscriptible
 > par `node`). Modèle commenté : `.env.example`. Une variable absente ou invalide laisse le
-> formulaire **indisponible**, et le journal du conteneur nomme la variable — jamais sa valeur.
+> formulaire **indisponible**, et **dès le démarrage** le journal du conteneur dit en une ligne
+> `[resume] expéditeur : … ; plafond global : …`, variables en défaut nommées — jamais leurs valeurs.
+> C'est la première chose à lire après le geste : `docker compose -f /srv/portfolio/docker-compose.yml logs web | grep resume`.
 > ⭐ `deploy.sh` ne réécrit que la ligne `IMAGE_TAG` (`grep -v` puis ajout, fichier remis en `600`) :
 > les autres lignes survivent aux déploiements. Ajouter ces variables est un **geste VPS**, suivi
 > d'un redémarrage du conteneur pour qu'il les lise.
