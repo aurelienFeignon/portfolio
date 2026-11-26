@@ -18,7 +18,10 @@ import type { Metadata } from 'next'
 
 import { OUTCOME_PARAM, parseResumeOutcome } from '@/features/resume/request-resume'
 import { HONEYPOT_FIELD, RENDERED_AT_FIELD } from '@/features/resume/schema'
+import { LOCALES } from '@/i18n/locales'
 import { getMessages } from '@/i18n/messages'
+import { contactPath } from '@/routing/paths'
+import { LanguageSwitcher } from '@/ui/language-switcher'
 import lead from '@/ui/lead.module.css'
 import page from '@/ui/page.module.css'
 import { ReadingPanel } from '@/ui/reading-panel'
@@ -96,6 +99,16 @@ export default async function ContactPage({
           {contact.submit}
         </button>
       </form>
+
+      {/* La page existe dans chaque langue, au même segment : chaque option y mène. */}
+      <LanguageSwitcher
+        current={locale}
+        options={LOCALES.map((other) => ({
+          locale: other,
+          href: contactPath(other),
+          translated: true,
+        }))}
+      />
     </ReadingPanel>
   )
 }

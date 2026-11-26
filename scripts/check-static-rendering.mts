@@ -162,11 +162,10 @@ for (const route of pageRoutes) {
 
   // L'exception nommée (P10-06) : elle doit être rendue à la demande, et **seulement** ainsi.
   // Prérendue, elle graverait l'instant du build dans le time-trap, qui laisserait tout passer.
-  if (onDemandRoutes.has(route)) {
-    const prerenderedPaths = [...onDemandPaths].filter(
-      (path) => prerender.routes[path] !== undefined,
-    )
-    if (dynamic !== undefined || prerenderedPaths.length > 0) {
+  const onDemand = onDemandPages.find((page) => page.route === route)
+  if (onDemand !== undefined) {
+    const baked = onDemand.paths.filter((path) => prerender.routes[path] !== undefined)
+    if (dynamic !== undefined || baked.length > 0) {
       problems.push(
         `${route} — déclarée rendue à la demande (src/routing/on-demand.ts), mais prérendue ` +
           `au build : le time-trap porterait l'instant du build et laisserait tout passer. ` +
@@ -274,6 +273,13 @@ for (const path of difference(servedPages, servablePages)) {
 }
 
 for (const route of difference(servablePages, servedPages)) {
+  if (onDemandPaths.has(route)) {
+    problems.push(
+      `${route} — rendue à la demande mais absente du manifeste du proxy : celui-ci la ` +
+        `réécrirait vers la page introuvable, en 404. Régénérez « src/routing/route-manifest.ts ».`,
+    )
+    continue
+  }
   problems.push(
     `${route} — prégénérée mais absente du manifeste du proxy : celui-ci réécrirait ` +
       `une page réelle vers la page introuvable, en 404. Régénérez « src/routing/` +

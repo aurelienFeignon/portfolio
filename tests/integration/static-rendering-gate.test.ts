@@ -392,7 +392,9 @@ describe('manifeste du proxy', () => {
       const { code, output } = await checkRendering({ ...WITH_CONTACT, served: ['/fr'] })
 
       expect(code).toBe(1)
-      expect(output).toContain('/fr/contact — prégénérée mais absente du manifeste du proxy')
+      expect(output).toContain(
+        '/fr/contact — rendue à la demande mais absente du manifeste du proxy',
+      )
     })
   })
 })

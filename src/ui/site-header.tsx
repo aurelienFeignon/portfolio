@@ -12,17 +12,19 @@
  * `current` dit où se trouve le visiteur. C'est une valeur et non un booléen
  * séparé : deux props pour une seule information finiraient par se contredire.
  *
- * Elle est **requise**. Tout endroit du site en a une — les cinq layouts la
+ * Elle est **requise**. Tout endroit du site en a une — les six layouts la
  * déclarent —, et une prop optionnelle aurait décrit un état que rien ne peut
  * produire, testable seulement en le fabriquant. `SiteNav`, lui, la garde
  * facultative : là, l'absence est réelle.
  *
- * ⚠️ **Deux endroits ne sont pas une section, et pour des raisons opposées.**
+ * ⚠️ **Trois endroits ne sont pas une section.** Les deux premiers pour des raisons opposées :
  * L'accueil n'en est aucune parce qu'il les contient toutes : c'est la **marque**
  * qui y est marquée. La page introuvable (P4-07) n'en est aucune parce que le
  * visiteur **n'est nulle part** : rien n'y est marqué. Lui donner `'home'`
  * aurait annoncé « page courante » sur un lien qui mène ailleurs — la faute
- * exacte que la revue de P4-02 a relevée sur les pages de détail.
+ * exacte que la revue de P4-02 a relevée sur les pages de détail. La page de contact
+ * (P10-06) non plus : elle n'est pas dans la navigation tant que l'envoi réel (P10-07) n'est pas
+ * validé, donc rien n'y est marqué.
  *
  * Comme `SiteNav`, ce composant reçoit ses **liens tout faits** — `ui` ne peut
  * pas importer `routing` (`architecture.md` §1.2), et c'est ce qui le rend
@@ -35,7 +37,7 @@ import { initials } from './initials.ts'
 import styles from './site-header.module.css'
 import { SiteNav, type SectionLink, type SectionName } from './site-nav'
 
-/** Où se trouve le visiteur — une section, ou l'un des deux endroits qui n'en sont pas. */
+/** Où se trouve le visiteur — une section, ou l'un des trois endroits qui n'en sont pas. */
 export type CurrentPlace = SectionName | 'home' | 'notFound' | 'contact'
 
 export function SiteHeader({

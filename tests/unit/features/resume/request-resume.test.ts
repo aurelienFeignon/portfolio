@@ -10,6 +10,7 @@ import { FakeResumeSender } from '@/features/resume/fake-resume-sender'
 import { MemoryRateLimiter } from '@/features/resume/memory-rate-limiter'
 import type { RateLimiter } from '@/features/resume/rate-limiter'
 import {
+  ipBucket,
   parseResumeOutcome,
   requestResume,
   RESUME_LIMITS,
@@ -143,7 +144,7 @@ describe('requestResume', () => {
     expect(sender.sent).toHaveLength(2)
   })
 
-  it('compte les adresses et les IP hachées, jamais en clair, et le plafond global en dernier', async () => {
+  it('compte les adresses et les IP hachées, jamais en clair, plafond global avant l’adresse', async () => {
     const visitor = recording(new MemoryRateLimiter(() => NOW))
     const global = recording(new MemoryRateLimiter(() => NOW))
     const { deps } = setup({ visitorLimiter: visitor, globalLimiter: global })
@@ -156,14 +157,35 @@ describe('requestResume', () => {
     expect(global.keys).toEqual(['global'])
   })
 
-  it('compte sous une même clé les visiteurs sans IP connue (développement local)', async () => {
+  it('compte sous une même clé les visiteurs sans IP connue, et le signale sans adresse', async () => {
     const visitor = recording(new MemoryRateLimiter(() => NOW))
-    const { deps } = setup({ visitorLimiter: visitor })
+    const { deps, logs } = setup({ visitorLimiter: visitor })
     await requestResume(submission({}, null), deps)
     expect(visitor.keys[0]).toBe('ip-h:h(inconnue)')
+    expect(logs).toEqual(['[resume] IP du visiteur absente : limites par IP partagées'])
   })
 
-  it('n’entame pas le plafond global quand une limite de visiteur refuse', async () => {
+  it('compte une IPv6 par son préfixe /64 : une rotation des bits bas ne donne pas de compteur neuf', async () => {
+    const { sender, deps } = setup()
+    for (let i = 1; i <= 4; i++) {
+      await requestResume(submission({ email: `v${i}@example.test` }, `2001:db8:1:2::${i}`), deps)
+    }
+    expect(sender.sent).toHaveLength(RESUME_LIMITS.ipPerHour.limit)
+  })
+
+  it('ne consomme pas le créneau d’une adresse quand le plafond global refuse', async () => {
+    let open = false
+    const { sender, deps } = setup({
+      globalLimiter: { consume: async () => ({ allowed: open }) },
+    })
+    expect(await requestResume(submission({}, '198.51.100.1'), deps)).toBe('unavailable')
+    expect(await requestResume(submission({}, '198.51.100.2'), deps)).toBe('unavailable')
+    open = true
+    expect(await requestResume(submission({}, '198.51.100.3'), deps)).toBe('sent')
+    expect(sender.sent).toHaveLength(1)
+  })
+
+  it('n’entame pas le plafond global quand une limite d’IP refuse', async () => {
     const global = recording(new MemoryRateLimiter(() => NOW))
     const { deps } = setup({ globalLimiter: global })
     for (let i = 0; i < 4; i++)
@@ -214,5 +236,20 @@ describe('parseResumeOutcome', () => {
 
   it.each([undefined, '', 'SENT', 'autre', ['sent']])('ignore %j', (value) => {
     expect(parseResumeOutcome(value)).toBeNull()
+  })
+})
+
+describe('ipBucket', () => {
+  it.each([
+    ['203.0.113.7', '203.0.113.7'],
+    [' 203.0.113.7 ', '203.0.113.7'],
+    ['::ffff:203.0.113.7', '203.0.113.7'],
+    ['2001:DB8:0001:0002:aaaa:bbbb:cccc:dddd', '2001:db8:1:2::/64'],
+    ['2001:db8:1:2::9', '2001:db8:1:2::/64'],
+    ['2001:db8::1', '2001:db8:0:0::/64'],
+    ['::1', '0:0:0:0::/64'],
+    ['fe80::', 'fe80:0:0:0::/64'],
+  ])('%s → %s', (ip, bucket) => {
+    expect(ipBucket(ip)).toBe(bucket)
   })
 })
