@@ -13,12 +13,13 @@
 import type { Metadata } from 'next'
 import type { ReactNode } from 'react'
 
-import { contentRepository } from '@/content/repository'
 import { LOCALES, type Locale } from '@/i18n/locales'
 import { getMessages } from '@/i18n/messages'
 import { SECTIONS } from '@/routing/sections'
 import { SceneMount } from '@/scene/components/scene-mount'
-import type { BoardLabels } from '@/scene/state/board-render/labels'
+import boardLabelsEn from '@/scene/generated/board-labels.en.json'
+import boardLabelsFr from '@/scene/generated/board-labels.fr.json'
+import type { BoardContentLabels, BoardLabels } from '@/scene/state/board-render/labels'
 import { getSiteUrl } from '@/seo/site-url'
 import { SiteFooter } from '@/ui/site-footer'
 
@@ -84,14 +85,27 @@ export async function generateMetadata({ params }: LocaleParams): Promise<Metada
 }
 
 /**
+ * Les noms issus du contenu, **gravés au build** par `make board` (P10-06).
+ *
+ * ⛔ Ils étaient lus dans `content/` à chaque rendu. C'était sans conséquence tant que toutes les
+ * pages étaient prérendues ; la page de contact se rend à la demande, et ce layout avec elle. Le
+ * site tient pour invariant qu'**aucune requête ne lit `content/`** (gate de rendu statique) :
+ * le dossier n'est dans l'image que par effet du traceur de Next (`phase-4-log.md` §20.8), ce
+ * que rien ne garantit. Table exhaustive par construction : une locale sans fichier ne compile pas.
+ */
+const CONTENT_LABELS = {
+  fr: boardLabelsFr,
+  en: boardLabelsEn,
+} satisfies Record<Locale, BoardContentLabels>
+
+/**
  * Les noms que la carte affiche en étiquettes HTML (P8-15g, `carte-mere.md` §6) : sections et
- * familles depuis le dictionnaire, employeurs, projets et compétences depuis le contenu de la
- * locale. ⭐ Lus ICI, côté serveur : la scène n'importe ni dictionnaire ni contenu, et le plan de
+ * familles depuis le dictionnaire, employeurs, projets et compétences depuis les étiquettes
+ * gravées. ⭐ Lus ICI, côté serveur : la scène n'importe ni dictionnaire ni contenu, et le plan de
  * carte ne porte que des slugs.
  */
-async function boardLabels(locale: Locale): Promise<BoardLabels> {
+function boardLabels(locale: Locale): BoardLabels {
   const messages = getMessages(locale)
-  const { skills, experiences, projects } = await contentRepository.getAllForBoard(locale)
   return {
     sections: Object.fromEntries(
       SECTIONS.map((section) => [
@@ -100,9 +114,7 @@ async function boardLabels(locale: Locale): Promise<BoardLabels> {
       ]),
     ) as BoardLabels['sections'],
     families: messages.skills.categories,
-    experiences: Object.fromEntries(experiences.map((e) => [e.slug, e.company])),
-    projects: Object.fromEntries(projects.map((p) => [p.slug, p.title])),
-    skills: Object.fromEntries(skills.map((s) => [s.slug, s.name])),
+    ...CONTENT_LABELS[locale],
   }
 }
 
@@ -129,15 +141,15 @@ export default async function LocaleLayout({
             en bas d'une page courte. */}
         <div className={styles.grow}>{children}</div>
         {/* Le pied de page, lui, est identique partout : il n'a besoin de rien
-            savoir de la page. L'année est lue au build — toutes les routes sont
-            prérendues, elle est donc gravée à chaque déploiement. */}
+            savoir de la page. L'année est lue au rendu : gravée au build pour les
+            pages prérendues, lue à la requête pour la page de contact (P10-06). */}
         <SiteFooter locale={locale} year={new Date().getFullYear()} />
         {/* La scène 3D — la carte mère (P5-04, D14). Placée en DERNIER : `aria-hidden`, sans
             rien de focusable, montée après `idle` — jamais dans le chemin
             critique du LCP (ADR-0003). Au palier `none`, elle ne charge rien.
             Les noms de la carte lui sont DONNÉS : la scène n'importe aucun
             dictionnaire, ce qui alourdirait le JS de première visite. */}
-        <SceneMount labels={await boardLabels(locale)} />
+        <SceneMount labels={boardLabels(locale)} />
       </body>
     </html>
   )

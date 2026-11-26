@@ -1,5 +1,6 @@
 /**
- * Les plans de carte committés disent ce que le contenu d'aujourd'hui produit (P8-15b).
+ * Les plans de carte committés disent ce que le contenu d'aujourd'hui produit (P8-15b), et leurs
+ * étiquettes aussi (P10-06).
  *
  * `src/scene/generated/board-plan.<locale>.json` est lu par la scène en production : périmé, il
  * dessinerait une carte qui n'est plus celle du contenu. Le générateur est exécuté en
@@ -41,6 +42,13 @@ describe('plans de carte', () => {
         for (const [index, locale] of LOCALES.entries()) {
           const generated = await readFile(join(out, `board-plan.${locale}.json`), 'utf8')
           expect(generated, `régénérez : make board (${locale})`).toBe(committed[index])
+          // Les étiquettes que le layout lit à la place de `content/` (P10-06) : périmées, la
+          // carte nommerait un employeur ou un projet qui n'est plus celui du contenu.
+          const labels = `board-labels.${locale}.json`
+          expect(
+            await readFile(join(out, labels), 'utf8'),
+            `régénérez : make board (${labels})`,
+          ).toBe(await readFile(join(COMMITTED, labels), 'utf8'))
         }
       } finally {
         // ⛔ `/tmp` est en mémoire sur l'hôte : un répertoire laissé à chaque passe s'y accumule.
