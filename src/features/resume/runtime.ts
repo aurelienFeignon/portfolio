@@ -1,6 +1,6 @@
 /**
  * L'assemblage de production du parcours de demande (P10-06, P10-07) — le seul fichier qui lit
- * l'environnement. **Toute** la configuration de l'envoi vient du fichier d'environnement (`.env`
+ * l'environnement, en une décision pure (`planResume`). **Toute** la configuration de l'envoi vient du fichier d'environnement (`.env`
  * du serveur, chargé au démarrage du conteneur) : rien n'est gravé dans l'image, et les secrets
  * Mailjet ne passent donc jamais par le build ni par GHCR.
  *
@@ -14,15 +14,17 @@
  * - **Limites par visiteur** : en mémoire, une instance par processus (ADR-0006, assumé).
  */
 import { createHash } from 'node:crypto'
+import { existsSync } from 'node:fs'
 
 import { z } from 'zod'
 
 import { ConsoleResumeSender } from './console-resume-sender'
 import { FileRateLimiter } from './file-rate-limiter'
-import { MailjetResumeSender, type MailjetConfig } from './mailjet-resume-sender'
+import { LOCALES, type Locale } from '@/i18n/locales'
+
+import { MailjetResumeSender, resumePdfPath, type MailjetConfig } from './mailjet-resume-sender'
 import { MemoryRateLimiter } from './memory-rate-limiter'
 import type { ResumeRequestDeps } from './request-resume'
-import type { ResumeSender } from './resume-sender'
 
 export const DAILY_CAP_FILE_ENV = 'RESUME_DAILY_CAP_FILE'
 
@@ -63,45 +65,69 @@ export function readMailjetConfig(
   return { invalid: [...new Set(parsed.error.issues.map((issue) => String(issue.path[0])))] }
 }
 
+/**
+ * **La** décision de l'assemblage, pure et sans effet : quel expéditeur, quel plafond, et ce qui
+ * manque. `createResumeDeps` construit d'après elle ; le démarrage (`src/instrumentation.ts`) la
+ * décrit sans rien construire. Un seul endroit décide, donc la ligne du journal ne peut pas
+ * décrire autre chose que ce qui sert.
+ */
+export interface ResumePlan {
+  readonly sender: 'mailjet' | 'console' | 'aucun'
+  readonly mailjet: MailjetConfig | null
+  /** Variables absentes ou invalides, et PDF manquants — des noms, jamais des valeurs. */
+  readonly missing: readonly string[]
+  readonly cap: 'fichier' | 'mémoire' | 'aucun'
+  readonly capFile: string | null
+}
+
+export function planResume(
+  env: NodeJS.ProcessEnv,
+  pdfExists: (locale: Locale) => boolean = (locale) => existsSync(resumePdfPath(locale)),
+): ResumePlan {
+  const production = env.NODE_ENV === 'production'
+  const read = readMailjetConfig(env)
+  // Un PDF absent ferait échouer chaque envoi : c'est une faute de configuration, dite ici.
+  const pdfs = LOCALES.filter((locale) => !pdfExists(locale)).map(
+    (locale) => `public/resume/cv-${locale}.pdf`,
+  )
+  const missing = ['invalid' in read ? read.invalid : [], pdfs].flat()
+
+  let sender: ResumePlan['sender']
+  if ('config' in read && pdfs.length === 0) sender = 'mailjet'
+  else if (production) sender = 'aucun'
+  else sender = 'console'
+
+  const capFile = env[DAILY_CAP_FILE_ENV] || null
+  let cap: ResumePlan['cap']
+  if (capFile !== null) cap = 'fichier'
+  else if (production) cap = 'aucun'
+  else cap = 'mémoire'
+
+  return { sender, mailjet: 'config' in read ? read.config : null, missing, cap, capFile }
+}
+
+/** La ligne du journal : noms seulement, jamais une valeur. */
+export function describeResumePlan(plan: ResumePlan): string {
+  const missing = plan.missing.length > 0 ? ` (en défaut : ${plan.missing.join(', ')})` : ''
+  const cap = plan.cap === 'aucun' ? `aucun (${DAILY_CAP_FILE_ENV})` : plan.cap
+  return `[resume] expéditeur : ${plan.sender}${missing} ; plafond global : ${cap}`
+}
+
 /** Les limiteurs survivent aux requêtes : ils vivent avec le processus. */
 let runtime: ResumeRequestDeps | undefined
 
-/**
- * Assemble, et le **dit en une ligne** : expéditeur retenu (`mailjet` | `console` | `aucun`),
- * variables en défaut (noms seuls), plafond (`fichier` | `mémoire` | `aucun`). Appelée au
- * démarrage par `src/instrumentation.ts`, la ligne paraît au journal du conteneur avant toute
- * visite — une configuration manquante ne se découvre pas au premier visiteur.
- */
-export function createResumeDeps(env: NodeJS.ProcessEnv = process.env): ResumeRequestDeps {
-  const production = env.NODE_ENV === 'production'
-  const log = (message: string) => console.error(message)
-
-  const mailjet = readMailjetConfig(env)
-  // ⛔ Jamais la console en production : elle écrirait les adresses des visiteurs au journal.
-  const sender: ResumeSender | null =
-    'config' in mailjet
-      ? new MailjetResumeSender(mailjet.config)
-      : production
-        ? null
-        : new ConsoleResumeSender()
-
-  const capFile = env[DAILY_CAP_FILE_ENV]
-  // Un fichier persisté si configuré ; sinon la mémoire hors production, et rien en production.
-  const globalLimiter = capFile
-    ? new FileRateLimiter(capFile)
-    : production
-      ? null
-      : new MemoryRateLimiter()
-
-  const chosen = sender === null ? 'aucun' : 'config' in mailjet ? 'mailjet' : 'console'
-  const invalid =
-    'invalid' in mailjet ? ` (variables en défaut : ${mailjet.invalid.join(', ')})` : ''
-  const cap = capFile
-    ? 'fichier'
-    : globalLimiter === null
-      ? `aucun (${DAILY_CAP_FILE_ENV})`
-      : 'mémoire'
-  log(`[resume] expéditeur : ${chosen}${invalid} ; plafond global : ${cap}`)
+/** Construit d'après le plan, sans rien journaliser : le démarrage l'a déjà dit. */
+export function createResumeDeps(plan: ResumePlan = planResume(process.env)): ResumeRequestDeps {
+  const sender = {
+    mailjet: () => new MailjetResumeSender(plan.mailjet as MailjetConfig),
+    console: () => new ConsoleResumeSender(),
+    aucun: () => null,
+  }[plan.sender]()
+  const globalLimiter = {
+    fichier: () => new FileRateLimiter(plan.capFile as string),
+    mémoire: () => new MemoryRateLimiter(),
+    aucun: () => null,
+  }[plan.cap]()
 
   return {
     sender,
@@ -109,7 +135,7 @@ export function createResumeDeps(env: NodeJS.ProcessEnv = process.env): ResumeRe
     globalLimiter,
     now: Date.now,
     hash: (value) => createHash('sha256').update(value).digest('hex'),
-    log,
+    log: (message) => console.error(message),
   }
 }
 

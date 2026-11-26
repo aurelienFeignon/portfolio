@@ -122,6 +122,17 @@ describe('MailjetResumeSender — les réponses', () => {
     expect((error as Error).message).not.toContain('visiteur@example.test')
   })
 
+  it('refuse avec certitude, sans appeler Mailjet, si la pièce jointe est illisible', async () => {
+    const fetch = vi.fn<typeof globalThis.fetch>()
+    const sender = new MailjetResumeSender(CONFIG, {
+      fetch,
+      readAttachment: () => Promise.reject(new Error('ENOENT')),
+    })
+    const error = await sender.sendResume('a@example.test', 'fr').catch((caught: unknown) => caught)
+    expect(error).toBeInstanceOf(ResumeRefusedError)
+    expect(fetch).not.toHaveBeenCalled()
+  })
+
   it('propage un délai dépassé tel quel : panne ambiguë, pas un refus', async () => {
     const abort = new DOMException('délai', 'TimeoutError')
     const { sender } = setup(Promise.reject(abort))

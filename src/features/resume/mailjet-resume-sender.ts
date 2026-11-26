@@ -13,9 +13,11 @@
  *
  * Toute réponse autre qu'un `success` explicite **rejette** en `MailjetError`, un refus certain —
  * statut HTTP, corps illisible, statut de message `error`. Un délai dépassé rejette tel quel
- * (`TimeoutError`) : il est ambigu, Mailjet a pu accepter le message. ⛔ Les erreurs ne portent ni l'adresse ni le corps de la
- * réponse : `requestResume` n'en journalise que le nom, et le corps de Mailjet répète le
- * destinataire.
+ * (`TimeoutError`) : il est ambigu, Mailjet a pu accepter le message. Une pièce jointe illisible,
+ * avant tout appel, est un refus certain.
+ *
+ * ⛔ Les erreurs ne portent ni l'adresse ni le corps de la réponse : `requestResume` n'en
+ * journalise que le nom, et le corps de Mailjet répète le destinataire.
  */
 import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
@@ -49,8 +51,9 @@ export class MailjetError extends ResumeRefusedError {
 }
 
 /** Le CV versionné de la locale, tel que l'image le sert (`public/resume/cv-<locale>.pdf`). */
-const readResumePdf = (locale: Locale) =>
-  readFile(join(process.cwd(), 'public', 'resume', `cv-${locale}.pdf`))
+export function resumePdfPath(locale: Locale): string {
+  return join(process.cwd(), 'public', 'resume', `cv-${locale}.pdf`)
+}
 
 export class MailjetResumeSender implements ResumeSender {
   readonly #config: MailjetConfig
@@ -60,12 +63,15 @@ export class MailjetResumeSender implements ResumeSender {
   constructor(config: MailjetConfig, deps: MailjetDeps = {}) {
     this.#config = config
     this.#fetch = deps.fetch ?? fetch
-    this.#readAttachment = deps.readAttachment ?? readResumePdf
+    this.#readAttachment = deps.readAttachment ?? ((locale) => readFile(resumePdfPath(locale)))
   }
 
   async sendResume(email: string, locale: Locale): Promise<void> {
     const { resumeEmail } = getMessages(locale)
-    const attachment = await this.#readAttachment(locale)
+    // Avant tout appel, rien n'est parti : une pièce jointe illisible est un refus CERTAIN.
+    const attachment = await this.#readAttachment(locale).catch(() => {
+      throw new MailjetError('pièce jointe illisible')
+    })
     const { apiKey, secretKey, senderEmail, senderName, timeoutMs } = this.#config
 
     const response = await this.#fetch(MAILJET_SEND_URL, {

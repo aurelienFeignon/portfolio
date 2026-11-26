@@ -33,8 +33,8 @@ import {
   type Clock,
   decide,
   isExpired,
-  type WindowEntry,
   releaseLastHit,
+  type WindowEntry,
 } from './sliding-window'
 
 const FORMAT_VERSION = 1
