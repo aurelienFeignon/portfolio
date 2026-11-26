@@ -214,6 +214,21 @@ sur un volume, car c'est la seule limite dont la perte au redémarrage serait ex
   (P10-07) n'existe pas, et tant que `RESUME_DAILY_CAP_FILE` ne désigne pas un fichier sur le
   volume (P10-05, geste VPS) : un plafond en mémoire repartirait de zéro à chaque redémarrage.
 
+**Mise en œuvre de l'envoi (P10-07, 2026-11-26)**
+
+- `MailjetResumeSender` : `POST https://api.mailjet.com/v3.1/send`, authentification Basic,
+  `AbortSignal.timeout`. Toute réponse autre qu'un statut de message `success` explicite rejette
+  en `MailjetError`, dont le message ne porte que le statut — ni l'adresse, ni le corps de la
+  réponse (qui répète le destinataire).
+- **Sujet et corps dans les dictionnaires** (`resumeEmail` de `src/i18n/messages/<locale>.ts`),
+  dans la langue de la page de la demande, avec le PDF de la même locale
+  (`public/resume/cv-<locale>.pdf`). Complétude des deux langues garantie par le compilateur.
+- **Toute la configuration vient du fichier d'environnement** (décision du 2026-11-26) : clé et
+  secret, adresse et nom d'expédition, délai d'expiration, fichier du plafond. Rien n'est gravé
+  dans l'image : les secrets ne passent ni par le build ni par GHCR. Validation Zod à
+  l'assemblage ; en production, une configuration incomplète désactive l'envoi (`unavailable`) et
+  nomme les variables en cause au journal, jamais leurs valeurs ; jamais de repli sur la console.
+
 **Déclencheurs de réexamen**
 
 Passage à plusieurs répliques → store partagé pour le rate limit. Abus réel constaté → ajout de

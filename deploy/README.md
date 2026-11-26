@@ -201,6 +201,16 @@ le serveur déclare lui-même. `StrictHostKeyChecking=no` accepterait n'importe 
 Sur le serveur, rien n'est dans le dépôt : `/srv/portfolio/.env` (dont `SITE_URL`, sans laquelle
 l'application refuse de démarrer) et `/srv/portfolio/.ghcr-token` sont en `600`.
 
+> **Envoi du CV (P10-07) — tout passe par ce `.env`**, lu au démarrage du conteneur et jamais gravé
+> dans l'image : `MAILJET_API_KEY`, `MAILJET_SECRET_KEY` (sous-compte `portfolio`, jamais le compte
+> principal partagé avec Augure), `RESUME_SENDER_EMAIL`, `RESUME_SENDER_NAME`,
+> `RESUME_SEND_TIMEOUT_MS`, et `RESUME_DAILY_CAP_FILE` (P10-05, fichier sur un volume inscriptible
+> par `node`). Modèle commenté : `.env.example`. Une variable absente ou invalide laisse le
+> formulaire **indisponible**, et le journal du conteneur nomme la variable — jamais sa valeur.
+> ⭐ `deploy.sh` ne réécrit que la ligne `IMAGE_TAG` (`grep -v` puis ajout, fichier remis en `600`) :
+> les autres lignes survivent aux déploiements. Ajouter ces variables est un **geste VPS**, suivi
+> d'un redémarrage du conteneur pour qu'il les lise.
+
 > ⚠️ **`SITE_URL` est désormais fixée à la construction, et l'image la porte** (Phase 3,
 > [ADR-0008](../docs/adr/0008-self-hosted-vps-deployment.md) amendé). Les pages de contenu étant
 > statiques, leurs `canonical`, leurs `hreflang` et le `sitemap.xml` sont **gravés dans le HTML** au

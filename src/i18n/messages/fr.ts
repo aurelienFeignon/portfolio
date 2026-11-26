@@ -175,6 +175,24 @@ export const fr = {
    * ⛔ Les issues taisent ce qui révélerait un tiers : une adresse qui a déjà reçu le CV reçoit
    * le même message qu'un premier envoi (`architecture.md` §6).
    */
+  /**
+   * Le message qui porte le CV (P10-07). **Entièrement fixe** : rien de la saisie n'y entre, seul le
+   * destinataire varie (ADR-0006, anti-relais). Envoyé dans la langue de la page de la demande.
+   */
+  resumeEmail: {
+    subject: 'Le CV d’Aurélien Feignon',
+    text: [
+      'Bonjour,',
+      '',
+      'Vous trouverez ci-joint mon CV, au format PDF, comme demandé depuis mon portfolio.',
+      '',
+      'Si vous n’êtes pas à l’origine de cette demande, ignorez simplement ce message : aucune autre ne suivra.',
+      '',
+      'Aurélien Feignon',
+    ].join('\n'),
+    attachmentName: 'CV-Aurelien-Feignon.pdf',
+  },
+
   contact: {
     title: 'Recevoir mon CV',
     description: 'Recevoir le CV d’Aurélien Feignon par e-mail.',

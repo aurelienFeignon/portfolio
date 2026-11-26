@@ -94,6 +94,20 @@ export const en: Messages = {
     elsewhere: 'Or start from a section:',
   },
 
+  resumeEmail: {
+    subject: 'Aurélien Feignon’s résumé',
+    text: [
+      'Hello,',
+      '',
+      'Please find my résumé attached as a PDF, as requested from my portfolio.',
+      '',
+      'If you did not make this request, simply ignore this message: no other will follow.',
+      '',
+      'Aurélien Feignon',
+    ].join('\n'),
+    attachmentName: 'Resume-Aurelien-Feignon.pdf',
+  },
+
   contact: {
     title: 'Get my résumé',
     description: 'Receive Aurélien Feignon’s résumé by email.',
