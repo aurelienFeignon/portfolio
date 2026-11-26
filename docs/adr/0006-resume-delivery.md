@@ -68,7 +68,7 @@ panne), `ConsoleResumeSender` (développement sans identifiants).
 |---|---|
 | Mécanisme | **API Send v3.1 en HTTPS**, appelée avec le `fetch` natif — *pas* de SDK, *pas* de relais SMTP (voir ci-dessous) |
 | Dépendance ajoutée | **Aucune** |
-| Identité d'expédition | **Dédiée au portfolio** — sous-compte Mailjet si possible, sinon expéditeur et domaine propres — pour cloisonner quota et réputation vis-à-vis d'Augure (risque R-20) |
+| Identité d'expédition | **Dédiée au portfolio** — sous-compte Mailjet si possible, sinon expéditeur et domaine propres — pour cloisonner quota et réputation vis-à-vis d'Augure (risque R-20). ✅ **En place le 2026-11-25 (P10-13)** : sous-compte `portfolio`, seul porteur du domaine `aurelienfeignon.com`, expéditeur `cv@aurelienfeignon.com` |
 | Secrets | Clé et secret d'API, adresse d'expédition, en variables d'environnement validées au démarrage ; jamais dans le dépôt |
 | Pièce jointe | PDF statique versionné, lu depuis le système de fichiers de l'image (H-03), encodé en base64 dans la requête |
 | Prérequis vérifiés en P10-11 | Domaine du portfolio authentifié (SPF, DKIM), expéditeur validé, quota du plan connu (H-02a, H-02c) |
@@ -106,6 +106,12 @@ repose donc entièrement sur ces valeurs, à confirmer une fois le quota du plan
 | Par adresse IP | 3 / heure et 5 / 24 h | Absorbe une erreur de saisie ou un doute, bloque l'automatisation naïve. |
 | Par adresse e-mail | 2 / 24 h | Un visiteur n'a besoin du CV qu'une fois ; la seconde couvre le message égaré. Au-delà, c'est du harcèlement d'un tiers. |
 
+✅ **Quota confirmé le 2026-11-25 (P10-11, H-02c)** : plan Mailjet **gratuit**, **200 envois/jour**
+et **6 000/mois**, les deux limites s'appliquant ensemble et **partagées avec Augure**. Le plafond
+global de 20/jour en consomme au plus 10 % : il reste en dessous du quota sans recalibrage. Le
+domaine `aurelienfeignon.com` est **Active** chez Mailjet, SPF et DKIM **OK** — toute adresse du
+domaine peut donc expédier sans validation individuelle.
+
 Ces valeurs sont **délibérément basses**. Un visiteur légitime ne les rencontrera jamais ; un abus
 les rencontre immédiatement. En cas de saturation du plafond global, le service se coupe proprement
 avec un message invitant à utiliser le téléchargement direct du PDF (P10-08) — la fonction reste
@@ -132,7 +138,7 @@ sur un volume, car c'est la seule limite dont la perte au redémarrage serait ex
 | **Service tiers de formulaire** (Formspree, Getform) | Dépendance externe, données transitant chez un tiers, personnalisation limitée, et coût récurrent — pour un besoin que Next.js couvre nativement. |
 | **Autre fournisseur transactionnel** (Resend, Brevo, Postmark, SendGrid) | Tous conviendraient techniquement. Écartés parce qu'aucun n'apporte d'avantage décisif sur Mailjet **ici**, alors que Mailjet est déjà en place, déjà authentifié et déjà connu. Multiplier les comptes fournisseurs entre mes projets serait un coût sans contrepartie. |
 | **SMTP auto-hébergé sur le VPS** — *décision intermédiaire, annulée* | Aurait évité tout tiers et tout quota. Annulée dès vérification : Augure ne fonctionne pas ainsi, et monter une messagerie sortante (rDNS, SPF, DKIM, DMARC, déblocage du port 25, réchauffage d'IP, suivi des rejets) est un travail d'exploitation permanent, pour un risque de délivrabilité nettement supérieur — sur la seule fonction de conversion du site. |
-| **Sous-compte Mailjet dédié au portfolio** | Cloisonnerait le quota, et pas seulement la réputation — la seule solution qui ferme complètement R-20. Écarté **pour la v1** : les sous-comptes relèvent généralement des offres supérieures, et payer un plan pour isoler un formulaire qui enverra quelques CV par mois est disproportionné. **À prendre si le plan actuel les inclut déjà**, auquel cas c'est un gain gratuit. |
+| **Sous-compte Mailjet dédié au portfolio** | Cloisonnerait le quota, et pas seulement la réputation — la seule solution qui ferme complètement R-20. Écarté **pour la v1** : les sous-comptes relèvent généralement des offres supérieures, et payer un plan pour isoler un formulaire qui enverra quelques CV par mois est disproportionné. **À prendre si le plan actuel les inclut déjà**, auquel cas c'est un gain gratuit. → ✅ **Pris le 2026-11-25** (P10-13), l'offre gratuite en incluant un ; « cloisonnerait le quota » n'est pas établi, voir les conséquences (R-20). |
 | **Compte Mailjet entièrement séparé** | Cloisonnement parfait, mais un second compte à gérer, un second domaine à authentifier, une seconde facture éventuelle. Réservé au cas où un abus réel se produirait. |
 | **SDK `node-mailjet`** | Voir ci-dessus : dépendance sans bénéfice pour un unique appel HTTP. |
 | **Relais SMTP de Mailjet + Nodemailer** | Fonctionnel, mais impose une dépendance et une gestion d'erreurs moins fine que l'API. Repli si l'API venait à poser problème. |
@@ -173,6 +179,9 @@ sur un volume, car c'est la seule limite dont la perte au redémarrage serait ex
   en production dépend**. Augure cesserait d'envoyer. D'où deux exigences : identité d'expédition
   dédiée (sous-compte de préférence), et **plafond journalier global calibré sous le quota du
   plan** — il cesse d'être un garde-fou de coût pour devenir la protection d'un service tiers.
+  ✅ Le sous-compte (P10-13) sépare clés, statistiques, domaine et réputation. ⚠️ Le quota, lui,
+  n'est pas démontré séparé : la documentation Mailjet se contredit sur le partage des limites, et
+  l'offre gratuite ne propose aucune limite par clé. Le plafond reste la protection d'Augure.
 - **Dépendance à un service externe** : une panne Mailjet rend la fonction indisponible. Traitement :
   message neutre, délai d'expiration explicite, et aucun impact sur le reste du site (le
   téléchargement direct du PDF reste disponible, P10-08).
