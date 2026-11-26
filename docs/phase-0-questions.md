@@ -22,7 +22,7 @@ ici. Elles sont dans les ADR.
 | # | Réponse | Répercuté dans |
 |---|---|---|
 | **Q2** | **VPS dédié**, mais destiné à accueillir d'autres projets. → Le reverse proxy devient une **pile « edge » autonome** dès le départ, avec réseau Docker externe partagé. Caddy conservé ; déclencheur Traefik écrit (> ~5 services). | ADR-0008, `architecture.md` §7.2 |
-| **Q7** | *« je ne sais pas ce qui est le mieux »* → **tranché : compte partagé + plafond bas** (20/jour global, 5/24 h par IP, 2/24 h par adresse). Sous-compte à prendre **seulement s'il est déjà inclus** dans le plan. R-20 retombe de 6 à 3. | ADR-0006, H-02b, R-20 |
+| **Q7** | *« je ne sais pas ce qui est le mieux »* → **tranché : compte partagé + plafond bas** (20/jour global, 5/24 h par IP, 2/24 h par adresse). Sous-compte à prendre **seulement s'il est déjà inclus** dans le plan. R-20 retombe de 6 à 3. → Inclus : sous-compte `portfolio` **pris le 2026-11-25** (P10-13), plafond conservé. | ADR-0006, H-02b, R-20 |
 | **Q20** | Pas d'échéance ferme, **objectif de mise en ligne début septembre 2026**. → Plan découpé en trois tranches, **mise en production avancée à la fin de la Phase 4** (T1). | `roadmap.md` § Jalons, P4-13 à P4-16 |
 | **Q10** | *Répondu le 2026-08-12* : **(b) deux PDF**, `public/resume/cv-fr.pdf` et `cv-en.pdf`, fournis et **versionnés dans le dépôt public** — contrepartie assumée : les données personnelles du CV entrent dans un historique définitif. H-03 confirmée. | `vision.md` H-03, `public/README.md` |
 | **Q10 bis** | *Question née de Q10, tranchée le 2026-08-12* : le CV est **non indexable** (`X-Robots-Tag: noindex`, posé par l'application et non par Caddy, donc déployé par la CI et vérifié en E2E contre l'image de production). Motif : un PDF indexé ressort seul, détaché du site qui lui donne son contexte. | `next.config.ts`, `tests/e2e/profiles/desktop-chromium/resume.spec.ts` |
@@ -184,7 +184,8 @@ réputation, pas le quota. Sur un compte partagé, un abus du formulaire peut é
 
 **Recommandation** : **(a)** si le plan le permet. Sinon **(b)** avec un plafond conservateur — le
 risque résiduel est acceptable pour un portfolio, à condition que le plafond soit réellement bas.
-**Réponse** : ______
+**Réponse** : **(a)** le 2026-11-25 (P10-13) — l'offre gratuite inclut un sous-compte, créé sous le
+nom `portfolio`, **et** le plafond de (b) est conservé, le cloisonnement du quota n'étant pas établi.
 
 ---
 
@@ -192,12 +193,12 @@ risque résiduel est acceptable pour un portfolio, à condition que le plafond s
 *Pourquoi ça compte* : le plafond journalier du portfolio doit être calibré **sous** ce quota, en
 tenant compte de ce qu'Augure consomme déjà.
 
-- Quota du plan : ______ / jour, ______ / mois
-- Consommation habituelle d'Augure : ______
+- Quota du plan : **200** / jour, **6 000** / mois — offre gratuite, relevée le 2026-11-25 (P10-11)
+- Consommation habituelle d'Augure : **non relevée**
 
 **Recommandation** : si le plan gratuit s'applique (~200/jour), réserver **20 envois/jour** au
 portfolio. C'est très au-dessus du trafic attendu et très en dessous du seuil de nuisance.
-**Réponse** : ______
+**Réponse** : offre gratuite confirmée, **20/jour conservé** (ADR-0006).
 
 ---
 

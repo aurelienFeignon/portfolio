@@ -237,7 +237,9 @@ console.log(`\nNon vérifiable ici, à contrôler dans les tableaux de bord :`)
 console.log(
   `  - renouvellement automatique du domaine (registraire) — vérifié au whois le 2026-08-11`,
 )
-console.log(`  - expéditeur validé et domaine authentifié (Mailjet) — Active le 2026-08-12`)
+console.log(
+  `  - domaine authentifié dans le sous-compte Mailjet « portfolio » — SPF et DKIM Validé le 2026-11-25`,
+)
 
 if (failures > 0) {
   console.error(`\n✗ ${failures} point(s) en échec — P1-17 n'est pas terminée.`)
