@@ -29,6 +29,7 @@ import { writeFile } from 'node:fs/promises'
 
 import { contentRepository } from '../src/content/repository.ts'
 import { LOCALES, type Locale } from '../src/i18n/locales.ts'
+import { ON_DEMAND_PAGES } from '../src/routing/on-demand.ts'
 import { entityPath, homePath, sectionPath, shareImagePath } from '../src/routing/paths.ts'
 import { SECTIONS, SECTIONS_WITH_DETAIL, type SectionWithDetail } from '../src/routing/sections.ts'
 
@@ -57,6 +58,9 @@ async function servedPaths(): Promise<readonly string[]> {
     ...LOCALES.map(homePath),
     ...LOCALES.flatMap((locale) => SECTIONS.map((section) => sectionPath(locale, section))),
     ...entityPaths.flat(),
+    // Les pages rendues à la demande (P10-06) : servies, donc connues du proxy, mais ni
+    // prérendues ni au sitemap — le gate confronte l'exception dans les deux sens.
+    ...ON_DEMAND_PAGES.flatMap((page) => page.paths),
   ].sort()
 }
 

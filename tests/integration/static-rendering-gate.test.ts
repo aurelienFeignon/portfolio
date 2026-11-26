@@ -39,12 +39,17 @@ interface Manifests {
   readonly served?: readonly string[]
   /** Ce que le proxy laisse passer sans que ce soit une page. */
   readonly passthrough?: readonly string[]
+  /**
+   * L'exception nommée des pages rendues à la demande (P10-06). **Vide par défaut** : chaque cas
+   * dit la sienne, au lieu d'hériter de celle du dépôt — qui nomme une route absente d'ici.
+   */
+  readonly onDemand?: readonly { route: string; paths: readonly string[] }[]
 }
 
 /** Écrit une arborescence `.next` minimale, plus le module que lit le proxy. */
 async function writeBuild(
   manifests: Manifests,
-): Promise<{ root: string; servedPath: string; publicDir: string }> {
+): Promise<{ root: string; servedPath: string; publicDir: string; onDemand: string }> {
   const root = await mkdtemp(join(tmpdir(), 'next-manifests-'))
   await mkdir(join(root, 'server', 'app'), { recursive: true })
 
@@ -74,17 +79,22 @@ async function writeBuild(
       )}\n`,
   )
 
-  return { root, servedPath, publicDir }
+  return { root, servedPath, publicDir, onDemand: JSON.stringify(manifests.onDemand ?? []) }
 }
 
-function runGate(root: string, servedPath: string, publicDir: string): Promise<ScriptResult> {
-  return runScript(SCRIPT, [root, servedPath, publicDir])
+function runGate(
+  root: string,
+  servedPath: string,
+  publicDir: string,
+  onDemand = '[]',
+): Promise<ScriptResult> {
+  return runScript(SCRIPT, [root, servedPath, publicDir, onDemand])
 }
 
 /** Écrit le build fabriqué, puis exécute le gate contre lui. */
 async function checkRendering(manifests: Manifests): Promise<ScriptResult> {
-  const { root, servedPath, publicDir } = await writeBuild(manifests)
-  return runGate(root, servedPath, publicDir)
+  const { root, servedPath, publicDir, onDemand } = await writeBuild(manifests)
+  return runGate(root, servedPath, publicDir, onDemand)
 }
 
 /** Un site minuscule mais complet : une page, prégénérée, close, au sitemap et servie. */
@@ -325,5 +335,64 @@ describe('manifeste du proxy', () => {
 
     expect(code).toBe(1)
     expect(output).toContain('manifeste de routes')
+  })
+
+  describe('l’exception nommée des pages rendues à la demande (P10-06)', () => {
+    const CONTACT = { route: '/[locale]/contact', paths: ['/fr/contact'] }
+    /** Le site sain, plus une page de contact rendue à la demande : absente du prérendu. */
+    const WITH_CONTACT: Manifests = {
+      ...HEALTHY,
+      appRoutes: { ...HEALTHY.appRoutes, '/[locale]/contact/page': '/[locale]/contact' },
+      served: ['/fr', '/fr/contact'],
+      onDemand: [CONTACT],
+    }
+
+    it('admet la page déclarée, servie par le proxy et absente du sitemap', async () => {
+      const { code, output } = await checkRendering(WITH_CONTACT)
+
+      expect(output).toContain('1 rendue(s) à la demande par exception nommée')
+      expect(code).toBe(0)
+    })
+
+    it('refuse la même page sans déclaration : l’exception n’est jamais implicite', async () => {
+      const { code, output } = await checkRendering({ ...WITH_CONTACT, onDemand: [] })
+
+      expect(code).toBe(1)
+      expect(output).toContain("/[locale]/contact — n'est ni prégénérée, ni close")
+    })
+
+    it('refuse la page déclarée si elle est prérendue : le time-trap serait gravé', async () => {
+      const { code, output } = await checkRendering({
+        ...WITH_CONTACT,
+        routes: { ...WITH_CONTACT.routes, '/fr/contact': { compute: 'static', routeType: 'page' } },
+      })
+
+      expect(code).toBe(1)
+      expect(output).toContain('prérendue au build')
+    })
+
+    it('refuse une déclaration dont la route n’existe plus', async () => {
+      const { code, output } = await checkRendering({ ...HEALTHY, onDemand: [CONTACT] })
+
+      expect(code).toBe(1)
+      expect(output).toContain('absente du build')
+    })
+
+    it('refuse la page déclarée si le sitemap l’annonce', async () => {
+      const { code, output } = await checkRendering({
+        ...WITH_CONTACT,
+        sitemap: ['/fr', '/fr/contact'],
+      })
+
+      expect(code).toBe(1)
+      expect(output).toContain('annoncée au sitemap')
+    })
+
+    it('refuse la page déclarée si le proxy ne la connaît pas', async () => {
+      const { code, output } = await checkRendering({ ...WITH_CONTACT, served: ['/fr'] })
+
+      expect(code).toBe(1)
+      expect(output).toContain('/fr/contact — prégénérée mais absente du manifeste du proxy')
+    })
   })
 })

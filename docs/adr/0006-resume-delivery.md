@@ -191,6 +191,26 @@ sur un volume, car c'est la seule limite dont la perte au redémarrage serait ex
 - **Contrainte de volume** : le plan impose un plafond ; le service doit se couper proprement
   plutôt que d'échouer aléatoirement une fois le quota atteint.
 
+**Mise en œuvre (P10-06, 2026-11-26)**
+
+- **Post-Redirect-Get, sans JavaScript** : le formulaire est un composant serveur ; l'action
+  (`app/[locale]/contact/actions.ts`) assemble, puis redirige en 303 vers la page avec l'issue
+  seule dans l'URL (`?envoi=sent|invalid|limited|unavailable`). Aucun composant client, aucun
+  octet de JS applicatif ajouté. ⚠️ Conséquence assumée : une adresse refusée n'est pas
+  réaffichée — la remettre dans l'URL l'écrirait dans l'historique et les journaux d'accès.
+- **Le parcours** est `requestResume` (`features/resume/request-resume.ts`), pur de ses
+  dépendances ; l'assemblage de production est `runtime.ts`, seul lecteur de l'environnement.
+- **Ce que les issues taisent** : un robot et une adresse ayant atteint sa limite reçoivent
+  `sent` (ne rien révéler d'un tiers) ; seule l'IP reçoit `limited`. Le plafond global est
+  consommé **en dernier**, pour qu'une demande déjà écartée n'entame pas le quota d'Augure.
+- **IP** : `CF-Connecting-IP`, fiable parce que l'origine n'accepte que Cloudflare ; hachée avant
+  de servir de clé, comme l'adresse. Deux clés pour les deux règles par IP (une clé = une règle).
+- **Rendu à la demande** : exigé par le time-trap, nommé et gardé (`architecture.md` §4,
+  amendement du 2026-11-26).
+- ⛔ **En production, le formulaire répond `unavailable`** tant que `MailjetResumeSender`
+  (P10-07) n'existe pas, et tant que `RESUME_DAILY_CAP_FILE` ne désigne pas un fichier sur le
+  volume (P10-05, geste VPS) : un plafond en mémoire repartirait de zéro à chaque redémarrage.
+
 **Déclencheurs de réexamen**
 
 Passage à plusieurs répliques → store partagé pour le rate limit. Abus réel constaté → ajout de

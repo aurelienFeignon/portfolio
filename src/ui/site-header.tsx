@@ -36,7 +36,7 @@ import styles from './site-header.module.css'
 import { SiteNav, type SectionLink, type SectionName } from './site-nav'
 
 /** Où se trouve le visiteur — une section, ou l'un des deux endroits qui n'en sont pas. */
-export type CurrentPlace = SectionName | 'home' | 'notFound'
+export type CurrentPlace = SectionName | 'home' | 'notFound' | 'contact'
 
 export function SiteHeader({
   locale,
@@ -76,7 +76,9 @@ export function SiteHeader({
         <SiteNav
           locale={locale}
           links={links}
-          {...(current === 'home' || current === 'notFound' ? {} : { current })}
+          {...(current === 'home' || current === 'notFound' || current === 'contact'
+            ? {}
+            : { current })}
         />
       </div>
     </header>

@@ -95,6 +95,18 @@ export function notFoundPath(locale: Locale): string {
 }
 
 /**
+ * `/fr/contact` — la page de demande du CV (P10-06), **seule page rendue à la demande**.
+ *
+ * Trois endroits doivent s'accorder au caractère près : l'arborescence
+ * `app/[locale]/contact/`, le manifeste qui autorise le proxy à la servir, et le gate de rendu
+ * statique qui exige qu'elle **ne** soit **pas** prérendue (`on-demand.ts`). Le segment est le
+ * même dans les deux langues, et la page n'est liée par rien tant que P10-07 n'est pas validée.
+ */
+export function contactPath(locale: Locale): string {
+  return `${homePath(locale)}/contact`
+}
+
+/**
  * `/fr/opengraph-image` — l'image de partage de la langue (P4-08).
  *
  * Trois endroits doivent s'accorder au caractère près : le fichier

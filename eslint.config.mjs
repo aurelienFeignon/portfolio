@@ -15,7 +15,7 @@ import tseslint from 'typescript-eslint'
  *   ui/               →  i18n
  *   features/         →  i18n
  *   seo/              →  i18n, routing
- *   app/              →  content, i18n, routing, ui, scene, seo
+ *   app/              →  content, i18n, routing, ui, scene, seo, features
  *
  * Deux écarts par rapport à §1.2, l'un corrigé et l'autre ajouté — voir
  * `phase-1-log.md` §5 bis :
@@ -29,6 +29,12 @@ import tseslint from 'typescript-eslint'
  * les dépendances d'`app`, alors que §9 du même document fait alimenter
  * `generateMetadata` — qui ne peut vivre que dans `app` — par cette couche. Sans
  * cette autorisation, aucune page ne peut porter de `canonical`.
+ *
+ * **P10-06 ajoute `app → features`**, troisième omission du même genre : §8 range la
+ * Server Action et le schéma dans `features/resume/`, or seule une page — donc `app` — peut
+ * monter le formulaire qui les appelle. L'action elle-même vit dans `app` (elle lit les
+ * en-têtes et redirige vers une adresse de `routing`) ; `features` reste sans Next et ne
+ * dépend toujours que d'`i18n`.
  *
  * Un troisième, ouvert en Phase 2 (`phase-2-log.md` §7) : `content → i18n`. Le
  * contenu est indexé par locale, donc typé par elle ; l'alternative était une
@@ -67,7 +73,7 @@ const ALLOWED = {
   ui: ['i18n'],
   features: ['i18n'],
   seo: ['i18n', 'routing'],
-  app: ['content', 'i18n', 'routing', 'ui', 'scene', 'seo'],
+  app: ['content', 'i18n', 'routing', 'ui', 'scene', 'seo', 'features'],
 }
 
 const zones = [

@@ -94,6 +94,21 @@ export const en: Messages = {
     elsewhere: 'Or start from a section:',
   },
 
+  contact: {
+    title: 'Get my résumé',
+    description: 'Receive Aurélien Feignon’s résumé by email.',
+    intro: 'Enter your address: the résumé is sent to you by email, as a PDF.',
+    emailLabel: 'Email address',
+    submit: 'Send me the résumé',
+    honeypotLabel: 'Leave this field empty',
+    outcomes: {
+      sent: 'Request received: if the address is valid, the résumé is on its way.',
+      invalid: 'This email address is not valid. Please check it and try again.',
+      limited: 'Too many requests from your connection. Please try again a little later.',
+      unavailable: 'Sending is temporarily unavailable. Please try again later.',
+    },
+  },
+
   error: {
     title: 'Something went wrong',
     message:

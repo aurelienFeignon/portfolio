@@ -52,6 +52,9 @@ const LAYOUTS: Record<CurrentPlace, () => Promise<{ default: LayoutComponent }>>
   // est un `CurrentPlace` : c'est l'élargissement du **type** qui a rendu cette
   // ligne obligatoire, avant même que la suite ne démarre.
   notFound: () => import('@/app/[locale]/404/layout'),
+  // La page de contact (P10-06) : ni une section, ni liée par la navigation, mais servie avec le
+  // chrome du site comme les autres.
+  contact: () => import('@/app/[locale]/contact/layout'),
 }
 
 /**
@@ -71,6 +74,7 @@ const DIRECTORY_OF = {
   projects: 'projects',
   skills: 'skills',
   notFound: '404',
+  contact: 'contact',
 } as const satisfies Record<CurrentPlace, string>
 
 type LayoutComponent = (props: {
