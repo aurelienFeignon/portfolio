@@ -86,6 +86,10 @@ export default defineConfig({
         // qui vérifient que l'adresse annoncée répond réellement une image — ce
         // qu'un rendu jsdom ne ferait pas.
         'src/app/**/opengraph-image.tsx',
+        // Server Actions (P10-06) : même règle — lire les en-têtes, assembler, rediriger. Le
+        // parcours entier, et toutes ses branches, est `requestResume` (`src/features/resume`,
+        // seuil de 95 %) ; l'action est exercée par les parcours E2E sans JavaScript (P10-10).
+        'src/app/**/actions.ts',
         'src/app/icon.tsx',
         // Types purs et déclarations : rien à exécuter.
         'src/**/*.d.ts',

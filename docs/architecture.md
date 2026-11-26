@@ -47,7 +47,7 @@ content/  ──────▶  i18n
 i18n/     ──────▶  (rien)
 routing/  ──────▶  i18n
 scene/    ──────▶  routing, i18n          ✗ jamais content
-app/      ──────▶  content, i18n, routing, ui, scene, seo
+app/      ──────▶  content, i18n, routing, ui, scene, seo, features
 ui/       ──────▶  i18n
 features/resume/  ──────▶  i18n
 seo/      ──────▶  i18n, routing
@@ -63,6 +63,13 @@ proxy.ts  ──────▶  i18n, routing          racine de composition, h
 > - **`seo` ajouté.** Le dossier figure dans l'arborescence de §8 mais dans aucune liste de
 >   dépendances. Contrainte posée par défaut, **à confirmer en P3-06** quand les métadonnées seront
 >   réellement écrites.
+>
+> **Corrigé le 2026-11-26 (P10-06) : `app → features` ajouté.** Même omission que `app → scene` :
+> §8 range l'action et le schéma dans `features/resume/`, mais seule une page de `app` peut monter
+> le formulaire qui les appelle. La Server Action est restée dans `app/[locale]/contact/` — elle
+> lit les en-têtes et redirige vers un chemin de `routing` — ; le parcours lui-même
+> (`requestResume`) et son assemblage (`runtime.ts`) sont dans `features/resume/`, qui ne dépend
+> toujours que d'`i18n`.
 >
 > **Modifié le 2026-08-12 (P2-02) : `content → i18n` est autorisé.** La rédaction initiale
 > (`content → rien`) rendait impossible ce que §3.3 exige au même moment : une API de contenu
@@ -336,6 +343,20 @@ Aucun ISR en v1 : le contenu ne change qu'au déploiement (H-05).
 > - **`SITE_URL` est nécessaire au build**, et pas seulement à l'exécution : les `canonical`, les
 >   `hreflang` et le sitemap sont gravés dans le HTML statique. Voir l'amendement de
 >   l'[ADR-0008](./adr/0008-self-hosted-vps-deployment.md).
+
+> **Amendé le 2026-11-26 (P10-06) : une exception nommée, la page de contact.**
+>
+> `/[locale]/contact` est **rendue à la demande**, et c'est la seule. Le time-trap de l'ADR-0006
+> pose l'instant du rendu en champ caché ; prérendue, la page porterait l'instant du build et le
+> piège laisserait tout passer. L'exception est **déclarée** dans `src/routing/on-demand.ts` et
+> confrontée au build par `check-static-rendering.mts`, dans les deux sens : la route doit exister,
+> **ne pas** être prérendue, figurer au manifeste du proxy et **pas** au sitemap.
+>
+> - L'invariant « aucune requête ne lit `content/` » tient pour elle aussi : la page ne lit que
+>   les dictionnaires, et le layout racine qu'elle traverse ne lit plus le contenu — les noms de
+>   la carte mère sont gravés par `make board` (`src/scene/generated/board-labels.<locale>.json`).
+> - Elle est hors navigation, hors sitemap et `noindex` tant que l'envoi réel (P10-07) n'est pas
+>   validé.
 
 > **Amendé le 2026-08-16 (P4-07) : `src/proxy.ts` ne s'exécute plus seulement sur `/`.**
 >

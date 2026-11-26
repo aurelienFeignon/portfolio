@@ -13,6 +13,7 @@
 /** Les **pages** du site. Toute autre URL est réécrite vers la page introuvable. */
 export const SERVED_PATHS: readonly string[] = [
   '/en',
+  '/en/contact',
   '/en/experiences',
   '/en/experiences/askor',
   '/en/experiences/augure',
@@ -25,6 +26,7 @@ export const SERVED_PATHS: readonly string[] = [
   '/en/projects/portfolio',
   '/en/skills',
   '/fr',
+  '/fr/contact',
   '/fr/experiences',
   '/fr/experiences/askor',
   '/fr/experiences/augure',

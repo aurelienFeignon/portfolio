@@ -15,7 +15,7 @@ import tseslint from 'typescript-eslint'
  *   ui/               →  i18n
  *   features/         →  i18n
  *   seo/              →  i18n, routing
- *   app/              →  content, i18n, routing, ui, scene, seo
+ *   app/              →  content, i18n, routing, ui, scene, seo, features
  *
  * Deux écarts par rapport à §1.2, l'un corrigé et l'autre ajouté — voir
  * `phase-1-log.md` §5 bis :
@@ -29,6 +29,12 @@ import tseslint from 'typescript-eslint'
  * les dépendances d'`app`, alors que §9 du même document fait alimenter
  * `generateMetadata` — qui ne peut vivre que dans `app` — par cette couche. Sans
  * cette autorisation, aucune page ne peut porter de `canonical`.
+ *
+ * **P10-06 ajoute `app → features`**, troisième omission du même genre : §8 range la
+ * Server Action et le schéma dans `features/resume/`, or seule une page — donc `app` — peut
+ * monter le formulaire qui les appelle. L'action elle-même vit dans `app` (elle lit les
+ * en-têtes et redirige vers une adresse de `routing`) ; `features` reste sans Next et ne
+ * dépend toujours que d'`i18n`.
  *
  * Un troisième, ouvert en Phase 2 (`phase-2-log.md` §7) : `content → i18n`. Le
  * contenu est indexé par locale, donc typé par elle ; l'alternative était une
@@ -67,10 +73,29 @@ const ALLOWED = {
   ui: ['i18n'],
   features: ['i18n'],
   seo: ['i18n', 'routing'],
-  app: ['content', 'i18n', 'routing', 'ui', 'scene', 'seo'],
+  app: ['content', 'i18n', 'routing', 'ui', 'scene', 'seo', 'features'],
 }
 
+/**
+ * ⭐ P10-06 — **rien sur le chemin d'une page rendue à la demande ne lit `content/`.** C'est
+ * l'invariant qui rend admissible l'exception de `src/routing/on-demand.ts`, et sans cette zone
+ * il n'était tenu par rien : un import du dépôt de contenu dans la page de contact, ou de retour
+ * dans le layout racine, passait lint, tsc et le gate. Le dossier est dans l'image par le seul
+ * effet du traceur de Next (`phase-4-log.md` §20.8), donc la lecture réussirait en silence.
+ */
+const ON_DEMAND_PATH = [
+  './src/app/[[]locale]/layout.tsx',
+  './src/app/[[]locale]/place-layout.tsx',
+  './src/app/[[]locale]/contact/**',
+]
+
 const zones = [
+  ...ON_DEMAND_PATH.map((target) => ({
+    target,
+    from: './src/content',
+    message:
+      'Une page rendue à la demande (et les layouts qu’elle traverse) ne lit jamais `src/content` : P10-06, `src/routing/on-demand.ts`.',
+  })),
   ...LAYERS.flatMap((layer) =>
     LAYERS.filter((other) => other !== layer && !ALLOWED[layer].includes(other)).map(
       (forbidden) => ({

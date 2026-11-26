@@ -38,6 +38,13 @@ export interface BoardLabels {
   readonly skills: Readonly<Record<string, string>>
 }
 
+/**
+ * La part des noms qui vient du **contenu** : gravée au build par `make board`
+ * (`src/scene/generated/board-labels.<locale>.json`), jamais lue dans `content/` à l'exécution
+ * — une page rendue à la demande (P10-06) passe aussi par le layout qui les fournit.
+ */
+export type BoardContentLabels = Pick<BoardLabels, 'experiences' | 'projects' | 'skills'>
+
 export type BoardLabelKind = 'section' | 'family' | 'experience' | 'project' | 'skill'
 
 /** L'identifiant d'une étiquette : son genre et sa clé (`project:<slug>`). */

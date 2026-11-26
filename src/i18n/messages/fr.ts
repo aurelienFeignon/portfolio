@@ -169,6 +169,28 @@ export const fr = {
   },
 
   /**
+   * Demande du CV par e-mail (P10-06). Page rendue à la demande, ni liée ni au sitemap tant que
+   * l'envoi réel n'est pas validé (P10-07).
+   *
+   * ⛔ Les issues taisent ce qui révélerait un tiers : une adresse qui a déjà reçu le CV reçoit
+   * le même message qu'un premier envoi (`architecture.md` §6).
+   */
+  contact: {
+    title: 'Recevoir mon CV',
+    description: 'Recevoir le CV d’Aurélien Feignon par e-mail.',
+    intro: 'Indiquez votre adresse : le CV vous est envoyé par e-mail, au format PDF.',
+    emailLabel: 'Adresse e-mail',
+    submit: 'Recevoir le CV',
+    honeypotLabel: 'Ne remplissez pas ce champ',
+    outcomes: {
+      sent: 'Demande reçue : si l’adresse est valide, le CV est en route.',
+      invalid: 'Cette adresse e-mail n’est pas valide. Vérifiez-la et réessayez.',
+      limited: 'Trop de demandes depuis votre connexion. Réessayez un peu plus tard.',
+      unavailable: 'L’envoi est momentanément indisponible. Réessayez plus tard.',
+    },
+  },
+
+  /**
    * Frontières d'erreur (P4-07).
    *
    * ⛔ **Aucun détail de la panne n'est affiché**, et c'est une décision, pas un

@@ -2,6 +2,12 @@
  * Engendre le plan de la carte mère à partir du contenu (P8-15b, `carte-mere.md` §12) :
  * un fichier JSON par locale, versionné, que la scène charge à la demande.
  *
+ * Il engendre aussi, par locale, `board-labels.<locale>.json` : les **noms** issus du contenu
+ * (employeurs, projets, compétences) que le layout racine donne à la scène (P8-15g). ⛔ Le layout
+ * les lisait dans `content/` à chaque rendu, ce qui n'était sans conséquence que tant que toutes
+ * les pages étaient prérendues : la page de contact (P10-06) se rend à la demande, et aucune
+ * requête ne doit lire `content/`. Les graver ici ferme ce chemin pour tout layout.
+ *
  *   node scripts/generate-board-plan.mts [--year AAAA] [--out <dossier>]
  *
  * Par défaut : l'année courante, et `src/scene/generated/`.
@@ -28,6 +34,7 @@ import { LOCALES, type Locale } from '../src/i18n/locales.ts'
 import { boardLosses, buildBoardFile, summarize } from '../src/scene/state/board/file.ts'
 import { toBoardContent } from '../src/scene/state/board/content.ts'
 import type { BoardFile } from '../src/scene/state/board-render/file-format.ts'
+import type { BoardContentLabels } from '../src/scene/state/board-render/labels.ts'
 
 const { values } = parseArgs({
   options: { year: { type: 'string' }, out: { type: 'string' } },
@@ -41,14 +48,22 @@ if (!Number.isInteger(year)) {
 const defaultDir = join(import.meta.dirname, '..', 'src', 'scene', 'generated')
 const outDir = values.out ?? defaultDir
 
-async function build(locale: Locale): Promise<{ file: BoardFile; ms: number }> {
+async function build(
+  locale: Locale,
+): Promise<{ file: BoardFile; labels: BoardContentLabels; ms: number }> {
   const started = performance.now()
-  const file = buildBoardFile(toBoardContent(await contentRepository.getAllForBoard(locale)), {
+  const content = await contentRepository.getAllForBoard(locale)
+  const file = buildBoardFile(toBoardContent(content), {
     locale,
     year,
     chipSizing: 'uniform',
   })
-  return { file, ms: Math.round(performance.now() - started) }
+  const labels: BoardContentLabels = {
+    experiences: Object.fromEntries(content.experiences.map((e) => [e.slug, e.company])),
+    projects: Object.fromEntries(content.projects.map((p) => [p.slug, p.title])),
+    skills: Object.fromEntries(content.skills.map((s) => [s.slug, s.name])),
+  }
+  return { file, labels, ms: Math.round(performance.now() - started) }
 }
 
 /** L'année gravée dans le fichier déjà présent, ou `undefined` s'il manque ou est illisible. */
@@ -76,14 +91,20 @@ if (failures.length > 0) {
 }
 
 await mkdir(outDir, { recursive: true })
-for (const { locale, file, ms } of built) {
-  const path = join(outDir, `board-plan.${locale}.json`)
-  const previous = await engravedYear(path)
-  // La config se résout depuis le dossier versionné, pas depuis `--out` (un dossier temporaire
-  // n'en voit aucune, et le test de fraîcheur comparerait alors deux mises en forme).
-  const config = await prettier.resolveConfig(join(defaultDir, `board-plan.${locale}.json`))
-  const text = await prettier.format(JSON.stringify(file), { ...config, parser: 'json' })
-  await writeFile(path, text, 'utf8')
+/**
+ * La config se résout depuis le dossier versionné, pas depuis `--out` (un dossier temporaire
+ * n'en voit aucune, et le test de fraîcheur comparerait alors deux mises en forme).
+ */
+async function writeJson(name: string, value: unknown): Promise<void> {
+  const config = await prettier.resolveConfig(join(defaultDir, name))
+  const text = await prettier.format(JSON.stringify(value), { ...config, parser: 'json' })
+  await writeFile(join(outDir, name), text, 'utf8')
+}
+
+for (const { locale, file, labels, ms } of built) {
+  const previous = await engravedYear(join(outDir, `board-plan.${locale}.json`))
+  await writeJson(`board-plan.${locale}.json`, file)
+  await writeJson(`board-labels.${locale}.json`, labels)
   console.log(summarize(file, ms))
   if (previous !== undefined && previous < year) {
     console.log(

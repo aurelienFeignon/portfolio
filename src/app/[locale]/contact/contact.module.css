@@ -1,0 +1,61 @@
+/*
+ * Le formulaire de demande du CV (P10-06). Sobre à dessein : la repasse visuelle de la page
+ * attend P10-07 et sa place dans la carte mère (Phase 9).
+ */
+
+.form {
+  display: grid;
+  gap: var(--space-4);
+  max-width: 28rem;
+}
+
+.field {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.field input {
+  /* `composes` ne s'applique pas à un sélecteur descendant : le jeton, faute de mieux. */
+  min-height: var(--tap-target-min);
+  padding: 0 var(--space-3);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+}
+
+.submit {
+  composes: tapTarget from '../../../ui/tap-target.module.css';
+
+  justify-self: start;
+  padding: 0 var(--space-4);
+  border: 1px solid var(--color-accent);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-accent);
+  font: inherit;
+  cursor: pointer;
+}
+
+.submit:hover {
+  background: var(--color-panel);
+}
+
+.outcome {
+  padding: var(--space-3);
+  border-left: 3px solid var(--color-accent);
+  background: var(--color-panel);
+}
+
+/*
+ * Le honeypot : hors de l'écran plutôt que `display: none`, qu'un robot sait reconnaître et
+ * ignorer. `aria-hidden` et `tabindex="-1"` le retirent déjà de l'accessibilité et du clavier.
+ */
+.trap {
+  position: absolute;
+  left: -10000px;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
