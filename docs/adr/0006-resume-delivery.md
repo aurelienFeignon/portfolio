@@ -203,8 +203,11 @@ sur un volume, car c'est la seule limite dont la perte au redémarrage serait ex
 - **Ce que les issues taisent** : un robot et une adresse ayant atteint sa limite reçoivent
   `sent` (ne rien révéler d'un tiers) ; seule l'IP reçoit `limited`. Ordre : IP, plafond
   global, adresse — le plafond **avant** l'adresse, sans quoi une demande refusée au plafond
-  consommait le créneau de l'adresse et le troisième essai répondait `sent` à vide. Résidu
-  assumé : une panne d'envoi consomme encore ce créneau (le contrat `RateLimiter` ne rend rien).
+  consommait le créneau de l'adresse et le troisième essai répondait `sent` à vide. Une panne
+  d'envoi **certaine** — Mailjet a refusé (`ResumeRefusedError`) — rend les créneaux de l'adresse et
+  du plafond (`RateLimiter.release`, P10-07), pas ceux de l'IP. Une panne **ambiguë** (délai
+  dépassé, réseau coupé : Mailjet a pu accepter) les garde, comme le veut le contrat de `release`
+  — le plafond protège un quota peut-être consommé ; il reste un essai à l'adresse.
 - **IPv6** comptée par son préfixe /64 : un client en choisit librement les bits bas.
 - **IP** : `CF-Connecting-IP`, fiable parce que l'origine n'accepte que Cloudflare ; hachée avant
   de servir de clé, comme l'adresse. Deux clés pour les deux règles par IP (une clé = une règle).
@@ -213,6 +216,26 @@ sur un volume, car c'est la seule limite dont la perte au redémarrage serait ex
 - ⛔ **En production, le formulaire répond `unavailable`** tant que `MailjetResumeSender`
   (P10-07) n'existe pas, et tant que `RESUME_DAILY_CAP_FILE` ne désigne pas un fichier sur le
   volume (P10-05, geste VPS) : un plafond en mémoire repartirait de zéro à chaque redémarrage.
+
+**Mise en œuvre de l'envoi (P10-07, 2026-11-26)**
+
+- `MailjetResumeSender` : `POST https://api.mailjet.com/v3.1/send`, authentification Basic,
+  `AbortSignal.timeout`. Toute réponse autre qu'un statut de message `success` explicite rejette
+  en `MailjetError`, dont le message ne porte que le statut — ni l'adresse, ni le corps de la
+  réponse (qui répète le destinataire).
+- **Sujet et corps dans les dictionnaires** (`resumeEmail` de `src/i18n/messages/<locale>.ts`),
+  dans la langue de la page de la demande, avec le PDF de la même locale
+  (`public/resume/cv-<locale>.pdf`). Complétude des deux langues garantie par le compilateur.
+- **Toute la configuration vient du fichier d'environnement** (décision du 2026-11-26) : clé et
+  secret, adresse et nom d'expédition, délai d'expiration, fichier du plafond. Rien n'est gravé
+  dans l'image : les secrets ne passent ni par le build ni par GHCR. Validation Zod à
+  l'assemblage ; en production, une configuration incomplète désactive l'envoi (`unavailable`) et
+  nomme les variables en cause au journal, jamais leurs valeurs ; jamais de repli sur la console.
+  Les sept variables de l'envoi sont **obligatoires** — dont les liens GitHub et LinkedIn ajoutés
+  sous la signature, en `https`, une ligne chacun —, aucune valeur par défaut cachée dans le
+  code. **Au démarrage** (`src/instrumentation.ts`), une ligne du journal dit l'expéditeur retenu
+  (`mailjet` | `console` | `aucun`), les variables en défaut et le plafond : une configuration
+  manquante se lit dans `docker logs` dès le déploiement, pas au premier visiteur.
 
 **Déclencheurs de réexamen**
 

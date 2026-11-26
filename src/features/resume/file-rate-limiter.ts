@@ -28,7 +28,14 @@ import { mkdir, open, readFile, rename } from 'node:fs/promises'
 import { dirname, resolve } from 'node:path'
 
 import type { RateLimiter, RateResult, RateRule } from './rate-limiter'
-import { assertRule, type Clock, decide, isExpired, type WindowEntry } from './sliding-window'
+import {
+  assertRule,
+  type Clock,
+  decide,
+  isExpired,
+  releaseLastHit,
+  type WindowEntry,
+} from './sliding-window'
 
 const FORMAT_VERSION = 1
 
@@ -54,13 +61,34 @@ export class FileRateLimiter implements RateLimiter {
     // Une règle incohérente est une erreur de programmation : elle rejette tout
     // de suite, sans passer pour une panne de stockage.
     assertRule(rule)
+    return this.#enqueue(() => this.#consume(key, rule))
+  }
+
+  /** Dans la même file que les consommations : une restitution ne croise jamais une écriture. */
+  release(key: string): Promise<void> {
+    return this.#enqueue(() => this.#release(key))
+  }
+
+  #enqueue<T>(task: () => Promise<T>): Promise<T> {
     const previous = queues.get(this.#path) ?? Promise.resolve()
-    const run = previous.then(() => this.#consume(key, rule))
+    const run = previous.then(task)
     queues.set(
       this.#path,
       run.catch(() => undefined),
     )
     return run
+  }
+
+  /** Stockage en échec ⇒ le créneau reste consommé (côté sûr), signalé, jamais une exception. */
+  async #release(key: string): Promise<void> {
+    const state = await this.#read()
+    if (state === null || !state.has(key)) return
+    releaseLastHit(state, key)
+    try {
+      await this.#write(state)
+    } catch (error) {
+      this.#log(`[FileRateLimiter] restitution impossible, créneau conservé : ${describe(error)}`)
+    }
   }
 
   async #consume(key: string, rule: RateRule): Promise<RateResult> {

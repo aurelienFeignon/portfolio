@@ -30,6 +30,14 @@ services:
     env_file:
       - .env
 
+    # Plafond global journalier de l'envoi du CV, persisté (P10-05, ADR-0006) : sans
+    # lui, un redémarrage remettrait le compteur à zéro et ne protégerait plus le
+    # quota Mailjet partagé avec Augure. Répertoire de l'hôte appartenant à l'uid
+    # 1000 (`node` dans l'image), créé une fois à la main ; `.env` y pointe par
+    # RESUME_DAILY_CAP_FILE=/data/resume/plafond.json.
+    volumes:
+      - ./resume-data:/data/resume
+
     # Aucun port publié — et c'est structurel, pas une économie. Un port publié
     # par Docker contourne `ufw` (règles iptables écrites en amont). Le conteneur
     # n'est joignable que par le réseau `edge`, donc uniquement par Caddy.

@@ -31,15 +31,17 @@
  *    peut l'épuiser par d'autres adresses de toute façon.
  * 3. **Adresse** en dernier, juste avant l'envoi.
  *
- * ⚠️ Résidu assumé : une panne d'**envoi** consomme encore le créneau de l'adresse **et** celui du
- * plafond global. Deux pannes pour la même adresse dans la journée la feraient répondre `sent` à
- * vide jusqu'au lendemain. Le contrat `RateLimiter` ne rend rien ; un `release` est la
- * correction de fond, à trancher avec P10-07 (délai d'expiration et pannes réelles de Mailjet).
+ * Un **refus certain** du fournisseur (`ResumeRefusedError`) **rend** les créneaux de l'adresse et
+ * du plafond (`release`, P10-07) : sans cela, deux refus de Mailjet pour une même adresse la
+ * faisaient répondre `sent` à vide jusqu'au lendemain. Une panne **ambiguë** — délai dépassé,
+ * réseau coupé — les garde, comme le veut le contrat de `release` : le message a pu partir, et le
+ * plafond protège un quota qu'il a peut-être consommé. Il reste alors un essai à l'adresse (2/24 h).
+ * Les créneaux d'IP restent toujours comptés : ils bornent les nouvelles tentatives.
  */
 import type { Locale } from '@/i18n/locales'
 
 import type { RateLimiter, RateRule } from './rate-limiter'
-import type { ResumeSender } from './resume-sender'
+import { ResumeRefusedError, type ResumeSender } from './resume-sender'
 import { parseResumeRequest } from './schema'
 
 /** Les issues, une seule fois : le type en dérive, et la lecture de l'URL ne peut en oublier. */
@@ -102,6 +104,7 @@ export async function requestResume(
   const { email, locale } = verdict.request
 
   if (deps.sender === null || deps.globalLimiter === null) return 'unavailable'
+  const { sender, globalLimiter } = deps
 
   if (submission.ip === null) {
     // Sans IP, tous les visiteurs partagent un compteur : bénin en local, mais en production le
@@ -109,6 +112,7 @@ export async function requestResume(
     deps.log('[resume] IP du visiteur absente : limites par IP partagées')
   }
 
+  const emailKey = `email:${deps.hash(email)}`
   try {
     const ip = deps.hash(ipBucket(submission.ip ?? 'inconnue'))
     const perHour = await deps.visitorLimiter.consume(`ip-h:${ip}`, RESUME_LIMITS.ipPerHour)
@@ -116,13 +120,10 @@ export async function requestResume(
     const perDay = await deps.visitorLimiter.consume(`ip-j:${ip}`, RESUME_LIMITS.ipPerDay)
     if (!perDay.allowed) return 'limited'
 
-    const global = await deps.globalLimiter.consume('global', RESUME_LIMITS.globalPerDay)
+    const global = await globalLimiter.consume('global', RESUME_LIMITS.globalPerDay)
     if (!global.allowed) return 'unavailable'
 
-    const address = await deps.visitorLimiter.consume(
-      `email:${deps.hash(email)}`,
-      RESUME_LIMITS.emailPerDay,
-    )
+    const address = await deps.visitorLimiter.consume(emailKey, RESUME_LIMITS.emailPerDay)
     if (!address.allowed) return 'sent'
   } catch (error) {
     deps.log(`[resume] limitation de débit en échec : ${describe(error)}`)
@@ -130,10 +131,13 @@ export async function requestResume(
   }
 
   try {
-    await deps.sender.sendResume(email, locale)
+    await sender.sendResume(email, locale)
     return 'sent'
   } catch (error) {
     deps.log(`[resume] envoi en échec : ${describe(error)}`)
+    if (error instanceof ResumeRefusedError) {
+      await Promise.all([deps.visitorLimiter.release(emailKey), globalLimiter.release('global')])
+    }
     return 'unavailable'
   }
 }

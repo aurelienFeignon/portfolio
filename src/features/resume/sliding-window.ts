@@ -59,6 +59,14 @@ export function decide(
   return { allowed: true, entry: { ...base, hits: [...hits, now] } }
 }
 
+/** Retire de `entries` la dernière consommation de `key`, et la clé s'il n'en reste aucune. */
+export function releaseLastHit(entries: Map<string, WindowEntry>, key: string): void {
+  const entry = entries.get(key)
+  if (entry === undefined) return
+  if (entry.hits.length <= 1) entries.delete(key)
+  else entries.set(key, { ...entry, hits: entry.hits.slice(0, -1) })
+}
+
 /** Vrai quand plus aucune consommation de la clé n'est dans sa fenêtre. */
 export function isExpired(entry: WindowEntry, now: number): boolean {
   const last = entry.hits.at(-1)
